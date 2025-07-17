@@ -1,0 +1,14 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /home/ec2-user/heroz-app
+hooks:
+  AfterInstall:
+    - location: scripts/after_install.sh
+      timeout: 100
+      runas: ec2-user
+  ApplicationStart:
+    - location: scripts/start.sh
+      timeout: 100
+      runas: ec2-user
