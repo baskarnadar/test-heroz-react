@@ -25,7 +25,7 @@ import { API_BASE_URL } from '../config'
 const UserRoleLabel = () => {
   const usertype = localStorage.getItem('usertype')
 
-  let roleLabel = 'SAMPLE Hero'
+  let roleLabel = 'SAMPLE'
   if (usertype == 'SCHOOL-SUBADMIN') {
     roleLabel = ''
   } else if (usertype == 'VENDOR-SUBADMIN') {
