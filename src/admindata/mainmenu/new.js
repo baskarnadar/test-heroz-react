@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../../../config';
-import { checkLogin } from '../../../utils/auth';
-import { DspToastMessage } from '../../../utils/operation';
+import { API_BASE_URL } from '../../config';
+import { checkLogin } from '../../utils/auth';
+import { DspToastMessage } from '../../utils/operation';
 const AddNewmainmenu = () => {
   const navigate = useNavigate();
 

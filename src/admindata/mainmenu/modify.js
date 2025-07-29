@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { API_BASE_URL } from '../../../config';
-import '../../../scss/toast.css';
-import { checkLogin } from '../../../utils/auth';
-import { DspToastMessage } from '../../../utils/operation';
+import { API_BASE_URL } from '../../config';
+import '../../scss/toast.css';
+import { checkLogin } from '../../utils/auth';
+import { DspToastMessage } from '../../utils/operation';
 
 const MainMenuForm = () => {
   const navigate = useNavigate();
