@@ -36,7 +36,7 @@ export default function LoginForm() {
         />
       </label>
       <button type="submit" className={styles.button}>
-        Login
+        Login here
       </button>
     </form>
   );
