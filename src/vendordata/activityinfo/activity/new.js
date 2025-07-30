@@ -97,8 +97,48 @@ const Vendor = () => {
   }
 
   const [days, setDays] = useState({
-    sunday: { times: [{ start: '', end: '' }], total: '', closed: false, notes: '' },
-    monday: { times: [{ start: '', end: '' }], total: '', closed: false, notes: '' },
+    sunday: {
+      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      total: '',
+      closed: false,
+      note: '',
+    },
+    monday: {
+      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      total: '',
+      closed: false,
+      note: '',
+    },
+    tuesday: {
+      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      total: '',
+      closed: false,
+      note: '',
+    },
+    wednesday: {
+      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      total: '',
+      closed: false,
+      note: '',
+    },
+    thursday: {
+      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      total: '',
+      closed: false,
+      note: '',
+    },
+    friday: {
+      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      total: '',
+      closed: false,
+      note: '',
+    },
+    saturday: {
+      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      total: '',
+      closed: false,
+      note: '',
+    },
     // more days...
   })
   const handleClosedChange = (day, isClosed) => {
@@ -791,7 +831,7 @@ const Vendor = () => {
               onChange={(e) => setYouTube2(e.target.value)}
               required
             />
-            <FilePreview file={txtactImageName2} />
+           
           </div>
 
           {/* Image 3 */}
@@ -803,7 +843,7 @@ const Vendor = () => {
               onChange={(e) => setYouTube3(e.target.value)}
               required
             />
-            <FilePreview file={txtactImageName3} />
+             
           </div>
         </div>
       </div>
@@ -1083,7 +1123,7 @@ const Vendor = () => {
       <div className="txtsubtitle">Set Availability</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          {['sunday', 'monday'].map((day) => (
+            {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
             <div
               key={day}
               style={{
