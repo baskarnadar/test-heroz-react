@@ -50,14 +50,14 @@ const ActivityList = () => {
     setLoading(true)
     try {
       const response = await fetch(
-        `${API_BASE_URL}/vendordata/activityinfo/activity/activityList`,
+        `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             page: currentPage,
             limit: ActivityPerPage,
-          }),
+          }),W
         },
       )
 
