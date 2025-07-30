@@ -46,34 +46,53 @@ const ActivityList = () => {
     }
   }, [currentPage, navigate, toastMessage])
 
-  const fetchActivity = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            page: currentPage,
-            limit: ActivityPerPage,
-          }),W
-        },
-      )
+ const fetchActivity = async () => {
+  setLoading(true);
+  setError(null);
 
-      if (!response.ok) throw new Error('Failed to fetch activities')
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: currentPage,
+          limit: ActivityPerPage,
+        }),
+      }
+    );
 
-      const data = await response.json()
-      console.log('data')
-      console.log(data.data)
-      setActivity(data.data || [])
-      setTotalPages(Math.ceil(data.totalCount / ActivityPerPage))
-    } catch (error) {
-      setError('Error fetching activities')
-    } finally {
-      setLoading(false)
+    // If the server returns a non-2xx, try to read the message and throw
+    if (!response.ok) {
+      let message = `Request failed with status ${response.status}`;
+      try {
+        const errJson = await response.json();
+        if (errJson?.message) message = errJson.message;
+      } catch {
+        // response body not JSON; keep default message
+      }
+      throw new Error(message);
     }
+
+    // Happy path
+    const data = await response.json();
+
+    const list = Array.isArray(data?.data) ? data.data : [];
+    const totalCount =
+      Number.isFinite(data?.totalCount) ? data.totalCount : list.length;
+
+    setActivity(list);
+    setTotalPages(
+      Math.max(1, Math.ceil(totalCount / (ActivityPerPage || 1)))
+    );
+  } catch (error) {
+    // Surface a useful error message instead of a fixed string
+    setError(error?.message || 'Error fetching activities');
+  } finally {
+    setLoading(false);
   }
+};
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
 
