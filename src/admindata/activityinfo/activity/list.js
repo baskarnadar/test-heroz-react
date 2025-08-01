@@ -98,8 +98,15 @@ const ActivityList = () => {
 
  
   const handleViewClick = (ActivityID,VendorID) => {
-    navigate(`/admindata/activityinfo/activity/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
+ navigate(`/admindata/activityinfo/activity/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
+  const handleBookedClick = (ActivityID,VendorID) => {
+    
+
+       navigate(`/admindata/activityinfo/trip/list?ActivityID=${ActivityID}&VendorID=${VendorID}`)
+  }
+
+  
 
   const getPageRange = () => {
     const range = []
@@ -217,8 +224,20 @@ const ActivityList = () => {
 
                   <td> {dspstatus(Activity.actStatus)} </td>
                    <td align="center"> 
-                    Booked [ 
-  {Activity?.['proposal-created']?.totalProposalCreatd ?? 0}
+              <button
+              onClick={() => handleBookedClick(Activity.ActivityID,Activity.VendorID)}
+              style={{
+              padding: "8px 12px",
+              borderRadius: 12,
+              border: "1px solid #ccc",
+              background: "transparent",
+              cursor: "pointer",
+              }}
+              >
+
+              Booked [ 
+              {Activity?.['proposal-created']?.totalProposalCreatd ?? 0}
+              </button> 
                    ]
 </td>
  

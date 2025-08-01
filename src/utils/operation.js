@@ -122,6 +122,9 @@ export const dspstatus = (status) => {
     case 'DRAFT':
       color = 'blue'
       break
+        case 'PROPOSAL-CREATED':
+      color = 'blue'
+      break
     default:
       color = 'gray'
   }

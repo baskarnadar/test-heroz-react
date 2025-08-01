@@ -11,6 +11,11 @@ const adminschoolmgmChangePwd = React.lazy(
   () => import('./admindata/schoolmgm/schoolinfo/changepwd'),
 )
 
+//trip
+
+const adminschTripProposalCraeted = React.lazy(() => import('./admindata/activityinfo/trip/list'))
+const adminschTripView = React.lazy(() => import('./admindata/activityinfo/trip/view'))
+
 //classinfo
 const classinfoList = React.lazy(() => import('./admindata/schoolmgm/classinfo/list'))
 const classinfoNew = React.lazy(() => import('./admindata/schoolmgm/classinfo/new'))
@@ -143,6 +148,11 @@ const routes = [
     element: adminschoolmgmChangePwd,
   },
 
+
+  //trip propsal
+{    path: '/admindata/activityinfo/trip/list',    name: 'Proposal Created',    element: adminschTripProposalCraeted,},
+{    path: '/admindata/activityinfo/trip/view',    name: 'Proposal View',    element: adminschTripView,},
+
   //classinfo
   {
     path: '/admindata/schoolmgm/classinfo/list',
@@ -269,8 +279,7 @@ const routes = [
 
   { path: '/mainmenu/list', name: 'banner List', element: MainMenuList },
   { path: '/mainmenu/new', name: 'banner List', element: MainMenuNew },
-  { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify },
-
+  { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify }, 
   { path: '/rights/list', name: 'banner List', element: RightsList },
 
   
