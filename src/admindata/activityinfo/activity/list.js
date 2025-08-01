@@ -167,6 +167,7 @@ const ActivityList = () => {
                 <th>Price Per Student </th>
                 <th> Date</th>
                 <th>Status </th>
+                 <th>Booked </th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -215,7 +216,12 @@ const ActivityList = () => {
                   <td>{formatDate(Activity.CreatedDate)}</td>
 
                   <td> {dspstatus(Activity.actStatus)} </td>
-
+                   <td align="center"> 
+                    Booked [ 
+  {Activity?.['proposal-created']?.totalProposalCreatd ?? 0}
+                   ]
+</td>
+ 
                   <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
                     <div
                       className="text-align"
@@ -228,7 +234,7 @@ const ActivityList = () => {
                     > 
                       <button
                         onClick={() => handleViewClick(Activity.ActivityID,Activity.VendorID)}
-                        title="Transfer/تحويل"
+                        title="View"
                         className="btn btnbtn-default graybox"
                         style={{ padding: '2px', cursor: 'pointer' }}
                         aria-label="View"
