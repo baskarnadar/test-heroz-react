@@ -230,15 +230,15 @@ const ActivityList = () => {
               padding: "8px 12px",
               borderRadius: 12,
               border: "1px solid #ccc",
-              background: "transparent",
+              background: "#ccc",
               cursor: "pointer",
               }}
-              >
-
+              > 
               Booked [ 
               {Activity?.['proposal-created']?.totalProposalCreatd ?? 0}
+               ]
               </button> 
-                   ]
+                  
 </td>
  
                   <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>

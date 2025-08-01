@@ -153,7 +153,8 @@ const TripDataList = () => {
                 <th>Image</th>
                 <th>TripData Name</th>
                 <th>RefNo</th>
-                <th>Date</th>
+                <th>Trip Date</th>
+                <th>Trip Time</th>
                 <th>Status </th>
                 <th>Actions</th>
               </tr>
@@ -173,7 +174,8 @@ const TripDataList = () => {
                   </td>
                   <td> {TripData.actName} </td>
                   <td> { (TripData.actRequestRefNo)} </td>
-                  <td>{formatDate(TripData.CreatedDate)}</td>
+                  <td>{formatDate(TripData.actRequestDate)}</td>
+                   <td>{ (TripData.actRequestTime)}</td>
 
                   <td> {dspstatus(TripData.actRequestStatus)} </td>
                  
