@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
- 
 import {
   CCarousel,
   CCarouselItem,
@@ -14,7 +13,6 @@ import {
   CInputGroup,
   CInputGroupText,
   CRow,
-  CFormCheck
 } from "@coreui/react";
 import CIcon from "@coreui/icons-react";
 import { cilLockLocked, cilUser } from "@coreui/icons";
@@ -219,17 +217,12 @@ const ProposalPage = () => {
       `}</style>
 
       {/* Full‑width header */}
-       <header className="proposal-header" style={{ margin: 0, padding: 0 }}>
-  <div className="brand" style={{ margin: 0, padding: 0, display: "flex", alignItems: "center", gap: "10px" }}>
-    <img 
-      src={logo} 
-      alt="Logo" 
-      style={{ height: "200px", width: "200px", objectFit: "contain", margin: 0, padding: 0 }} 
-    />   
-    <h2 className="brand-title" style={{ margin: 0, padding: 0 }}></h2>
-  </div>
-</header>
-
+      <header className="proposal-header">
+        <div className="brand">
+          <img src={logo} alt="Logo" />
+          <h2 className="brand-title">Proposal</h2>
+        </div>
+      </header>
 
       {/* Main */}
       <div
@@ -238,7 +231,7 @@ const ProposalPage = () => {
       >
         <div>
           {error && (
-            <div className="divbox" style={{ color: "red",  }}>
+            <div className="divbox" style={{ color: "red", margin: "16px" }}>
               {error}
             </div>
           )}
@@ -269,11 +262,10 @@ const ProposalPage = () => {
           <div className="txtsubtitle">Trip Information</div>
           <div className="divbox">
             <div className="form-group">
-              <div style={{ fontSize: "22px", fontWeight: "bold" }}>
-  <b>Date :</b> {TripData?.actRequestDate} <b>Time : </b>
-  {TripData?.actRequestTime}
-</div>
-
+              <div>
+                <b>Date :</b> {TripData?.actRequestDate} <b>Time : </b>
+                {TripData?.actRequestTime}
+              </div>
             </div>
           </div>
 
@@ -317,7 +309,9 @@ const ProposalPage = () => {
         
          
 
-          
+          <div className="txtsubtitle" style={{ marginTop: "10px" }}>
+            Activity Youtube Videos
+          </div>
           <div className="divbox">
             <div
               style={{
@@ -353,27 +347,16 @@ const ProposalPage = () => {
               <div className="vendor-row">
                 <div className="vendor-column">
                   <label className="vendor-label">Google Map Location</label>
-                    <iframe
-    title="Jeddah Map"
-    src="https://www.google.com/maps?q=Jeddah&z=12&output=embed"
-    width="100%"
-    height="450"
-    style={{ border: 0, borderRadius: "8px" }}
-    allowFullScreen
-    loading="lazy"
-    referrerPolicy="no-referrer-when-downgrade"
-  />
                   <iframe
-  src={ActivityData?.actGoogleMap}
-  width="100%"
-  height="300"
-  style={{ border: 0, display: "none" }}
-  allowFullScreen
-  loading="lazy"
-  referrerPolicy="no-referrer-when-downgrade"
-  title="Google Map"
-/>
-
+                    src={ActivityData?.actGoogleMap}
+                    width="100%"
+                    height="300"
+                    style={{ border: 0 }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Google Map"
+                  />
                 </div>
               </div>
             </div>
@@ -437,12 +420,11 @@ const ProposalPage = () => {
           <div className="divbox">
             <div style={{ margin: "20px auto", fontFamily: "Arial, sans-serif" }}>
               <CRow className="mb-2 fw-bold hbg">
-                <CCol sm={1}>#</CCol>
-                <CCol sm={3}>Food Name</CCol>
-                <CCol sm={3}>Total Price</CCol>
-                <CCol sm={5}>Notes</CCol>
-                <CCol   style={{ border: 0, display: "none" }} sm={2}>Food Image</CCol>
-                <CCol  style={{ border: 0, display: "none" }} sm={2}>Include</CCol>
+                <CCol sm={2}>Food Name</CCol>
+                <CCol sm={2}>Total Price</CCol>
+                <CCol sm={2}>Notes</CCol>
+                <CCol sm={2}>Food Image</CCol>
+                <CCol sm={2}>Include</CCol>
               </CRow>
 
               {(ActivityData?.foodList ?? []).map((foodItem, index) => {
@@ -453,45 +435,27 @@ const ProposalPage = () => {
 
                 return (
                   <CRow key={index} className="mb-3 align-items-center">
-                       <CCol sm={1}>
-                       <CFormCheck
-      id={`row-${index}-check`}
-      aria-label="Select row" 
-    
-      style={{
-        width: "25px",
-        height: "25px",
-        cursor: "pointer",
-        appearance: "none",
-        WebkitAppearance: "none",
-        backgroundColor:  "#7e0674ff", // pink shades
-        border: "2px solid #7e0674ff",
-        borderRadius: "4px",
-        position: "relative",
-      }}
-    />
-                    </CCol>
-                    <CCol sm={3}>
+                    <CCol sm={2}>
                       <div className="admin-lbl-box">{foodItem?.FoodName}</div>
                     </CCol>
-                    <CCol sm={3}>
+                    <CCol sm={2}>
                       <div className="admin-lbl-box text-center">
                         {TotalFoodPrice.toFixed(2)}
                       </div>
                     </CCol>
-                    <CCol sm={5}>
+                    <CCol sm={2}>
                       <div className="admin-lbl-box text-center">
                         {foodItem?.FoodNotes}
                       </div>
                     </CCol>
-                    <CCol sm={2}  style={{ border: 0, display: "none" }}> 
+                    <CCol sm={2}>
                       {foodItem?.FoodImage ? (
                         <FilePreview file={foodItem.FoodImage} />
                       ) : (
                         <div className="admin-lbl-box text-center">No Image</div>
                       )}
                     </CCol>
-                    <CCol sm={2} className="text-center"  style={{ border: 0, display: "none" }}>
+                    <CCol sm={2} className="text-center">
                       <div className="admin-lbl-box text-center">
                         {foodItem?.Include ? "Yes" : "No"}
                       </div>
