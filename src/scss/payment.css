@@ -1,0 +1,224 @@
+ 
+h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.payment-options {
+  display: flex;
+  flex-direction: column;
+}
+
+.continue-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(90deg, #6a5acd, #48c9b0);
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.continue-button:hover {
+  background: linear-gradient(90deg, #5a4bb8, #39a58f);
+}
+.payment-method-option input[type="radio"] {
+  accent-color: #007bff;
+  transform: scale(1.2);
+}
+ 
+        .payment-method-section {
+          max-width: 600px;
+          margin: auto;
+          padding: 20px;
+        }
+
+        .payment-method-title {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+
+        .payment-method-option {
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: flex-start;
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+
+        .payment-method-option:hover {
+          background: #f9f9f9;
+        }
+
+        .payment-method-option input[type="radio"] {
+          margin-right: 16px;
+          transform: scale(1.3);
+          accent-color: #007bff;
+          margin-top: 4px;
+        }
+
+        .payment-method-option.active {
+          border: 2px solid #007bff;
+          background: #f0f4ff;
+        }
+
+        .payment-selected {
+          margin-top: 16px;
+          padding: 10px;
+          background: #f1f5f9;
+          border-radius: 6px;
+        }
+   .payment-method-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.col1,
+.col2 {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.col1 {
+  flex: 1;
+  min-width: 250px;
+}
+
+.col2 {
+  flex: 2;
+  min-width: 300px;
+}
+
+.proposalsubtitle {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.price-icon {
+  width: 14px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.payment-method-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.payment-method-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.payment-method-option.active {
+  border: 2px solid #007bff;
+  background-color: #e9f4ff;
+}
+
+.payment-method-option input[type="radio"] {
+  margin-top: 3px;
+}
+
+.payment-method-labels {
+  display: flex;
+  flex-direction: column;
+}
+
+.label-main {
+  font-weight: bold;
+}
+
+.label-desc {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.payment-selected {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+.continue-button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btnpay
+{
+  padding: 10px;
+  font-size: 20px;
+  cursor: pointer;
+  background-color: #6a085c;
+  color: rgb(251, 251, 251);
+  border: none;
+  border-radius: 5px;
+  min-width: 150px;
+  text-align: center;
+}
+.actname {
+   position: absolute;
+   bottom: 0;
+   left: 0;
+   right: 0;
+   background: rgba(0, 0, 0, 0.2); /* Optional: adds a semi-transparent background for better readability */
+   color: white; /* Text color */
+   text-align: center;
+   padding: 10px;
+   font-weight: bold;
+   font-size: 34px;
+   
+}
+ body {
+    background-color: #ffffff !important;
+  }
+@media (max-width: 768px) {
+  .actname {
+    font-size: 18px; /* You can adjust font-size for smaller screens */
+    padding: 8px; /* Optional: adjust padding for smaller screens */
+    
+  }
+  .trip
+{
+   border:1px solid rgb(147, 4, 90) !important;
+  
+  margin:10px !important;
+  
+}
+}
+
+.trip
+{
+  
+  border:1px solid rgb(147, 4, 90)  ;
+  margin:50px;
+  border-radius: 25px;;
+}

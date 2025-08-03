@@ -787,6 +787,9 @@ label {
   justify-content: flex-end;
   margin-top: 10px;
   margin-bottom: 10px;
+  padding: 25px;
+  font-size: 20px !important;
+
 }
 
 .mobile-input-group {
@@ -936,8 +939,9 @@ label {
   background-color: #f0e0f1;
   padding-bottom: 10px;
 }
+
 .admin-lbl-boxv1 {
-  flex: 1; 
+  flex: 1;
   padding: 0.5rem;
   border: 1px solid #b5adb5;
   border-radius: 10px;
@@ -947,41 +951,50 @@ label {
 
 .pink-badge {
   display: inline-block;
-  background-color: #e6b3fc; 
-  color: #000; 
+  background-color: #e6b3fc;
+  color: #000;
   border-radius: 12px;
   font-size: 14px;
   margin-right: 8px;
-  
+
 }
-.pink-shadow1 { 
-  background-color: #ead9f1; 
+
+.pink-shadow1 {
+  background-color: #ead9f1;
 }
-.pink-shadow2 { 
-  background-color: #ece2ef; 
+
+.pink-shadow2 {
+  background-color: #ece2ef;
 }
-.pink-shadow3 { 
-  background-color: #ece2ef; 
+
+.pink-shadow3 {
+  background-color: #ece2ef;
 }
-.pink-shadow4 { 
-  background-color: #ead9f1; 
+
+.pink-shadow4 {
+  background-color: #ead9f1;
   padding: 5px;
   border-radius: 10px;
 }
-.pink-shadow5 { 
-  background-color: #e8ccf3; 
+
+.pink-shadow5 {
+  background-color: #e8ccf3;
   padding: 5px;
   border-radius: 10px;
 }
-.pink-shadow6 { 
-  background-color: #d4cbd7; 
+
+.pink-shadow6 {
+  background-color: #d4cbd7;
 }
-.pink-shadow7 { 
-  background-color:#eeebd5;
+
+.pink-shadow7 {
+  background-color: #eeebd5;
 }
-.pink-shadow8 { 
-  background-color: #f5dddd; 
+
+.pink-shadow8 {
+  background-color: #f5dddd;
 }
+
 /* Add this to your CSS if needed */
 .player-wrapper {
   position: relative;
@@ -1004,13 +1017,172 @@ label {
   margin-bottom: 0px;
   border: 1px solid #dbade1
 }
-.ErrorMsg
-{
-  color:red;
+
+.ErrorMsg {
+  color: red;
   font-size: 16px;
-  padding: 14px;;
+  padding: 14px;
+  ;
 }
+
 .btn-green {
   background-color: green !important;
   color: white !important;
+}
+
+.details-card {
+  max-width: 420px;
+  /* Adjust as needed */
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  /* light gray border */
+  border-radius: 14px;
+  /* rounded border */
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* 2 equal columns; two rows (header + values) */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  /* 3 equal columns */
+  row-gap: 5px;
+  column-gap: 10px;
+  align-items: center;
+  background: #ffffff;
+}
+
+
+/* header cells */
+.details-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  /* gray-500 */
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  /* subtle divider under header row */
+}
+
+/* value cells */
+.details-cell {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  /* gray-900 */
+  padding-top: 2px;
+}
+
+.txtproposal {
+  font-size: 20px;
+  font-weight: 700;
+  color: #131313;
+}
+
+.proposal-margin2 {
+  margin-top: 10px;
+}
+
+.proposalcard {
+  padding: 10px;
+}
+
+ .proposalsubtitlefirst {
+  background-color: #f4edf1;
+  font-size: 18px;
+  color: #181818;
+  margin-bottom: 2px;
+  border: 1px solid #efe3f1;
+  border-radius: 0px; /* General border-radius */
+  font-weight: bold;
+  padding: 2px;
+  border-top-left-radius: 25px; /* Add px */
+  border-top-right-radius: 25px; /* Add px */
+  text-indent: 20px;
+}
+
+.proposalsubtitle {
+  background-color: #f4edf1;
+  font-size: 18px;
+  color: #181818;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  border: 1px solid #efe3f1;
+  border-radius: 0px;
+  font-weight: bold;
+  padding: 2px;
+   text-indent: 20px;
+}
+
+.proposalsubtitlev1 {
+  background-color: #ffffff;
+  padding: 5px;
+  font-size: 18px;
+  color: #181818;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border-radius: 20px;
+  padding: 10px;
+}
+
+.proposalsubtitlev2 {
+
+  font-size: 18px;
+  color: #181818;
+  background-color: #ffffff;
+}
+
+.proposalsubtitlev4 {
+
+  font-size: 18px;
+  color: #181818;
+  padding: 25px;
+  background-color: #ffffff;
+}
+
+.proposalContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Optional: adds space between items */
+}
+
+.proposalsubtitlev3 {
+  background-color: #eef0f0;
+  border-radius: 4px;
+  font-size: 18px;
+  color: #181818;
+  border: 1px solid #e2e2e2;
+  border-radius: 20px;
+  font-weight: bold;
+  padding: 25px;
+  margin: 25px;
+  min-height: 170px;
+
+}
+
+body {
+  background-image: url("../assets/images/bg.jpg") !important;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+}
+
+@media (max-width: 768px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+    /* stack vertically on small screens */
+  }
+
+  .proposalsubtitlev3 {
+
+    min-height: 100px;
+    padding: 15px;
+    margin: 5px;
+
+  }
 }

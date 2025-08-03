@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaMapMarkerAlt } from "react-icons/fa";
+
 import {
   CCarousel,
   CCarouselItem,
@@ -20,11 +20,8 @@ import CIcon from "@coreui/icons-react";
 import { cilLockLocked, cilUser } from "@coreui/icons";
 import { API_BASE_URL } from "../config";
 import logo from "../assets/logo/default.png";
-import { format, parse } from "date-fns";
 
 import Select from "react-select";
-import "../scss/payment.css";
-import PaymentMethodOption from "../public/payoption";
 
 import {
   DspToastMessage,
@@ -33,8 +30,6 @@ import {
   getCurrentLoggedUserID,
   YouTubeEmbed,
   GoogleMapEmbed,
-  getDayName,
-  convertToAMPM,
 } from "../utils/operation";
 import FilePreview from "../views/widgets/FilePreview";
 
@@ -183,33 +178,6 @@ const ProposalPage = () => {
   const TAX_RATE = 0.15;
   const taxAmount = (Number(grandTotal) || 0) * TAX_RATE;
   const grandTotalWithTax = (Number(grandTotal) || 0) + taxAmount;
-  const [selectedMethod, setSelectedMethod] = useState("creditCard");
-
-  const paymentOptions = [
-    {
-      value: "creditCard",
-      label: "Credit/Debit Card",
-      description:
-        "Secure online payment with Visa, MasterCard, or American Express",
-    },
-
-    {
-      value: "applePay",
-      label: "Apple Pay",
-      description: "Quick and secure payment with Touch ID or Face ID",
-    },
-  ];
-  // Handle change of selected payment method
-  const handleMethodChange = (method) => {
-    setSelectedMethod(method);
-  };
-  useEffect(() => {
-    // Hide layout
-    document.body.classList.add("hide-layout");
-    return () => {
-      document.body.classList.remove("hide-layout");
-    };
-  }, []);
 
   return (
     <>
@@ -242,7 +210,7 @@ const ProposalPage = () => {
 
         /* Page header */
         .proposal-header {
-          background: #ffffff;
+          background: #f0f0f0;
           border-bottom: 1px solid #ddd;
           padding: 12px 16px;
         }
@@ -252,11 +220,44 @@ const ProposalPage = () => {
       `}</style>
 
       {/* Full‑width header */}
+      <header className="proposal-header" style={{ margin: 0, padding: 0 }}>
+      
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              padding: "20px",
+            }}
+          >
+            <img
+              src={TripData?.schImageNameUrl ?? logo}
+              alt={TripData?.schName || "School Logo"}
+              style={{
+                maxWidth: "200px",
+                maxHeight: "150px",
+                height: "auto",
+                objectFit: "contain",
+                display: "block",
+                marginBottom: "10px",
+              }}
+              loading="lazy"
+            />
+            <h2 style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>
+              {TripData?.schName}
+            </h2>
+          </div>
+
+          <h2 className="brand-title" style={{ margin: 0, padding: 0 }}></h2>
+         
+      </header>
 
       {/* Main */}
       <div
         className="min-vh-100 d-flex flex-row align-items-center"
-        style={{ backgroundColor: "#ffffff" }}
+        style={{ backgroundColor: "#f7f7f7" }}
       >
         <div>
           {error && (
@@ -266,99 +267,92 @@ const ProposalPage = () => {
           )}
 
           {activityImages.length > 0 ? (
-            <CCarousel controls interval={5000} dark>
+            <CCarousel controls indicators interval={5000} dark>
               {activityImages.map((src, idx) => (
                 <CCarouselItem key={idx}>
-                  <div style={{ position: "relative" }}>
-                    <img
-                      src={TripData?.schImageNameUrl ?? logo}
-                      style={{
-                        maxWidth: "200px",
-                        maxHeight: "150px",
-                        height: "auto",
-                        objectFit: "contain",
-                        display: "block",
-                        marginBottom: "10px",
-                        position: "absolute",
-                        top: 0,
-                        margin: 20,
-                        right: 0,
-                      }}
-                      loading="lazy"
-                    />
-
-                    <img
-                      className="d-block w-100"
-                      src={src}
-                      alt={`Activity Image ${idx + 1}`}
-                      style={{
-                        objectFit: "cover",
-                        maxHeight: 300,
-                        borderTopLeftRadius: "0px", // Use camelCase for CSS properties
-                        borderTopRightRadius: "0px", // Same here
-                        width: "100%",
-                      }}
-                    />
-                    {/* Text at the bottom */}
-                    <div className="actname">{ActivityData?.actName}</div>
-                  </div>
+                  <img 
+                    className="d-block w-100"
+                    src={src}
+                    alt={`Activity Image ${idx + 1}`}
+                    style={{ objectFit: "cover", maxHeight:320, borderRadius:30 }}
+                  />
                 </CCarouselItem>
               ))}
             </CCarousel>
           ) : (
             <div className="admin-lbl-box text-center">No images</div>
           )}
-          <div  className="trip">
-          <div className="proposalsubtitlefirst"  >
-            Trip Information
+
+          <div className="proposalcard"></div>
+          <div
+            className="proposalsubtitle"
+            style={{ fontWeight: "bold", fontSize: "24px" }}
+          >
+            {ActivityData?.actName}
           </div>
 
-          <section className=" " aria-labelledby="request-details-title">
-            <div className="details-grid">
-              <div className="proposalsubtitlev3">
-                📅 Date
-                <div>{getDayName(TripData?.actRequestDate)} </div>
-              </div>
-              <div className="proposalsubtitlev3">
-                {" "}
-                ⏰ Time
-                <div>{TripData?.actRequestTime}</div>
-              </div>
-              <div className="proposalsubtitlev3">
-                {" "}
-                ⏰ Localtion
-                <div>{ActivityData?.actAddress1}</div>
-                <div>{ActivityData?.actAddress2}</div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div>
-                    <a
-                      href={ActivityData?.actGoogleMap}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <FaMapMarkerAlt
-                        style={{
-                          marginRight: "8px",
-                          fontSize: "20px",
-                          color: "#007bff",
-                        }}
-                      />
-                      View On Google Map
-                    </a>
-                  </div>
+          <section className="card" aria-labelledby="request-details-title">
+            <section
+              className="details-card"
+              aria-label="Request date and time"
+            >
+              <div className="details-grid">
+                {/* Header row */}
+                <div className="proposalsubtitle"> 📅 Date</div>
+                <div className="proposalsubtitle"> ⏰ Time</div>
+
+                {/* Value row */}
+                <div className="proposalsubtitle">
+                  {TripData?.actRequestDate}
+                </div>
+                <div className="proposalsubtitle">
+                  {TripData?.actRequestTime}
                 </div>
               </div>
-            </div>
-            {/* Value row */}
+            </section>
           </section>
-
-          <div className="proposalsubtitlev1"> {ActivityData?.actDesc} </div>
+          <div className="proposalsubtitle">
+            Price Per Student :{" "}
+            <img
+              src={moneyv1}
+              alt="logo"
+              style={{
+                width: "14px",
+                marginRight: "6px",
+                verticalAlign: "middle",
+              }}
+            />
+            {grandTotalWithTax.toFixed(2)}
+          </div>
+ 
+          <div className="card ">
+            <div className="proposalsubtitlev1"> {ActivityData?.actDesc} </div>
+          </div>
+          <div className="proposalcard"></div>
+          <div className="card">
+            <div className="vendor-column">
+              <iframe
+                title="Jeddah Map"
+                src="https://www.google.com/maps?q=Jeddah&z=12&output=embed"
+                width="100%"
+                height="250"
+                style={{ border: 0, borderRadius: "8px" }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              <iframe
+                src={ActivityData?.actGoogleMap}
+                width="100%"
+                height="100"
+                style={{ border: 0, display: "none" }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Google Map"
+              />
+            </div>
+          </div>
 
           {/* Price per student */}
 
@@ -366,7 +360,7 @@ const ProposalPage = () => {
           <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
             Food Information
           </div>
-          <div style={{ padding: 20 }}>
+          <div className="card" style={{ padding: 20 }}>
             {(ActivityData?.foodList ?? []).map((foodItem, index) => {
               const TotalFoodPrice =
                 (parseFloat(foodItem?.FoodPrice) || 0) +
@@ -377,68 +371,13 @@ const ProposalPage = () => {
               );
             })}
           </div>
-          <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
-            Trip Pricing
-          </div>
-          <div className="payment-method-container">
-            <div className="col1">
-              <div className="proposalsubtitlev2">
-                <h2>
-                  {" "}
-                  Price Per Student :{" "}
-                  <img
-                    src={moneyv1}
-                    alt="logo"
-                    style={{
-                      width: "14px",
-                      marginRight: "6px",
-                      verticalAlign: "middle",
-                    }}
-                  />
-                  {grandTotalWithTax.toFixed(2)}
-                </h2>
-              </div>
-            </div>
-            <div className="col2">
-              <div className="payment-method-section">
-                <p>Choose your payment method:</p>
 
-                {paymentOptions.map((option) => (
-                  <label
-                    key={option.value}
-                    className={`payment-method-option ${
-                      selectedMethod === option.value ? "active" : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={option.value}
-                      checked={selectedMethod === option.value}
-                      onChange={() => setSelectedMethod(option.value)}
-                    />
-                    <div>
-                      <div style={{ fontWeight: "bold" }}>{option.label}</div>
-                      <div style={{ fontSize: "0.9rem", color: "#555" }}>
-                        {option.description}
-                      </div>
-                    </div>
-                  </label>
-                ))}
-
-                <div className="payment-selected">
-                  <strong>Selected method:</strong> {selectedMethod}
-                </div>
-                <button className="continue-button">Continue to Payment</button>
-              </div>
-            </div>
-          </div>
-
+          {/* Terms */}
           <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
             Terms And Conditions
           </div>
-          <div className="">
-            <div className="proposalsubtitlev4">
+          <div className="card">
+            <div className="proposalsubtitle">
               {ActivityData?.actAdminNotes}
             </div>
           </div>
@@ -447,13 +386,13 @@ const ProposalPage = () => {
           <div className="button-container">
             <button
               type="button"
-              className="btnpay"
+              className="admin-buttonv1"
               onClick={() => navigate("/admindata/activityinfo/activity/list")}
             >
               Next
             </button>
           </div>
-</div>
+
           <DspToastMessage message={toastMessage} type={toastType} />
         </div>
       </div>

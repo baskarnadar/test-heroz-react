@@ -203,14 +203,6 @@ const ProposalPage = () => {
   const handleMethodChange = (method) => {
     setSelectedMethod(method);
   };
-  useEffect(() => {
-    // Hide layout
-    document.body.classList.add("hide-layout");
-    return () => {
-      document.body.classList.remove("hide-layout");
-    };
-  }, []);
-
   return (
     <>
       <style>{`
@@ -256,7 +248,7 @@ const ProposalPage = () => {
       {/* Main */}
       <div
         className="min-vh-100 d-flex flex-row align-items-center"
-        style={{ backgroundColor: "#ffffff" }}
+        style={{ backgroundColor: "#f7f7f7" }}
       >
         <div>
           {error && (
@@ -266,12 +258,13 @@ const ProposalPage = () => {
           )}
 
           {activityImages.length > 0 ? (
-            <CCarousel controls interval={5000} dark>
+            <CCarousel controls indicators interval={5000} dark>
               {activityImages.map((src, idx) => (
                 <CCarouselItem key={idx}>
                   <div style={{ position: "relative" }}>
                     <img
                       src={TripData?.schImageNameUrl ?? logo}
+                      alt={TripData?.schName || "School Logo"}
                       style={{
                         maxWidth: "200px",
                         maxHeight: "150px",
@@ -293,14 +286,17 @@ const ProposalPage = () => {
                       alt={`Activity Image ${idx + 1}`}
                       style={{
                         objectFit: "cover",
-                        maxHeight: 300,
-                        borderTopLeftRadius: "0px", // Use camelCase for CSS properties
-                        borderTopRightRadius: "0px", // Same here
+                        maxHeight: 320,
+                        borderRadius: 30,
                         width: "100%",
                       }}
                     />
                     {/* Text at the bottom */}
-                    <div className="actname">{ActivityData?.actName}</div>
+                    <div
+                       className="actname"
+                    >
+                      {ActivityData?.actName}
+                    </div>
                   </div>
                 </CCarouselItem>
               ))}
@@ -308,8 +304,7 @@ const ProposalPage = () => {
           ) : (
             <div className="admin-lbl-box text-center">No images</div>
           )}
-          <div  className="trip">
-          <div className="proposalsubtitlefirst"  >
+          <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
             Trip Information
           </div>
 
@@ -453,7 +448,7 @@ const ProposalPage = () => {
               Next
             </button>
           </div>
-</div>
+
           <DspToastMessage message={toastMessage} type={toastType} />
         </div>
       </div>

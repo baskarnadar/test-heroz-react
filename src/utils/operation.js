@@ -1,9 +1,46 @@
 import React, { useEffect, useState } from 'react'
 import '../scss/toast.css'
 import ReactPlayer from 'react-player'
+ 
+ import { format, parseISO } from 'date-fns';
+export function convertToAMPM(timeRange) {
+  try {
+    // Split the time range into start and end times
+    const [start, end] = timeRange.split(' - ');
 
-// Display status with color
+    // Parse both start and end times into Date objects (Assume today's date for consistency)
+    const startTime = parse(start, 'HH:mm', new Date());
+    const endTime = parse(end, 'HH:mm', new Date());
 
+    // Format the parsed times into 12-hour AM/PM format
+    const formattedStart = format(startTime, 'hh:mm a');  // e.g. "09:00 AM"
+    const formattedEnd = format(endTime, 'hh:mm a');      // e.g. "08:00 PM"
+
+    // Return the formatted time range
+    return `${formattedStart} - ${formattedEnd}`;
+  } catch (error) {
+    console.error('Error formatting time range:', error);
+    return 'Invalid Time Range'; // Fallback message if parsing fails
+  }
+}
+export function getDayName(date) {
+  try {
+    // Parse the input date string (e.g., '2025-08-20') into a Date object
+    const parsedDate = parseISO(date);
+
+    // Check if the parsedDate is a valid date
+    if (isNaN(parsedDate)) {
+      throw new Error('Invalid date');
+    }
+
+    // Extract the abbreviated day name (e.g., "Wed"), full month name (e.g., "August"), 
+    // day of the month (e.g., "20"), and the full year (e.g., "2025")
+    return format(parsedDate, 'eee, MMMM, d, yyyy'); // "Wed, August, 20, 2025"
+  } catch (error) {
+    console.error('Error parsing date:', error);
+    return 'Invalid Date'; // Fallback message if date parsing fails
+  }
+}
 // Extract file name from a URL string
 export function getFileNameFromUrl(key) {
   if (typeof key !== 'string') {
@@ -61,8 +98,7 @@ export const getStatusBadgeColor = (status) => {
   return statusColorMap[status] || 'dark' // default fallback color
 }
 
-// utils/dateFormat.js (create this file or any file you want)
-
+ 
 export const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
