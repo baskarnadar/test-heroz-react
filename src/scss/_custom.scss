@@ -1163,6 +1163,22 @@ label {
   min-height: 170px;
 
 }
+.kids-info-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-input {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
 
 
 @media (max-width: 768px) {

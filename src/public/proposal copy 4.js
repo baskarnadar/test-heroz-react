@@ -40,7 +40,7 @@ import FilePreview from "../views/widgets/FilePreview";
 import FoodInfo from "./foodinfo";
 import moneyv1 from "../assets/images/moneyv1.png";
 import ReactPlayer from "react-player";
- 
+import ChildBookingSection from "./KidInfoForm";
 
 const ProposalPage = () => {
   const [error, setError] = useState("");
@@ -58,19 +58,6 @@ const ProposalPage = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
 
-    const [childRows, setChildRows] = useState([
-      { schoolID: "", name: "", className: "" },
-    ]);
-  
-    const handleAddRow = () => {
-      setChildRows([...childRows, { schoolID: "", name: "", className: "" }]);
-    };
-  
-    const handleInputChange = (index, field, value) => {
-      const updatedRows = [...childRows];
-      updatedRows[index][field] = value;
-      setChildRows(updatedRows);
-    };
   // Hide header/sidebar/footer ONLY on this page
   useEffect(() => {
     document.body.classList.add("hide-chrome");
@@ -247,48 +234,42 @@ const ProposalPage = () => {
     };
   }, []);
 
-const handleSubmit = async () => {
-  const ParentsID = getCurrentLoggedUserID();
+  const handleSubmit = async () => {
+  const ParentsID = getCurrentLoggedUserID(); // Your existing method
   const RequestID = TripData?.RequestID;
 
-  const parentName = document.querySelector('input[name="txtParentName"]')?.value || "";
-  const parentMobile = document.querySelector('input[name="tripParentsMobileNo"]')?.value || "";
-  const parentNote = document.querySelector('textarea[name="txtParentsNote"]')?.value || "";
+  const parentName = document.querySelector('input[name="txtParentName"]')?.value;
+  const parentMobile = document.querySelector('input[name="tripParentsMobileNo"]')?.value;
+  const parentNote = document.querySelector('textarea[name="txtParentsNote"]')?.value;
 
   const foodIncluded = [];
   const foodExtra = [];
 
-  
- 
-
-// Get selected included food (radio name: "foodSelect")
-const includedFoodRadio = document.querySelector('input[name="foodSelect"]:checked');
-if (includedFoodRadio) {
-  foodIncluded.push(includedFoodRadio.value); // use FoodID as value in radio
-}
-
-// Get all checked extra foods (checkboxes like: foodCheckbox-<FoodID>)
-(ActivityData?.foodList ?? []).forEach((item) => {
-  if (item.Include !== true) {
-    const checkbox = document.querySelector(`input[name="foodCheckbox-${item.FoodID}"]`);
-    if (checkbox?.checked) {
-      foodExtra.push(item.FoodID);
+  (ActivityData?.foodList ?? []).forEach(item => {
+    const isChecked = checkedFoodItems[item.FoodID];
+    if (isChecked) {
+      if (item.Include === true) foodIncluded.push(item.FoodID);
+      else foodExtra.push(item.FoodID);
     }
-  }
-});
+  });
 
-  const kidsInfo = childRows.map((row) => ({
-    RequestID,
-    ParentsID,
-    KidsID: "",
-    TripKidsSchoolNo: row.schoolID,
-    TripKidsName: row.name,
-    tripKidsClassName: row.className,
-    TripCost: priceTotal.toFixed(2),
-    TripFoodCost: foodTotal.toFixed(2),
-    TripTaxAmount: taxAmount.toFixed(2),
-    TripFullAmount: grandTotalWithTax.toFixed(2),
-  }));
+  const kidsInputs = document.querySelectorAll(".kids-info-container.kid-row");
+  const kidsInfo = Array.from(kidsInputs).map(kid => {
+  const TripKidsSchoolNo = kid.querySelector('input[name="txtKidsSchoolID"]')?.value;
+  const TripKidsName = kid.querySelector('input[name="txtKidsName"]')?.value;
+  const tripKidsClassName = kid.querySelector('input[name="txtKidsClassName"]')?.value;
+
+    return {
+      RequestID,
+      ParentsID,
+      KidsID: "",
+      TripCost: priceTotal.toFixed(2),
+      TripFoodCost: foodTotal.toFixed(2),
+      TripKidsSchoolNo,
+      TripKidsName,
+      tripKidsClassName
+    };
+  });
 
   const payload = {
     RequestID,
@@ -299,16 +280,16 @@ if (includedFoodRadio) {
     tripPaymentTypeID: selectedMethod === "creditCard" ? "CREDIT-CARD" : "APPLE-PAY",
     kidsInfo,
     FoodIncluded: foodIncluded,
-    FoodExtra: foodExtra,
+    FoodExtra: foodExtra
   };
 
   try {
     const response = await fetch(`${API_BASE_URL}/admindata/trip/tripAddParentsKidsInfo`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
-   console.log("payload");
+
     console.log(payload);
     if (!response.ok) throw new Error("Failed to submit data");
     const result = await response.json();
@@ -321,7 +302,6 @@ if (includedFoodRadio) {
     setToastType("danger");
   }
 };
-
 
   return (
     <>
@@ -498,80 +478,7 @@ if (includedFoodRadio) {
   handleCheckboxChange={handleCheckboxChange}
 />
 
-             <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
-        Child Information & Booking
-      </div>
-
-      <div className="proParents">
-        <div className="kids-info-container">
-          <div className="input-group">
-            <label>Parents Name</label>
-            <input name="txtParentName" className="vendor-input" />
-          </div>
-          <div className="input-group">
-            <label>Parents Mobile Number</label>
-            <input name="tripParentsMobileNo" className="vendor-input" />
-          </div>
-        </div>
-
-        <div className="kids-info-container">
-          <div className="input-group">
-            <label>Parents Note</label>
-            <textarea
-              name="txtParentsNote"
-              className="vendor-input"
-              rows={3}
-              placeholder="Enter note here..."
-            />
-          </div>
-        </div>
-      </div>
-
-      {childRows.map((row, index) => (
-        <div className="proParents" key={index}>
-          <div className="kids-info-container">
-            <div className="input-group">
-              <label>Kids School ID Number</label>
-              <input
-              name="txtKidsSchoolID"
-                className="vendor-input"
-                value={row.schoolID}
-                onChange={(e) =>
-                  handleInputChange(index, "schoolID", e.target.value)
-                }
-              />
-            </div>
-            <div className="input-group">
-              <label>Kids Name</label>
-              <input
-              name="txtKidsName"
-                className="vendor-input"
-                value={row.name}
-                onChange={(e) =>
-                  handleInputChange(index, "name", e.target.value)
-                }
-              />
-            </div>
-            <div className="input-group">
-              <label>Class Name</label>
-              <input
-              name="txtKidsClassName"
-                className="vendor-input"
-                value={row.className}
-                onChange={(e) =>
-                  handleInputChange(index, "className", e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </div>
-      ))}
-
-      <div style={{ padding: "10px 20px" }}>
-        <button type="button" className="btnpay" onClick={handleAddRow}>
-          Add More
-        </button>
-      </div>
+            <ChildBookingSection navigate={navigate} />
 
             <div className="payment-method-container">
               <div className="col1">
