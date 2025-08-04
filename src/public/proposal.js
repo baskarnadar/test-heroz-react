@@ -249,6 +249,7 @@ const ProposalPage = () => {
         .proposal-header .brand { display:flex; align-items:center; gap:12px; }
         .proposal-header .brand img { height:40px; width:auto; display:block; }
         .proposal-header .brand-title { margin:0; font-size:1.125rem; font-weight:600; color:#333; }
+        
       `}</style>
 
       {/* Full‑width header */}
