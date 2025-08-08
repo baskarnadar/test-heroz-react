@@ -1,47 +1,17 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaMapMarkerAlt } from "react-icons/fa";
-import {
-  CCarousel,
-  CCarouselItem,
-  CButton,
-  CCard,
-  CCardBody,
-  CCardGroup,
-  CCol,
-  CContainer,
-  CFormInput,
-  CInputGroup,
-  CInputGroupText,
-  CRow,
-  CFormCheck,
-} from "@coreui/react";
-import CIcon from "@coreui/icons-react";
-import { cilLockLocked, cilUser } from "@coreui/icons";
+import { CCarousel, CCarouselItem } from "@coreui/react";
 import { API_BASE_URL } from "../config";
 import logo from "../assets/logo/default.png";
-import { format, parse } from "date-fns";
-
-import Select from "react-select";
 import "../scss/payment.css";
-import PaymentMethodOption from "../public/payoption";
-
 import {
   DspToastMessage,
-  dspstatusv1,
-  getFileNameFromUrl,
   getCurrentLoggedUserID,
-  YouTubeEmbed,
-  GoogleMapEmbed,
-  getDayName,
-  convertToAMPM,
+  generatePayRefNo,
 } from "../utils/operation";
-import FilePreview from "../views/widgets/FilePreview";
 import FoodInfo from "./foodinfo";
 import moneyv1 from "../assets/images/moneyv1.png";
-import ReactPlayer from "react-player";
- 
-
 const ProposalPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -51,27 +21,22 @@ const ProposalPage = () => {
   const [txtactImageName2, setactImageName2] = useState(null);
   const [txtactImageName3, setactImageName3] = useState(null);
   const [ActivityData, setActivity] = useState(null);
-
-  const [fetchedCategories, setFetchedCategories] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
+  const [childRows, setChildRows] = useState([
+    { schoolID: "", name: "", className: "" },
+  ]);
 
-    const [childRows, setChildRows] = useState([
-      { schoolID: "", name: "", className: "" },
-    ]);
-  
-    const handleAddRow = () => {
-      setChildRows([...childRows, { schoolID: "", name: "", className: "" }]);
-    };
-  
-    const handleInputChange = (index, field, value) => {
-      const updatedRows = [...childRows];
-      updatedRows[index][field] = value;
-      setChildRows(updatedRows);
-    };
-  // Hide header/sidebar/footer ONLY on this page
+  const handleAddRow = () => {
+    setChildRows([...childRows, { schoolID: "", name: "", className: "" }]);
+  };
+ 
+  const handleInputChange = (index, field, value) => {
+    const updatedRows = [...childRows];
+    updatedRows[index][field] = value;
+    setChildRows(updatedRows);
+  };
   useEffect(() => {
     document.body.classList.add("hide-chrome");
     return () => document.body.classList.remove("hide-chrome");
@@ -151,9 +116,7 @@ const ProposalPage = () => {
   };
 
   useEffect(() => {
-    if (!ActivityData) return;
-
-    // Basic info
+    if (!ActivityData) return;  
     setactImageName1(ActivityData.actImageName1Url || "");
     setactImageName2(ActivityData.actImageName2Url || "");
     setactImageName3(ActivityData.actImageName3Url || "");
@@ -169,8 +132,7 @@ const ProposalPage = () => {
     }
   }, [ActivityData]);
 
-  useEffect(() => {
-    // Extract RequestID from hash URL (#/public/proposal?RequestID=...)
+  useEffect(() => { 
     const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
     const RequestID = urlParams.get("RequestID");
     if (RequestID) {
@@ -247,81 +209,92 @@ const ProposalPage = () => {
     };
   }, []);
 
-const handleSubmit = async () => {
-  const ParentsID = getCurrentLoggedUserID();
-  const RequestID = TripData?.RequestID;
+  const handleSubmit = async () => {
+    const ParentsID = getCurrentLoggedUserID();
+    const RequestID = TripData?.RequestID;
 
-  const parentName = document.querySelector('input[name="txtParentName"]')?.value || "";
-  const parentMobile = document.querySelector('input[name="tripParentsMobileNo"]')?.value || "";
-  const parentNote = document.querySelector('textarea[name="txtParentsNote"]')?.value || "";
+    const parentName =
+      document.querySelector('input[name="txtParentName"]')?.value || "";
+    const parentMobile =
+      document.querySelector('input[name="tripParentsMobileNo"]')?.value || "";
+    const parentNote =
+      document.querySelector('textarea[name="txtParentsNote"]')?.value || "";
 
-  const foodIncluded = [];
-  const foodExtra = [];
+    const foodIncluded = [];
+    const foodExtra = [];
 
-  
- 
-
-// Get selected included food (radio name: "foodSelect")
-const includedFoodRadio = document.querySelector('input[name="foodSelect"]:checked');
-if (includedFoodRadio) {
-  foodIncluded.push(includedFoodRadio.value); // use FoodID as value in radio
-}
-
-// Get all checked extra foods (checkboxes like: foodCheckbox-<FoodID>)
-(ActivityData?.foodList ?? []).forEach((item) => {
-  if (item.Include !== true) {
-    const checkbox = document.querySelector(`input[name="foodCheckbox-${item.FoodID}"]`);
-    if (checkbox?.checked) {
-      foodExtra.push(item.FoodID);
+    // Get selected included food (radio name: "foodSelect")
+    const includedFoodRadio = document.querySelector(
+      'input[name="foodSelect"]:checked'
+    );
+    if (includedFoodRadio) {
+      foodIncluded.push(includedFoodRadio.value); // use FoodID as value in radio
     }
-  }
-});
 
-  const kidsInfo = childRows.map((row) => ({
-    RequestID,
-    ParentsID,
-    KidsID: "",
-    TripKidsSchoolNo: row.schoolID,
-    TripKidsName: row.name,
-    tripKidsClassName: row.className,
-    TripCost: priceTotal.toFixed(2),
-    TripFoodCost: foodTotal.toFixed(2),
-    TripTaxAmount: taxAmount.toFixed(2),
-    TripFullAmount: grandTotalWithTax.toFixed(2),
-  }));
-
-  const payload = {
-    RequestID,
-    ParentsID,
-    tripParentsName: parentName,
-    tripParentsMobileNo: parentMobile,
-    tripParentsNote: parentNote,
-    tripPaymentTypeID: selectedMethod === "creditCard" ? "CREDIT-CARD" : "APPLE-PAY",
-    kidsInfo,
-    FoodIncluded: foodIncluded,
-    FoodExtra: foodExtra,
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/admindata/trip/tripAddParentsKidsInfo`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    // Get all checked extra foods (checkboxes like: foodCheckbox-<FoodID>)
+    (ActivityData?.foodList ?? []).forEach((item) => {
+      if (item.Include !== true) {
+        const checkbox = document.querySelector(
+          `input[name="foodCheckbox-${item.FoodID}"]`
+        );
+        if (checkbox?.checked) {
+          foodExtra.push(item.FoodID);
+        }
+      }
     });
-   console.log("payload");
-    console.log(payload);
-    if (!response.ok) throw new Error("Failed to submit data");
-    const result = await response.json();
-    console.log("Submission success:", result);
-    setToastMessage("Submitted successfully!");
-    setToastType("success");
-  } catch (error) {
-    console.error("Submit error:", error);
-    setToastMessage("Submission failed");
-    setToastType("danger");
-  }
-};
 
+    const kidsInfo = childRows.map((row) => ({
+      RequestID,
+      ParentsID,
+      KidsID: "",
+      TripKidsSchoolNo: row.schoolID,
+      TripKidsName: row.name,
+      tripKidsClassName: row.className,
+      TripCost: priceTotal.toFixed(2),
+      TripFoodCost: foodTotal.toFixed(2),
+      TripTaxAmount: taxAmount.toFixed(2),
+      TripFullAmount: grandTotalWithTax.toFixed(2),
+      PayStaus: "NEW",
+      InvoiceNo: "0",
+      MyFatrooahRefNo: "0",
+      PayRefNo: generatePayRefNo(),
+    }));
+
+    const payload = {
+      RequestID,
+      ParentsID,
+      tripParentsName: parentName,
+      tripParentsMobileNo: parentMobile,
+      tripParentsNote: parentNote,
+      tripPaymentTypeID:
+        selectedMethod === "creditCard" ? "CREDIT-CARD" : "APPLE-PAY",
+      kidsInfo,
+      FoodIncluded: foodIncluded,
+      FoodExtra: foodExtra,
+    };
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      console.log("payload");
+      console.log(payload);
+      if (!response.ok) throw new Error("Failed to submit data");
+      const result = await response.json();
+      console.log("Submission success:", result);
+      setToastMessage("Submitted successfully!");
+      setToastType("success");
+    } catch (error) {
+      console.error("Submit error:", error);
+      setToastMessage("Submission failed");
+      setToastType("danger");
+    }
+  };
 
   return (
     <>
@@ -395,29 +368,11 @@ if (includedFoodRadio) {
             </p>
           </div>
 
-          {/* {TripData?.schImageNameUrl ?? logo} */}
           {activityImages.length > 0 ? (
             <CCarousel controls interval={5000} dark>
               {activityImages.map((src, idx) => (
                 <CCarouselItem key={idx}>
                   <div style={{ position: "relative" }}>
-                    {/* <img
-                      src={TripData?.schImageNameUrl ?? logo}
-                      style={{
-                        maxWidth: "200px",
-                        maxHeight: "150px",
-                        height: "auto",
-                        objectFit: "contain",
-                        display: "block",
-                        marginBottom: "10px",
-                        position: "absolute",
-                        top: 0,
-                        margin: 20,
-                        right: 0,
-                      }}
-                      loading="lazy"
-                    /> */}
-
                     <img
                       className="d-block w-100"
                       src={src}
@@ -430,8 +385,6 @@ if (includedFoodRadio) {
                         width: "100%",
                       }}
                     />
-                    {/* Text at the bottom */}
-                    {/* <div className="actname">{ActivityData?.actName}</div> */}
                   </div>
                 </CCarouselItem>
               ))}
@@ -446,7 +399,7 @@ if (includedFoodRadio) {
               <div className="details-grid">
                 <div className="proposalsubtitlev3">
                   📅 Date
-                  <div>{getDayName(TripData?.actRequestDate)} </div>
+                  <div>{TripData?.actRequestDate} </div>
                 </div>
                 <div className="proposalsubtitlev3">
                   {" "}
@@ -493,85 +446,85 @@ if (includedFoodRadio) {
 
             {/* Food */}
             <FoodInfo
-  ActivityData={ActivityData}
-  checkedFoodItems={checkedFoodItems}
-  handleCheckboxChange={handleCheckboxChange}
-/>
-
-             <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
-        Child Information & Booking
-      </div>
-
-      <div className="proParents">
-        <div className="kids-info-container">
-          <div className="input-group">
-            <label>Parents Name</label>
-            <input name="txtParentName" className="vendor-input" />
-          </div>
-          <div className="input-group">
-            <label>Parents Mobile Number</label>
-            <input name="tripParentsMobileNo" className="vendor-input" />
-          </div>
-        </div>
-
-        <div className="kids-info-container">
-          <div className="input-group">
-            <label>Parents Note</label>
-            <textarea
-              name="txtParentsNote"
-              className="vendor-input"
-              rows={3}
-              placeholder="Enter note here..."
+              ActivityData={ActivityData}
+              checkedFoodItems={checkedFoodItems}
+              handleCheckboxChange={handleCheckboxChange}
             />
-          </div>
-        </div>
-      </div>
 
-      {childRows.map((row, index) => (
-        <div className="proParents" key={index}>
-          <div className="kids-info-container">
-            <div className="input-group">
-              <label>Kids School ID Number</label>
-              <input
-              name="txtKidsSchoolID"
-                className="vendor-input"
-                value={row.schoolID}
-                onChange={(e) =>
-                  handleInputChange(index, "schoolID", e.target.value)
-                }
-              />
+            <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
+              Child Information & Booking
             </div>
-            <div className="input-group">
-              <label>Kids Name</label>
-              <input
-              name="txtKidsName"
-                className="vendor-input"
-                value={row.name}
-                onChange={(e) =>
-                  handleInputChange(index, "name", e.target.value)
-                }
-              />
-            </div>
-            <div className="input-group">
-              <label>Class Name</label>
-              <input
-              name="txtKidsClassName"
-                className="vendor-input"
-                value={row.className}
-                onChange={(e) =>
-                  handleInputChange(index, "className", e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </div>
-      ))}
 
-      <div style={{ padding: "10px 20px" }}>
-        <button type="button" className="btnpay" onClick={handleAddRow}>
-          Add More
-        </button>
-      </div>
+            <div className="proParents">
+              <div className="kids-info-container">
+                <div className="input-group">
+                  <label>Parents Name</label>
+                  <input name="txtParentName" className="vendor-input" />
+                </div>
+                <div className="input-group">
+                  <label>Parents Mobile Number</label>
+                  <input name="tripParentsMobileNo" className="vendor-input" />
+                </div>
+              </div>
+
+              <div className="kids-info-container">
+                <div className="input-group">
+                  <label>Parents Note</label>
+                  <textarea
+                    name="txtParentsNote"
+                    className="vendor-input"
+                    rows={3}
+                    placeholder="Enter note here..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {childRows.map((row, index) => (
+              <div className="proParents" key={index}>
+                <div className="kids-info-container">
+                  <div className="input-group">
+                    <label>Kids School ID Number</label>
+                    <input
+                      name="txtKidsSchoolID"
+                      className="vendor-input"
+                      value={row.schoolID}
+                      onChange={(e) =>
+                        handleInputChange(index, "schoolID", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Kids Name</label>
+                    <input
+                      name="txtKidsName"
+                      className="vendor-input"
+                      value={row.name}
+                      onChange={(e) =>
+                        handleInputChange(index, "name", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Class Name</label>
+                    <input
+                      name="txtKidsClassName"
+                      className="vendor-input"
+                      value={row.className}
+                      onChange={(e) =>
+                        handleInputChange(index, "className", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ padding: "10px 20px" }}>
+              <button type="button" className="btnpay" onClick={handleAddRow}>
+                Add More
+              </button>
+            </div>
 
             <div className="payment-method-container">
               <div className="col1">
@@ -613,6 +566,34 @@ if (includedFoodRadio) {
                     {grandTotalWithTax.toFixed(2)}
                   </h2>
                 </div>
+
+                {childRows.length > 1 && (
+                  <>
+                    <hr />
+                    <div>
+                      <b>Total Kids:</b> {childRows.length}
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "1.1rem",
+                        marginTop: "6px",
+                      }}
+                    >
+                      Total Payable Amount:{" "}
+                      <img
+                        src={moneyv1}
+                        alt="logo"
+                        style={{
+                          width: "14px",
+                          marginRight: "6px",
+                          verticalAlign: "middle",
+                        }}
+                      />
+                      {(grandTotalWithTax * childRows.length).toFixed(2)}
+                    </div>
+                  </>
+                )}
               </div>
               <div className="col2">
                 <div className="payment-method-section">
@@ -644,7 +625,7 @@ if (includedFoodRadio) {
                   <div className="payment-selected">
                     <strong>Selected method:</strong> {selectedMethod}
                   </div>
-                  <button className="continue-button"  onClick={handleSubmit}>
+                  <button className="continue-button" onClick={handleSubmit}>
                     Continue to Payment
                   </button>
                 </div>

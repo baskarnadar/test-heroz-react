@@ -13,9 +13,12 @@ const adminschoolmgmChangePwd = React.lazy(
 )
 
 //trip
-
 const adminschTripProposalCraeted = React.lazy(() => import('./admindata/activityinfo/trip/list'))
 const adminschTripView = React.lazy(() => import('./admindata/activityinfo/trip/view'))
+
+//tripPayInfo
+const adminTripPayInfo = React.lazy(() => import('./admindata/activityinfo/trippayinfo/view'))
+ 
 
 //classinfo
 const classinfoList = React.lazy(() => import('./admindata/schoolmgm/classinfo/list'))
@@ -148,6 +151,9 @@ const routes = [
     name: 'View',
     element: adminschoolmgmChangePwd,
   },
+  //trip PayInfo
+{    path: '/admindata/activityinfo/trippayinfo/view',    name: 'Paid Student List',    element: adminTripPayInfo,},
+ 
 
 
   //trip propsal

@@ -127,6 +127,13 @@ const TripDataList = () => {
       `/admindata/activityinfo/trip/view?ActivityID=${ActivityID}&RequestID=${RequestID}&VendorID=${VendorID}`
     );
   };
+ const handlePaidStudentClick = (ActivityID,RequestID, VendorID) => {
+    navigate(
+      `/admindata/activityinfo/trippayinfo/view?ActivityID=${ActivityID}&RequestID=${RequestID}&VendorID=${VendorID}`
+    );
+  };
+
+  
 
   const getPageRange = () => {
     const range = [];
@@ -155,6 +162,7 @@ const TripDataList = () => {
                 <th>RefNo</th>
                 <th>Trip Date</th>
                 <th>Trip Time</th>
+                <th>Booked</th>
                 <th>Status </th>
                 <th>Actions</th>
               </tr>
@@ -177,8 +185,18 @@ const TripDataList = () => {
                   <td>{formatDate(TripData.actRequestDate)}</td>
                    <td>{ (TripData.actRequestTime)}</td>
 
-                  <td> {dspstatus(TripData.actRequestStatus)} </td>
-                 
+                  <td>  <button
+                        onClick={() =>
+                          handlePaidStudentClick(TripData.ActivityID,TripData.RequestID, TripData.VendorID)
+                        }
+                        title="View"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: "2px", cursor: "pointer" }}
+                        aria-label="View"
+                      >
+                        Paid Student List
+                      </button> </td>
+                    <td> {dspstatus(TripData.actRequestStatus)} </td>
                   <td
                     align="center"
                     style={{ width: "10%", whiteSpace: "nowrap" }}

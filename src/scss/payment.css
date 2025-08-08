@@ -230,7 +230,7 @@ h2 {
   border-radius: 25px;;
 }
 body {
-  background-image: url('../assets/images/bg.jpg') !important;
+ 
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center center;
@@ -313,4 +313,35 @@ body {
 .foodline
 {
   border-bottom: 2Px solid rgb(95, 92, 92);
+}
+.proposalsubtitlev3 {
+  background-color: #eef0f0;
+  font-size: 18px;
+  color: #181818;
+  border: 1px solid #e2e2e2;
+  border-radius: 20px;
+  font-weight: 700;
+  padding: 25px;
+  margin: 25px;
+  min-height: 170px;
+}
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  row-gap: 5px;
+  -moz-column-gap: 10px;
+  column-gap: 10px;
+  align-items: center;
+  background: #fff;
+}
+.proposalsubtitlefirst {
+  background-color: #f4edf1;
+  font-size: 18px;
+  color: #181818;
+  margin-bottom: 2px;
+  border: 1px solid #efe3f1;
+  border-radius: 25px 25px 0 0;
+  font-weight: 700;
+  padding: 2px;
+  text-indent: 20px;
 }
