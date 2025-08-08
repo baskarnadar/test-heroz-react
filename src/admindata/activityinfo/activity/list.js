@@ -235,7 +235,7 @@ const ActivityList = () => {
               }}
               > 
               Booked [ 
-              {Activity?.['proposal-created']?.totalProposalCreatd ?? 0}
+              {Activity?.['TRIP-BOOKED']?.totalProposalCreatd ?? 0}
                ]
               </button> 
                   

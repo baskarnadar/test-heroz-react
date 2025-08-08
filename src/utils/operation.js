@@ -165,7 +165,7 @@ export const dspstatus = (status) => {
     case 'DRAFT':
       color = 'blue'
       break
-        case 'PROPOSAL-CREATED':
+        case 'TRIP-BOOKED':
       color = 'blue'
       break
     default:
