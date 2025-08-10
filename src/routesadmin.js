@@ -2,6 +2,7 @@ import React from 'react'
 const AdminDashboard = React.lazy(() => import('./admindata/dashboard/Dashboard'))
 const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
 const PublicProposal = React.lazy(() => import('./public/proposal.js'))
+const PublicPayError = React.lazy(() => import('./public/payerror.js'))
 
 //adminschoolmgm
 const adminschoolmgmList = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/list'))
@@ -292,6 +293,7 @@ const routes = [
   
 
       { path: '/public/proposal', name: 'Proposal ', element: PublicProposal },
+      { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
 
   //Notefication
   { path: '/admindata/note/list', name: 'banner List', element: NoteList },

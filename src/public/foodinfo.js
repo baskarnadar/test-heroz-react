@@ -29,16 +29,15 @@ const FoodInfo = ({ ActivityData, checkedFoodItems, handleCheckboxChange }) => {
   checked={checkedFoodItems[foodItem.FoodID] || false}
   onChange={() => handleCheckboxChange(foodItem.FoodID)}
 />
-
-            
+ 
           </CCol>
           <CCol sm={4}>
             <div>{foodItem?.FoodName}</div>
           </CCol>
-          <CCol sm={5}>
+          <CCol sm={4}>
             <div>{TotalFoodPrice.toFixed(2)}</div>
           </CCol>
-          <CCol sm={2}>
+          <CCol sm={3}>
             <div className="text-center">
               {foodItem?.Include === true ? "Included" : ""}
             </div>
@@ -49,18 +48,15 @@ const FoodInfo = ({ ActivityData, checkedFoodItems, handleCheckboxChange }) => {
 
   return (
     <>
-      <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
-        Food Information
-      </div>
-      <div style={{ padding: 20 }}>
+      
+      <div >
         {/* Free Food */}
         {freeFoodList.length > 0 && (
-          <>
-           
-            <CRow className="mb-2 fw-bold hbg">
-              <CCol sm={5}>Food Name</CCol>
-              <CCol sm={5}>Total Price</CCol>
-              <CCol sm={2}></CCol>
+          <> 
+            <CRow className="mb-1 fw-bold hbg">
+              <CCol sm={4}>  Name</CCol>
+              <CCol sm={4}>  Price</CCol>
+              <CCol sm={3}></CCol>
             </CRow>
             {renderFoodRows(freeFoodList)}
           </>
@@ -70,10 +66,11 @@ const FoodInfo = ({ ActivityData, checkedFoodItems, handleCheckboxChange }) => {
         {extraFoodList.length > 0 && (
           <>
             <h5 style={{ marginTop: 30, marginBottom: 10 }} className="foodline">Extra</h5>
-            <CRow className="mb-2 fw-bold hbg">
-              <CCol sm={5}>Additional </CCol>
-              <CCol sm={5}>Total Price</CCol>
-              <CCol sm={2}></CCol>
+             <div className="divider" />
+            <CRow className="mb-1 fw-bold hbg">
+              <CCol sm={4}> Name </CCol>
+              <CCol sm={4}> Price</CCol>
+              <CCol sm={3}></CCol>
             </CRow>
             {renderFoodRows(extraFoodList)}
           </>

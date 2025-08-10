@@ -397,6 +397,11 @@ const ProposalPage = () => {
 
             <section className=" " aria-labelledby="request-details-title">
               <div className="details-grid">
+                 <div className="proposalsubtitlev3">
+                  📅 Trip Cost
+                 <div>{priceTotal.toFixed(2)} SAR</div>
+                </div>
+
                 <div className="proposalsubtitlev3">
                   📅 Date
                   <div>{TripData?.actRequestDate} </div>
