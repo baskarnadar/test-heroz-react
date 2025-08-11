@@ -572,9 +572,10 @@ body.hide-chrome .wrapper .body > .container-fluid {
     flex-direction: column;
     padding: 12px 16px 16px;
     gap: 12px;
+    z-index: 999;
   }
   .nav.show { display: flex; }
-  .btn-join { width: 100%; text-align: center; }
+  .btn-join { width: 75%; text-align: center; }
 }
 .header-logo { height: 38px; width: auto; display: block; }
 /* ====== Footer bits you already added (kept) ====== */
@@ -760,3 +761,53 @@ body {
   border:0px solid red    */
 
 }
+/* Kill any global sidebars when this page is open */
+body.no-sidebar .sidebar,
+body.no-sidebar .app-sidebar,
+body.no-sidebar .c-sidebar,
+body.no-sidebar .layout-sidebar,
+body.no-sidebar aside,
+body.no-sidebar .offcanvas-sidebar {
+  display: none !important;
+}
+
+/* Reset main area if your app pushes content right of a sidebar */
+body.no-sidebar .app-main,
+body.no-sidebar .main,
+body.no-sidebar .content,
+body.no-sidebar .page-wrapper {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Hide global CoreUI shell when .no-chrome is on body */
+body.no-chrome .sidebar,
+body.no-chrome .app-sidebar,
+body.no-chrome .sidebar-nav,
+body.no-chrome aside,
+body.no-chrome header.header,
+body.no-chrome .app-header,
+body.no-chrome .layout-fixed .sidebar,
+body.no-chrome .c-sidebar {
+  display: none !important;
+}
+
+/* Remove the left offset some layouts apply when sidebar is present */
+body.no-chrome .wrapper,
+body.no-chrome .app-body,
+body.no-chrome .app-main,
+body.no-chrome .main,
+body.no-chrome .content,
+body.no-chrome .page-wrapper {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+.success-message {
+  text-align: center !important;
+}
+.errormsg
+{
+  color:red;
+  text-align: center;
+}
+ 

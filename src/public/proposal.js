@@ -35,18 +35,31 @@ const ProposalPage = () => {
   const [txtactImageName3, setactImageName3] = useState(null);
   const [ActivityData, setActivity] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // toast
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
+  const [toastKey, setToastKey] = useState(0); // forces remount so same message shows again
+
+  // child rows
   const [childRows, setChildRows] = useState([
     { schoolID: "", name: "", className: "" },
   ]);
-  const [selectedMethod, setSelectedMethod] = useState("creditCard");
-  const [menuOpen, setMenuOpen] = useState(false); // NEW: mobile nav
 
-  // ADDED: expired flag
+  // payment – force user to choose (no default)
+  const [selectedMethod, setSelectedMethod] = useState("");
+
+  // mobile nav
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // expired flag
   const [isExpired, setIsExpired] = useState(false);
 
- 
+  const showToast = (type, msg) => {
+    setToastType(type);
+    setToastMessage(msg);
+    setToastKey((k) => k + 1);
+  };
 
   const handleAddRow = () =>
     setChildRows([...childRows, { schoolID: "", name: "", className: "" }]);
@@ -113,20 +126,19 @@ const ProposalPage = () => {
       const payload = Array.isArray(data?.data)
         ? (data.data[0] ?? null)
         : (data?.data ?? null);
- 
-    const dueRaw = payload?.PaymentDueDate;
-console.log("PaymentDueDate ->", dueRaw, typeof dueRaw);
 
-const missingDue =
-  dueRaw == null ||
-  String(dueRaw).trim() === "" ||
-  String(dueRaw).trim().toLowerCase() === "undefined" ||
-  String(dueRaw).trim().toLowerCase() === "null";
+      const dueRaw = payload?.PaymentDueDate;
+      //alert(dueRaw);
+      const missingDue =
+        dueRaw == null ||
+        String(dueRaw).trim() === "" ||
+        String(dueRaw).trim().toLowerCase() === "undefined" ||
+        String(dueRaw).trim().toLowerCase() === "null";
 
-if (missingDue || isPaymentExpired(dueRaw)) {
-  window.location.hash = '#/public/payerror';
-  return;
-}
+      if (missingDue || isPaymentExpired(dueRaw)) {
+        window.location.hash = "#/public/payerror";
+        return;
+      }
       setTripData(payload);
 
       const ActivityIDVal = payload?.ActivityID;
@@ -140,39 +152,40 @@ if (missingDue || isPaymentExpired(dueRaw)) {
       setLoading(false);
     }
   };
-// Treat null, undefined, "", "undefined", "null", "NaN" as NO due date
-const hasRealDueDate = (raw) => {
-  if (raw == null) return false;
-  const s = String(raw).trim().toLowerCase();
-  return s !== "" && s !== "undefined" && s !== "null" && s !== "nan";
-};
 
-const parseDueDate = (raw) => {
-  if (!hasRealDueDate(raw)) return null;
-  let s = String(raw).trim();
+  // Treat null, undefined, "", "undefined", "null", "NaN" as NO due date
+  const hasRealDueDate = (raw) => {
+    if (raw == null) return false;
+    const s = String(raw).trim().toLowerCase();
+    return s !== "" && s !== "undefined" && s !== "null" && s !== "nan";
+  };
 
-  // Common fixes: "YYYY-MM-DD HH:mm:ss" -> ISO
-  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) s = s.replace(" ", "T");
+  const parseDueDate = (raw) => {
+    if (!hasRealDueDate(raw)) return null;
+    let s = String(raw).trim();
 
-  // Support DD/MM/YYYY
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-    const [dd, mm, yyyy] = s.split("/");
-    s = `${yyyy}-${mm}-${dd}`;
-  }
+    // "YYYY-MM-DD HH:mm:ss" -> ISO
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) s = s.replace(" ", "T");
 
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
-};
+    // DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+      const [dd, mm, yyyy] = s.split("/");
+      s = `${yyyy}-${mm}-${dd}`;
+    }
 
-// Expired if due date exists and is <= today
-const isPaymentExpired = (raw) => {
-  const d = parseDueDate(raw);
-  if (!d) return false; // no valid date -> do NOT expire
-  const today = new Date();
-  d.setHours(0,0,0,0);
-  today.setHours(0,0,0,0);
-  return d.getTime() <= today.getTime();
-};
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Expired if due date exists and is <= today
+  const isPaymentExpired = (raw) => {
+    const d = parseDueDate(raw);
+    if (!d) return false;
+    const today = new Date();
+    d.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return d.getTime() < today.getTime();
+  };
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
@@ -235,15 +248,49 @@ const isPaymentExpired = (raw) => {
   const taxAmount = (Number(grandTotal) || 0) * TAX_RATE;
   const grandTotalWithTax = (Number(grandTotal) || 0) + taxAmount;
 
+  // ---------- Validation ----------
+  const validateBeforeSubmit = () => {
+    // 1) Included food: require one radio 'foodSelect'
+    const includedFoodRadio = document.querySelector(
+      'input[name="foodSelect"]:checked'
+    );
+    if (!includedFoodRadio) {
+      showToast("danger", "Please select one Included food option.");
+      return false;
+    }
+
+    // 2) Child info: at least one fully filled row
+    const hasValidChild = childRows.some((row) => {
+      const name = (row.name || "").trim();
+      const cls = (row.className || "").trim();
+      const sid = (row.schoolID || "").trim();
+      return name && cls && sid;
+    });
+    if (!hasValidChild) {
+      showToast(
+        "danger",
+        "Please enter Child Information: Name, Class and School ID for at least one child."
+      );
+      return false;
+    }
+
+    // 3) Payment selected
+    if (!selectedMethod) {
+      showToast("danger", "Please select a Payment Method.");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
     // ADDED: safety check at submit time too
     if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
       setIsExpired(true);
-      setToastType("danger");
-      setToastMessage(
+      showToast(
+        "danger",
         "We are sorry, the payment due date has finished. You cannot pay."
       );
-      window.location.replace("/public/payerror");
       return;
     }
 
@@ -251,20 +298,38 @@ const isPaymentExpired = (raw) => {
     const RequestID = TripData?.RequestID;
 
     const parentName =
-      document.querySelector('input[name="txtParentName"]')?.value || "";
+      document.querySelector('input[name="txtParentName"]')?.value.trim() ||
+      "";
     const parentMobile =
-      document.querySelector('input[name="tripParentsMobileNo"]')?.value || "";
+      document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() ||
+      "";
     const parentNote =
-      document.querySelector('textarea[name="txtParentsNote"]')?.value || "";
+      document.querySelector('textarea[name="txtParentsNote"]')?.value.trim() ||
+      "";
 
+    // ===== Your extra parent validation (kept as in your code) =====
+    if (!parentName || !parentMobile) {
+     setToastMessage(  "Please enter parent name and phone number.");
+      return;
+    }
+
+    // New validations block
+    if (!validateBeforeSubmit()) return;
+
+    // Check FoodIncluded & gather
     const foodIncluded = [];
-    const foodExtra = [];
-
     const includedFoodRadio = document.querySelector(
       'input[name="foodSelect"]:checked'
     );
-    if (includedFoodRadio) foodIncluded.push(includedFoodRadio.value);
+    if (includedFoodRadio) {
+      foodIncluded.push(includedFoodRadio.value);
+    } else {
+      setToastMessage("danger", "Please select at least one included food option.");
+      return;
+    }
 
+    // Collect foodExtra
+    const foodExtra = [];
     (ActivityData?.foodList ?? []).forEach((item) => {
       if (item.Include !== true) {
         const checkbox = document.querySelector(
@@ -274,7 +339,16 @@ const isPaymentExpired = (raw) => {
       }
     });
 
-    const kidsInfo = childRows.map((row) => ({
+    // Build kidsInfo array (use only filled rows)
+    const validKids = childRows
+      .map((row) => ({
+        schoolID: (row.schoolID || "").trim(),
+        name: (row.name || "").trim(),
+        className: (row.className || "").trim(),
+      }))
+      .filter((r) => r.schoolID && r.name && r.className);
+
+    const kidsInfo = validKids.map((row) => ({
       RequestID,
       ParentsID,
       KidsID: "",
@@ -316,23 +390,24 @@ const isPaymentExpired = (raw) => {
       if (!response.ok) throw new Error("Failed to submit data");
       const result = await response.json();
       console.log("Submission success:", result);
-      window.location.replace("/public/paysuccess");
-      setToastMessage("Submitted successfully!");
-      setToastType("success");
+
+      // HashRouter-safe redirect
+      window.location.replace("#/public/paysuccess");
+
+      showToast("success", "Submitted successfully!");
     } catch (error) {
       console.error("Submit error:", error);
-      setToastMessage("Submission failed");
-      setToastType("danger");
+      showToast("danger", "Submission failed");
     }
   };
 
   return (
     <>
       <div className="bodyimg">
-        {/* ===== Custom Header ===== */}
+        {/* ===== Header ===== */}
         <header className="site-header">
           <div className="container header-inner ">
-            <a href="#" className="brand" aria-label="Heroz Home">
+            <a   className="brand" aria-label="Heroz Home">
               <img src={herozlogo} alt="HEROZ" className="header-logo" />
             </a>
             <button
@@ -346,14 +421,13 @@ const isPaymentExpired = (raw) => {
               <span />
             </button>
 
-            <nav className={`nav ${menuOpen ? "show" : ""}`}>
-              <a href="#about">About</a>
-              <a href="#providers">Our Providers</a>
-              <a href="#schools">Heroz For School</a>
-              <a href="#join" className="btn-join">
-                Join As A provider
-              </a>
-            </nav>
+           <nav className={`nav ${menuOpen ? "show" : ""}`}>
+  <a>About</a>
+  <a>Our Providers</a>
+  <a>Heroz For School</a>
+  <a className="btn-join">Join As A provider</a>
+</nav>
+
           </div>
         </header>
 
@@ -361,7 +435,7 @@ const isPaymentExpired = (raw) => {
         <main className="proposal">
           {error && <div className="alert-error">{error}</div>}
 
-          {/* Header hero (school) */}
+          {/* Hero */}
           <div className="hero-frame">
             <header className="hero">
               <img
@@ -379,36 +453,27 @@ const isPaymentExpired = (raw) => {
             </header>
           </div>
 
-          {/* Intro section */}
-          <section className="intro container  ">
+          {/* Intro */}
+          <section className="intro container">
             <h2 className="intro-title">
-              <span role="img" aria-label="party">
-                🎉
-              </span>
-
+              <span role="img" aria-label="party">🎉</span>
               <h1 className="trip-gradient-title">
                 Here your child is going for a trip
               </h1>
-              <span role="img" aria-label="party">
-                🎉
-              </span>
+              <span role="img" aria-label="party">🎉</span>
             </h2>
             <p className="intro-sub">
               Review and book {ActivityData?.actName} school trip
             </p>
           </section>
 
-          {/* Activity image carousel */}
+          {/* Media */}
           <section className="activity-media container">
             {activityImages.length > 0 ? (
               <CCarousel controls interval={5000} dark>
                 {activityImages.map((src, idx) => (
                   <CCarouselItem key={idx}>
-                    <img
-                      className="activity-img"
-                      src={src}
-                      alt={`Activity ${idx + 1}`}
-                    />
+                    <img className="activity-img" src={src} alt={`Activity ${idx + 1}`} />
                   </CCarouselItem>
                 ))}
               </CCarousel>
@@ -417,32 +482,23 @@ const isPaymentExpired = (raw) => {
             )}
           </section>
 
-          {/* Trip info grid */}
+          {/* Trip info */}
           <section className="trip-info" aria-labelledby="trip-info-title">
             <div className="card about-details">
               <div className="about-left">
-                {/* ADDED title inside the left column */}
                 <h2 className="section-title trip-gradient-color fontsize40">
                   Trip Information
                 </h2>
-                {/* Or use gradient: <h2 className="section-title gradient">TRIP INFORMATION</h2> */}
-
                 <h3 className="card-title">About This Trip</h3>
                 <p className="card-text">{ActivityData?.actDesc}</p>
               </div>
 
-              {/* Right column - Trip Details */}
               <div className="about-right">
                 <div className="detail-row">
                   <div className="detail">
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
-                        <img
-                          src={icon5}
-                          alt="HEROZ"
-                          className="icon-tint-pink"
-                        />
-
+                        <img src={icon5} alt="HEROZ" className="icon-tint-pink" />
                         <span> Trip Cost</span>
                       </div>
                     </div>
@@ -457,7 +513,6 @@ const isPaymentExpired = (raw) => {
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
                         <span>
-                          {" "}
                           <div className="row-inline">
                             <img src={icon1} alt="HEROZ" />
                             <span>Date</span>
@@ -488,7 +543,6 @@ const isPaymentExpired = (raw) => {
                 <div className="detail-row">
                   <div className="detail">
                     <div className="detail-label trip-gradient-color  fontsize30">
-                      {" "}
                       <div className="row-inline">
                         <img src={icon3} alt="HEROZ" />
                         <span>Location</span>
@@ -509,11 +563,7 @@ const isPaymentExpired = (raw) => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <img
-                          src={viewonmap}
-                          alt="HEROZ"
-                          className="footer-logo"
-                        />
+                        <img src={viewonmap} alt="HEROZ" className="footer-logo" />
                       </a>
                     )}
                   </div>
@@ -556,17 +606,12 @@ const isPaymentExpired = (raw) => {
                     {grandTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
                   </span>
                 </div>
-                {/* <div className="summary-row total">
-                <span>Total Payable</span>
-                <span>{grandTotalWithTax.toFixed(2)} SAR</span>
-              </div> */}
               </div>
 
               <div className="summary-row total trip-gradient-color">
                 <span>Total Payable (per student)</span>
                 <span>
-                  {grandTotalWithTax.toFixed(2)}{" "}
-                  <img src={icon5} alt="HEROZ" />
+                  {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
 
@@ -698,12 +743,7 @@ const isPaymentExpired = (raw) => {
                 >
                   <span className="trip-gradient-color">
                     <div className="row-inline">
-                      <img
-                        src={icon6}
-                        alt="HEROZ"
-                        className="icon-tint-pink"
-                      />
-
+                      <img src={icon6} alt="HEROZ" className="icon-tint-pink" />
                       <span> + Add more child</span>
                     </div>
                   </span>
@@ -727,10 +767,11 @@ const isPaymentExpired = (raw) => {
             </div>
           </section>
 
-          <DspToastMessage message={toastMessage} type={toastType} />
+          {/* Toast (key forces rerender for same message twice) */}
+      <div className="errormsg"> <h3> <DspToastMessage key={toastKey} message={toastMessage} type={toastType} /></h3></div>  
         </main>
 
-        {/* ===== Footer (kept) ===== */}
+        {/* Footer */}
         <footer className="site-footer">
           <div className="footer-top container ">
             <div className="footer-brand">
@@ -776,10 +817,10 @@ const isPaymentExpired = (raw) => {
               <h4>Company</h4>
               <ul>
                 <li>
-                  <a href="#">About Us</a>
+                  <a  >About Us</a>
                 </li>
                 <li>
-                  <a href="#">Contact Us</a>
+                  <a >Contact Us</a>
                 </li>
               </ul>
             </div>
@@ -788,10 +829,10 @@ const isPaymentExpired = (raw) => {
               <h4>Support</h4>
               <ul>
                 <li>
-                  <a href="#">Privacy</a>
+                  <a  >Privacy</a>
                 </li>
                 <li>
-                  <a href="#">Terms Of Service</a>
+                  <a  >Terms Of Service</a>
                 </li>
               </ul>
             </div>
@@ -801,7 +842,7 @@ const isPaymentExpired = (raw) => {
             <span>Copyright © Heroz {new Date().getFullYear()}</span>
           </div>
         </footer>
-      </div>{" "}
+      </div>
     </>
   );
 };
