@@ -291,7 +291,7 @@ const routes = [
   { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify }, 
   { path: '/rights/list', name: 'banner List', element: RightsList },
   
-  { path: '/public/program/:requestId', name: 'Program', element: PublicProposal },
+{ path: '/public/proposal', name: 'Proposal', element: PublicProposal },
 
   { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
   { path: '/public/paysuccess', name: 'Proposal ', element: PublicPaySuccess },
