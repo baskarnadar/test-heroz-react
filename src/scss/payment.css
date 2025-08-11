@@ -811,3 +811,35 @@ body.no-chrome .page-wrapper {
   text-align: center;
 }
  
+.sidebar-backdrop
+{
+  background-color: transparent !important;
+}
+/* Make the two cards lay out nicely and allow ordering */
+.twocol {
+  display: grid;
+  grid-template-columns: 1fr; /* mobile: single column */
+  gap: 20px;
+}
+
+/* Mobile-first order: Child Information first, Pricing second */
+.order-child { order: 1; }
+.order-pricing { order: 2; }
+
+/* Desktop / large screens: 2 columns, natural order (left-to-right) */
+@media (min-width: 992px) {
+  .twocol {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  /* Optional: if you want Pricing on the left and Booking on right,
+     keep these orders; they match your JSX left-to-right */
+  .order-child { order: 2; }
+  .order-pricing { order: 1; }
+}
+
+/* (Optional) Toast positioning if you want it fixed at bottom */
+.errormsg {
+  position: relative; /* or fixed if you want pinned */
+  z-index: 1000;
+}

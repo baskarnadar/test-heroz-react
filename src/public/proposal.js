@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  FaMapMarkerAlt,
   FaInstagram,
   FaFacebookF,
   FaTwitter,
@@ -13,10 +12,8 @@ import viewonmap from "../assets/icon/viewonmap.png";
 import icon1 from "../assets/icon/icon1.png";
 import icon2 from "../assets/icon/icon2.png";
 import icon3 from "../assets/icon/icon3.png";
-import icon4 from "../assets/icon/icon4.png";
 import icon5 from "../assets/icon/icon5.png";
 import icon6 from "../assets/icon/icon6.png";
-import etop from "../assets/icon/etop.png";
 
 import "../scss/payment.css"; // external CSS
 import {
@@ -39,7 +36,7 @@ const ProposalPage = () => {
   // toast
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
-  const [toastKey, setToastKey] = useState(0); // forces remount so same message shows again
+  const [toastKey, setToastKey] = useState(0); // force remount so same message shows again
 
   // child rows
   const [childRows, setChildRows] = useState([
@@ -128,7 +125,6 @@ const ProposalPage = () => {
         : (data?.data ?? null);
 
       const dueRaw = payload?.PaymentDueDate;
-      //alert(dueRaw);
       const missingDue =
         dueRaw == null ||
         String(dueRaw).trim() === "" ||
@@ -177,7 +173,7 @@ const ProposalPage = () => {
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Expired if due date exists and is <= today
+  // Expired if due date exists and is strictly before today (today is allowed)
   const isPaymentExpired = (raw) => {
     const d = parseDueDate(raw);
     if (!d) return false;
@@ -187,12 +183,21 @@ const ProposalPage = () => {
     return d.getTime() < today.getTime();
   };
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
-    const RequestID = urlParams.get("RequestID");
-    if (RequestID) fetchTripData(RequestID);
-    else setError("ActivityID is missing in URL");
-  }, []);
+useEffect(() => {
+  // Example: "#/public/program/af680b6a00294f239be56858c"
+  const hash = window.location.hash; 
+  const parts = hash.split("/");
+
+  // The RequestID will be the last part of the hash path
+  const RequestID = parts[parts.length - 1] || null;
+
+  if (RequestID) {
+    fetchTripData(RequestID);
+  } else {
+    setError("ActivityID is missing in URL");
+  }
+}, []);
+
 
   useEffect(() => {
     if (!ActivityData) return;
@@ -284,7 +289,7 @@ const ProposalPage = () => {
   };
 
   const handleSubmit = async () => {
-    // ADDED: safety check at submit time too
+    // Safety check: due date
     if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
       setIsExpired(true);
       showToast(
@@ -298,22 +303,22 @@ const ProposalPage = () => {
     const RequestID = TripData?.RequestID;
 
     const parentName =
-      document.querySelector('input[name="txtParentName"]')?.value.trim() ||
-      "";
+      document.querySelector('input[name="txtParentName"]')?.value.trim() || "";
     const parentMobile =
-      document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() ||
-      "";
+      document
+        .querySelector('input[name="tripParentsMobileNo"]')
+        ?.value.trim() || "";
     const parentNote =
       document.querySelector('textarea[name="txtParentsNote"]')?.value.trim() ||
       "";
 
-    // ===== Your extra parent validation (kept as in your code) =====
+    // Parent basic validation
     if (!parentName || !parentMobile) {
-     setToastMessage(  "Please enter parent name and phone number.");
+      showToast("danger", "Please enter parent name and phone number.");
       return;
     }
 
-    // New validations block
+    // New validations block (included food, child, payment)
     if (!validateBeforeSubmit()) return;
 
     // Check FoodIncluded & gather
@@ -324,7 +329,7 @@ const ProposalPage = () => {
     if (includedFoodRadio) {
       foodIncluded.push(includedFoodRadio.value);
     } else {
-      setToastMessage("danger", "Please select at least one included food option.");
+      showToast("danger", "Please select at least one included food option.");
       return;
     }
 
@@ -339,7 +344,7 @@ const ProposalPage = () => {
       }
     });
 
-    // Build kidsInfo array (use only filled rows)
+    // Build kidsInfo array (only filled rows)
     const validKids = childRows
       .map((row) => ({
         schoolID: (row.schoolID || "").trim(),
@@ -388,8 +393,7 @@ const ProposalPage = () => {
         }
       );
       if (!response.ok) throw new Error("Failed to submit data");
-      const result = await response.json();
-      console.log("Submission success:", result);
+      await response.json();
 
       // HashRouter-safe redirect
       window.location.replace("#/public/paysuccess");
@@ -407,7 +411,7 @@ const ProposalPage = () => {
         {/* ===== Header ===== */}
         <header className="site-header">
           <div className="container header-inner ">
-            <a   className="brand" aria-label="Heroz Home">
+            <a className="brand" aria-label="Heroz Home">
               <img src={herozlogo} alt="HEROZ" className="header-logo" />
             </a>
             <button
@@ -421,13 +425,12 @@ const ProposalPage = () => {
               <span />
             </button>
 
-           <nav className={`nav ${menuOpen ? "show" : ""}`}>
-  <a>About</a>
-  <a>Our Providers</a>
-  <a>Heroz For School</a>
-  <a className="btn-join">Join As A provider</a>
-</nav>
-
+            <nav className={`nav ${menuOpen ? "show" : ""}`}>
+              <a>About</a>
+              <a>Our Providers</a>
+              <a>Heroz For School</a>
+              <a className="btn-join">Join As A provider</a>
+            </nav>
           </div>
         </header>
 
@@ -574,101 +577,8 @@ const ProposalPage = () => {
 
           {/* Pricing + Booking */}
           <section className="container twocol">
-            {/* Pricing */}
-            <div className="card pricing">
-              <h3 className="card-title trip-gradient-color fontsize40">
-                Trips Pricing
-              </h3>
-
-              <div className="price-row">
-                <span className="price-label fontsize20">Base Trip Cost</span>
-                <span className="price-value fontsize20">
-                  {priceTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
-                </span>
-              </div>
-
-              <div className="divider" />
-              <div className="price-subtitle">Included </div>
-              <div className="divider" />
-              <div className="food-wrap">
-                <FoodInfo
-                  ActivityData={ActivityData}
-                  checkedFoodItems={checkedFoodItems}
-                  handleCheckboxChange={handleCheckboxChange}
-                />
-              </div>
-
-              <div className="divider" />
-              <div className="summary">
-                <div className="summary-row">
-                  <span>Subtotal</span>
-                  <span>
-                    {grandTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
-                  </span>
-                </div>
-              </div>
-
-              <div className="summary-row total trip-gradient-color">
-                <span>Total Payable (per student)</span>
-                <span>
-                  {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
-                </span>
-              </div>
-
-              {childRows.length > 1 && (
-                <div className="summary-row total net-payable trip-gradient-color">
-                  <span>Net Payable Amount ({childRows.length} kids)</span>
-                  <span>
-                    {(grandTotalWithTax * childRows.length).toFixed(2)}{" "}
-                    <img src={icon5} alt="HEROZ" />
-                  </span>
-                </div>
-              )}
-
-              <div className="divider" />
-              <div className="payment-group">
-                <div className="payment-title">Payment Method</div>
-
-                {[
-                  {
-                    value: "creditCard",
-                    label: "Credit/Debit Card",
-                    description: "Secure online payment",
-                  },
-                  {
-                    value: "applePay",
-                    label: "Apple Pay",
-                    description: "Quick and secure",
-                  },
-                ].map((option) => (
-                  <label
-                    key={option.value}
-                    className={`payment-option ${
-                      selectedMethod === option.value ? "active" : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={option.value}
-                      checked={selectedMethod === option.value}
-                      onChange={() => setSelectedMethod(option.value)}
-                    />
-                    <div className="payment-info">
-                      <div className="payment-label">{option.label}</div>
-                      <div className="payment-desc">{option.description}</div>
-                    </div>
-                  </label>
-                ))}
-
-                <button className="btn-primary" onClick={handleSubmit}>
-                  Continue to payment
-                </button>
-              </div>
-            </div>
-
-            {/* Booking form */}
-            <div className="card booking">
+            {/* Booking form — appears BEFORE pricing on mobile */}
+            <div className="card booking order-child">
               <h3 className="card-title trip-gradient-color fontsize40">
                 Child Information & Booking
               </h3>
@@ -765,10 +675,111 @@ const ProposalPage = () => {
                 <div className="terms-text">{ActivityData?.actAdminNotes}</div>
               </div>
             </div>
+
+            {/* Pricing — shows AFTER booking on mobile */}
+            <div className="card pricing order-pricing">
+              <h3 className="card-title trip-gradient-color fontsize40">
+                Trips Pricing
+              </h3>
+
+              <div className="price-row">
+                <span className="price-label fontsize20">Base Trip Cost</span>
+                <span className="price-value fontsize20">
+                  {priceTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                </span>
+              </div>
+
+              <div className="divider" />
+              <div className="price-subtitle">Included </div>
+              <div className="divider" />
+              <div className="food-wrap">
+                <FoodInfo
+                  ActivityData={ActivityData}
+                  checkedFoodItems={checkedFoodItems}
+                  handleCheckboxChange={handleCheckboxChange}
+                />
+              </div>
+
+              <div className="divider" />
+              <div className="summary">
+                <div className="summary-row">
+                  <span>Subtotal</span>
+                  <span>
+                    {grandTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                  </span>
+                </div>
+              </div>
+
+              <div className="summary-row total trip-gradient-color">
+                <span>Total Payable (per student)</span>
+                <span>
+                  {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                </span>
+              </div>
+
+              {childRows.length > 1 && (
+                <div className="summary-row total net-payable trip-gradient-color">
+                  <span>Net Payable Amount ({childRows.length} kids)</span>
+                  <span>
+                    {(grandTotalWithTax * childRows.length).toFixed(2)}{" "}
+                    <img src={icon5} alt="HEROZ" />
+                  </span>
+                </div>
+              )}
+
+              <div className="divider" />
+              <div className="payment-group">
+                <div className="payment-title">Payment Method</div>
+
+                {[
+                  {
+                    value: "creditCard",
+                    label: "Credit/Debit Card",
+                    description: "Secure online payment",
+                  },
+                  {
+                    value: "applePay",
+                    label: "Apple Pay",
+                    description: "Quick and secure",
+                  },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    className={`payment-option ${
+                      selectedMethod === option.value ? "active" : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value={option.value}
+                      checked={selectedMethod === option.value}
+                      onChange={() => setSelectedMethod(option.value)}
+                    />
+                    <div className="payment-info">
+                      <div className="payment-label">{option.label}</div>
+                      <div className="payment-desc">{option.description}</div>
+                    </div>
+                  </label>
+                ))}
+
+                <button className="btn-primary" onClick={handleSubmit}>
+                  Continue to payment
+                </button>
+              </div>
+            </div>
           </section>
 
           {/* Toast (key forces rerender for same message twice) */}
-      <div className="errormsg"> <h3> <DspToastMessage key={toastKey} message={toastMessage} type={toastType} /></h3></div>  
+          <div className="errormsg">
+            <h3>
+              <DspToastMessage
+                key={toastKey}
+                message={toastMessage}
+                type={toastType}
+              />
+            </h3>
+          </div>
         </main>
 
         {/* Footer */}
@@ -817,10 +828,10 @@ const ProposalPage = () => {
               <h4>Company</h4>
               <ul>
                 <li>
-                  <a  >About Us</a>
+                  <a>About Us</a>
                 </li>
                 <li>
-                  <a >Contact Us</a>
+                  <a>Contact Us</a>
                 </li>
               </ul>
             </div>
@@ -829,10 +840,10 @@ const ProposalPage = () => {
               <h4>Support</h4>
               <ul>
                 <li>
-                  <a  >Privacy</a>
+                  <a>Privacy</a>
                 </li>
                 <li>
-                  <a  >Terms Of Service</a>
+                  <a>Terms Of Service</a>
                 </li>
               </ul>
             </div>
