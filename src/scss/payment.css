@@ -843,3 +843,19 @@ body.no-chrome .page-wrapper {
   position: relative; /* or fixed if you want pinned */
   z-index: 1000;
 }
+/* Existing layout for the two cards */
+.twocol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* desktop/tablet */
+  gap: 24px;
+}
+
+/* On mobile, stack and put "Child Information & Booking" BEFORE "Trips Pricing" */
+@media (max-width: 768px) {
+  .twocol {
+    display: flex;
+    flex-direction: column;
+  }
+  .twocol .booking { order: 1; }   /* first */
+  .twocol .pricing { order: 2; }   /* second */
+}

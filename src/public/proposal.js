@@ -128,7 +128,6 @@ const ProposalPage = () => {
         : (data?.data ?? null);
 
       const dueRaw = payload?.PaymentDueDate;
-      //alert(dueRaw);
       const missingDue =
         dueRaw == null ||
         String(dueRaw).trim() === "" ||
@@ -177,7 +176,7 @@ const ProposalPage = () => {
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Expired if due date exists and is <= today
+  // Expired if due date exists and is < today (today is allowed)
   const isPaymentExpired = (raw) => {
     const d = parseDueDate(raw);
     if (!d) return false;
@@ -187,18 +186,18 @@ const ProposalPage = () => {
     return d.getTime() < today.getTime();
   };
 
-useEffect(() => {
-  // URL looks like: #/public/proposal?RequestID=XYZ
-  const qs = window.location.hash.split('?')[1] || '';
-  const params = new URLSearchParams(qs);
-  const id = params.get('RequestID');
+  useEffect(() => {
+    // URL looks like: #/public/proposal?RequestID=XYZ
+    const qs = window.location.hash.split("?")[1] || "";
+    const params = new URLSearchParams(qs);
+    const id = params.get("RequestID");
 
-  if (id) {
-    fetchTripData(id);
-  } else {
-    setError('RequestID is missing in URL');
-  }
-}, []);
+    if (id) {
+      fetchTripData(id);
+    } else {
+      setError("RequestID is missing in URL");
+    }
+  }, []);
 
   useEffect(() => {
     if (!ActivityData) return;
@@ -313,9 +312,9 @@ useEffect(() => {
       document.querySelector('textarea[name="txtParentsNote"]')?.value.trim() ||
       "";
 
-    // ===== Your extra parent validation (kept as in your code) =====
+    // quick parent validation
     if (!parentName || !parentMobile) {
-     setToastMessage(  "Please enter parent name and phone number.");
+      showToast("danger", "Please enter parent name and phone number.");
       return;
     }
 
@@ -330,7 +329,7 @@ useEffect(() => {
     if (includedFoodRadio) {
       foodIncluded.push(includedFoodRadio.value);
     } else {
-      setToastMessage("danger", "Please select at least one included food option.");
+      showToast("danger", "Please select at least one included food option.");
       return;
     }
 
@@ -411,25 +410,30 @@ useEffect(() => {
     <>
       <div className="bodyimg">
         {/* ===== Header ===== */}
-        <header className="site-header">
-          <div className="container header-inner ">
-            <a   className="brand" aria-label="Heroz Home">
-              <img src={herozlogo} alt="HEROZ" className="header-logo" />
-            </a>
-            <button
-              className={`nav-toggle ${menuOpen ? "open" : ""}`}
-              aria-label="Toggle navigation"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((s) => !s)}
-            >
-              <span />
-              <span />
-              <span />
-            </button>
-
-           
-          </div>
-        </header>
+         <header className="site-header">
+                 <div className="container header-inner ">
+                   <a className="brand" aria-label="Heroz Home">
+                     <img src={herozlogo} alt="HEROZ" className="header-logo" />
+                   </a>
+                   <button
+                     className={`nav-toggle ${menuOpen ? "open" : ""}`}
+                     aria-label="Toggle navigation"
+                     aria-expanded={menuOpen}
+                     onClick={() => setMenuOpen((s) => !s)}
+                   >
+                     <span />
+                     <span />
+                     <span />
+                   </button>
+       
+                   <nav className={`nav ${menuOpen ? "show" : ""}`}>
+                     <a>About</a>
+                     <a>Our Providers</a>
+                     <a>Heroz For School</a>
+                     <a className="btn-join">Join As A provider</a>
+                   </nav>
+                 </div>
+               </header>
 
         {/* PAGE */}
         <main className="proposal">
@@ -768,7 +772,11 @@ useEffect(() => {
           </section>
 
           {/* Toast (key forces rerender for same message twice) */}
-      <div className="errormsg"> <h3> <DspToastMessage key={toastKey} message={toastMessage} type={toastType} /></h3></div>  
+          <div className="errormsg">
+            <h3>
+              <DspToastMessage key={toastKey} message={toastMessage} type={toastType} />
+            </h3>
+          </div>
         </main>
 
         {/* Footer */}
@@ -817,10 +825,10 @@ useEffect(() => {
               <h4>Company</h4>
               <ul>
                 <li>
-                  <a  >About Us</a>
+                  <a>About Us</a>
                 </li>
                 <li>
-                  <a >Contact Us</a>
+                  <a>Contact Us</a>
                 </li>
               </ul>
             </div>
@@ -829,10 +837,10 @@ useEffect(() => {
               <h4>Support</h4>
               <ul>
                 <li>
-                  <a  >Privacy</a>
+                  <a>Privacy</a>
                 </li>
                 <li>
-                  <a  >Terms Of Service</a>
+                  <a>Terms Of Service</a>
                 </li>
               </ul>
             </div>
