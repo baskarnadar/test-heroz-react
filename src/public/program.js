@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import {
-  FaInstagram,
-  FaFacebookF,
-  FaTwitter,
-} from "react-icons/fa";
+import { useParams } from "react-router-dom";
+import { FaInstagram, FaFacebookF, FaTwitter } from "react-icons/fa";
 import { CCarousel, CCarouselItem } from "@coreui/react";
 import { API_BASE_URL } from "../config";
 import logo from "../assets/logo/default.png";
@@ -37,7 +34,7 @@ const ProposalPage = () => {
   // toast
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
-  const [toastKey, setToastKey] = useState(0); // force rerender to show same text twice
+  const [toastKey, setToastKey] = useState(0);
 
   // child rows
   const [childRows, setChildRows] = useState([
@@ -53,7 +50,7 @@ const ProposalPage = () => {
   // expired flag
   const [isExpired, setIsExpired] = useState(false);
 
-  // share data
+  // share/meta
   const [requestId, setRequestId] = useState("");
   const [absoluteLogoUrl, setAbsoluteLogoUrl] = useState("");
   const [shareUrl, setShareUrl] = useState("");
@@ -189,12 +186,24 @@ const ProposalPage = () => {
     return d.getTime() < today.getTime();
   };
 
-  // Parse RequestID from hash querystring and build share/meta URLs
+  // ====== Get RequestID from /public/program/:requestId with fallbacks ======
+  const { requestId: routeId } = useParams();
   useEffect(() => {
-    // URL looks like: #/public/proposal?RequestID=XYZ
-    const qs = window.location.hash.split("?")[1] || "";
-    const params = new URLSearchParams(qs);
-    const id = params.get("RequestID") || "";
+    let id = routeId || "";
+
+    // Fallback 1: hash path like #/public/program/<id>
+    if (!id) {
+      const m = window.location.hash.match(/#\/public\/program\/([^?/#]+)/i);
+      if (m && m[1]) id = m[1];
+    }
+
+    // Fallback 2: legacy query string #/public/proposal?RequestID=<id>
+    if (!id) {
+      const qs = window.location.hash.split("?")[1] || "";
+      const params = new URLSearchParams(qs);
+      id = params.get("RequestID") || "";
+    }
+
     setRequestId(id);
 
     if (id) {
@@ -203,7 +212,7 @@ const ProposalPage = () => {
       setError("RequestID is missing in URL");
     }
 
-    // absolute logo url for OG image
+    // absolute OG image URL
     try {
       const absLogo = new URL(herozlogo, window.location.origin).href;
       setAbsoluteLogoUrl(absLogo);
@@ -211,10 +220,10 @@ const ProposalPage = () => {
       setAbsoluteLogoUrl("");
     }
 
-    // share URL (use current location so OG:url matches exactly)
-    const current = window.location.href;
-    setShareUrl(current);
-  }, []);
+    // canonical share URL with the new pattern
+    const canonical = `${window.location.origin}${window.location.pathname}#/public/program/${id}`;
+    setShareUrl(id ? canonical : window.location.href);
+  }, [routeId]);
 
   useEffect(() => {
     if (!ActivityData) return;
@@ -272,7 +281,6 @@ const ProposalPage = () => {
 
   // ---------- Validation ----------
   const validateBeforeSubmit = () => {
-    // 1) Included food: require one radio 'foodSelect'
     const includedFoodRadio = document.querySelector(
       'input[name="foodSelect"]:checked'
     );
@@ -281,7 +289,6 @@ const ProposalPage = () => {
       return false;
     }
 
-    // 2) Child info: at least one fully filled row
     const hasValidChild = childRows.some((row) => {
       const name = (row.name || "").trim();
       const cls = (row.className || "").trim();
@@ -296,7 +303,6 @@ const ProposalPage = () => {
       return false;
     }
 
-    // 3) Payment selected
     if (!selectedMethod) {
       showToast("danger", "Please select a Payment Method.");
       return false;
@@ -306,7 +312,6 @@ const ProposalPage = () => {
   };
 
   const handleSubmit = async () => {
-    // Safety check for payment due
     if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
       setIsExpired(true);
       showToast(
@@ -331,10 +336,8 @@ const ProposalPage = () => {
       return;
     }
 
-    // Additional form validation
     if (!validateBeforeSubmit()) return;
 
-    // Check FoodIncluded & gather
     const foodIncluded = [];
     const includedFoodRadio = document.querySelector(
       'input[name="foodSelect"]:checked'
@@ -346,7 +349,6 @@ const ProposalPage = () => {
       return;
     }
 
-    // Collect foodExtra
     const foodExtra = [];
     (ActivityData?.foodList ?? []).forEach((item) => {
       if (item.Include !== true) {
@@ -357,7 +359,6 @@ const ProposalPage = () => {
       }
     });
 
-    // Build kidsInfo array (use only filled rows)
     const validKids = childRows
       .map((row) => ({
         schoolID: (row.schoolID || "").trim(),
@@ -408,9 +409,7 @@ const ProposalPage = () => {
       if (!response.ok) throw new Error("Failed to submit data");
       await response.json();
 
-      // HashRouter-safe redirect
       window.location.replace("#/public/paysuccess");
-
       showToast("success", "Submitted successfully!");
     } catch (error) {
       console.error("Submit error:", error);
@@ -418,7 +417,6 @@ const ProposalPage = () => {
     }
   };
 
-  // WhatsApp share link (clickable)
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(
     `Heroz – Check your trip details: ${shareUrl}`
   )}`;
@@ -431,23 +429,15 @@ const ProposalPage = () => {
       {/* SEO / Social meta */}
       <Helmet>
         <title>{pageTitle}</title>
-
-        {/* Open Graph */}
         <meta property="og:title" content="Heroz" />
         <meta property="og:description" content={ogDesc} />
-        {absoluteLogoUrl ? (
-          <meta property="og:image" content={absoluteLogoUrl} />
-        ) : null}
+        {absoluteLogoUrl ? <meta property="og:image" content={absoluteLogoUrl} /> : null}
         {shareUrl ? <meta property="og:url" content={shareUrl} /> : null}
         <meta property="og:type" content="website" />
-
-        {/* Twitter (optional, helps on some clients) */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Heroz" />
         <meta name="twitter:description" content={ogDesc} />
-        {absoluteLogoUrl ? (
-          <meta name="twitter:image" content={absoluteLogoUrl} />
-        ) : null}
+        {absoluteLogoUrl ? <meta name="twitter:image" content={absoluteLogoUrl} /> : null}
       </Helmet>
 
       <div className="bodyimg">
@@ -457,9 +447,6 @@ const ProposalPage = () => {
             <a className="brand" aria-label="Heroz Home">
               <img src={herozlogo} alt="HEROZ" className="header-logo" />
             </a>
-
-            {/* Share button visible on all pages */}
-            
 
             <button
               className={`nav-toggle ${menuOpen ? "open" : ""}`}
@@ -477,6 +464,8 @@ const ProposalPage = () => {
               <a>Our Providers</a>
               <a>Heroz For School</a>
               <a className="btn-join">Join As A provider</a>
+              {/* Optional: WhatsApp share */}
+              <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
             </nav>
           </div>
         </header>
@@ -484,9 +473,6 @@ const ProposalPage = () => {
         {/* PAGE */}
         <main className="proposal">
           {error && <div className="alert-error">{error}</div>}
-
-          {/* Share card (nice, branded link visible to copy) */}
-         
 
           {/* Hero */}
           <div className="hero-frame">
@@ -814,13 +800,17 @@ const ProposalPage = () => {
               </div>
 
               <div className="terms">
-                <h4>Terms & Condition</h4>
+                <h4>Vendor Terms & Condition</h4>
                 <div className="terms-text">{ActivityData?.actAdminNotes}</div>
+              </div>
+              <div className="terms">
+                <h4>School Terms & Condition</h4>
+                <div className="terms-text">{ActivityData?.SchoolTerms}</div>
               </div>
             </div>
           </section>
 
-          {/* Toast (key forces rerender for same message twice) */}
+          {/* Toast */}
           <div className="errormsg">
             <h3>
               <DspToastMessage key={toastKey} message={toastMessage} type={toastType} />
@@ -835,15 +825,9 @@ const ProposalPage = () => {
               <img src={herozlogo} alt="HEROZ" className="footer-logo" />
               <p className="footer-tag">Discover the hero in them</p>
               <div className="footer-social">
-                <a href="#" aria-label="Instagram">
-                  <FaInstagram />
-                </a>
-                <a href="#" aria-label="Facebook">
-                  <FaFacebookF />
-                </a>
-                <a href="#" aria-label="Twitter">
-                  <FaTwitter />
-                </a>
+                <a href="#" aria-label="Instagram"><FaInstagram /></a>
+                <a href="#" aria-label="Facebook"><FaFacebookF /></a>
+                <a href="#" aria-label="Twitter"><FaTwitter /></a>
               </div>
             </div>
 
@@ -854,43 +838,29 @@ const ProposalPage = () => {
                   <strong>Customer Support:</strong>{" "}
                   <a href="mailto:Herozapp1@gmail.com">Herozapp1@gmail.com</a>
                 </li>
-                <li>
-                  <strong>Phone Number:</strong> +966 548066660
-                </li>
+                <li><strong>Phone Number:</strong> +966 548066660</li>
                 <li>
                   <strong>Headquarters:</strong> 8408 these alyamnees street,
                   Jeddah, Saudi arabia. 23454
                 </li>
-                <li>
-                  <strong>CR:</strong> 4030580386
-                </li>
-                <li>
-                  <strong>TAX ID:</strong> 3125655750900003
-                </li>
+                <li><strong>CR:</strong> 4030580386</li>
+                <li><strong>TAX ID:</strong> 3125655750900003</li>
               </ul>
             </div>
 
             <div className="footer-links">
               <h4>Company</h4>
               <ul>
-                <li>
-                  <a>About Us</a>
-                </li>
-                <li>
-                  <a>Contact Us</a>
-                </li>
+                <li><a>About Us</a></li>
+                <li><a>Contact Us</a></li>
               </ul>
             </div>
 
             <div className="footer-links">
               <h4>Support</h4>
               <ul>
-                <li>
-                  <a>Privacy</a>
-                </li>
-                <li>
-                  <a>Terms Of Service</a>
-                </li>
+                <li><a>Privacy</a></li>
+                <li><a>Terms Of Service</a></li>
               </ul>
             </div>
           </div>

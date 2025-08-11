@@ -1,13 +1,14 @@
 import React from 'react'
-import { createRoot } from 'react-dom/client'
+import ReactDOM from 'react-dom/client'
 import { Provider } from 'react-redux'
-import 'core-js'
-
+import { HelmetProvider } from 'react-helmet-async'
+import store from './store' // your redux store
 import App from './App'
-import store from './store'
 
-createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root')).render(
   <Provider store={store}>
-    <App />
-  </Provider>,
+    <HelmetProvider>
+      <App />
+    </HelmetProvider>
+  </Provider>
 )

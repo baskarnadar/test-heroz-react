@@ -2,6 +2,7 @@ import React from 'react'
 const AdminDashboard = React.lazy(() => import('./admindata/dashboard/Dashboard'))
 const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
 const PublicProposal = React.lazy(() => import('./public/proposal.js'))
+const PublicProgram = React.lazy(() => import('./public/program.js'))
 const PublicPayError = React.lazy(() => import('./public/payerror.js'))
 const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
 
@@ -292,6 +293,7 @@ const routes = [
   { path: '/rights/list', name: 'banner List', element: RightsList },
   
 { path: '/public/proposal', name: 'Proposal', element: PublicProposal },
+{ path: '/public/program/:requestId', name: 'Program', element: PublicProgram },
 
   { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
   { path: '/public/paysuccess', name: 'Proposal ', element: PublicPaySuccess },

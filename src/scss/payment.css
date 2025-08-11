@@ -423,7 +423,7 @@ body.hide-chrome .wrapper .body > .container-fluid {
   align-items: start;
 }
 
-.footer-logo { height: 48px; width: auto; display: block; }
+.footer-logo { height: 32px; width: auto; display: block; }
 .footer-tag { margin: 10px 0 12px; color: #555; }
 
 .footer-social a {
