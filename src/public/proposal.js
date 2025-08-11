@@ -316,6 +316,7 @@ const isPaymentExpired = (raw) => {
       if (!response.ok) throw new Error("Failed to submit data");
       const result = await response.json();
       console.log("Submission success:", result);
+      window.location.replace("/public/paysuccess");
       setToastMessage("Submitted successfully!");
       setToastType("success");
     } catch (error) {

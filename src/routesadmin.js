@@ -3,6 +3,7 @@ const AdminDashboard = React.lazy(() => import('./admindata/dashboard/Dashboard'
 const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
 const PublicProposal = React.lazy(() => import('./public/proposal.js'))
 const PublicPayError = React.lazy(() => import('./public/payerror.js'))
+const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
 
 //adminschoolmgm
 const adminschoolmgmList = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/list'))
@@ -289,11 +290,10 @@ const routes = [
   { path: '/mainmenu/new', name: 'banner List', element: MainMenuNew },
   { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify }, 
   { path: '/rights/list', name: 'banner List', element: RightsList },
-
   
-
-      { path: '/public/proposal', name: 'Proposal ', element: PublicProposal },
-      { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
+  { path: '/public/proposal', name: 'Proposal ', element: PublicProposal },
+  { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
+  { path: '/public/paysuccess', name: 'Proposal ', element: PublicPaySuccess },
 
   //Notefication
   { path: '/admindata/note/list', name: 'banner List', element: NoteList },
