@@ -580,7 +580,7 @@ body.hide-chrome .wrapper .body > .container-fluid {
 .header-logo { height: 38px; width: auto; display: block; }
 /* ====== Footer bits you already added (kept) ====== */
 .footer-top { display: grid; grid-template-columns: 1.1fr 1.6fr 0.9fr 0.9fr; gap: 28px; padding: 28px 0 18px; align-items: start; }
-.footer-logo { height: 48px; width: auto; display: block; }
+.footer-logo { height: 38px; width: auto; display: block; }
 .footer-tag { margin: 10px 0 12px; color: #555; }
 .footer-social a { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; margin-right: 10px; color: #6a1b9a; font-size: 18px; text-decoration: none; }
 .footer-social a:hover { opacity: .8; }

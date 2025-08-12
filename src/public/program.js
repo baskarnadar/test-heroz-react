@@ -95,6 +95,7 @@ const ProposalPage = () => {
       );
       if (!response.ok) throw new Error("Failed to fetch activities");
       const data = await response.json();
+      console.log(data.data);
       setActivity(data.data || null);
     } catch (err) {
       setError("Error fetching activities");
@@ -630,11 +631,12 @@ const ProposalPage = () => {
               <div className="price-subtitle">Included </div>
               <div className="divider" />
               <div className="food-wrap">
-                <FoodInfo
-                  ActivityData={ActivityData}
-                  checkedFoodItems={checkedFoodItems}
-                  handleCheckboxChange={handleCheckboxChange}
-                />
+              <FoodInfo
+  ActivityData={ActivityData}
+  checkedFoodItems={checkedFoodItems}
+  handleCheckboxChange={handleCheckboxChange}
+  schoolReqFoodPrice={TripData?.schoolreqfoodprice ?? []}
+/>
               </div>
 
               <div className="divider" />
@@ -805,7 +807,7 @@ const ProposalPage = () => {
               </div>
               <div className="terms">
                 <h4>School Terms & Condition</h4>
-                <div className="terms-text">{ActivityData?.SchoolTerms}</div>
+                <div className="terms-text">{TripData?.SchoolTerms}</div>
               </div>
             </div>
           </section>
