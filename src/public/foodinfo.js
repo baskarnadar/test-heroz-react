@@ -97,7 +97,7 @@ const FoodInfo = ({
   return (
     <>
       <div>
-        {/* Included (free) */}
+        
         {freeFoodList.length > 0 && (
           <>
             {renderHeader()}
