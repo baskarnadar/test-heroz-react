@@ -549,7 +549,7 @@ const ProposalPage = () => {
 
       <div className="bodyimg">
        
-       {/* header --- */}
+       
        <PrgHeader />
 
         {/* PAGE */}

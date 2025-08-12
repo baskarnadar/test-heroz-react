@@ -105,7 +105,7 @@ const FoodInfo = ({
           </>
         )}
 
-        {/* Extra */}
+        
         {extraFoodList.length > 0 && (
           <>
             <h5 style={{ marginTop: 30, marginBottom: 10 }} className="foodline">
