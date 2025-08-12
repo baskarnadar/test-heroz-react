@@ -2,7 +2,16 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
 import { FaInstagram, FaFacebookF, FaTwitter } from "react-icons/fa";
-import { CCarousel, CCarouselItem } from "@coreui/react";
+import {
+  CCarousel,
+  CCarouselItem,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
+  CButton,
+} from "@coreui/react";
 import { API_BASE_URL } from "../config";
 import logo from "../assets/logo/default.png";
 import herozlogo from "../assets/logo/herozlogo.png";
@@ -12,13 +21,12 @@ import icon2 from "../assets/icon/icon2.png";
 import icon3 from "../assets/icon/icon3.png";
 import icon5 from "../assets/icon/icon5.png";
 import icon6 from "../assets/icon/icon6.png";
+import ProgramFooter from "../public/prgfooter"; 
+import PrgHeader from "../public/prgheader"; 
+import PrgSchHeader from "../public/prgschheader";
 
 import "../scss/payment.css";
-import {
-  DspToastMessage,
-  getCurrentLoggedUserID,
-  generatePayRefNo,
-} from "../utils/operation";
+import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
 import FoodInfo from "./foodinfo";
 
 const ProposalPage = () => {
@@ -31,34 +39,32 @@ const ProposalPage = () => {
   const [ActivityData, setActivity] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // toast
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("info");
-  const [toastKey, setToastKey] = useState(0);
-
-  // child rows
   const [childRows, setChildRows] = useState([
     { schoolID: "", name: "", className: "" },
   ]);
 
-  // payment – force user to choose (no default)
   const [selectedMethod, setSelectedMethod] = useState("");
-
-  // mobile nav
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // expired flag
   const [isExpired, setIsExpired] = useState(false);
-
-  // share/meta
   const [requestId, setRequestId] = useState("");
   const [absoluteLogoUrl, setAbsoluteLogoUrl] = useState("");
   const [shareUrl, setShareUrl] = useState("");
 
-  const showToast = (type, msg) => {
-    setToastType(type);
-    setToastMessage(msg);
-    setToastKey((k) => k + 1);
+  // Error Modal
+  const [errModalOpen, setErrModalOpen] = useState(false);
+  const [errModalTitle, setErrModalTitle] = useState("Error");
+  const [errModalMsg, setErrModalMsg] = useState("");
+
+  // Confirm Modal
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmSummary, setConfirmSummary] = useState(null);
+  const [pendingPayload, setPendingPayload] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const showError = (msg, title = "Error") => {
+    setErrModalTitle(title);
+    setErrModalMsg(msg);
+    setErrModalOpen(true);
   };
 
   const handleAddRow = () =>
@@ -95,18 +101,38 @@ const ProposalPage = () => {
       );
       if (!response.ok) throw new Error("Failed to fetch activities");
       const data = await response.json();
-      console.log(data.data);
       setActivity(data.data || null);
     } catch (err) {
       setError("Error fetching activities");
       console.error(err);
+      showError("Could not load activity details. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCheckboxChange = (FoodID) => {
-    setCheckedFoodItems((prev) => ({ ...prev, [FoodID]: !prev[FoodID] }));
+  // Included items are RADIO, extras are CHECKBOXES.
+  // Robust: supports handleCheckboxChange(FoodID) OR (FoodID, isIncluded)
+  const handleCheckboxChange = (FoodID, isIncludedArg) => {
+    const inferredIncluded =
+      isIncludedArg ??
+      (ActivityData?.foodList?.find((f) => f.FoodID === FoodID)?.Include ===
+        true);
+
+    setCheckedFoodItems((prev) => {
+      const next = { ...prev };
+      if (inferredIncluded) {
+        // radio behavior for included: deselect all included first
+        (ActivityData?.foodList ?? [])
+          .filter((f) => f.Include === true)
+          .forEach((f) => (next[f.FoodID] = false));
+        next[FoodID] = true;
+      } else {
+        // checkbox behavior for extras
+        next[FoodID] = !Boolean(prev[FoodID]);
+      }
+      return next;
+    });
   };
 
   const fetchTripData = async (RequestID) => {
@@ -125,8 +151,8 @@ const ProposalPage = () => {
         throw new Error(`Request failed with status ${response.status}`);
       const data = await response.json();
       const payload = Array.isArray(data?.data)
-        ? (data.data[0] ?? null)
-        : (data?.data ?? null);
+        ? data.data[0] ?? null
+        : data?.data ?? null;
 
       const dueRaw = payload?.PaymentDueDate;
       const missingDue =
@@ -148,12 +174,13 @@ const ProposalPage = () => {
     } catch (err) {
       console.error("Error fetching trip data:", err);
       setError(err.message || "Error fetching trip data");
+      showError("Could not load trip data. Please refresh and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Treat null, undefined, "", "undefined", "null", "NaN" as NO due date
+  // Helpers for due date
   const hasRealDueDate = (raw) => {
     if (raw == null) return false;
     const s = String(raw).trim().toLowerCase();
@@ -163,21 +190,15 @@ const ProposalPage = () => {
   const parseDueDate = (raw) => {
     if (!hasRealDueDate(raw)) return null;
     let s = String(raw).trim();
-
-    // "YYYY-MM-DD HH:mm:ss" -> ISO
     if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) s = s.replace(" ", "T");
-
-    // DD/MM/YYYY
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
       const [dd, mm, yyyy] = s.split("/");
       s = `${yyyy}-${mm}-${dd}`;
     }
-
     const d = new Date(s);
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Expired if due date exists and is < today (today is allowed)
   const isPaymentExpired = (raw) => {
     const d = parseDueDate(raw);
     if (!d) return false;
@@ -192,13 +213,10 @@ const ProposalPage = () => {
   useEffect(() => {
     let id = routeId || "";
 
-    // Fallback 1: hash path like #/public/program/<id>
     if (!id) {
       const m = window.location.hash.match(/#\/public\/program\/([^?/#]+)/i);
       if (m && m[1]) id = m[1];
     }
-
-    // Fallback 2: legacy query string #/public/proposal?RequestID=<id>
     if (!id) {
       const qs = window.location.hash.split("?")[1] || "";
       const params = new URLSearchParams(qs);
@@ -211,9 +229,9 @@ const ProposalPage = () => {
       fetchTripData(id);
     } else {
       setError("RequestID is missing in URL");
+      showError("RequestID is missing in the URL.");
     }
 
-    // absolute OG image URL
     try {
       const absLogo = new URL(herozlogo, window.location.origin).href;
       setAbsoluteLogoUrl(absLogo);
@@ -221,7 +239,6 @@ const ProposalPage = () => {
       setAbsoluteLogoUrl("");
     }
 
-    // canonical share URL with the new pattern
     const canonical = `${window.location.origin}${window.location.pathname}#/public/program/${id}`;
     setShareUrl(id ? canonical : window.location.href);
   }, [routeId]);
@@ -233,14 +250,18 @@ const ProposalPage = () => {
     setactImageName3(ActivityData.actImageName3Url || "");
   }, [ActivityData]);
 
+  // Default selection: first included ONCE when ActivityData changes
   useEffect(() => {
-    if (ActivityData?.foodList) {
-      const initialChecked = {};
-      ActivityData.foodList.forEach(
-        (i) => (initialChecked[i.FoodID] = i.Include === true)
-      );
-      setCheckedFoodItems(initialChecked);
+    if (!ActivityData?.foodList) return;
+
+    const included = ActivityData.foodList.filter((f) => f.Include === true);
+
+    const initial = {};
+    (ActivityData.foodList || []).forEach((f) => (initial[f.FoodID] = false));
+    if (included.length > 0) {
+      initial[included[0].FoodID] = true;
     }
+    setCheckedFoodItems(initial);
   }, [ActivityData]);
 
   const activityImages = useMemo(
@@ -249,7 +270,17 @@ const ProposalPage = () => {
     [txtactImageName1, txtactImageName2, txtactImageName3]
   );
 
-  // ===== Totals (tax included already) =====
+  // Map: FoodID -> FoodSchoolPrice (from TripData.schoolreqfoodprice)
+  const schoolPriceMap = useMemo(() => {
+    const m = {};
+    const list = TripData?.schoolreqfoodprice ?? [];
+    for (const x of list) {
+      if (x?.FoodID) m[x.FoodID] = Number(x.FoodSchoolPrice) || 0;
+    }
+    return m;
+  }, [TripData]);
+
+  // Trip price total (per student)
   const filteredPriceList = (ActivityData?.priceList ?? []).filter(
     (p) => Number(p?.RequestSchoolPrice) > 0
   );
@@ -262,104 +293,63 @@ const ProposalPage = () => {
     return sum + perStudent;
   }, 0);
 
+  // Food total (checked items only)
   const foodTotal = useMemo(() => {
     return (ActivityData?.foodList ?? []).reduce((sum, item) => {
       if (checkedFoodItems[item.FoodID]) {
-        const fp =
-          (parseFloat(item?.FoodPrice) || 0) +
-          (parseFloat(item?.FoodHerozPrice) || 0) +
+        const school =
+          schoolPriceMap[item.FoodID] ??
           (parseFloat(item?.RequestFoodSchoolPrice) || 0);
-        return sum + fp;
+        const vendor =
+          parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
+        const heroz = parseFloat(item?.FoodHerozPrice) || 0;
+        return sum + (school + vendor + heroz);
       }
       return sum;
     }, 0);
-  }, [ActivityData, checkedFoodItems]);
+  }, [ActivityData, checkedFoodItems, schoolPriceMap]);
 
   const grandTotal = priceTotal + foodTotal;
   const TAX_RATE = 0;
   const taxAmount = (Number(grandTotal) || 0) * TAX_RATE;
   const grandTotalWithTax = (Number(grandTotal) || 0) + taxAmount;
 
-  // ---------- Validation ----------
-  const validateBeforeSubmit = () => {
-    const includedFoodRadio = document.querySelector(
-      'input[name="foodSelect"]:checked'
-    );
-    if (!includedFoodRadio) {
-      showToast("danger", "Please select one Included food option.");
-      return false;
-    }
-
-    const hasValidChild = childRows.some((row) => {
-      const name = (row.name || "").trim();
-      const cls = (row.className || "").trim();
-      const sid = (row.schoolID || "").trim();
-      return name && cls && sid;
-    });
-    if (!hasValidChild) {
-      showToast(
-        "danger",
-        "Please enter Child Information: Name, Class and School ID for at least one child."
-      );
-      return false;
-    }
-
-    if (!selectedMethod) {
-      showToast("danger", "Please select a Payment Method.");
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
-      setIsExpired(true);
-      showToast(
-        "danger",
-        "We are sorry, the payment due date has finished. You cannot pay."
-      );
-      return;
-    }
-
-    const ParentsID = getCurrentLoggedUserID();
+  // ---------- Build selection summary & payload ----------
+  const buildSelectionSummaryAndPayload = () => {
     const RequestID = TripData?.RequestID;
+    const ParentsID = getCurrentLoggedUserID();
 
-    const parentName =
-      document.querySelector('input[name="txtParentName"]')?.value.trim() || "";
-    const parentMobile =
-      document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
-    const parentNote =
-      document.querySelector('textarea[name="txtParentsNote"]')?.value.trim() || "";
+    // Included (radio): one ID
+    const includedId = (ActivityData?.foodList ?? [])
+      .filter((f) => f.Include === true)
+      .find((f) => checkedFoodItems[f.FoodID])?.FoodID;
 
-    if (!parentName || !parentMobile) {
-      showToast("danger", "Please enter parent name and phone number.");
-      return;
-    }
+    const includedName = (ActivityData?.foodList ?? []).find(
+      (f) => f.FoodID === includedId
+    )?.FoodName;
 
-    if (!validateBeforeSubmit()) return;
-
-    const foodIncluded = [];
-    const includedFoodRadio = document.querySelector(
-      'input[name="foodSelect"]:checked'
+    // Extras
+    const extrasPicked = (ActivityData?.foodList ?? []).filter(
+      (f) => f.Include !== true && checkedFoodItems[f.FoodID]
     );
-    if (includedFoodRadio) {
-      foodIncluded.push(includedFoodRadio.value);
-    } else {
-      showToast("danger", "Please select at least one included food option.");
-      return;
-    }
 
-    const foodExtra = [];
-    (ActivityData?.foodList ?? []).forEach((item) => {
-      if (item.Include !== true) {
-        const checkbox = document.querySelector(
-          `input[name="foodCheckbox-${item.FoodID}"]`
-        );
-        if (checkbox?.checked) foodExtra.push(item.FoodID);
-      }
+    const extraRows = extrasPicked.map((item) => {
+      const school =
+        schoolPriceMap[item.FoodID] ??
+        (parseFloat(item?.RequestFoodSchoolPrice) || 0);
+      const vendor = parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
+      const heroz = parseFloat(item?.FoodHerozPrice) || 0;
+      return {
+        FoodID: item.FoodID,
+        FoodName: item.FoodName,
+        FoodSchoolPrice: school,
+        FoodVendorPrice: vendor,
+        FoodHerozPrice: heroz,
+        Total: school + vendor + heroz,
+      };
     });
 
+    // Valid kids
     const validKids = childRows
       .map((row) => ({
         schoolID: (row.schoolID || "").trim(),
@@ -383,38 +373,150 @@ const ProposalPage = () => {
       InvoiceNo: "0",
       MyFatrooahRefNo: "0",
       PayRefNo: generatePayRefNo(),
+      PayTypeID: "ONLINE",
     }));
 
     const payload = {
       RequestID,
       ParentsID,
-      tripParentsName: parentName,
-      tripParentsMobileNo: parentMobile,
-      tripParentsNote: parentNote,
+      tripParentsName:
+        document.querySelector('input[name="txtParentName"]')?.value.trim() ||
+        "",
+      tripParentsMobileNo:
+        document
+          .querySelector('input[name="tripParentsMobileNo"]')
+          ?.value.trim() || "",
+      tripParentsNote:
+        document
+          .querySelector('textarea[name="txtParentsNote"]')
+          ?.value.trim() || "",
       tripPaymentTypeID:
         selectedMethod === "creditCard" ? "CREDIT-CARD" : "APPLE-PAY",
       kidsInfo,
-      FoodIncluded: foodIncluded,
-      FoodExtra: foodExtra,
+      FoodIncluded: includedId ? [includedId] : [],
+      FoodExtra: extraRows.map(
+        ({ FoodID, FoodSchoolPrice, FoodVendorPrice, FoodHerozPrice }) => ({
+          FoodID,
+          FoodSchoolPrice,
+          FoodVendorPrice,
+          FoodHerozPrice,
+        })
+      ),
     };
 
+    const paymentLabel =
+      selectedMethod === "creditCard" ? "Credit/Debit Card" : "Apple Pay";
+
+    const summary = {
+      included: includedName || "-",
+      extras: extraRows,
+      kids: validKids.map((k) => ({
+        name: k.name,
+        className: k.className,
+        schoolID: k.schoolID,
+      })),
+      paymentLabel,
+      totals: {
+        baseTripPerStudent: priceTotal.toFixed(2),
+        foodPerStudent: foodTotal.toFixed(2),
+        grandPerStudent: grandTotalWithTax.toFixed(2),
+        students: validKids.length,
+        netAmount: (grandTotalWithTax * validKids.length).toFixed(2),
+      },
+    };
+
+    return { payload, summary };
+  };
+
+  // ---------- Validation ----------
+  const validateBeforeSubmit = () => {
+    const includedFoodRadio = document.querySelector(
+      'input[name="foodSelect"]:checked'
+    );
+    if (!includedFoodRadio) {
+      showError("Please select one Included food option.");
+      return false;
+    }
+
+    const hasValidChild = childRows.some((row) => {
+      const name = (row.name || "").trim();
+      const cls = (row.className || "").trim();
+      const sid = (row.schoolID || "").trim();
+      return name && cls && sid;
+    });
+    if (!hasValidChild) {
+      showError(
+        "Please enter Child Information: Name, Class and School ID for at least one child."
+      );
+      return false;
+    }
+
+    if (!selectedMethod) {
+      showError("Please select a Payment Method.");
+      return false;
+    }
+
+    // Basic parent fields
+    const parentName =
+      document.querySelector('input[name="txtParentName"]')?.value.trim() ||
+      "";
+    const parentMobile =
+      document
+        .querySelector('input[name="tripParentsMobileNo"]')
+        ?.value.trim() || "";
+    if (!parentName || !parentMobile) {
+      showError("Please enter parent name and phone number.");
+      return false;
+    }
+
+    return true;
+  };
+
+  // Step 1: Validate then open confirm modal
+  const handleSubmit = () => {
+    if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
+      setIsExpired(true);
+      showError(
+        "We are sorry, the payment due date has finished. You cannot pay."
+      );
+      return;
+    }
+
+    if (!validateBeforeSubmit()) return;
+
+    const { payload, summary } = buildSelectionSummaryAndPayload();
+    setPendingPayload(payload);
+    setConfirmSummary(summary);
+    setConfirmOpen(true);
+  };
+
+  // Step 2: If confirmed, post payload
+  const submitConfirmed = async () => {
+    if (!pendingPayload) {
+      setConfirmOpen(false);
+      showError("Nothing to submit. Please try again.");
+      return;
+    }
+    setSubmitting(true);
     try {
       const response = await fetch(
         `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(pendingPayload),
         }
       );
       if (!response.ok) throw new Error("Failed to submit data");
       await response.json();
-
+      setConfirmOpen(false);
       window.location.replace("#/public/paysuccess");
-      showToast("success", "Submitted successfully!");
-    } catch (error) {
-      console.error("Submit error:", error);
-      showToast("danger", "Submission failed");
+    } catch (err) {
+      console.error("Submit error:", err);
+      setConfirmOpen(false);
+      showError("Submission failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -432,95 +534,37 @@ const ProposalPage = () => {
         <title>{pageTitle}</title>
         <meta property="og:title" content="Heroz" />
         <meta property="og:description" content={ogDesc} />
-        {absoluteLogoUrl ? <meta property="og:image" content={absoluteLogoUrl} /> : null}
+        {absoluteLogoUrl ? (
+          <meta property="og:image" content={absoluteLogoUrl} />
+        ) : null}
         {shareUrl ? <meta property="og:url" content={shareUrl} /> : null}
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Heroz" />
         <meta name="twitter:description" content={ogDesc} />
-        {absoluteLogoUrl ? <meta name="twitter:image" content={absoluteLogoUrl} /> : null}
+        {absoluteLogoUrl ? (
+          <meta name="twitter:image" content={absoluteLogoUrl} />
+        ) : null}
       </Helmet>
 
       <div className="bodyimg">
-        {/* ===== Header ===== */}
-        <header className="site-header">
-          <div className="container header-inner ">
-            <a className="brand" aria-label="Heroz Home">
-              <img src={herozlogo} alt="HEROZ" className="header-logo" />
-            </a>
-
-            <button
-              className={`nav-toggle ${menuOpen ? "open" : ""}`}
-              aria-label="Toggle navigation"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((s) => !s)}
-            >
-              <span />
-              <span />
-              <span />
-            </button>
-
-            <nav className={`nav ${menuOpen ? "show" : ""}`}>
-              <a>About</a>
-              <a>Our Providers</a>
-              <a>Heroz For School</a>
-              <a className="btn-join">Join As A provider</a>
-              {/* Optional: WhatsApp share */}
-              <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
-            </nav>
-          </div>
-        </header>
+       
+       {/* header --- */}
+       <PrgHeader />
 
         {/* PAGE */}
         <main className="proposal">
           {error && <div className="alert-error">{error}</div>}
 
-          {/* Hero */}
-          <div className="hero-frame">
-            <header className="hero">
-              <img
-                src={TripData?.schImageNameUrl || logo}
-                alt="School"
-                className="hero-img"
-              />
-              <div className="hero-overlay" />
-              <div className="hero-content">
-                <h1 className="hero-title">{TripData?.schName || "School"}</h1>
-                <p className="hero-sub">
-                  {TripData?.schAddress1 || ""} {TripData?.schAddress2 || ""}
-                </p>
-              </div>
-            </header>
-          </div>
-
-          {/* Intro */}
-          <section className="intro container">
-            <h2 className="intro-title">
-              <span role="img" aria-label="party">🎉</span>
-              <h1 className="trip-gradient-title">
-                Here your child is going for a trip
-              </h1>
-              <span role="img" aria-label="party">🎉</span>
-            </h2>
-            <p className="intro-sub">
-              Review and book {ActivityData?.actName} school trip
-            </p>
-          </section>
-
-          {/* Media */}
-          <section className="activity-media container">
-            {activityImages.length > 0 ? (
-              <CCarousel controls interval={5000} dark>
-                {activityImages.map((src, idx) => (
-                  <CCarouselItem key={idx}>
-                    <img className="activity-img" src={src} alt={`Activity ${idx + 1}`} />
-                  </CCarouselItem>
-                ))}
-              </CCarousel>
-            ) : (
-              <div className="empty-media">No images</div>
-            )}
-          </section>
+         <PrgSchHeader
+  schImageNameUrl={TripData?.schImageNameUrl}
+  schName={TripData?.schName}
+  schAddress1={TripData?.schAddress1}
+  schAddress2={TripData?.schAddress2}
+  activityName={ActivityData?.actName}
+  activityImages={activityImages}
+  carouselInterval={5000} // optional
+/>
 
           {/* Trip info */}
           <section className="trip-info" aria-labelledby="trip-info-title">
@@ -538,7 +582,11 @@ const ProposalPage = () => {
                   <div className="detail">
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
-                        <img src={icon5} alt="HEROZ" className="icon-tint-pink" />
+                        <img
+                          src={icon5}
+                          alt="HEROZ"
+                          className="icon-tint-pink"
+                        />
                         <span> Trip Cost</span>
                       </div>
                     </div>
@@ -603,7 +651,11 @@ const ProposalPage = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <img src={viewonmap} alt="HEROZ" className="footer-logo" />
+                        <img
+                          src={viewonmap}
+                          alt="HEROZ"
+                          className="footer-logo"
+                        />
                       </a>
                     )}
                   </div>
@@ -631,12 +683,12 @@ const ProposalPage = () => {
               <div className="price-subtitle">Included </div>
               <div className="divider" />
               <div className="food-wrap">
-              <FoodInfo
-  ActivityData={ActivityData}
-  checkedFoodItems={checkedFoodItems}
-  handleCheckboxChange={handleCheckboxChange}
-  schoolReqFoodPrice={TripData?.schoolreqfoodprice ?? []}
-/>
+                <FoodInfo
+                  ActivityData={ActivityData}
+                  checkedFoodItems={checkedFoodItems}
+                  handleCheckboxChange={handleCheckboxChange}
+                  schoolReqFoodPrice={TripData?.schoolreqfoodprice ?? []}
+                />
               </div>
 
               <div className="divider" />
@@ -652,7 +704,8 @@ const ProposalPage = () => {
               <div className="summary-row total trip-gradient-color">
                 <span>Total Payable (per student)</span>
                 <span>
-                  {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                  {grandTotalWithTax.toFixed(2)}{" "}
+                  <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
 
@@ -784,7 +837,11 @@ const ProposalPage = () => {
                 >
                   <span className="trip-gradient-color">
                     <div className="row-inline">
-                      <img src={icon6} alt="HEROZ" className="icon-tint-pink" />
+                      <img
+                        src={icon6}
+                        alt="HEROZ"
+                        className="icon-tint-pink"
+                      />
                       <span> + Add more child</span>
                     </div>
                   </span>
@@ -812,65 +869,120 @@ const ProposalPage = () => {
             </div>
           </section>
 
-          {/* Toast */}
-          <div className="errormsg">
-            <h3>
-              <DspToastMessage key={toastKey} message={toastMessage} type={toastType} />
-            </h3>
-          </div>
+          {/* Confirm Modal */}
+          <CModal
+            visible={confirmOpen}
+            onClose={() => setConfirmOpen(false)}
+            alignment="center"
+          >
+            <CModalHeader onClose={() => setConfirmOpen(false)}>
+              <CModalTitle>Confirm your selections</CModalTitle>
+            </CModalHeader>
+            <CModalBody>
+              {confirmSummary ? (
+                <div className="confirm-summary">
+                  <div style={{ marginBottom: 12 }}>
+                    <strong>Included Food:</strong> {confirmSummary.included}
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <strong>Extra Food:</strong>
+                    {confirmSummary.extras.length === 0 ? (
+                      <div>None</div>
+                    ) : (
+                      <ul style={{ marginTop: 6 }}>
+                        {confirmSummary.extras.map((e) => (
+                          <li key={e.FoodID}>
+                            {e.FoodName} — School {e.FoodSchoolPrice.toFixed(2)}
+                            , Vendor {e.FoodVendorPrice.toFixed(2)}, Heroz{" "}
+                            {e.FoodHerozPrice.toFixed(2)} (Total{" "}
+                            {e.Total.toFixed(2)})
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <strong>Kids ({confirmSummary.kids.length}):</strong>
+                    {confirmSummary.kids.length === 0 ? (
+                      <div>None</div>
+                    ) : (
+                      <ul style={{ marginTop: 6 }}>
+                        {confirmSummary.kids.map((k, idx) => (
+                          <li key={idx}>
+                            {k.name} — Class {k.className}, School ID {k.schoolID}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <strong>Payment Method:</strong> {confirmSummary.paymentLabel}
+                  </div>
+
+                  <div>
+                    <strong>Totals:</strong>
+                    <ul style={{ marginTop: 6 }}>
+                      <li>
+                        Base Trip (per student):{" "}
+                        {confirmSummary.totals.baseTripPerStudent}
+                      </li>
+                      <li>
+                        Food (per student): {confirmSummary.totals.foodPerStudent}
+                      </li>
+                      <li>
+                        Grand (per student):{" "}
+                        {confirmSummary.totals.grandPerStudent}
+                      </li>
+                      <li>
+                        Students: {confirmSummary.totals.students} — Net Amount:{" "}
+                        {confirmSummary.totals.netAmount}
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div style={{ marginTop: 6 }}>
+                    Are you sure you want to submit?
+                  </div>
+                </div>
+              ) : (
+                <div>Loading summary…</div>
+              )}
+            </CModalBody>
+            <CModalFooter>
+              <CButton color="secondary" onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </CButton>
+              <CButton color="primary" disabled={submitting} onClick={submitConfirmed} style={{backgroundColor:"green"}}>
+                {submitting ? "Submitting..." : "Yes, Submit"}
+              </CButton>
+            </CModalFooter>
+          </CModal>
+
+          {/* Error Modal */}
+          <CModal
+            visible={errModalOpen}
+            onClose={() => setErrModalOpen(false)}
+            alignment="center"
+          >
+            <CModalHeader onClose={() => setErrModalOpen(false)}>
+              <CModalTitle>{errModalTitle}</CModalTitle>
+            </CModalHeader>
+            <CModalBody>
+              <p>{errModalMsg}</p>
+            </CModalBody>
+            <CModalFooter>
+              <CButton color="secondary" onClick={() => setErrModalOpen(false)}>
+                Close
+              </CButton>
+            </CModalFooter>
+          </CModal>
         </main>
 
         {/* Footer */}
-        <footer className="site-footer">
-          <div className="footer-top container ">
-            <div className="footer-brand">
-              <img src={herozlogo} alt="HEROZ" className="footer-logo" />
-              <p className="footer-tag">Discover the hero in them</p>
-              <div className="footer-social">
-                <a href="#" aria-label="Instagram"><FaInstagram /></a>
-                <a href="#" aria-label="Facebook"><FaFacebookF /></a>
-                <a href="#" aria-label="Twitter"><FaTwitter /></a>
-              </div>
-            </div>
-
-            <div className="footer-contact">
-              <h4>Contact Information</h4>
-              <ul>
-                <li>
-                  <strong>Customer Support:</strong>{" "}
-                  <a href="mailto:Herozapp1@gmail.com">Herozapp1@gmail.com</a>
-                </li>
-                <li><strong>Phone Number:</strong> +966 548066660</li>
-                <li>
-                  <strong>Headquarters:</strong> 8408 these alyamnees street,
-                  Jeddah, Saudi arabia. 23454
-                </li>
-                <li><strong>CR:</strong> 4030580386</li>
-                <li><strong>TAX ID:</strong> 3125655750900003</li>
-              </ul>
-            </div>
-
-            <div className="footer-links">
-              <h4>Company</h4>
-              <ul>
-                <li><a>About Us</a></li>
-                <li><a>Contact Us</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-links">
-              <h4>Support</h4>
-              <ul>
-                <li><a>Privacy</a></li>
-                <li><a>Terms Of Service</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="footer-bottom container">
-            <span>Copyright © Heroz {new Date().getFullYear()}</span>
-          </div>
-        </footer>
+      <ProgramFooter />
       </div>
     </>
   );

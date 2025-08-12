@@ -5,7 +5,7 @@ const FoodInfo = ({
   ActivityData,
   checkedFoodItems,
   handleCheckboxChange,
-  schoolReqFoodPrice = [],   // <-- NEW
+  schoolReqFoodPrice = [],
 }) => {
   const foodList = ActivityData?.foodList ?? [];
 
@@ -18,27 +18,44 @@ const FoodInfo = ({
     return m;
   }, [schoolReqFoodPrice]);
 
-  // Included (radio) stays as-is
   const freeFoodList = foodList.filter((item) => item?.Include === true);
 
-  // External/Extra: only those present in schoolreqfoodprice
+  // Only extras that exist in schoolReqFoodPrice
   const extraFoodList = foodList
     .filter((item) => item?.Include !== true)
-    .filter((item) => Object.prototype.hasOwnProperty.call(schoolPriceMap, item.FoodID));
+    .filter((item) =>
+      Object.prototype.hasOwnProperty.call(schoolPriceMap, item.FoodID)
+    );
+
+  const renderHeader = () => (
+     <CRow className="mb-1 fw-bold hbg">
+  <CCol sm={1} xs={1}>#</CCol>
+  <CCol sm={9} xs={9}>Name</CCol> 
+    <CCol sm={2}  style={{display:"none"}}>School</CCol>
+    <CCol sm={2}  style={{display:"none"}}>Vendor</CCol>
+    <CCol sm={2}  style={{display:"none"}}>Heroz</CCol>
+  <CCol sm={2} xs={2}>Total</CCol>
+</CRow>
+
+  );
 
   const renderFoodRows = (list) =>
     list.map((foodItem, index) => {
-      // Prefer the school-requested price when available
-      const reqSchool = schoolPriceMap[foodItem.FoodID] ??
+      // Prefer the school-requested price from map, else fallback
+      const schoolPrice =
+        schoolPriceMap[foodItem.FoodID] ??
         (parseFloat(foodItem?.RequestFoodSchoolPrice) || 0);
 
-      const TotalFoodPrice =
-        (parseFloat(foodItem?.FoodPrice) || 0) +
-        (parseFloat(foodItem?.FoodHerozPrice) || 0) +
-        (reqSchool || 0);
+      // Treat FoodVendorPrice as primary; fallback to FoodPrice
+      const vendorPrice =
+        parseFloat(foodItem?.FoodVendorPrice ?? foodItem?.FoodPrice) || 0;
+
+      const herozPrice = parseFloat(foodItem?.FoodHerozPrice) || 0;
+
+      const total = vendorPrice + herozPrice + schoolPrice;
 
       return (
-        <CRow key={index} className="mb-3 align-items-center">
+        <CRow key={foodItem.FoodID ?? index} className="mb-2 align-items-center">
           <CCol sm={1} xs={1}>
             <input
               className="big-input"
@@ -50,19 +67,28 @@ const FoodInfo = ({
               }
               value={foodItem.FoodID}
               checked={checkedFoodItems[foodItem.FoodID] || false}
-              onChange={() => handleCheckboxChange(foodItem.FoodID)}
+              onChange={() =>
+                handleCheckboxChange(foodItem.FoodID, foodItem.Include === true)
+              }
+              title={foodItem?.Include === true ? "Included option" : "Extra option"}
             />
           </CCol>
-          <CCol sm={4} xs={6}>
+  <CCol sm={2} xs={2} style={{display:"none"}} className="text-end">
+            {schoolPrice.toFixed(2)}
+          </CCol>
+
+          <CCol sm={2} xs={2} style={{display:"none"}} className="text-end">
+            {vendorPrice.toFixed(2)}
+          </CCol>
+
+          <CCol sm={2} xs={2} style={{display:"none"}} className="text-end">
+            {herozPrice.toFixed(2)}
+          </CCol>
+          <CCol sm={9} xs={9}>
             <div>{foodItem?.FoodName}</div>
-          </CCol>
-          <CCol sm={4} xs={3}>
-            <div>{TotalFoodPrice.toFixed(2)}</div>
-          </CCol>
-          <CCol sm={3} xs={2}>
-            <div className="text-center">
-              {foodItem?.Include === true ? "Inc" : ""}
-            </div>
+          </CCol> 
+          <CCol sm={2} xs={2}  >
+            {total.toFixed(2)}
           </CCol>
         </CRow>
       );
@@ -71,32 +97,22 @@ const FoodInfo = ({
   return (
     <>
       <div>
-        {/* Free Food */}
+        {/* Included (free) */}
         {freeFoodList.length > 0 && (
           <>
-            <CRow className="mb-1 fw-bold hbg">
-              <CCol sm={1} xs={1}>#</CCol>
-              <CCol sm={4} xs={6}>Name</CCol>
-              <CCol sm={4} xs={3}>Price</CCol>
-              <CCol sm={3} xs={2}></CCol>
-            </CRow>
+            {renderHeader()}
             {renderFoodRows(freeFoodList)}
           </>
         )}
 
-        {/* Extra Food — filtered to match schoolreqfoodprice */}
+        {/* Extra */}
         {extraFoodList.length > 0 && (
           <>
             <h5 style={{ marginTop: 30, marginBottom: 10 }} className="foodline">
               Extra
             </h5>
             <div className="divider" />
-            <CRow className="mb-1 fw-bold hbg">
-              <CCol sm={1} xs={1}>#</CCol>
-              <CCol sm={4} xs={6}>Name</CCol>
-              <CCol sm={4} xs={3}>Price</CCol>
-              <CCol sm={3} xs={2}></CCol>
-            </CRow>
+            {renderHeader()}
             {renderFoodRows(extraFoodList)}
           </>
         )}
