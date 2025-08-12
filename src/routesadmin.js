@@ -7,7 +7,7 @@ const PublicProgramv1 = React.lazy(() => import('./public/programv1.js'))
 const PublicPayError = React.lazy(() => import('./public/payerror.js'))
 const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
 
-//adminschoolmgm
+//adminschoolmgms
 const adminschoolmgmList = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/list'))
 const adminschoolmgmNew = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/new'))
 const adminschoolmgmModify = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/modify.js'))
