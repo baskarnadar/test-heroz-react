@@ -21,13 +21,13 @@ import icon2 from "../assets/icon/icon2.png";
 import icon3 from "../assets/icon/icon3.png";
 import icon5 from "../assets/icon/icon5.png";
 import icon6 from "../assets/icon/icon6.png";
-import ProgramFooter from "../public/prgfooter"; 
-import PrgHeader from "../public/prgheader"; 
-import PrgSchHeader from "../public/prgschheader";
+import ProgramFooter from "./prgfooter"; 
+import PrgSchHeader from "./prgschheader";
 
 import "../scss/payment.css";
 import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
 import FoodInfo from "./foodinfo";
+import PrgHeader from "./prgheader";
 
 const ProposalPage = () => {
   const [error, setError] = useState("");

@@ -1,8 +1,8 @@
  
         
          import React, { useState, useEffect, useMemo } from "react";
-import ProgramFooter from "../public/prgfooter"; 
-import PrgHeader from "../public/prgheader"; 
+import ProgramFooter from "./prgfooter"; 
+import PrgHeader from "./prgheader"; 
 import "../scss/payment.css"; // external CSS 
 const PayError = () => { 
   useEffect(() => {
