@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import ProgramFooter from "../public/prgfooter"; 
-import PrgHeader from "../public/prgheader"; 
+import PrgHeader from "../public/Prgheader"; 
 import "../scss/payment.css"; // external CSS 
 const ProposalPage = () => { 
   useEffect(() => {
