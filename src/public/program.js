@@ -22,7 +22,7 @@ import icon3 from "../assets/icon/icon3.png";
 import icon5 from "../assets/icon/icon5.png";
 import icon6 from "../assets/icon/icon6.png";
 import ProgramFooter from "/src/public/prgfooter"; 
-import PrgHeader from "/src/public/prgheader"; 
+import PrgHeader from "/src/public/Prgheader"; 
 import PrgSchHeader from "/src/public/prgschheader";
 
 import "../scss/payment.css";
