@@ -21,13 +21,15 @@ import icon2 from "../assets/icon/icon2.png";
 import icon3 from "../assets/icon/icon3.png";
 import icon5 from "../assets/icon/icon5.png";
 import icon6 from "../assets/icon/icon6.png";
-import ProgramFooter from "/src/public/prgfooter"; 
-import PrgHeader from "/src/public/Prgheader"; 
+import ProgramFooter from "/src/public/prgfooter";
+import PrgHeader from "/src/public/Prgheader";
 import PrgSchHeader from "/src/public/prgschheader";
 
 import "../scss/payment.css";
 import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
 import FoodInfo from "./foodinfo";
+
+const MOBILE_RE = /^05\d{8}$/; // starts with 05 and total 10 digits
 
 const ProposalPage = () => {
   const [error, setError] = useState("");
@@ -314,6 +316,18 @@ const ProposalPage = () => {
   const taxAmount = (Number(grandTotal) || 0) * TAX_RATE;
   const grandTotalWithTax = (Number(grandTotal) || 0) + taxAmount;
 
+  // ---------- helpers ----------
+  const isValidKid = (row) =>
+    (row.name || "").trim() &&
+    (row.className || "").trim() &&
+    (row.schoolID || "").trim();
+
+  const validKids = useMemo(
+    () => childRows.filter(isValidKid),
+    [childRows]
+  );
+  const validKidsCount = validKids.length;
+
   // ---------- Build selection summary & payload ----------
   const buildSelectionSummaryAndPayload = () => {
     const RequestID = TripData?.RequestID;
@@ -349,22 +363,14 @@ const ProposalPage = () => {
       };
     });
 
-    // Valid kids
-    const validKids = childRows
-      .map((row) => ({
-        schoolID: (row.schoolID || "").trim(),
-        name: (row.name || "").trim(),
-        className: (row.className || "").trim(),
-      }))
-      .filter((r) => r.schoolID && r.name && r.className);
-
+    // Use only valid kids
     const kidsInfo = validKids.map((row) => ({
       RequestID,
       ParentsID,
       KidsID: "",
-      TripKidsSchoolNo: row.schoolID,
-      TripKidsName: row.name,
-      tripKidsClassName: row.className,
+      TripKidsSchoolNo: row.schoolID.trim(),
+      TripKidsName: row.name.trim(),
+      tripKidsClassName: row.className.trim(),
       TripCost: priceTotal.toFixed(2),
       TripFoodCost: foodTotal.toFixed(2),
       TripTaxAmount: taxAmount.toFixed(2),
@@ -375,6 +381,27 @@ const ProposalPage = () => {
       PayRefNo: generatePayRefNo(),
       PayTypeID: "ONLINE",
     }));
+
+    const paymentLabel =
+      selectedMethod === "creditCard" ? "Credit/Debit Card" : "Apple Pay";
+
+    const summary = {
+      included: includedName || "-",
+      extras: extraRows,
+      kids: validKids.map((k) => ({
+        name: k.name.trim(),
+        className: k.className.trim(),
+        schoolID: k.schoolID.trim(),
+      })),
+      paymentLabel,
+      totals: {
+        baseTripPerStudent: priceTotal.toFixed(2),
+        foodPerStudent: foodTotal.toFixed(2),
+        grandPerStudent: grandTotalWithTax.toFixed(2),
+        students: validKids.length,
+        netAmount: (grandTotalWithTax * validKids.length).toFixed(2),
+      },
+    };
 
     const payload = {
       RequestID,
@@ -404,27 +431,6 @@ const ProposalPage = () => {
       ),
     };
 
-    const paymentLabel =
-      selectedMethod === "creditCard" ? "Credit/Debit Card" : "Apple Pay";
-
-    const summary = {
-      included: includedName || "-",
-      extras: extraRows,
-      kids: validKids.map((k) => ({
-        name: k.name,
-        className: k.className,
-        schoolID: k.schoolID,
-      })),
-      paymentLabel,
-      totals: {
-        baseTripPerStudent: priceTotal.toFixed(2),
-        foodPerStudent: foodTotal.toFixed(2),
-        grandPerStudent: grandTotalWithTax.toFixed(2),
-        students: validKids.length,
-        netAmount: (grandTotalWithTax * validKids.length).toFixed(2),
-      },
-    };
-
     return { payload, summary };
   };
 
@@ -438,13 +444,26 @@ const ProposalPage = () => {
       return false;
     }
 
-    const hasValidChild = childRows.some((row) => {
-      const name = (row.name || "").trim();
-      const cls = (row.className || "").trim();
-      const sid = (row.schoolID || "").trim();
-      return name && cls && sid;
-    });
-    if (!hasValidChild) {
+    // Parent fields
+    const parentName =
+      document.querySelector('input[name="txtParentName"]')?.value.trim() ||
+      "";
+    const parentMobile =
+      document
+        .querySelector('input[name="tripParentsMobileNo"]')
+        ?.value.trim() || "";
+
+    if (!parentName) {
+      showError("Please enter parent name.");
+      return false;
+    }
+    if (!MOBILE_RE.test(parentMobile)) {
+      showError("Parent phone must start with 05 and be exactly 10 digits.");
+      return false;
+    }
+
+    // At least one valid kid
+    if (validKids.length === 0) {
       showError(
         "Please enter Child Information: Name, Class and School ID for at least one child."
       );
@@ -453,19 +472,6 @@ const ProposalPage = () => {
 
     if (!selectedMethod) {
       showError("Please select a Payment Method.");
-      return false;
-    }
-
-    // Basic parent fields
-    const parentName =
-      document.querySelector('input[name="txtParentName"]')?.value.trim() ||
-      "";
-    const parentMobile =
-      document
-        .querySelector('input[name="tripParentsMobileNo"]')
-        ?.value.trim() || "";
-    if (!parentName || !parentMobile) {
-      showError("Please enter parent name and phone number.");
       return false;
     }
 
@@ -525,12 +531,12 @@ const ProposalPage = () => {
   )}`;
 
   // ---------- SEO / Social (Helmet) ----------
-  const canonicalUrl = shareUrl || `${window.location.origin}${window.location.pathname}`;
+  const canonicalUrl =
+    shareUrl || `${window.location.origin}${window.location.pathname}`;
   const program = useMemo(() => {
-    const title =
-      ActivityData?.actName
-        ? `Heroz Trip — ${ActivityData.actName}`
-        : "Heroz Trip — Proposal";
+    const title = ActivityData?.actName
+      ? `Heroz Trip — ${ActivityData.actName}`
+      : "Heroz Trip — Proposal";
     const description = "Check your trip details with Heroz";
     const imageUrl = absoluteLogoUrl || "";
     return { title, description, imageUrl };
@@ -723,11 +729,12 @@ const ProposalPage = () => {
                 </span>
               </div>
 
-              {childRows.length > 1 && (
+              {/* Net payable now uses ONLY valid kids */}
+              {validKidsCount > 1 && (
                 <div className="summary-row total net-payable trip-gradient-color">
-                  <span>Net Payable Amount ({childRows.length} kids)</span>
+                  <span>Net Payable Amount ({validKidsCount} kids)</span>
                   <span>
-                    {(grandTotalWithTax * childRows.length).toFixed(2)}{" "}
+                    {(grandTotalWithTax * validKidsCount).toFixed(2)}{" "}
                     <img src={icon5} alt="HEROZ" />
                   </span>
                 </div>
@@ -787,8 +794,19 @@ const ProposalPage = () => {
                   <input name="txtParentName" className="input" />
                 </div>
                 <div className="form-group">
-                  <label>Parent Phone*</label>
-                  <input name="tripParentsMobileNo" className="input" />
+                  <label>Parent Phone* (format: 05XXXXXXXX)</label>
+                  <input
+                    name="tripParentsMobileNo"
+                    className="input"
+                    inputMode="numeric"
+                    pattern="^05\d{8}$"
+                    maxLength={10}
+                    placeholder="05XXXXXXXX"
+                    onInput={(e) => {
+                      // Keep only digits and cap at 10 chars
+                      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    }}
+                  />
                 </div>
               </div>
 
@@ -870,6 +888,11 @@ const ProposalPage = () => {
                   rows={4}
                   placeholder="Please include any medical conditions, allergies, or special requirements"
                 />
+              </div>
+
+               <div className="terms">
+                <h4>Proposal Message</h4>
+                <div className="terms-text">{TripData?.ProposalMessage}</div>
               </div>
 
               <div className="terms">
@@ -969,7 +992,12 @@ const ProposalPage = () => {
               <CButton color="secondary" onClick={() => setConfirmOpen(false)}>
                 Cancel
               </CButton>
-              <CButton color="primary" disabled={submitting} onClick={submitConfirmed} style={{backgroundColor:"green"}}>
+              <CButton
+                color="primary"
+                disabled={submitting}
+                onClick={submitConfirmed}
+                style={{ backgroundColor: "green" }}
+              >
                 {submitting ? "Submitting..." : "Yes, Submit"}
               </CButton>
             </CModalFooter>
