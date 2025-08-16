@@ -305,7 +305,7 @@ const ProposalPage = () => {
         const heroz = parseFloat(item?.FoodHerozPrice) || 0;
         return sum + (school + vendor + heroz);
       }
-      return 0 + sum;
+      return sum;
     }, 0);
   }, [ActivityData, checkedFoodItems, schoolPriceMap]);
 
@@ -524,61 +524,47 @@ const ProposalPage = () => {
     `Heroz – Check your trip details: ${shareUrl}`
   )}`;
 
-  // ---------- SEO / Social (Helmet) ----------
-  const canonicalUrl = shareUrl || `${window.location.origin}${window.location.pathname}`;
-  const program = useMemo(() => {
-    const title =
-      ActivityData?.actName
-        ? `Heroz Trip — ${ActivityData.actName}`
-        : "Heroz Trip — Proposal";
-    const description = "Check your trip details with Heroz";
-    const imageUrl = absoluteLogoUrl || "";
-    return { title, description, imageUrl };
-  }, [ActivityData, absoluteLogoUrl]);
+  const pageTitle = `Heroz Trip — ${ActivityData?.actName || "Proposal"}`;
+  const ogDesc = "Check your trip details with Heroz";
 
   return (
     <>
       {/* SEO / Social meta */}
       <Helmet>
-        <title>{program.title}</title>
-
-        {/* Open Graph */}
-        <meta property="og:title" content={program.title} />
-        <meta property="og:description" content={program.description} />
-        {program.imageUrl ? (
-          <meta property="og:image" content={program.imageUrl} />
+        <title>{pageTitle}</title>
+        <meta property="og:title" content="Heroz" />
+        <meta property="og:description" content={ogDesc} />
+        {absoluteLogoUrl ? (
+          <meta property="og:image" content={absoluteLogoUrl} />
         ) : null}
-        <meta property="og:url" content={canonicalUrl} />
+        {shareUrl ? <meta property="og:url" content={shareUrl} /> : null}
         <meta property="og:type" content="website" />
-
-        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={program.title} />
-        <meta name="twitter:description" content={program.description} />
-        {program.imageUrl ? (
-          <meta name="twitter:image" content={program.imageUrl} />
+        <meta name="twitter:title" content="Heroz" />
+        <meta name="twitter:description" content={ogDesc} />
+        {absoluteLogoUrl ? (
+          <meta name="twitter:image" content={absoluteLogoUrl} />
         ) : null}
-
-        {/* Canonical */}
-        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <div className="bodyimg">
-        <PrgHeader />
+       
+       
+       <PrgHeader />
 
         {/* PAGE */}
         <main className="proposal">
           {error && <div className="alert-error">{error}</div>}
 
-          <PrgSchHeader
-            schImageNameUrl={TripData?.schImageNameUrl}
-            schName={TripData?.schName}
-            schAddress1={TripData?.schAddress1}
-            schAddress2={TripData?.schAddress2}
-            activityName={ActivityData?.actName}
-            activityImages={activityImages}
-            carouselInterval={5000}
-          />
+         <PrgSchHeader
+  schImageNameUrl={TripData?.schImageNameUrl}
+  schName={TripData?.schName}
+  schAddress1={TripData?.schAddress1}
+  schAddress2={TripData?.schAddress2}
+  activityName={ActivityData?.actName}
+  activityImages={activityImages}
+  carouselInterval={5000} // optional
+/>
 
           {/* Trip info */}
           <section className="trip-info" aria-labelledby="trip-info-title">
@@ -996,7 +982,7 @@ const ProposalPage = () => {
         </main>
 
         {/* Footer */}
-        <ProgramFooter />
+      <ProgramFooter />
       </div>
     </>
   );
