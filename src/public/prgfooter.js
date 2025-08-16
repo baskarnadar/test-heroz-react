@@ -8,7 +8,7 @@ const ProgramFooter = ({ className = "" }) => {
       <div className="footer-top container ">
         <div className="footer-brand">
           <img src={herozlogo} alt="HEROZ" className="footer-logo" />
-          <p className="footer-tag">Discover the hero in them</p>
+          <p className="footer-tag">Discover the hero in every student</p>
           <div className="footer-social">
             <a
               href="https://www.instagram.com/herozapp.sa/"

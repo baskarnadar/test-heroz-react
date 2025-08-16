@@ -58,6 +58,8 @@ const PayError = () => {
   We’re sorry — you can’t complete this payment.  
   The deadline for this student trip has passed.
 </h1>
+ 
+<span class="pay-error lg" aria-hidden="true"></span>
 
 </main>
 

@@ -26,10 +26,7 @@ const PrgHeader = ({ whatsappHref }) => {
           <a>About</a>
           <a>Our Providers</a>
           <a>Heroz For School</a>
-          <a className="btn-join">Join As A Provider</a>
-          <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-            Share on WhatsApp
-          </a>
+          <a className="btn-join">Join As A Provider</a> 
         </nav>
       </div>
     </header>

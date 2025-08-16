@@ -864,10 +864,61 @@ body.no-chrome .page-wrapper {
 .proposal .hero { 
   min-height: 250px !important;
 }
+  .trip-gradient-title {
+    font-size: 20px; 
+}
 }
 
 @media (min-width: 992px) {
   .proposal .hero { 
   min-height: 250px !important;
+  }
+  .trip-gradient-title {
+    font-size: 20px; 
 }
 }
+
+/* Red circle + cross (pure CSS) */
+.pay-error{
+  --size: 40px;           /* change for default size */
+  --color: #ef4444;       /* Tailwind red-500-ish */
+  width: var(--size);
+  height: var(--size);
+  display: inline-block;
+  position: relative;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px var(--color);  /* circle stroke */
+  background: rgba(239, 68, 68, 0.08);       /* subtle fill; remove if you want outline only */
+}
+
+/* the "X" */
+.pay-error::before,
+.pay-error::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 90%;
+  height: 3px;
+  background: var(--color);
+  transform-origin: center;
+  border-radius: 2px;
+}
+.pay-error::before{ transform: translate(-50%, -50%) rotate(45deg); }
+.pay-error::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/* Size helpers */
+.pay-error.sm{ --size: 20px; }
+.pay-error.lg{ --size: 64px; }
+
+/* Optional: quick attention shake */
+.pay-error.shake{ animation: pay-shake .36s ease-in-out; }
+@keyframes pay-shake{
+  0%,100%{ transform: translateX(0); }
+  25%{ transform: translateX(-2px); }
+  50%{ transform: translateX(2px); }
+  75%{ transform: translateX(-1px); }
+}
+
+/* If you want outline only (no fill), add this class */
+.pay-error.outline{ background: transparent; }
