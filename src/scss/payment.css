@@ -859,3 +859,15 @@ body.no-chrome .page-wrapper {
   .twocol .booking { order: 1; }   /* first */
   .twocol .pricing { order: 2; }   /* second */
 }
+
+@media (max-width: 768px) {
+.proposal .hero { 
+  min-height: 250px !important;
+}
+}
+
+@media (min-width: 992px) {
+  .proposal .hero { 
+  min-height: 250px !important;
+}
+}
