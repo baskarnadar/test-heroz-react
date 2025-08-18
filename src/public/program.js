@@ -478,6 +478,27 @@ const ProposalPage = () => {
     return true;
   };
 
+  // ---------- MyFatoorah helpers (Hosted) ----------
+  // Convert "05XXXXXXXX" → "9665XXXXXXXX"
+  const toE164Ksa = (local) => {
+    if (!MOBILE_RE.test(local || "")) return "966500000000";
+    return `966${String(local).slice(1)}`;
+  };
+
+  // From InitiatePayment response, pick first available by codes priority
+  const findMethodId = (methods, codesPriority = []) => {
+    const list = methods || [];
+    const byCode = {};
+    for (const m of list) {
+      const code = (m?.PaymentMethodCode || "").toLowerCase();
+      byCode[code] = m?.PaymentMethodId;
+    }
+    for (const code of codesPriority) {
+      if (byCode[code]) return byCode[code];
+    }
+    return null;
+  };
+
   // Step 1: Validate then open confirm modal
   const handleSubmit = () => {
     if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
@@ -516,7 +537,117 @@ const ProposalPage = () => {
       if (!response.ok) throw new Error("Failed to submit data");
       await response.json();
       setConfirmOpen(false);
-      window.location.replace("#/public/paysuccess");
+
+      //----------------------------My faroooah ------------------------------------------------------------
+     try {
+  setLoading(true);
+
+  // 1) Calculate net payable (per student * number of valid kids)
+  const totalAmount = Number((grandTotalWithTax * validKidsCount).toFixed(2));
+  if (!totalAmount || totalAmount <= 0) {
+    showError("Total amount is zero. Please review your selection.");
+    return;
+  }
+
+  // 2) Get available payment methods (KSA Hosted)
+  const initRes = await fetch(
+    "http://localhost:3000/api/myfatrooahdata/pay/initiate-payment",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: totalAmount,
+        currency: "SAR",
+      }),
+    }
+  );
+  const initData = await initRes.json();
+
+  // ✅ FIX: extract the actual array of methods
+  const methods =
+    initData?.Data?.PaymentMethods ??
+    initData?.data?.PaymentMethods ??
+    [];
+
+  if (!Array.isArray(methods) || methods.length === 0) {
+    showError(
+      "No payment methods are available for this amount. Please contact support."
+    );
+    return;
+  }
+
+  // 3) Choose methodId based on selected radio
+  let codesPriority = [];
+  if (selectedMethod === "creditCard") {
+    // Prefer local MADA, then fallback to VISA/MASTER
+    // ✅ FIX: use MyFatoorah codes: md (MADA), vm (VISA/MASTER)
+    codesPriority = ["md", "vm"];
+  } else if (selectedMethod === "applePay") {
+    // Hosted ApplePay might be unavailable; if not found, show error
+    // ✅ FIX: use 'ap' for Apple Pay
+    codesPriority = ["ap"];
+  }
+  const paymentMethodId = findMethodId(methods, codesPriority);
+
+  if (!paymentMethodId) {
+    if (selectedMethod === "applePay") {
+      showError(
+        "Apple Pay is not available for Hosted Checkout on your account. Please choose Credit/Debit Card."
+      );
+    } else {
+      showError(
+        "Selected payment method is not available. Please try another method."
+      );
+    }
+    return;
+  }
+
+  // 4) Prepare customer info
+  const parentName =
+    document.querySelector('input[name="txtParentName"]')?.value.trim() ||
+    "Parent";
+  const parentMobileLocal =
+    document
+      .querySelector('input[name="tripParentsMobileNo"]')
+      ?.value.trim() || "0500000000";
+  const mobileE164 = toE164Ksa(parentMobileLocal);
+
+  // 5) Execute payment (create invoice) → redirect to PaymentURL
+  const execRes = await fetch(
+    "http://localhost:3000/api/myfatrooahdata/pay/execute-payment",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: totalAmount,
+        currency: "SAR",
+        paymentMethodId,
+        customer: {
+          name: parentName,
+          email: "no-reply@heroz.app",
+          mobile: mobileE164,
+        },
+      }),
+    }
+  );
+  const execData = await execRes.json();
+  const url = execData?.Data?.PaymentURL;
+
+  if (url) {
+    window.location.href = url;
+  } else {
+    showError("Payment URL was not returned by ExecutePayment.");
+  }
+} catch (mfErr) {
+  console.error("MyFatoorah error:", mfErr);
+  showError("Could not start payment. Please try again.");
+} finally {
+  setLoading(false);
+}
+
+      //----------------------------My Farooah --------------------------------------------------------------
+
+      // window.location.replace("#/public/paysuccess");
     } catch (err) {
       console.error("Submit error:", err);
       setConfirmOpen(false);
@@ -799,12 +930,12 @@ const ProposalPage = () => {
                     name="tripParentsMobileNo"
                     className="input"
                     inputMode="numeric"
-                    pattern="^05\d{8}$"
+                    pattern="^05\\d{8}$"
                     maxLength={10}
                     placeholder="05XXXXXXXX"
                     onInput={(e) => {
                       // Keep only digits and cap at 10 chars
-                      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      e.target.value = e.target.value.replace(/\\D/g, "").slice(0, 10);
                     }}
                   />
                 </div>
