@@ -80,8 +80,8 @@ const App = () => {
         <Routes>
           {/* MyFatoorah result pages (hash routes). 
               The web server or static redirect files should send /paysuccess → /#/public/paysuccess */}
-          <Route path="/public/paysuccess" element={<PaySuccess />} />
-          <Route path="/public/payerror" element={<PayError />} />
+          <Route path="/public/paysuccessv1" element={<PaySuccess />} />
+          <Route path="/public/payerrorv1" element={<PayError />} />
 
           {/* Existing app pages */}
           <Route path="/login" name="Login Page" element={<Login />} />
