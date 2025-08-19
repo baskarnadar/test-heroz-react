@@ -1,13 +1,13 @@
 import React from 'react'
 const AdminDashboard = React.lazy(() => import('./admindata/dashboard/Dashboard'))
 const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
-const PublicProposal = React.lazy(() => import('./public/proposal.js'))
-const PublicProgram = React.lazy(() => import('./public/program.js'))
-const PublicProgramv1 = React.lazy(() => import('./public/programv1.js'))
-const PublicPayError = React.lazy(() => import('./public/payerror.js'))
-const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
-const PublicPaymentPage = React.lazy(() => import('./public/PaymentPage.jsx'))
-const PublicSuccess = React.lazy(() => import('./public/Success.jsx'))
+// const PublicProposal = React.lazy(() => import('./public/proposal.js'))
+// const PublicProgram = React.lazy(() => import('./public/program.js'))
+// const PublicProgramv1 = React.lazy(() => import('./public/programv1.js'))
+// const PublicPayError = React.lazy(() => import('./public/payerror.js'))
+// const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
+// const PublicPaymentPage = React.lazy(() => import('./public/PaymentPage.jsx'))
+// const PublicSuccess = React.lazy(() => import('./public/Success.jsx'))
 //adminschoolmgms
 const adminschoolmgmList = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/list'))
 const adminschoolmgmNew = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/new'))
@@ -294,15 +294,13 @@ const routes = [
   { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify }, 
   { path: '/rights/list', name: 'banner List', element: RightsList },
   
-{ path: '/public/proposal', name: 'Proposal', element: PublicProposal },
-{ path: '/public/program/:requestId', name: 'Program', element: PublicProgram },
-{ path: '/public/programv1/:requestId', name: 'Program', element: PublicProgramv1 },
-{ path: '/public/PaymentPage', name: 'Program', element: PublicPaymentPage },
-{ path: '/public/PaymentSuccess', name: 'Program', element: PublicSuccess },
-
-
-  { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
-  { path: '/public/paysuccess', name: 'Proposal ', element: PublicPaySuccess },
+// { path: '/public/proposal', name: 'Proposal', element: PublicProposal },
+// { path: '/public/program/:requestId', name: 'Program', element: PublicProgram },
+// { path: '/public/programv1/:requestId', name: 'Program', element: PublicProgramv1 },
+// { path: '/public/PaymentPage', name: 'Program', element: PublicPaymentPage },
+// { path: '/public/PaymentSuccess', name: 'Program', element: PublicSuccess },
+// { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
+// { path: '/public/paysuccess', name: 'Proposal ', element: PublicPaySuccess },
 
   //Notefication
   { path: '/admindata/note/list', name: 'banner List', element: NoteList },
