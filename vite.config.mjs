@@ -5,22 +5,14 @@ import autoprefixer from 'autoprefixer'
 
 export default defineConfig(() => {
   return {
-    // Use absolute base so assets resolve from the site root:
-    // /assets/... instead of relative admindata/vendor/assets/...
-    base: '/',
-
+    base: './',
     build: {
-      // Align with your Node app.js which serves ../client/dist
-      outDir: 'dist',
-      assetsDir: 'assets',
-      emptyOutDir: true,
-      // manifest: true, // optional, only if you need it
+      outDir: 'build',
     },
-
     css: {
       postcss: {
         plugins: [
-          autoprefixer({}),
+          autoprefixer({}), // add options if needed
         ],
       },
       preprocessorOptions: {
@@ -30,14 +22,11 @@ export default defineConfig(() => {
         },
       },
     },
-
-    // Keep your JSX handling if you rely on .js files with JSX
     esbuild: {
       loader: 'jsx',
       include: /src\/.*\.jsx?$/,
       exclude: [],
     },
-
     optimizeDeps: {
       force: true,
       esbuildOptions: {
@@ -46,9 +35,7 @@ export default defineConfig(() => {
         },
       },
     },
-
     plugins: [react()],
-
     resolve: {
       alias: [
         {
@@ -58,17 +45,15 @@ export default defineConfig(() => {
       ],
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.scss'],
     },
-
     server: {
-      host: '0.0.0.0',
-      port: 3000,
+      host: '0.0.0.0',  // Allow external access
+      port: 3000,       // Default dev port
       proxy: {
-        // add proxies if you need them
+        // Add proxy settings here if needed
       },
     },
-
     preview: {
-      host: '0.0.0.0',
+      host: '0.0.0.0',  // Also for vite preview
       port: 3000,
     },
   }
