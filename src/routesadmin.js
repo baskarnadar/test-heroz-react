@@ -4,8 +4,8 @@ const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
 const PublicProposal = React.lazy(() => import('./public/proposal.js'))
 const PublicProgram = React.lazy(() => import('./public/program.js'))
 const PublicProgramv1 = React.lazy(() => import('./public/programv1.js'))
-const PublicPayError = React.lazy(() => import('./public/payerror.js'))
-const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
+// const PublicPayError = React.lazy(() => import('./public/payerror.js'))
+// const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
 
 //adminschoolmgms
 const adminschoolmgmList = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/list'))
@@ -296,8 +296,8 @@ const routes = [
 { path: '/public/proposal', name: 'Proposal', element: PublicProposal },
 { path: '/public/program/:requestId', name: 'Program', element: PublicProgram },
 { path: '/public/programv1/:requestId', name: 'Program', element: PublicProgramv1 },
-  { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
-  { path: '/public/paysuccess', name: 'Proposal ', element: PublicPaySuccess },
+  // { path: '/public/payerror', name: 'Proposal ', element: PublicPayError },
+  // { path: '/public/paysuccess', name: 'Proposal ', element: PublicPaySuccess },
 
   //Notefication
   { path: '/admindata/note/list', name: 'banner List', element: NoteList },
