@@ -1,19 +1,11 @@
+// ProposalPage.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
-import { FaInstagram, FaFacebookF, FaTwitter } from "react-icons/fa";
 import {
-  CCarousel,
-  CCarouselItem,
-  CModal,
-  CModalHeader,
-  CModalTitle,
-  CModalBody,
-  CModalFooter,
-  CButton,
+  CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CButton,
 } from "@coreui/react";
 import { API_BASE_URL } from "../config";
-import logo from "../assets/logo/default.png";
 import herozlogo from "../assets/logo/herozlogo.png";
 import viewonmap from "../assets/icon/viewonmap.png";
 import icon1 from "../assets/icon/icon1.png";
@@ -24,12 +16,36 @@ import icon6 from "../assets/icon/icon6.png";
 import ProgramFooter from "/src/public/prgfooter";
 import PrgHeader from "/src/public/Prgheader";
 import PrgSchHeader from "/src/public/prgschheader";
+import PaymentMethodPicker from "./paymentpicker";
+import { executeMyFatoorahPayment } from "./payexcute";
 
 import "../scss/payment.css";
 import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
 import FoodInfo from "./foodinfo";
 
 const MOBILE_RE = /^05\d{8}$/; // starts with 05 and total 10 digits
+
+// Map PaymentMethodId -> UI label
+const paymentLabelFromId = (id) => {
+  switch (Number(id)) {
+    case 11: return "Apple Pay";
+    case 2:  return "VISA / MasterCard";
+    case 14: return "STC Pay";
+    case 6:  return "MADA";
+    default: return `Method ${id}`;
+  }
+};
+
+// Map PaymentMethodId -> tripPaymentTypeID you store in backend
+const tripPaymentTypeIdFromId = (id) => {
+  switch (Number(id)) {
+    case 11: return "APPLE-PAY";
+    case 2:  return "CREDIT-CARD";
+    case 14: return "STC-PAY";
+    case 6:  return "MADA";
+    default: return "ONLINE";
+  }
+};
 
 const ProposalPage = () => {
   const [error, setError] = useState("");
@@ -41,16 +57,19 @@ const ProposalPage = () => {
   const [ActivityData, setActivity] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const [childRows, setChildRows] = useState([
-    { schoolID: "", name: "", className: "" },
-  ]);
+  const [childRows, setChildRows] = useState([{ schoolID: "", name: "", className: "" }]);
 
-  const [selectedMethod, setSelectedMethod] = useState("");
+  // Removed old selectedMethod radio; we rely only on PaymentMethodPicker
+  const [selectedMethodId, setSelectedMethodId] = useState(null);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [requestId, setRequestId] = useState("");
   const [absoluteLogoUrl, setAbsoluteLogoUrl] = useState("");
   const [shareUrl, setShareUrl] = useState("");
+
+  // API for PaymentMethodPicker (backend that serves initiate-payment)
+   
 
   // Error Modal
   const [errModalOpen, setErrModalOpen] = useState(false);
@@ -94,11 +113,7 @@ const ProposalPage = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ActivityID: ActivityIDVal,
-            VendorID: VendorIDVal,
-            RequestID: RequestIDVal,
-          }),
+          body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal, RequestID: RequestIDVal }),
         }
       );
       if (!response.ok) throw new Error("Failed to fetch activities");
@@ -114,23 +129,19 @@ const ProposalPage = () => {
   };
 
   // Included items are RADIO, extras are CHECKBOXES.
-  // Robust: supports handleCheckboxChange(FoodID) OR (FoodID, isIncluded)
   const handleCheckboxChange = (FoodID, isIncludedArg) => {
     const inferredIncluded =
       isIncludedArg ??
-      (ActivityData?.foodList?.find((f) => f.FoodID === FoodID)?.Include ===
-        true);
+      (ActivityData?.foodList?.find((f) => f.FoodID === FoodID)?.Include === true);
 
     setCheckedFoodItems((prev) => {
       const next = { ...prev };
       if (inferredIncluded) {
-        // radio behavior for included: deselect all included first
         (ActivityData?.foodList ?? [])
           .filter((f) => f.Include === true)
           .forEach((f) => (next[f.FoodID] = false));
         next[FoodID] = true;
       } else {
-        // checkbox behavior for extras
         next[FoodID] = !Boolean(prev[FoodID]);
       }
       return next;
@@ -152,9 +163,7 @@ const ProposalPage = () => {
       if (!response.ok)
         throw new Error(`Request failed with status ${response.status}`);
       const data = await response.json();
-      const payload = Array.isArray(data?.data)
-        ? data.data[0] ?? null
-        : data?.data ?? null;
+      const payload = Array.isArray(data?.data) ? data.data[0] ?? null : data?.data ?? null;
 
       const dueRaw = payload?.PaymentDueDate;
       const missingDue =
@@ -171,8 +180,7 @@ const ProposalPage = () => {
 
       const ActivityIDVal = payload?.ActivityID;
       const VendorIDVal = payload?.VendorID;
-      if (ActivityIDVal && VendorIDVal)
-        fetchActivity(ActivityIDVal, VendorIDVal, RequestID);
+      if (ActivityIDVal && VendorIDVal) fetchActivity(ActivityIDVal, VendorIDVal, RequestID);
     } catch (err) {
       console.error("Error fetching trip data:", err);
       setError(err.message || "Error fetching trip data");
@@ -255,20 +263,15 @@ const ProposalPage = () => {
   // Default selection: first included ONCE when ActivityData changes
   useEffect(() => {
     if (!ActivityData?.foodList) return;
-
     const included = ActivityData.foodList.filter((f) => f.Include === true);
-
     const initial = {};
     (ActivityData.foodList || []).forEach((f) => (initial[f.FoodID] = false));
-    if (included.length > 0) {
-      initial[included[0].FoodID] = true;
-    }
+    if (included.length > 0) initial[included[0].FoodID] = true;
     setCheckedFoodItems(initial);
   }, [ActivityData]);
 
   const activityImages = useMemo(
-    () =>
-      [txtactImageName1, txtactImageName2, txtactImageName3].filter(Boolean),
+    () => [txtactImageName1, txtactImageName2, txtactImageName3].filter(Boolean),
     [txtactImageName1, txtactImageName2, txtactImageName3]
   );
 
@@ -307,7 +310,7 @@ const ProposalPage = () => {
         const heroz = parseFloat(item?.FoodHerozPrice) || 0;
         return sum + (school + vendor + heroz);
       }
-      return 0 + sum;
+      return sum;
     }, 0);
   }, [ActivityData, checkedFoodItems, schoolPriceMap]);
 
@@ -322,18 +325,20 @@ const ProposalPage = () => {
     (row.className || "").trim() &&
     (row.schoolID || "").trim();
 
-  const validKids = useMemo(
-    () => childRows.filter(isValidKid),
-    [childRows]
-  );
+  const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
+
+  // ======= total amount to pass into PaymentMethodPicker =======
+  const paymentAmount = useMemo(() => {
+    const count = validKidsCount > 0 ? validKidsCount : 1;
+    return Number((grandTotalWithTax * count).toFixed(2));
+  }, [grandTotalWithTax, validKidsCount]);
 
   // ---------- Build selection summary & payload ----------
   const buildSelectionSummaryAndPayload = () => {
     const RequestID = TripData?.RequestID;
     const ParentsID = getCurrentLoggedUserID();
 
-    // Included (radio): one ID
     const includedId = (ActivityData?.foodList ?? [])
       .filter((f) => f.Include === true)
       .find((f) => checkedFoodItems[f.FoodID])?.FoodID;
@@ -342,7 +347,6 @@ const ProposalPage = () => {
       (f) => f.FoodID === includedId
     )?.FoodName;
 
-    // Extras
     const extrasPicked = (ActivityData?.foodList ?? []).filter(
       (f) => f.Include !== true && checkedFoodItems[f.FoodID]
     );
@@ -363,7 +367,6 @@ const ProposalPage = () => {
       };
     });
 
-    // Use only valid kids
     const kidsInfo = validKids.map((row) => ({
       RequestID,
       ParentsID,
@@ -382,8 +385,7 @@ const ProposalPage = () => {
       PayTypeID: "ONLINE",
     }));
 
-    const paymentLabel =
-      selectedMethod === "creditCard" ? "Credit/Debit Card" : "Apple Pay";
+    const paymentLabel = paymentLabelFromId(selectedMethodId);
 
     const summary = {
       included: includedName || "-",
@@ -407,18 +409,12 @@ const ProposalPage = () => {
       RequestID,
       ParentsID,
       tripParentsName:
-        document.querySelector('input[name="txtParentName"]')?.value.trim() ||
-        "",
+        document.querySelector('input[name="txtParentName"]')?.value.trim() || "",
       tripParentsMobileNo:
-        document
-          .querySelector('input[name="tripParentsMobileNo"]')
-          ?.value.trim() || "",
+        document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "",
       tripParentsNote:
-        document
-          .querySelector('textarea[name="txtParentsNote"]')
-          ?.value.trim() || "",
-      tripPaymentTypeID:
-        selectedMethod === "creditCard" ? "CREDIT-CARD" : "APPLE-PAY",
+        document.querySelector('textarea[name="txtParentsNote"]')?.value.trim() || "",
+      tripPaymentTypeID: tripPaymentTypeIdFromId(selectedMethodId),
       kidsInfo,
       FoodIncluded: includedId ? [includedId] : [],
       FoodExtra: extraRows.map(
@@ -436,22 +432,16 @@ const ProposalPage = () => {
 
   // ---------- Validation ----------
   const validateBeforeSubmit = () => {
-    const includedFoodRadio = document.querySelector(
-      'input[name="foodSelect"]:checked'
-    );
+    const includedFoodRadio = document.querySelector('input[name="foodSelect"]:checked');
     if (!includedFoodRadio) {
       showError("Please select one Included food option.");
       return false;
     }
 
-    // Parent fields
     const parentName =
-      document.querySelector('input[name="txtParentName"]')?.value.trim() ||
-      "";
+      document.querySelector('input[name="txtParentName"]')?.value.trim() || "";
     const parentMobile =
-      document
-        .querySelector('input[name="tripParentsMobileNo"]')
-        ?.value.trim() || "";
+      document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
 
     if (!parentName) {
       showError("Please enter parent name.");
@@ -462,50 +452,24 @@ const ProposalPage = () => {
       return false;
     }
 
-    // At least one valid kid
     if (validKids.length === 0) {
-      showError(
-        "Please enter Child Information: Name, Class and School ID for at least one child."
-      );
+      showError("Please enter Child Information: Name, Class and School ID for at least one child.");
       return false;
     }
 
-    if (!selectedMethod) {
-      showError("Please select a Payment Method.");
+    if (!selectedMethodId) {
+      showError("Please choose a payment method from the list above.");
       return false;
     }
 
     return true;
   };
 
-  // ---------- MyFatoorah helpers (Hosted) ----------
-  // Convert "05XXXXXXXX" → "9665XXXXXXXX"
-  const toE164Ksa = (local) => {
-    if (!MOBILE_RE.test(local || "")) return "966500000000";
-    return `966${String(local).slice(1)}`;
-  };
-
-  // From InitiatePayment response, pick first available by codes priority
-  const findMethodId = (methods, codesPriority = []) => {
-    const list = methods || [];
-    const byCode = {};
-    for (const m of list) {
-      const code = (m?.PaymentMethodCode || "").toLowerCase();
-      byCode[code] = m?.PaymentMethodId;
-    }
-    for (const code of codesPriority) {
-      if (byCode[code]) return byCode[code];
-    }
-    return null;
-  };
-
   // Step 1: Validate then open confirm modal
   const handleSubmit = () => {
     if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
       setIsExpired(true);
-      showError(
-        "We are sorry, the payment due date has finished. You cannot pay."
-      );
+      showError("We are sorry, the payment due date has finished. You cannot pay.");
       return;
     }
 
@@ -517,7 +481,7 @@ const ProposalPage = () => {
     setConfirmOpen(true);
   };
 
-  // Step 2: If confirmed, post payload
+  // Step 2: If confirmed, post payload and execute payment
   const submitConfirmed = async () => {
     if (!pendingPayload) {
       setConfirmOpen(false);
@@ -538,116 +502,38 @@ const ProposalPage = () => {
       await response.json();
       setConfirmOpen(false);
 
-      //----------------------------My faroooah ------------------------------------------------------------
-     try {
-  setLoading(true);
+      const schoolTotalTripCost = paymentAmount;
+      const parentName =
+        document.querySelector('input[name="txtParentName"]')?.value.trim() || "";
+      const parentMobile =
+        document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
 
-  // 1) Calculate net payable (per student * number of valid kids)
-  const totalAmount = Number((grandTotalWithTax * validKidsCount).toFixed(2));
-  if (!totalAmount || totalAmount <= 0) {
-    showError("Total amount is zero. Please review your selection.");
-    return;
-  }
+      if (!selectedMethodId) {
+        showError("Please choose a payment method from the list above.");
+        setSubmitting(false);
+        return;
+      }
 
-  // 2) Get available payment methods (KSA Hosted)
-  const initRes = await fetch(
-    "http://localhost:3000/api/myfatrooahdata/pay/initiate-payment",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount: totalAmount,
-        currency: "SAR",
-      }),
-    }
-  );
-  const initData = await initRes.json();
-
-  // ✅ FIX: extract the actual array of methods
-  const methods =
-    initData?.Data?.PaymentMethods ??
-    initData?.data?.PaymentMethods ??
-    [];
-
-  if (!Array.isArray(methods) || methods.length === 0) {
-    showError(
-      "No payment methods are available for this amount. Please contact support."
-    );
-    return;
-  }
-
-  // 3) Choose methodId based on selected radio
-  let codesPriority = [];
-  if (selectedMethod === "creditCard") {
-    // Prefer local MADA, then fallback to VISA/MASTER
-    // ✅ FIX: use MyFatoorah codes: md (MADA), vm (VISA/MASTER)
-    codesPriority = ["md", "vm"];
-  } else if (selectedMethod === "applePay") {
-    // Hosted ApplePay might be unavailable; if not found, show error
-    // ✅ FIX: use 'ap' for Apple Pay
-    codesPriority = ["ap"];
-  }
-  const paymentMethodId = findMethodId(methods, codesPriority);
-
-  if (!paymentMethodId) {
-    if (selectedMethod === "applePay") {
-      showError(
-        "Apple Pay is not available for Hosted Checkout on your account. Please choose Credit/Debit Card."
-      );
-    } else {
-      showError(
-        "Selected payment method is not available. Please try another method."
-      );
-    }
-    return;
-  }
-
-  // 4) Prepare customer info
-  const parentName =
-    document.querySelector('input[name="txtParentName"]')?.value.trim() ||
-    "Parent";
-  const parentMobileLocal =
-    document
-      .querySelector('input[name="tripParentsMobileNo"]')
-      ?.value.trim() || "0500000000";
-  const mobileE164 = toE164Ksa(parentMobileLocal);
-
-  // 5) Execute payment (create invoice) → redirect to PaymentURL
-  const execRes = await fetch(
-    "http://localhost:3000/api/myfatrooahdata/pay/execute-payment",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount: totalAmount,
-        currency: "SAR",
-        paymentMethodId,
-        customer: {
-          name: parentName,
-          email: "no-reply@heroz.app",
-          mobile: mobileE164,
-        },
-      }),
-    }
-  );
-  const execData = await execRes.json();
-  const url = execData?.Data?.PaymentURL;
-
-  if (url) {
-    window.location.href = url;
-  } else {
-    showError("Payment URL was not returned by ExecutePayment.");
-  }
-} catch (mfErr) {
-  console.error("MyFatoorah error:", mfErr);
-  showError("Could not start payment. Please try again.");
-} finally {
-  setLoading(false);
-}
-
-      //----------------------------My Farooah --------------------------------------------------------------
-
-      // window.location.replace("#/public/paysuccess");
+      try {
+        const result = await executeMyFatoorahPayment({
+          amount: schoolTotalTripCost,
+          paymentMethodId: selectedMethodId,
+          customer: {
+            name: parentName,
+            email: "no-reply@heroz.sa",
+            mobile: parentMobile,
+          },
+          language: "EN",
+          displayCurrency: "SAR",
+          redirect: true,
+        });
+        console.log(result);
+        if (!result.ok) {
+          showError(result.error || "Payment could not be started.");
+        }
+      } catch (e) {
+        showError(String(e));
+      }
     } catch (err) {
       console.error("Submit error:", err);
       setConfirmOpen(false);
@@ -662,8 +548,7 @@ const ProposalPage = () => {
   )}`;
 
   // ---------- SEO / Social (Helmet) ----------
-  const canonicalUrl =
-    shareUrl || `${window.location.origin}${window.location.pathname}`;
+  const canonicalUrl = shareUrl || `${window.location.origin}${window.location.pathname}`;
   const program = useMemo(() => {
     const title = ActivityData?.actName
       ? `Heroz Trip — ${ActivityData.actName}`
@@ -675,35 +560,23 @@ const ProposalPage = () => {
 
   return (
     <>
-      {/* SEO / Social meta */}
       <Helmet>
         <title>{program.title}</title>
-
-        {/* Open Graph */}
         <meta property="og:title" content={program.title} />
         <meta property="og:description" content={program.description} />
-        {program.imageUrl ? (
-          <meta property="og:image" content={program.imageUrl} />
-        ) : null}
+        {program.imageUrl ? <meta property="og:image" content={program.imageUrl} /> : null}
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="website" />
-
-        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={program.title} />
         <meta name="twitter:description" content={program.description} />
-        {program.imageUrl ? (
-          <meta name="twitter:image" content={program.imageUrl} />
-        ) : null}
-
-        {/* Canonical */}
+        {program.imageUrl ? <meta name="twitter:image" content={program.imageUrl} /> : null}
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <div className="bodyimg">
         <PrgHeader />
 
-        {/* PAGE */}
         <main className="proposal">
           {error && <div className="alert-error">{error}</div>}
 
@@ -733,11 +606,7 @@ const ProposalPage = () => {
                   <div className="detail">
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
-                        <img
-                          src={icon5}
-                          alt="HEROZ"
-                          className="icon-tint-pink"
-                        />
+                        <img src={icon5} alt="HEROZ" className="icon-tint-pink" />
                         <span> Trip Cost</span>
                       </div>
                     </div>
@@ -802,11 +671,7 @@ const ProposalPage = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <img
-                          src={viewonmap}
-                          alt="HEROZ"
-                          className="footer-logo"
-                        />
+                        <img src={viewonmap} alt="HEROZ" className="footer-logo" />
                       </a>
                     )}
                   </div>
@@ -819,9 +684,7 @@ const ProposalPage = () => {
           <section className="container twocol">
             {/* Pricing */}
             <div className="card pricing">
-              <h3 className="card-title trip-gradient-color fontsize40">
-                Trips Pricing
-              </h3>
+              <h3 className="card-title trip-gradient-color fontsize40">Trips Pricing</h3>
 
               <div className="price-row">
                 <span className="price-label fontsize20">Base Trip Cost</span>
@@ -855,12 +718,10 @@ const ProposalPage = () => {
               <div className="summary-row total trip-gradient-color">
                 <span>Total Payable (per student)</span>
                 <span>
-                  {grandTotalWithTax.toFixed(2)}{" "}
-                  <img src={icon5} alt="HEROZ" />
+                  {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
 
-              {/* Net payable now uses ONLY valid kids */}
               {validKidsCount > 1 && (
                 <div className="summary-row total net-payable trip-gradient-color">
                   <span>Net Payable Amount ({validKidsCount} kids)</span>
@@ -871,42 +732,23 @@ const ProposalPage = () => {
                 </div>
               )}
 
+              {/* ===== MyFatoorah: Initiate + Choose (reusable picker) ===== */}
+              <div style={{ marginTop: 16 }}>
+                <PaymentMethodPicker
+                  amount={paymentAmount}
+                  apiBase={API_BASE_URL}
+                  currency="SAR"
+                  onSelect={(id, method) => setSelectedMethodId(id)}
+                  autoFetch
+                />
+
+                
+              </div>
+
               <div className="divider" />
+
+              {/* Removed hardcoded radios. Only the picker remains. */}
               <div className="payment-group">
-                <div className="payment-title">Payment Method</div>
-
-                {[
-                  {
-                    value: "creditCard",
-                    label: "Credit/Debit Card",
-                    description: "Secure online payment",
-                  },
-                  {
-                    value: "applePay",
-                    label: "Apple Pay",
-                    description: "Quick and secure",
-                  },
-                ].map((option) => (
-                  <label
-                    key={option.value}
-                    className={`payment-option ${
-                      selectedMethod === option.value ? "active" : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={option.value}
-                      checked={selectedMethod === option.value}
-                      onChange={() => setSelectedMethod(option.value)}
-                    />
-                    <div className="payment-info">
-                      <div className="payment-label">{option.label}</div>
-                      <div className="payment-desc">{option.description}</div>
-                    </div>
-                  </label>
-                ))}
-
                 <button className="btn-primary" onClick={handleSubmit}>
                   Continue to payment
                 </button>
@@ -934,8 +776,7 @@ const ProposalPage = () => {
                     maxLength={10}
                     placeholder="05XXXXXXXX"
                     onInput={(e) => {
-                      // Keep only digits and cap at 10 chars
-                      e.target.value = e.target.value.replace(/\\D/g, "").slice(0, 10);
+                      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
                     }}
                   />
                 </div>
@@ -950,9 +791,7 @@ const ProposalPage = () => {
                         name="txtKidsName"
                         className="input"
                         value={row.name}
-                        onChange={(e) =>
-                          handleInputChange(index, "name", e.target.value)
-                        }
+                        onChange={(e) => handleInputChange(index, "name", e.target.value)}
                       />
                     </div>
                     <div className="form-group">
@@ -961,9 +800,7 @@ const ProposalPage = () => {
                         name="txtKidsClassName"
                         className="input"
                         value={row.className}
-                        onChange={(e) =>
-                          handleInputChange(index, "className", e.target.value)
-                        }
+                        onChange={(e) => handleInputChange(index, "className", e.target.value)}
                       />
                     </div>
                   </div>
@@ -974,9 +811,7 @@ const ProposalPage = () => {
                       name="txtKidsSchoolID"
                       className="input"
                       value={row.schoolID}
-                      onChange={(e) =>
-                        handleInputChange(index, "schoolID", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange(index, "schoolID", e.target.value)}
                     />
                   </div>
 
@@ -993,18 +828,10 @@ const ProposalPage = () => {
               ))}
 
               <div className="btn-row-left">
-                <button
-                  type="button"
-                  className="btn-link"
-                  onClick={handleAddRow}
-                >
+                <button type="button" className="btn-link" onClick={handleAddRow}>
                   <span className="trip-gradient-color">
                     <div className="row-inline">
-                      <img
-                        src={icon6}
-                        alt="HEROZ"
-                        className="icon-tint-pink"
-                      />
+                      <img src={icon6} alt="HEROZ" className="icon-tint-pink" />
                       <span> + Add more child</span>
                     </div>
                   </span>
@@ -1021,7 +848,7 @@ const ProposalPage = () => {
                 />
               </div>
 
-               <div className="terms">
+              <div className="terms">
                 <h4>Proposal Message</h4>
                 <div className="terms-text">{TripData?.ProposalMessage}</div>
               </div>
@@ -1038,11 +865,7 @@ const ProposalPage = () => {
           </section>
 
           {/* Confirm Modal */}
-          <CModal
-            visible={confirmOpen}
-            onClose={() => setConfirmOpen(false)}
-            alignment="center"
-          >
+          <CModal visible={confirmOpen} onClose={() => setConfirmOpen(false)} alignment="center">
             <CModalHeader onClose={() => setConfirmOpen(false)}>
               <CModalTitle>Confirm your selections</CModalTitle>
             </CModalHeader>
@@ -1061,25 +884,9 @@ const ProposalPage = () => {
                       <ul style={{ marginTop: 6 }}>
                         {confirmSummary.extras.map((e) => (
                           <li key={e.FoodID}>
-                            {e.FoodName} — School {e.FoodSchoolPrice.toFixed(2)}
-                            , Vendor {e.FoodVendorPrice.toFixed(2)}, Heroz{" "}
-                            {e.FoodHerozPrice.toFixed(2)} (Total{" "}
+                            {e.FoodName} — School {e.FoodSchoolPrice.toFixed(2)}, Vendor{" "}
+                            {e.FoodVendorPrice.toFixed(2)}, Heroz {e.FoodHerozPrice.toFixed(2)} (Total{" "}
                             {e.Total.toFixed(2)})
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-
-                  <div style={{ marginBottom: 12 }}>
-                    <strong>Kids ({confirmSummary.kids.length}):</strong>
-                    {confirmSummary.kids.length === 0 ? (
-                      <div>None</div>
-                    ) : (
-                      <ul style={{ marginTop: 6 }}>
-                        {confirmSummary.kids.map((k, idx) => (
-                          <li key={idx}>
-                            {k.name} — Class {k.className}, School ID {k.schoolID}
                           </li>
                         ))}
                       </ul>
@@ -1093,17 +900,9 @@ const ProposalPage = () => {
                   <div>
                     <strong>Totals:</strong>
                     <ul style={{ marginTop: 6 }}>
-                      <li>
-                        Base Trip (per student):{" "}
-                        {confirmSummary.totals.baseTripPerStudent}
-                      </li>
-                      <li>
-                        Food (per student): {confirmSummary.totals.foodPerStudent}
-                      </li>
-                      <li>
-                        Grand (per student):{" "}
-                        {confirmSummary.totals.grandPerStudent}
-                      </li>
+                      <li>Base Trip (per student): {confirmSummary.totals.baseTripPerStudent}</li>
+                      <li>Food (per student): {confirmSummary.totals.foodPerStudent}</li>
+                      <li>Grand (per student): {confirmSummary.totals.grandPerStudent}</li>
                       <li>
                         Students: {confirmSummary.totals.students} — Net Amount:{" "}
                         {confirmSummary.totals.netAmount}
@@ -1111,9 +910,7 @@ const ProposalPage = () => {
                     </ul>
                   </div>
 
-                  <div style={{ marginTop: 6 }}>
-                    Are you sure you want to submit?
-                  </div>
+                  <div style={{ marginTop: 6 }}>Are you sure you want to submit?</div>
                 </div>
               ) : (
                 <div>Loading summary…</div>
@@ -1135,11 +932,7 @@ const ProposalPage = () => {
           </CModal>
 
           {/* Error Modal */}
-          <CModal
-            visible={errModalOpen}
-            onClose={() => setErrModalOpen(false)}
-            alignment="center"
-          >
+          <CModal visible={errModalOpen} onClose={() => setErrModalOpen(false)} alignment="center">
             <CModalHeader onClose={() => setErrModalOpen(false)}>
               <CModalTitle>{errModalTitle}</CModalTitle>
             </CModalHeader>
@@ -1154,7 +947,6 @@ const ProposalPage = () => {
           </CModal>
         </main>
 
-        {/* Footer */}
         <ProgramFooter />
       </div>
     </>
