@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Payment Success</title>
+    <meta name="robots" content="noindex" />
+    <script>
+      // Preserve any query params from MyFatoorah, e.g. ?paymentId=...&Id=...
+      (function () {
+        var qs = window.location.search || "";
+        // Redirect to your HashRouter route
+        window.location.replace("/#/public/paysuccess" + qs);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

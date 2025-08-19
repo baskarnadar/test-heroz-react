@@ -1,10 +1,8 @@
 import React, { Suspense, useEffect } from 'react'
-import { HashRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
-
 
 // Containers
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
@@ -14,6 +12,43 @@ const Login = React.lazy(() => import('./views/pages/login/login'))
 const Register = React.lazy(() => import('./views/pages/register/Register'))
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+
+// --- Helpers to read query params on hash routes ---
+function useQuery() {
+  const { search } = useLocation()
+  return new URLSearchParams(search)
+}
+
+// --- Inline Success/Error pages (can be moved to separate files later) ---
+function PaySuccess() {
+  const q = useQuery()
+  const paymentId = q.get('paymentId') || q.get('PaymentId') || q.get('Id') || q.get('InvoiceId')
+  return (
+    <div style={{ padding: 24 }}>
+      <h2>✅ Payment Successful</h2>
+      {paymentId ? (
+        <p><strong>Reference:</strong> {paymentId}</p>
+      ) : (
+        <p>Payment completed.</p>
+      )}
+      <p>You can safely close this page or continue browsing.</p>
+    </div>
+  )
+}
+
+function PayError() {
+  const q = useQuery()
+  const error = q.get('error') || q.get('Message') || 'The payment was canceled or failed.'
+  const paymentId = q.get('paymentId') || q.get('PaymentId') || q.get('Id') || q.get('InvoiceId')
+  return (
+    <div style={{ padding: 24 }}>
+      <h2>❌ Payment Error</h2>
+      <p>{error}</p>
+      {paymentId && <p><strong>Reference:</strong> {paymentId}</p>}
+      <p>Please try again or contact support if the issue persists.</p>
+    </div>
+  )
+}
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
@@ -43,10 +78,18 @@ const App = () => {
         }
       >
         <Routes>
-          <Route exact path="/login" name="Login Page" element={<Login />} />
-          <Route exact path="/register" name="Register Page" element={<Register />} />
-          <Route exact path="/404" name="Page 404" element={<Page404 />} />
-          <Route exact path="/500" name="Page 500" element={<Page500 />} />
+          {/* MyFatoorah result pages (hash routes). 
+              The web server or static redirect files should send /paysuccess → /#/public/paysuccess */}
+          <Route path="/public/paysuccess" element={<PaySuccess />} />
+          <Route path="/public/payerror" element={<PayError />} />
+
+          {/* Existing app pages */}
+          <Route path="/login" name="Login Page" element={<Login />} />
+          <Route path="/register" name="Register Page" element={<Register />} />
+          <Route path="/404" name="Page 404" element={<Page404 />} />
+          <Route path="/500" name="Page 500" element={<Page500 />} />
+
+          {/* Wildcard route last */}
           <Route path="*" name="Home" element={<DefaultLayout />} />
         </Routes>
       </Suspense>
