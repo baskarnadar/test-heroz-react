@@ -3,10 +3,8 @@ import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
-
 // Containers
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
-
 // Pages
 const Login = React.lazy(() => import('./views/pages/login/login'))
 const Register = React.lazy(() => import('./views/pages/register/Register'))
@@ -76,8 +74,7 @@ const App = () => {
             <CSpinner color="primary" variant="grow" />
           </div>
         }
-      >
-        <Routes>
+      ><Routes>
           {/* MyFatoorah result pages (hash routes). 
               The web server or static redirect files should send /paysuccess → /#/public/paysuccess */}
           <Route path="/public/paysuccessv1" element={<PaySuccess />} />
@@ -88,7 +85,6 @@ const App = () => {
           <Route path="/register" name="Register Page" element={<Register />} />
           <Route path="/404" name="Page 404" element={<Page404 />} />
           <Route path="/500" name="Page 500" element={<Page500 />} />
-
           {/* Wildcard route last */}
           <Route path="*" name="Home" element={<DefaultLayout />} />
         </Routes>
@@ -96,5 +92,4 @@ const App = () => {
     </HashRouter>
   )
 }
-
 export default App

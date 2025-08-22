@@ -6,7 +6,7 @@ const AppFooter = () => {
     <CFooter className="px-4">
       <div>
        
-        <span className="ms-1">&copy; 2025 Heroz Control Panel.</span>
+        <span className="ms-1">&copy; 2025 Heroz .</span>
       </div>
       
     </CFooter>
