@@ -26,6 +26,10 @@ const Login = () => {
   const navigate = useNavigate()
 
   const handleLogin = async () => {
+
+    console.log("username")
+console.log(password)
+
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
         method: 'POST',
@@ -37,6 +41,7 @@ const Login = () => {
           password,
         }),
       })
+      
 
       const data = await response.json()
       console.log('API Response:', data)

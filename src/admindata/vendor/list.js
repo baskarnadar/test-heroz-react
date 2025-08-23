@@ -203,13 +203,13 @@ const VendorList = () => {
                         >
                           <i className="fa fa-pencil" style={{ color: '#cf2037' }} />
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => handleDeleteClick(vendor.VendorID)}
                           title="Delete"
                           className="  graybox"
                         >
                           <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => handleViewClick(vendor.VendorID)}
                           title="View"

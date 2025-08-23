@@ -451,6 +451,14 @@ const Vendor = () => {
     }
   }
 
+      const getSearchParams = () => {
+        const search = window.location.search ||
+        (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+        return new URLSearchParams(search);
+        };
+        
   const handleAddRange = () => {
     setPriceRanges((prev) => [...prev, { price: '', range: '' }])
   }
@@ -495,7 +503,10 @@ const Vendor = () => {
         }
 
         // Get ActivityID from URL
-        const urlParams = new URLSearchParams(window.location.hash.split('?')[1])
+
+    
+
+        const urlParams = getSearchParams();
         const ActivityIDVal = urlParams.get('ActivityID')
 
         if (ActivityIDVal) {
@@ -626,7 +637,15 @@ setactImageName1(ActivityData.actImageName1Url)
 
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1])
+     const getSearchParams = () => {
+        const search = window.location.search ||
+        (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+        return new URLSearchParams(search);
+        };
+
+        const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get('ActivityID')
     const VendorIDVal = urlParams.get('VendorID')
 

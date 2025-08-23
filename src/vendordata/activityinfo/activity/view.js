@@ -57,7 +57,15 @@ const Vendor = () => {
   }, [ActivityData])
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1])
+     const getSearchParams = () => {
+        const search = window.location.search ||
+        (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+        return new URLSearchParams(search);
+        };
+
+        const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get('ActivityID')
 
     if (ActivityIDVal) {
