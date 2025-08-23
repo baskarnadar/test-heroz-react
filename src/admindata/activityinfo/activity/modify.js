@@ -6,6 +6,7 @@ import { DspToastMessage } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID, dspstatusv1 } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
+
 const Vendor = () => {
   const [error, setError] = useState('')
 
@@ -29,9 +30,22 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
+  // --- helpers added (no removals) ---
+  const uniqueBy = (arr, key) =>
+    Array.from(new Map((arr || []).map(item => [item?.[key], item])).values())
+
+  // Fallbacks to avoid ReferenceError in this component
+  const [__dummyTotalPages, __setDummyTotalPages] = useState(0)
+  const setTotalPages = (val) => { __setDummyTotalPages(val) }
+  const ActivityPerPage = 10
+
+  // prevent duplicate fetches when two effects call fetchActivity
+  const [lastFetchKey, setLastFetchKey] = useState(null)
+  // --- end helpers ---
+
   // Define state for each input
   const [txtactName, setactName] = useState('')
-  const [selectedType, setactType] = useState([])
+  const [selectedType, setactType] = useState('') // was []; this is used like a string everywhere
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -48,9 +62,9 @@ const Vendor = () => {
 
   const [txtactMinAge, setMinAge] = useState('')
   const [txtactMaxAge, setMaxAge] = useState('')
-  const [rdoactGender, setGenderService] = useState([])
-  const [txtactMinStudent, setMinStudent] = useState([])
-  const [txtactMaxStudent, setMaxStudent] = useState([])
+  const [rdoactGender, setGenderService] = useState('') // was []
+  const [txtactMinStudent, setMinStudent] = useState('') // was []
+  const [txtactMaxStudent, setMaxStudent] = useState('') // was []
 
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
@@ -82,19 +96,20 @@ const Vendor = () => {
     // Calculate default new start and end time
     let lastEnd = existingTimes.length
       ? timeToMinutes(existingTimes[existingTimes.length - 1].end)
-      : 480 // 8:00 AM
+      : 480 // 08:00
 
     if (lastEnd === null) lastEnd = 480
 
     const newStartMins = lastEnd
     const newEndMins = newStartMins + 60 // +1 hour
 
+    // Use "HH:MM" (24h) because inputs are type="time"
     const minutesToTime = (mins) => {
       let h = Math.floor(mins / 60)
       let m = mins % 60
-      const suffix = h >= 12 ? 'PM' : 'AM'
-      h = h % 12 || 12
-      return `${h}:${m.toString().padStart(2, '0')} ${suffix}`
+      const hh = String(h).padStart(2, '0')
+      const mm = String(m).padStart(2, '0')
+      return `${hh}:${mm}`
     }
 
     const newStart = minutesToTime(newStartMins)
@@ -106,8 +121,8 @@ const Vendor = () => {
       {
         start: newStart,
         end: newEnd,
-        note: '', // Initialize empty note
-        total: '0.00', // Optional, if you're calculating range duration
+        note: '',
+        total: '0.00',
       },
     ]
 
@@ -181,13 +196,11 @@ const Vendor = () => {
 
   const timeToMinutes = (time) => {
     if (!time) return null
-    // If time is like "8:00 AM" or "4:00 PM"
-    const [timePart, modifier] = time.split(' ')
-    let [hours, minutes] = timePart.split(':').map(Number)
-
-    if (modifier === 'PM' && hours !== 12) hours += 12
-    if (modifier === 'AM' && hours === 12) hours = 0
-
+    // supports "HH:MM"
+    const [hh, mm] = String(time).split(':')
+    const hours = parseInt(hh, 10)
+    const minutes = parseInt(mm, 10)
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null
     return hours * 60 + minutes
   }
 
@@ -233,6 +246,12 @@ const Vendor = () => {
         ...updatedTimes[index],
         [field]: value,
       }
+      // auto-calc total when both set
+      const s = updatedTimes[index].start
+      const e = updatedTimes[index].end
+      if (s && e) {
+        updatedTimes[index].total = calculateTotal(s, e)
+      }
       return {
         ...prevDays,
         [day]: {
@@ -275,6 +294,7 @@ const Vendor = () => {
           `${overlap.range2.start} - ${overlap.range2.end}`,
       )
       setToastType('fail')
+      setLoading(false) // ensure spinner stops
       return // stop submission
     }
 
@@ -299,8 +319,8 @@ const Vendor = () => {
 
       // ✅ assign to outer variable
     } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
+      console.error('Error uploading activity image 1:', error)
+      setToastMessage('Failed to upload Activity Image 1.')
       setToastType('fail')
     }
 
@@ -323,8 +343,8 @@ const Vendor = () => {
         txtactImageName2Val = getFileNameFromUrl(uploadedImageKey2)
       }
     } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
+      console.error('Error uploading activity image 2:', error)
+      setToastMessage('Failed to upload Activity Image 2.')
       setToastType('fail')
     }
     //Image 3
@@ -347,8 +367,8 @@ const Vendor = () => {
         txtactImageName3Val = getFileNameFromUrl(uploadedImageKey3)
       }
     } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
+      console.error('Error uploading activity image 3:', error)
+      setToastMessage('Failed to upload Activity Image 3.')
       setToastType('fail')
     }
 
@@ -451,6 +471,13 @@ const Vendor = () => {
     }
   }
 
+  const getSearchParams = () => {
+  const search = window.location.search ||
+    (window.location.hash && window.location.hash.includes('?')
+      ? `?${window.location.hash.split('?')[1]}`
+      : '');
+  return new URLSearchParams(search);
+};
   const handleAddRange = () => {
     setPriceRanges((prev) => [...prev, { price: '', range: '' }])
   }
@@ -460,6 +487,7 @@ const Vendor = () => {
   }
   useEffect(() => {
     const fetchInitialData = async () => {
+      
       try {
         // Fetch Cities
         const citiesRes = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
@@ -469,7 +497,7 @@ const Vendor = () => {
         })
         const citiesResult = await citiesRes.json()
         if (citiesResult.data) {
-          setCityList(citiesResult.data)
+          setCityList(uniqueBy(citiesResult.data, 'CityID')) // dedupe
         }
 
         // Fetch Countries
@@ -480,7 +508,7 @@ const Vendor = () => {
         })
         const countriesResult = await countriesRes.json()
         if (countriesResult.data) {
-          setCountries(countriesResult.data)
+          setCountries(uniqueBy(countriesResult.data, 'CountryID')) // dedupe
         }
 
         // Fetch Categories
@@ -491,15 +519,22 @@ const Vendor = () => {
         })
         const categoryResult = await categoryRes.json()
         if (categoryResult.data) {
-          setFetchCategories(categoryResult.data)
+          setFetchCategories(uniqueBy(categoryResult.data, 'CategoryID')) // dedupe
         }
 
         // Get ActivityID from URL
-        const urlParams = new URLSearchParams(window.location.hash.split('?')[1])
+     const urlParams = getSearchParams()
+       
         const ActivityIDVal = urlParams.get('ActivityID')
-
+ 
         if (ActivityIDVal) {
-          fetchActivity(ActivityIDVal)
+          // prevent duplicate call: use lastFetchKey
+          const key = `${ActivityIDVal}|`
+          if (lastFetchKey !== key) {
+            setLastFetchKey(key)
+            fetchActivity(ActivityIDVal)
+          }
+          
         } else {
           setError('ActivityID is missing in URL')
         }
@@ -510,6 +545,7 @@ const Vendor = () => {
     }
 
     fetchInitialData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   //Edit
@@ -574,7 +610,7 @@ setactImageName1(ActivityData.actImageName1Url)
         price: item.FoodPrice || '',
         herozprice: item.FoodHerozPrice || '',
         notes: item.FoodNotes || '',
-        image: item.FoodImage || null, // or convert from base64/url if needed
+        image: item.FoodImage || null,
         include: item.Include || false,
       }))
       setFoods(mappedFoods)
@@ -606,7 +642,7 @@ setactImageName1(ActivityData.actImageName1Url)
       }
 
       ActivityData.availList.forEach((item) => {
-        const day = item.DayName.toLowerCase()
+        const day = (item.DayName || '').toLowerCase()
         if (!dayMap[day]) return
 
         dayMap[day].times.push({
@@ -626,20 +662,35 @@ setactImageName1(ActivityData.actImageName1Url)
 
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1])
+  const urlParams = getSearchParams();
     const ActivityIDVal = urlParams.get('ActivityID')
     const VendorIDVal = urlParams.get('VendorID')
-
-    if (ActivityIDVal) {
+     
+      if (ActivityIDVal) {
       setActivityIDVal(ActivityIDVal)
       setAVendorVal(VendorIDVal)
-      fetchActivity(ActivityIDVal, VendorIDVal)
+      // prevent duplicate fetch if we already did with another effect
+      const key = `${ActivityIDVal}|${VendorIDVal || ''}`
+      if (lastFetchKey !== key) {
+        setLastFetchKey(key)
+        fetchActivity(ActivityIDVal, VendorIDVal);
+      }
+      
     } else {
       setError('ActivityID is missing in URL')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchActivity = async (ActivityIDVal, VendorIDVal) => {
+    // de-dupe at function-level too
+    const key = `${ActivityIDVal}|${VendorIDVal || ''}`
+    if (lastFetchKey === key && loading) {
+      return
+    }
+
+   
+
     setLoading(true)
     try {
       const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`, {
@@ -647,7 +698,8 @@ setactImageName1(ActivityData.actImageName1Url)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal }),
       })
-
+       
+ 
       if (!response.ok) throw new Error('Failed to fetch activities1')
 
       const data = await response.json()
@@ -661,7 +713,7 @@ setactImageName1(ActivityData.actImageName1Url)
 
       console.log(data.data)
       setActivity(data.data || [])
-      setTotalPages(Math.ceil(data.totalCount / ActivityPerPage))
+      setTotalPages(Math.ceil((data.totalCount || 0) / (ActivityPerPage || 1)))
     } catch (error) {
       setError('Error fetching activities')
     } finally {
@@ -877,9 +929,9 @@ setactImageName1(ActivityData.actImageName1Url)
           </label>
 
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-            {fetchcategories.map((item) => (
+            {fetchcategories.map((item, i) => (
               <label
-                key={item.CategoryID}
+                key={`${item.CategoryID}-${i}`} // ensure unique even if dup IDs appear
                 style={
                   {
                     /* your styles */
@@ -1085,8 +1137,8 @@ setactImageName1(ActivityData.actImageName1Url)
                 required
               >
                 <option value="">Select a country</option>
-                {countries.map((country) => (
-                  <option key={country.CountryID} value={country.CountryID}>
+                {countries.map((country, i) => (
+                  <option key={`${country.CountryID}-${i}`} value={country.CountryID}>
                     {country.EnCountryName}
                   </option>
                 ))}
@@ -1103,8 +1155,8 @@ setactImageName1(ActivityData.actImageName1Url)
                 required
               >
                 <option value="">Select City</option>
-                {cityList.map((city) => (
-                  <option key={city.CityID} value={city.CityID}>
+                {cityList.map((city, i) => (
+                  <option key={`${city.CityID}-${i}`} value={city.CityID}>
                     {city.EnCityName}
                   </option>
                 ))}
