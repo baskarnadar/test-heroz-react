@@ -320,10 +320,10 @@ const ProposalPage = () => {
   const grandTotalWithTax = (Number(grandTotal) || 0) + taxAmount;
 
   // ---------- helpers ----------
+  // Student ID OPTIONAL now: only name + className required
   const isValidKid = (row) =>
     (row.name || "").trim() &&
-    (row.className || "").trim() &&
-    (row.schoolID || "").trim();
+    (row.className || "").trim();
 
   const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
@@ -371,7 +371,7 @@ const ProposalPage = () => {
       RequestID,
       ParentsID,
       KidsID: "",
-      TripKidsSchoolNo: row.schoolID.trim(),
+      TripKidsSchoolNo: (row.schoolID || "").trim(), // optional
       TripKidsName: row.name.trim(),
       tripKidsClassName: row.className.trim(),
       TripCost: priceTotal.toFixed(2),
@@ -393,7 +393,7 @@ const ProposalPage = () => {
       kids: validKids.map((k) => ({
         name: k.name.trim(),
         className: k.className.trim(),
-        schoolID: k.schoolID.trim(),
+        schoolID: (k.schoolID || "").trim(),
       })),
       paymentLabel,
       totals: {
@@ -432,10 +432,16 @@ const ProposalPage = () => {
 
   // ---------- Validation ----------
   const validateBeforeSubmit = () => {
-    const includedFoodRadio = document.querySelector('input[name="foodSelect"]:checked');
-    if (!includedFoodRadio) {
-      showError("Please select one Included food option.");
-      return false;
+    // Only require included food selection if there are included options
+    const hasMeals = Array.isArray(ActivityData?.foodList) && ActivityData.foodList.length > 0;
+    const hasIncludedOptions = hasMeals && ActivityData.foodList.some((f) => f.Include === true);
+
+    if (hasIncludedOptions) {
+      const includedFoodRadio = document.querySelector('input[name="foodSelect"]:checked');
+      if (!includedFoodRadio) {
+        showError("Please select one Included food option.");
+        return false;
+      }
     }
 
     const parentName =
@@ -453,7 +459,7 @@ const ProposalPage = () => {
     }
 
     if (validKids.length === 0) {
-      showError("Please enter Child Information: Name, Class and School ID for at least one child.");
+      showError("Please enter Child Information: Name and Class for at least one child.");
       return false;
     }
 
@@ -806,7 +812,7 @@ const ProposalPage = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>Child School ID*</label>
+                    <label>Child School ID (optional)</label>
                     <input
                       name="txtKidsSchoolID"
                       className="input"
