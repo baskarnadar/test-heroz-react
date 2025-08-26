@@ -70,6 +70,12 @@ const adminmenu = [
       to: '/admindata/payment/list',
       icon: <CIcon icon={cilExcerpt} customClassName="nav-icon" />,
     },
+       {
+      component: CNavItem,
+      name: 'Agreement',
+      to: '/admindata/agree/modify',
+      icon: <CIcon icon={cilExcerpt} customClassName="nav-icon" />,
+    },
     {
       component: CNavItem,
       name: 'City',

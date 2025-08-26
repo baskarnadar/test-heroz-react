@@ -83,6 +83,8 @@ const MemberShipModify = React.lazy(() => import('./admindata/membership/modify'
 
 //Payment List
 const PaymentList = React.lazy(() => import('./admindata/payment/list'))
+//Payment List
+const AgreementList = React.lazy(() => import('./admindata/agree/modify'))
 
 //City
 const CityList = React.lazy(() => import('./admindata/lookupdata/city/list'))
@@ -253,6 +255,8 @@ const routes = [
 
     //Payment
   { path: '/admindata/payment/list', name: 'banner List', element: PaymentList },
+   { path: '/admindata/agree/modify', name: 'Agrement ', element: AgreementList },
+  
 
   //City
   { path: 'admindata/city/list', name: 'City List', element: CityList },
