@@ -170,7 +170,7 @@ const PaySuccessPage = () => {
       setMessage(data?.message || "Payment marked as APPROVED.");
 
       // Optional: clear PayRefNo after confirmed success
-      // if (data?.statusCode === 200) localStorage.removeItem("PayRefNo");
+        if (data?.statusCode === 200) localStorage.removeItem("PayRefNo");
     } catch {
       setStatus("error");
       setMessage("Network or server error while updating payment status.");
