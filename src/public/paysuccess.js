@@ -135,15 +135,14 @@ const PaySuccessPage = () => {
     [params]
   );
 
-  const storedPayRefNo =
-    typeof window !== "undefined" ? localStorage.getItem("PayRefNo") || "" : "";
+  const PayRefNo = localStorage.getItem("PayRefNo") ;
 
   // Final payload: use URL first, fallback to localStorage for PayRefNo
   const payload = useMemo(() => {
-    const PayRefNo = urlPayRefNo || storedPayRefNo || "";
+    const PayRefNo =   PayRefNo  ;
     const PaymentID = urlPaymentID || "";
     return { PayRefNo, PaymentID };
-  }, [urlPayRefNo, urlPaymentID, storedPayRefNo]);
+  }, [urlPayRefNo, urlPaymentID, PayRefNo]);
 
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [message, setMessage] = useState("");
@@ -173,7 +172,7 @@ const PaySuccessPage = () => {
         console.debug("Detected query params:", {
           urlPaymentID,
           urlPayRefNo,
-          storedPayRefNo,
+          PayRefNo,
         });
         console.groupEnd();
       }
@@ -363,8 +362,13 @@ const PaySuccessPage = () => {
                   <strong>PayRefNo (Id):</strong> {payload.PayRefNo || "-"}
                 </div>
                 <div>
-                  <strong>PaymentID (paymentId):</strong> {payload.PaymentID || "-"}
+                  <strong>PaymentID  :</strong> {payload.PaymentID || "-"}
                 </div>
+<div>
+                  <strong>PayRefNo  :</strong> {payload.PayRefNo || "-"}
+                </div>
+                
+
                 {apiResponse && (
                   <div style={{ marginTop: 8 }}>
                     <strong>API statusCode:</strong> {apiResponse.statusCode} <br />
