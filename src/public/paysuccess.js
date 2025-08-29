@@ -3,7 +3,18 @@ import ProgramFooter from "../public/prgfooter";
 import PrgHeader from "../public/Prgheader";
 import "../scss/payment.css";
 import { API_BASE_URL } from "../config";
-const API_URL =   `${API_BASE_URL}/commondata/payment/UpdateParentsPaySuccess`;
+
+const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPaySuccess`;
+
+/** ✅ Case-insensitive query param getter */
+function getQueryParamCI(params, targetKey) {
+  const wanted = String(targetKey).toLowerCase();
+  for (const [k, v] of params.entries()) {
+    if (String(k).toLowerCase() === wanted) return v;
+  }
+  return null;
+}
+
 // ✅ Success icon
 const SuccessIcon = ({
   size = 56,
@@ -11,13 +22,7 @@ const SuccessIcon = ({
   fill = "rgba(34,197,94,0.08)",
   strokeWidth = 2,
 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    role="img"
-    aria-label="Payment successful"
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Payment successful">
     <circle cx="12" cy="12" r="10" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
     <path
       d="M7 12.5l3 3 7-7"
@@ -49,12 +54,24 @@ const spinnerStyle = `
 @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-const ProposalPage = () => {
-  // Extract query params
+const PaySuccessPage = () => {
+  // Extract query params (case-insensitive)
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const urlPaymentID = params.get("paymentid"); // maps to PaymentID
-  const urlPayRefNo = params.get("id");         // maps to PayRefNo
-  const storedPayRefNo = typeof window !== "undefined" ? localStorage.getItem("PayRefNo") : "";
+  const urlPaymentID = useMemo(
+    () =>
+      // Accept any of these: paymentId, PaymentID, paymentid, etc.
+      getQueryParamCI(params, "paymentId") ?? getQueryParamCI(params, "paymentID") ?? getQueryParamCI(params, "paymentid"),
+    [params]
+  );
+  const urlPayRefNo = useMemo(
+    () =>
+      // Accept any of these: Id, ID, id
+      getQueryParamCI(params, "Id") ?? getQueryParamCI(params, "ID") ?? getQueryParamCI(params, "id"),
+    [params]
+  );
+
+  const storedPayRefNo =
+    typeof window !== "undefined" ? localStorage.getItem("PayRefNo") || "" : "";
 
   // Final payload: use URL first, fallback to localStorage for PayRefNo
   const payload = useMemo(() => {
@@ -80,10 +97,10 @@ const ProposalPage = () => {
       setStatus("error");
       setMessage(
         !payload.PaymentID && !payload.PayRefNo
-          ? "Missing paymentid and id in the URL."
+          ? "Missing paymentId and Id in the URL (and no PayRefNo in localStorage)."
           : !payload.PaymentID
-          ? "Missing paymentid in the URL."
-          : "Missing id in the URL (and no PayRefNo found in localStorage)."
+          ? "Missing paymentId in the URL."
+          : "Missing Id in the URL (and no PayRefNo found in localStorage)."
       );
       return;
     }
@@ -91,6 +108,9 @@ const ProposalPage = () => {
     try {
       setStatus("loading");
       setMessage("");
+
+      // Debug: log what we're sending
+      console.debug("Submitting payment success payload:", payload);
 
       const resp = await fetch(API_URL, {
         method: "POST",
@@ -147,10 +167,10 @@ const ProposalPage = () => {
             style={{
               display: "flex",
               flexDirection: "column",
-              alignItems: "center",      // horizontal centering
-              justifyContent: "center",  // vertical centering
+              alignItems: "center",
+              justifyContent: "center",
               textAlign: "center",
-              minHeight: "100%",         // take full height of the card
+              minHeight: "100%",
               height: "360px",
               gap: "12px",
             }}
@@ -217,7 +237,7 @@ const ProposalPage = () => {
                 </>
               )}
 
-              {/* Debug / reference info (optional; remove if not needed) */}
+              {/* Debug / reference info */}
               <div
                 style={{
                   fontSize: 13,
@@ -227,8 +247,12 @@ const ProposalPage = () => {
                   wordBreak: "break-word",
                 }}
               >
-                <div><strong>PayRefNo (id):</strong> {payload.PayRefNo || "-"}</div>
-                <div><strong>PaymentID (paymentid):</strong> {payload.PaymentID || "-"}</div>
+                <div>
+                  <strong>PayRefNo (Id):</strong> {payload.PayRefNo || "-"}
+                </div>
+                <div>
+                  <strong>PaymentID (paymentId):</strong> {payload.PaymentID || "-"}
+                </div>
                 {apiResponse && (
                   <div style={{ marginTop: 8 }}>
                     <strong>API statusCode:</strong> {apiResponse.statusCode} <br />
@@ -246,4 +270,4 @@ const ProposalPage = () => {
   );
 };
 
-export default ProposalPage;
+export default PaySuccessPage;
