@@ -220,7 +220,7 @@ const PaySuccessPage = () => {
 
               {/* PayRefNo badge */}
               <div style={{ marginTop: 10 }}>
-                <RefBadge label="PayRefNo" value={payload.PayRefNo} />
+                <RefBadge label="Payment Ref No" value={payload.PayRefNo} />
               </div>
 
               {/* Values panel (keeping for clarity; not a console debug) */}
@@ -238,12 +238,12 @@ const PaySuccessPage = () => {
                   textAlign: "left",
                 }}
               >
-                <h4 style={{ marginTop: 0 }}>🔍 Detected Values</h4>
+                {/* <h4 style={{ marginTop: 0 }}>🔍 Detected Values</h4>
                 <div><strong>Query Param - paymentId:</strong> {urlPaymentId || "-"}</div>
                 <div><strong>Query Param - id:</strong> {urlId || "-"}</div>
                 <div><strong>LocalStorage PayRefNo:</strong> {lsPayRefNo || "-"}</div>
                 <div><strong>Payload.PayRefNo (final):</strong> {payload.PayRefNo || "-"}</div>
-                <div><strong>Payload.PaymentID (final):</strong> {payload.PaymentID || "-"}</div>
+                <div><strong>Payload.PaymentID (final):</strong> {payload.PaymentID || "-"}</div> */}
               </div>
 
               {status === "loading" && (
@@ -260,9 +260,13 @@ const PaySuccessPage = () => {
 
               {status === "success" && (
                 <>
-                  <h2 className="trip-gradient-title" style={{ margin: 0 }}>
-                   our payment transaction has been successfully completed.
-                  </h2>
+                  <h2
+  className="trip-gradient-title"
+  style={{ margin: 0, color: "#22c55e" }} // ✅ Tailwind's green-500 hex
+>
+  Your payment has been successfully completed
+</h2>
+
                   <SuccessIcon size={64} />
                   <p style={{ opacity: 0.9 }}>
                     {message || "Payment marked as APPROVED."}
@@ -292,32 +296,34 @@ const PaySuccessPage = () => {
                 </>
               )}
 
-              {/* API summary */}
-              {apiResponse && (
-                <div
-                  style={{
-                    fontSize: 13,
-                    opacity: 0.7,
-                    marginTop: 12,
-                    lineHeight: 1.4,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  <div>
-                    <strong>API statusCode:</strong> {apiResponse.statusCode}
-                  </div>
-                  <div>
-                    <strong>API message:</strong> {apiResponse.message}
-                  </div>
-                  {/* If you want to see echoed payload from backend */}
-                  {apiResponse?.data?.requestPayload && (
-                    <div style={{ marginTop: 6 }}>
-                      <strong>Echoed requestPayload:</strong>{" "}
-                      <code>{JSON.stringify(apiResponse.data.requestPayload)}</code>
-                    </div>
-                  )}
-                </div>
-              )}
+           {/*
+  API summary
+  {apiResponse && (
+    <div
+      style={{
+        fontSize: 13,
+        opacity: 0.7,
+        marginTop: 12,
+        lineHeight: 1.4,
+        wordBreak: "break-word",
+      }}
+    >
+      <div>
+        <strong>API statusCode:</strong> {apiResponse.statusCode}
+      </div>
+      <div>
+        <strong>API message:</strong> {apiResponse.message}
+      </div>
+      {apiResponse?.data?.requestPayload && (
+        <div style={{ marginTop: 6 }}>
+          <strong>Echoed requestPayload:</strong>{" "}
+          <code>{JSON.stringify(apiResponse.data.requestPayload)}</code>
+        </div>
+      )}
+    </div>
+  )}
+*/}
+
             </main>
           </div>
         </section>
