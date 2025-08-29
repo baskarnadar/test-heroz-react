@@ -5,6 +5,7 @@ import "../scss/payment.css";
 import { API_BASE_URL } from "../config";
 
 const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPaySuccess`;
+const DEBUG = true; // 🔧 toggle console debug logs
 
 /** ✅ Case-insensitive query param getter */
 function getQueryParamCI(params, targetKey) {
@@ -166,6 +167,16 @@ const PaySuccessPage = () => {
           ? "Missing paymentId in the URL."
           : "Missing Id in the URL (and no PayRefNo found in localStorage)."
       );
+      if (DEBUG) {
+        console.groupCollapsed("[PaySuccess Debug] Missing params");
+        console.debug("Location.href:", window.location.href);
+        console.debug("Detected query params:", {
+          urlPaymentID,
+          urlPayRefNo,
+          storedPayRefNo,
+        });
+        console.groupEnd();
+      }
       return;
     }
 
@@ -173,19 +184,47 @@ const PaySuccessPage = () => {
       setStatus("loading");
       setMessage("");
 
-      // Debug: log what we're sending
-      console.debug("Submitting payment success payload:", payload);
-
-      const resp = await fetch(API_URL, {
+      const start = performance.now();
+      const reqBody = {
+        PayRefNo: payload.PayRefNo,
+        PaymentID: payload.PaymentID,
+      };
+      const fetchOptions = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          PayRefNo: payload.PayRefNo,
-          PaymentID: payload.PaymentID,
-        }),
-      });
+        body: JSON.stringify(reqBody),
+      };
 
-      const data = await resp.json().catch(() => ({}));
+      if (DEBUG) {
+        console.groupCollapsed("[PaySuccess Debug] Request");
+        console.debug("API_URL:", API_URL);
+        console.debug("Location.href:", window.location.href);
+        console.debug("Detected query params:", { urlPaymentID, urlPayRefNo });
+        console.debug("Final payload:", payload);
+        console.debug("Fetch options:", fetchOptions);
+        console.groupEnd();
+      }
+
+      const resp = await fetch(API_URL, fetchOptions);
+
+      const durationMs = Math.round(performance.now() - start);
+      const raw = await resp.text();
+      let data;
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        data = { parseError: true, raw };
+      }
+
+      if (DEBUG) {
+        console.groupCollapsed("[PaySuccess Debug] Response");
+        console.debug("HTTP:", { ok: resp.ok, status: resp.status, statusText: resp.statusText });
+        console.debug("Duration (ms):", durationMs);
+        console.debug("Raw text (first 2KB):", raw?.slice(0, 2048));
+        console.debug("Parsed JSON:", data);
+        console.groupEnd();
+      }
+
       setApiResponse(data);
 
       if (!resp.ok || data?.error) {
@@ -203,7 +242,11 @@ const PaySuccessPage = () => {
         localStorage.removeItem("PayRefNo");
       }
     } catch (e) {
-      console.error("UpdateParentsPaySuccess error:", e);
+      if (DEBUG) {
+        console.groupCollapsed("[PaySuccess Debug] Exception");
+        console.error("UpdateParentsPaySuccess error:", e);
+        console.groupEnd();
+      }
       setStatus("error");
       setMessage("Network or server error while updating payment status.");
     }
