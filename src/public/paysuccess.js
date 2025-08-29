@@ -5,7 +5,7 @@ import "../scss/payment.css";
 import { API_BASE_URL } from "../config";
 
 const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPaySuccess`;
-const DEBUG = true; // 🔧 toggle console debug logs
+const DEBUG = true; // only used to log the API response
 
 // ✅ Success icon
 const SuccessIcon = ({
@@ -16,18 +16,11 @@ const SuccessIcon = ({
 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Payment successful">
     <circle cx="12" cy="12" r="10" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-    <path
-      d="M7 12.5l3 3 7-7"
-      fill="none"
-      stroke={stroke}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M7 12.5l3 3 7-7" fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-// ✅ Minimal spinner
+// ✅ Minimal spinner + keyframes
 const Spinner = () => (
   <div
     style={{
@@ -40,13 +33,9 @@ const Spinner = () => (
     }}
   />
 );
+const spinnerStyle = `@keyframes spin { to { transform: rotate(360deg); } }`;
 
-// Keyframes for spinner
-const spinnerStyle = `
-@keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-/** ✅ Copy helper */
+// ✅ Copy helper
 async function copyText(txt) {
   try {
     await navigator.clipboard.writeText(txt);
@@ -62,7 +51,7 @@ async function copyText(txt) {
   }
 }
 
-/** ✅ Reference badge for PayRefNo (or any label/value) */
+// ✅ PayRefNo badge
 const RefBadge = ({ label = "PayRefNo", value }) => {
   if (!value) return null;
   return (
@@ -80,11 +69,10 @@ const RefBadge = ({ label = "PayRefNo", value }) => {
         fontFamily:
           "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
         fontSize: 14,
-        whiteSpace: "nowrap",
       }}
     >
       <span style={{ opacity: 0.8 }}>{label}:</span>
-      <strong style={{ letterSpacing: 0.3 }}>{value}</strong>
+      <strong>{value}</strong>
       <button
         type="button"
         onClick={() => copyText(value)}
@@ -96,8 +84,6 @@ const RefBadge = ({ label = "PayRefNo", value }) => {
           background: "white",
           cursor: "pointer",
         }}
-        aria-label={`Copy ${label}`}
-        title="Copy"
       >
         Copy
       </button>
@@ -111,15 +97,15 @@ const PaySuccessPage = () => {
   const urlPaymentId = useMemo(() => params.get("paymentId") || "", [params]);
   const urlId = useMemo(() => params.get("id") || "", [params]);
 
-  // Read from localStorage once (avoid re-declare bug)
-  const PayRefNo =  localStorage.getItem("PayRefNo")  ;
-alert(PayRefNo);
-  // Final values used for the request body
+  // Read from localStorage once
+  const lsPayRefNo = localStorage.getItem("PayRefNo") || "";
+
+  // Final payload: prefer ?id=, fallback to localStorage
   const payload = useMemo(() => {
-    const finalPayRefNo = urlId || PayRefNo;    // prefer ?id=, fallback to localStorage
-    const finalPaymentID = urlPaymentId;          // from ?paymentId=
+    const finalPayRefNo = urlId || lsPayRefNo;
+    const finalPaymentID = urlPaymentId;
     return { PayRefNo: finalPayRefNo, PaymentID: finalPaymentID };
-  }, [urlId, PayRefNo, urlPaymentId]);
+  }, [urlId, lsPayRefNo, urlPaymentId]);
 
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [message, setMessage] = useState("");
@@ -135,20 +121,7 @@ alert(PayRefNo);
   const callApi = async () => {
     if (!payload.PaymentID || !payload.PayRefNo) {
       setStatus("error");
-      setMessage(
-        "Missing paymentId or id in the URL (and no PayRefNo in localStorage)."
-      );
-      if (DEBUG) {
-        console.groupCollapsed("[PaySuccess Debug] Missing params");
-        console.debug("Location.href:", window.location.href);
-        console.debug("Detected query params:", {
-          paymentId: urlPaymentId,
-          id: urlId,
-        });
-        console.debug("localStorage PayRefNo:", PayRefNo);
-        console.debug("Final payload:", payload);
-        console.groupEnd();
-      }
+      setMessage("Missing paymentId or id in the URL (and no PayRefNo in localStorage).");
       return;
     }
 
@@ -156,26 +129,18 @@ alert(PayRefNo);
       setStatus("loading");
       setMessage("");
 
-      const start = performance.now();
       const reqBody = {
         PayRefNo: payload.PayRefNo,
         PaymentID: payload.PaymentID,
-        id: urlId || payload.PaymentID, // send 'id' too for backend payid
+        id: urlId || payload.PaymentID, // also send 'id' for backend payid
       };
-      const fetchOptions = {
+
+      const resp = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reqBody),
-      };
+      });
 
-     
-        console.debug("API_URL:", JSON.stringify(reqBody));
-      
-     
-
-      const resp = await fetch(API_URL, fetchOptions);
-
-      const durationMs = Math.round(performance.now() - start);
       const raw = await resp.text();
       let data;
       try {
@@ -184,13 +149,12 @@ alert(PayRefNo);
         data = { parseError: true, raw };
       }
 
+      // 🔎 Only this one debug remains
       if (DEBUG) {
-        console.groupCollapsed("[PaySuccess Debug] Response");
-        console.debug("HTTP:", { ok: resp.ok, status: resp.status, statusText: resp.statusText });
-        console.debug("Duration (ms):", durationMs);
-        console.debug("Raw text (first 2KB):", raw?.slice(0, 2048));
-        console.debug("Parsed JSON:", data);
-        console.groupEnd();
+        console.log("[PaySuccess API Response]", {
+          http: { ok: resp.ok, status: resp.status, statusText: resp.statusText },
+          body: data,
+        });
       }
 
       setApiResponse(data);
@@ -205,16 +169,9 @@ alert(PayRefNo);
       setStatus("success");
       setMessage(data?.message || "Payment marked as APPROVED.");
 
-      // ✅ Clear PayRefNo only when backend confirms success
-      //if (data?.statusCode === 200) {
-      //  localStorage.removeItem("PayRefNo");
-      //}
-    } catch (e) {
-      if (DEBUG) {
-        console.groupCollapsed("[PaySuccess Debug] Exception");
-        console.error("UpdateParentsPaySuccess error:", e);
-        console.groupEnd();
-      }
+      // Optional: clear PayRefNo after confirmed success
+      // if (data?.statusCode === 200) localStorage.removeItem("PayRefNo");
+    } catch {
       setStatus("error");
       setMessage("Network or server error while updating payment status.");
     }
@@ -230,14 +187,9 @@ alert(PayRefNo);
     <>
       <style>{spinnerStyle}</style>
       <div className="bodyimg">
-        {/* ===== Custom Header ===== */}
         <PrgHeader />
 
-        <section
-          className="trip-info"
-          aria-labelledby="trip-info-title"
-          style={{ paddingTop: 50, textAlign: "center" }}
-        >
+        <section className="trip-info" style={{ paddingTop: 50, textAlign: "center" }}>
           <div
             style={{
               display: "flex",
@@ -266,12 +218,12 @@ alert(PayRefNo);
             >
               <h1 style={{ margin: 0 }}>Thank you.</h1>
 
-              {/* ✅ Show PayRefNo as a badge (with Copy) when available */}
+              {/* PayRefNo badge */}
               <div style={{ marginTop: 10 }}>
                 <RefBadge label="PayRefNo" value={payload.PayRefNo} />
               </div>
 
-              {/* 🔍 Clear detected values so you can confirm */}
+              {/* Values panel (keeping for clarity; not a console debug) */}
               <div
                 style={{
                   fontSize: 13,
@@ -289,7 +241,7 @@ alert(PayRefNo);
                 <h4 style={{ marginTop: 0 }}>🔍 Detected Values</h4>
                 <div><strong>Query Param - paymentId:</strong> {urlPaymentId || "-"}</div>
                 <div><strong>Query Param - id:</strong> {urlId || "-"}</div>
-                <div><strong>LocalStorage PayRefNo:</strong> {PayRefNo || "-"}</div>
+                <div><strong>LocalStorage PayRefNo:</strong> {lsPayRefNo || "-"}</div>
                 <div><strong>Payload.PayRefNo (final):</strong> {payload.PayRefNo || "-"}</div>
                 <div><strong>Payload.PaymentID (final):</strong> {payload.PaymentID || "-"}</div>
               </div>
@@ -357,6 +309,13 @@ alert(PayRefNo);
                   <div>
                     <strong>API message:</strong> {apiResponse.message}
                   </div>
+                  {/* If you want to see echoed payload from backend */}
+                  {apiResponse?.data?.requestPayload && (
+                    <div style={{ marginTop: 6 }}>
+                      <strong>Echoed requestPayload:</strong>{" "}
+                      <code>{JSON.stringify(apiResponse.data.requestPayload)}</code>
+                    </div>
+                  )}
                 </div>
               )}
             </main>
