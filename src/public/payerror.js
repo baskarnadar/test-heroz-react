@@ -1,197 +1,138 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import ProgramFooter from "../public/prgfooter";
 import PrgHeader from "../public/Prgheader";
 import "../scss/payment.css";
 import { API_BASE_URL } from "../config";
-const API_URL =   `${API_BASE_URL}/commondata/payment/UpdateParentsPayFail`;
-// ✅ Fail icon
-const FailIcon = ({
-  size = 56,
-  stroke = "#22c55e",
-  fill = "rgba(34,197,94,0.08)",
-  strokeWidth = 2,
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    role="img"
-    aria-label="Payment Failed"
-  >
-    <circle cx="12" cy="12" r="10" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-    <path
-      d="M7 12.5l3 3 7-7"
-      fill="none"
-      stroke={stroke}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
-// ✅ Minimal spinner
-const Spinner = () => (
-  <div
-    style={{
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      border: "3px solid rgba(0,0,0,0.1)",
-      borderTopColor: "currentColor",
-      animation: "spin 1s linear infinite",
-    }}
-  />
-);
+const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPayFail`;
+const DEBUG = false; // keep UI clean
 
-// Keyframes for spinner
-const spinnerStyle = `
-@keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-const ProposalPage = () => {
-  // Extract query params
+const PayFailPage = () => {
+  // Read URL params (exact casing): ?paymentId=...&id=...
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const urlPaymentID = params.get("paymentid"); // maps to PaymentID
-  const urlPayRefNo = params.get("id");         // maps to PayRefNo
-  const storedPayRefNo = typeof window !== "undefined" ? localStorage.getItem("PayRefNo") : "";
+  const urlPaymentId = useMemo(() => params.get("paymentId") || "", [params]);
+  const urlId = useMemo(() => params.get("id") || "", [params]);
 
-  // Final payload: use URL first, fallback to localStorage for PayRefNo
+  // Optional localStorage fallback
+  const lsPayRefNo = localStorage.getItem("PayRefNo") || "";
+
+  // Final payload: prefer ?id=, fallback to localStorage
   const payload = useMemo(() => {
-    const PayRefNo = urlPayRefNo || storedPayRefNo || "";
-    const PaymentID = urlPaymentID || "";
-    return { PayRefNo, PaymentID };
-  }, [urlPayRefNo, urlPaymentID, storedPayRefNo]);
+    const finalPayRefNo = urlId || lsPayRefNo;
+    const finalPaymentID = urlPaymentId;
+    return { PayRefNo: finalPayRefNo, PaymentID: finalPaymentID };
+  }, [urlId, lsPayRefNo, urlPaymentId]);
 
-  const [status, setStatus] = useState("idle"); // idle | loading | Fail | error
-  const [message, setMessage] = useState("");
-  const [apiResponse, setApiResponse] = useState(null);
-
-  // Body class add/remove
+  // Add/remove a body class if you use it to hide chrome on this page
   useEffect(() => {
     document.body.classList.add("hide-chrome");
     return () => document.body.classList.remove("hide-chrome");
   }, []);
 
-  // API caller
-  const callApi = async () => {
-    // Basic client-side validation
-    if (!payload.PaymentID || !payload.PayRefNo) {
-      setStatus("error");
-      setMessage(
-        !payload.PaymentID && !payload.PayRefNo
-          ? "Missing paymentid and id in the URL."
-          : !payload.PaymentID
-          ? "Missing paymentid in the URL."
-          : "Missing id in the URL (and no PayRefNo found in localStorage)."
-      );
-      return;
-    }
-
-    try {
-      setStatus("loading");
-      setMessage("");
-
-      const resp = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+  // Silently notify backend about failure (no UI output)
+  useEffect(() => {
+    const callApi = async () => {
+      try {
+        const reqBody = {
           PayRefNo: payload.PayRefNo,
           PaymentID: payload.PaymentID,
-        }),
-      });
+          id: urlId || payload.PaymentID,
+        };
 
-      const data = await resp.json().catch(() => ({}));
-      setApiResponse(data);
+        // Only call if we have at least one identifier
+        if (!reqBody.PaymentID && !reqBody.PayRefNo) return;
 
-      if (!resp.ok || data?.error) {
-        setStatus("error");
-        setMessage(data?.message || "Failed to update payment status.");
-        return;
+        const resp = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reqBody),
+        });
+
+        if (DEBUG) {
+          const text = await resp.text();
+          console.log("[PayFail API Response]", {
+            ok: resp.ok,
+            status: resp.status,
+            statusText: resp.statusText,
+            body: text,
+          });
+        }
+      } catch {
+        // Intentionally ignore errors to keep the UI clean
       }
-
-      // ✅ Fail
-      setStatus("Fail");
-      setMessage(data?.message || "Payment marked as APPROVED.");
-
-      // ✅ Clear PayRefNo only when backend confirms Fail
-      if (data?.statusCode === 200) {
-        localStorage.removeItem("PayRefNo");
-      }
-    } catch (e) {
-      console.error("UpdateParentsPayFail error:", e);
-      setStatus("error");
-      setMessage("Network or server error while updating payment status.");
-    }
-  };
-
-  // Call once on mount
-  useEffect(() => {
+    };
     callApi();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [payload, urlId]);
 
-    return (
-      <>
-        <div className="bodyimg">
-          {/* ===== Custom Header ===== */}
-             <PrgHeader />
-          <section className="trip-info " aria-labelledby="trip-info-title"  style={{
-                     paddingTop:50, textAlign:"center"
-                  }}>
-          <div
-    style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",       // horizontal centering
-      justifyContent: "center",   // vertical centering
-      textAlign: "center",
-      minHeight: "100%",           // take full height of the card
-      height: "300px",             // optional fixed height if you want
-      gap: "12px",
-    }}
-  >
-  
-            <main
-    className="container"
-    style={{
-      minHeight: "50vh",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      flexDirection: "column",
-      gap: "12px",
-      textAlign: "center", // ensures text is centered
-      paddingTop: 50
-    }}
-  >
-   <h1
-   
-    style={{
-      margin: 0,
-      color: "red",
-      fontSize: "1.5rem",
-      lineHeight: 1.4,
-      maxWidth: "800px",
-      textAlign: "center",
-    }}
-  >
-    We’re sorry — you can’t complete this payment.  
-    The deadline for this student trip has passed.
-  </h1>
-   
-  <span class="pay-error lg" aria-hidden="true"></span>
-  
-  </main>
-  
-            </div>
-          </section>
-  
-        
-          <ProgramFooter />
-        </div>{" "}
-      </>
-    );
+  return (
+    <div className="bodyimg">
+      <PrgHeader />
+
+      <section className="trip-info" style={{ paddingTop: 50, textAlign: "center" }}>
+        <div
+          style={{
+            minHeight: "50vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <main
+            className="container"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 12,
+              paddingTop: 50,
+              maxWidth: 720,
+              textAlign: "center",
+            }}
+          >
+            <h1 style={{ margin: 0 }}>Thank you.</h1>
+
+            {/* 🔴 Failure message */}
+            <h2
+              className="trip-gradient-title"
+              style={{
+                margin: 0,
+                color: "#dc2626", // Tailwind red-600
+                fontWeight: "bold",
+              }}
+            >
+              Your payment could not be completed
+            </h2>
+
+            {/* 🔹 Reference Number (shown only if available) */}
+            {payload.PayRefNo && (
+              <div
+                role="group"
+                aria-label="Reference number"
+                style={{
+                  marginTop: 10,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "rgba(220,38,38,0.06)", // subtle red tint
+                  border: "1px solid #dc262633",
+                  fontSize: 14,
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                }}
+              >
+                <span style={{ opacity: 0.85 }}>Reference No:</span>
+                <strong>{payload.PayRefNo}</strong>
+              </div>
+            )}
+          </main>
+        </div>
+      </section>
+
+      <ProgramFooter />
+    </div>
+  );
 };
 
-export default ProposalPage;
+export default PayFailPage;

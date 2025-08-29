@@ -229,10 +229,9 @@ const PaySuccessPage = () => {
                   fontSize: 13,
                   opacity: 0.9,
                   marginTop: 20,
-                  padding: "10px 14px",
-                  border: "1px solid #ccc",
+                  padding: "10px 14px", 
                   borderRadius: 8,
-                  background: "#f9f9f9",
+                  
                   width: "100%",
                   maxWidth: 500,
                   textAlign: "left",
