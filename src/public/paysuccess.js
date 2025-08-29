@@ -195,7 +195,7 @@ const PaySuccessPage = () => {
         body: JSON.stringify(reqBody),
       };
 
-      if (DEBUG) {
+    
         console.groupCollapsed("[PaySuccess Debug] Request");
         console.debug("API_URL:", API_URL);
         console.debug("Location.href:", window.location.href);
@@ -203,7 +203,7 @@ const PaySuccessPage = () => {
         console.debug("Final payload:", payload);
         console.debug("Fetch options:", fetchOptions);
         console.groupEnd();
-      }
+     
 
       const resp = await fetch(API_URL, fetchOptions);
 
