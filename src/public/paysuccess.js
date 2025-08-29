@@ -112,14 +112,14 @@ const PaySuccessPage = () => {
   const urlId = useMemo(() => params.get("id") || "", [params]);
 
   // Read from localStorage once (avoid re-declare bug)
-  const lsPayRefNo =  localStorage.getItem("PayRefNo")  ;
-alert(lsPayRefNo);
+  const PayRefNo =  localStorage.getItem("PayRefNo")  ;
+alert(PayRefNo);
   // Final values used for the request body
   const payload = useMemo(() => {
-    const finalPayRefNo = urlId || lsPayRefNo;    // prefer ?id=, fallback to localStorage
+    const finalPayRefNo = urlId || PayRefNo;    // prefer ?id=, fallback to localStorage
     const finalPaymentID = urlPaymentId;          // from ?paymentId=
     return { PayRefNo: finalPayRefNo, PaymentID: finalPaymentID };
-  }, [urlId, lsPayRefNo, urlPaymentId]);
+  }, [urlId, PayRefNo, urlPaymentId]);
 
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [message, setMessage] = useState("");
@@ -145,7 +145,7 @@ alert(lsPayRefNo);
           paymentId: urlPaymentId,
           id: urlId,
         });
-        console.debug("localStorage PayRefNo:", lsPayRefNo);
+        console.debug("localStorage PayRefNo:", PayRefNo);
         console.debug("Final payload:", payload);
         console.groupEnd();
       }
@@ -168,11 +168,10 @@ alert(lsPayRefNo);
         body: JSON.stringify(reqBody),
       };
 
-      if (DEBUG) {
-       
+     
         console.debug("API_URL:", JSON.stringify(reqBody));
       
-      }
+     
 
       const resp = await fetch(API_URL, fetchOptions);
 
@@ -207,9 +206,9 @@ alert(lsPayRefNo);
       setMessage(data?.message || "Payment marked as APPROVED.");
 
       // ✅ Clear PayRefNo only when backend confirms success
-      if (data?.statusCode === 200) {
-        localStorage.removeItem("PayRefNo");
-      }
+      //if (data?.statusCode === 200) {
+      //  localStorage.removeItem("PayRefNo");
+      //}
     } catch (e) {
       if (DEBUG) {
         console.groupCollapsed("[PaySuccess Debug] Exception");
@@ -290,7 +289,7 @@ alert(lsPayRefNo);
                 <h4 style={{ marginTop: 0 }}>🔍 Detected Values</h4>
                 <div><strong>Query Param - paymentId:</strong> {urlPaymentId || "-"}</div>
                 <div><strong>Query Param - id:</strong> {urlId || "-"}</div>
-                <div><strong>LocalStorage PayRefNo:</strong> {lsPayRefNo || "-"}</div>
+                <div><strong>LocalStorage PayRefNo:</strong> {PayRefNo || "-"}</div>
                 <div><strong>Payload.PayRefNo (final):</strong> {payload.PayRefNo || "-"}</div>
                 <div><strong>Payload.PaymentID (final):</strong> {payload.PaymentID || "-"}</div>
               </div>
