@@ -367,6 +367,10 @@ const ProposalPage = () => {
       };
     });
 
+    // Local Storage 
+    const PayRefNoVal=generatePayRefNo();
+    localStorage.setItem('PayRefNo', PayRefNoVal);
+
     const kidsInfo = validKids.map((row) => ({
       RequestID,
       ParentsID,
@@ -381,7 +385,7 @@ const ProposalPage = () => {
       PayStaus: "NEW",
       InvoiceNo: "0",
       MyFatrooahRefNo: "0",
-      PayRefNo: generatePayRefNo(),
+      PayRefNo: PayRefNoVal,
       PayTypeID: "ONLINE",
     }));
 

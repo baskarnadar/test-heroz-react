@@ -6,8 +6,14 @@ import { DspToastMessage } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
+
+// ✅ Validator
+import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
+
 const Vendor = () => {
- 
+  // ✅ Toggle to hide Student Range From / Student Range To / Delete (Remove)
+  const HIDE_PRICE_RANGE_UI = true
+
   const [showModal, setShowModal] = useState(false)
   const [txtactImageName1, setactImageName1] = useState(null)
   const [txtactImageName2, setactImageName2] = useState(null)
@@ -22,7 +28,7 @@ const Vendor = () => {
 
   // Define state for each input
   const [txtactName, setactName] = useState('')
-  const [selectedType, setactType] = useState([])
+  const [selectedType, setactType] = useState([]) // kept as-is
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -39,7 +45,7 @@ const Vendor = () => {
 
   const [txtactMinAge, setMinAge] = useState('')
   const [txtactMaxAge, setMaxAge] = useState('')
-  const [rdoactGender, setGenderService] = useState([])
+  const [rdoactGender, setGenderService] = useState([]) // kept as-is
   const [txtactMinStudent, setMinStudent] = useState([])
   const [txtactMaxStudent, setMaxStudent] = useState([])
 
@@ -48,11 +54,26 @@ const Vendor = () => {
   const [foods, setFoods] = useState([{ name: '', price: '', include: false }])
   const [countries, setCountries] = useState([])
   const [cityList, setCityList] = useState([])
+
+  // ✅ Auto-set price to 0 when Include is checked; keep 0 while included
   const handleFoodChange = (index, field, value) => {
-    const updated = [...foods]
-    updated[index][field] = value
-    setFoods(updated)
-  }
+    const updated = [...foods];
+
+    if (field === 'include') {
+      updated[index].include = value;
+      if (value === true) {
+        updated[index].price = 0; // immediately set to 0 in UI
+      }
+    } else if (field === 'price') {
+      // If include is true, force 0; else allow non-negative (or empty while typing)
+      const num = value === '' ? '' : Number(value);
+      updated[index].price = updated[index].include ? 0 : num;
+    } else {
+      updated[index][field] = value;
+    }
+
+    setFoods(updated);
+  };
 
   const handleFoodAddMore = () => {
     setFoods([...foods, { name: '', price: '', include: false }])
@@ -69,7 +90,7 @@ const Vendor = () => {
 
     // Calculate default new start and end time (e.g. right after last end)
     let lastEnd = existingTimes.length
-      ? timeToMinutes(existingTimes[existingTimes.length - 1].end)
+      ? timeStringToMinutes(existingTimes[existingTimes.length - 1].end)
       : 480 // default 8:00 AM = 480 mins
 
     if (lastEnd === null) lastEnd = 480
@@ -77,19 +98,17 @@ const Vendor = () => {
     const newStartMins = lastEnd
     const newEndMins = newStartMins + 60 // 1 hour after
 
-    // Convert back to HH:MM AM/PM
+    // Convert back to HH:MM (24h)
     const minutesToTime = (mins) => {
-      let h = Math.floor(mins / 60)
-      let m = mins % 60
-      const suffix = h >= 12 ? 'PM' : 'AM'
-      h = h % 12 || 12
-      return `${h}:${m.toString().padStart(2, '0')} ${suffix}`
+      const h = Math.floor(mins / 60).toString().padStart(2, '0')
+      const m = (mins % 60).toString().padStart(2, '0')
+      return `${h}:${m}`
     }
 
     const newStart = minutesToTime(newStartMins)
     const newEnd = minutesToTime(newEndMins)
 
-    const newTimes = [...existingTimes, { start: newStart, end: newEnd }]
+    const newTimes = [...existingTimes, { start: newStart, end: newEnd, total: '1.00' }]
     setDays({
       ...days,
       [day]: { ...days[day], times: newTimes },
@@ -98,43 +117,43 @@ const Vendor = () => {
 
   const [days, setDays] = useState({
     sunday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     monday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     tuesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     wednesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     thursday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     friday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     saturday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
@@ -154,7 +173,7 @@ const Vendor = () => {
 
   const timeToMinutes = (time) => {
     if (!time) return null
-    // If time is like "8:00 AM" or "4:00 PM"
+    // If time is like "8:00 AM" or "4:00 PM" — not used for inputs anymore
     const [timePart, modifier] = time.split(' ')
     let [hours, minutes] = timePart.split(':').map(Number)
 
@@ -169,7 +188,7 @@ const Vendor = () => {
     const [hourStr, minuteStr] = timeStr.split(':')
     if (!minuteStr) return null
     let hour = parseInt(hourStr, 10)
-    let minute = parseInt(minuteStr.slice(0, 2), 10)
+    let minute = parseInt(minuteStr, 10)
     if (isNaN(hour) || isNaN(minute)) return null
     return hour * 60 + minute
   }
@@ -199,18 +218,37 @@ const Vendor = () => {
     return null
   }
 
+  // ✅ Show Range Hours when both start & end present (and end > start)
   const handleTimeChange = (day, index, field, value) => {
     setDays((prevDays) => {
       const updatedTimes = [...prevDays[day].times]
-      updatedTimes[index] = {
-        ...updatedTimes[index],
-        [field]: value,
+      const prev = updatedTimes[index] || {}
+      const next = { ...prev, [field]: value }
+
+      const s = String(next.start || '').trim()
+      const e = String(next.end || '').trim()
+      if (s && e) {
+        const sMin = timeStringToMinutes(s)
+        const eMin = timeStringToMinutes(e)
+        if (sMin !== null && eMin !== null && eMin > sMin) {
+          const hrs = (eMin - sMin) / 60
+          next.total = hrs.toFixed(2)
+        } else {
+          next.total = ''
+        }
+      } else {
+        next.total = ''
       }
+
+      updatedTimes[index] = next
+      const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
+
       return {
         ...prevDays,
         [day]: {
           ...prevDays[day],
           times: updatedTimes,
+          total: dayTotal.toFixed(2),
         },
       }
     })
@@ -238,6 +276,34 @@ const Vendor = () => {
  
     if (e && e.preventDefault) e.preventDefault(); // Only call if e exists
 
+    // ✅ Pre-submit validation (includes auto-correct included foods -> price 0)
+    const validation = validateActivityForm({
+      txtactName,
+      selectedType,
+      selectedCategories,
+      txtactDesc,
+      txtactImageName1,
+      txtactImageName2,
+      txtactImageName3,
+      txtactGoogleMap,
+      txtactGlat,
+      txtactGlan,
+      ddactCountryID,
+      ddactCityID,
+      txtactAddress1,
+      rdoactGender,
+      priceRanges,
+      days,
+      foods,
+      txtactAdminNotes,
+    });
+
+    if (!validation.ok) {
+      setToastMessage(validation.message);
+      setToastType('fail');
+      return;
+    }
+
     setLoading(true)
     setToastMessage('')
 
@@ -249,6 +315,7 @@ const Vendor = () => {
           `${overlap.range2.start} - ${overlap.range2.end}`,
       )
       setToastType('fail')
+      setLoading(false)
       return // stop submission
     }
    //Image 1
@@ -407,6 +474,7 @@ const Vendor = () => {
       if (dayData.closed) return
 
       dayData.times.forEach((range) => {
+        if (!range.start || !range.end) return
         rows.push({
           DayName: dayName,
           StartTime: range.start,
@@ -426,7 +494,7 @@ const Vendor = () => {
   }
 
   const handleAddRange = () => {
-    setPriceRanges((prev) => [...prev, { price: '', range: '' }])
+    setPriceRanges((prev) => [...prev, { price: '', rangeFrom: '', rangeTo: '' }])
   }
 
   const handleRemoveRange = (index) => {
@@ -644,7 +712,7 @@ const Vendor = () => {
 
       <div className="divbox">
         <div className="form-group">
-          <label>Activity Name</label>
+          <label>Activity Name <span style={{color:'red'}}>*</span></label>
           <input
             name="txtactName"
             className="admin-txt-box"
@@ -655,7 +723,9 @@ const Vendor = () => {
         </div>
 
         <div className="form-group">
-          <label style={{ marginBottom: '10px', marginTop: '20px' }}>Activity Type</label>
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>
+            Activity Type <span style={{color:'red'}}>*</span>
+          </label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
@@ -693,7 +763,7 @@ const Vendor = () => {
 
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories
+            Activity Categories <span style={{color:'red'}}>*</span>
           </label>
 
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -734,7 +804,7 @@ const Vendor = () => {
         </div>
 
         <div className="form-group">
-          <label>Activity Description</label>
+          <label>Activity Description <span style={{color:'red'}}>*</span></label>
           <textarea
             name="txtactDesc"
             className="vendor-input"
@@ -745,7 +815,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Images </div>
+      <div className="txtsubtitle">Activity Images <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div
           style={{
@@ -847,13 +917,13 @@ const Vendor = () => {
           </div>
         </div>
       </div>
-      <div className="txtsubtitle">Activity Location </div>
+      <div className="txtsubtitle">Activity Location <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Google Map Location</label>
+              <label className="vendor-label">Google Map Location <span style={{color:'red'}}>*</span></label>
               <input
                 name="txtactGoogleMap"
                 className="vendor-input"
@@ -863,7 +933,7 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">Google Latitude</label>
+              <label className="vendor-label">Google Latitude <span style={{color:'red'}}>*</span></label>
               <input
                 name="txtactGlat"
                 className="vendor-input"
@@ -872,7 +942,7 @@ const Vendor = () => {
               />{' '}
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Google Longitude</label>
+              <label className="vendor-label">Google Longitude <span style={{color:'red'}}>*</span></label>
               <input
                 name="txtactGlan"
                 className="vendor-input"
@@ -887,7 +957,7 @@ const Vendor = () => {
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Country</label>
+              <label className="vendor-label">Country <span style={{color:'red'}}>*</span></label>
               <select
                 onChange={(e) => setCountryID(e.target.value)}
                 name="txtactCountryID"
@@ -909,7 +979,7 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">City</label>
+              <label className="vendor-label">City <span style={{color:'red'}}>*</span></label>
               <select
                 name="txtactCityID"
                 className="admin-txt-box"
@@ -925,7 +995,7 @@ const Vendor = () => {
               </select>
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Address1</label>
+              <label className="vendor-label">Address1 <span style={{color:'red'}}>*</span></label>
               <input
                 name="txtactAddress1"
                 className="vendor-input"
@@ -980,7 +1050,7 @@ const Vendor = () => {
         {/* // row start */}
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label className="vendor-label">Gender</label>
+            <label className="vendor-label">Gender <span style={{color:'red'}}>*</span></label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
@@ -1051,15 +1121,15 @@ const Vendor = () => {
         {/* // row end */}
       </div>
 
-      <div className="txtsubtitle">Price Per Student</div>
+      <div className="txtsubtitle">Price Per Student <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
         {/* Table Header */}
         <CRow className="fw-bold text-center mb-2">
-          <CCol sm={3}>Price</CCol>
-          <CCol sm={3}>Student Range From</CCol>
-          <CCol sm={3}>Student Range To</CCol>
-          <CCol sm={3}></CCol> {/* Remove column */}
+          <CCol sm={3}>Price <span style={{color:'red'}}>*</span></CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range From</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range To</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}></CCol> {/* Remove column */}
         </CRow>
 
         {/* Dynamic Form Rows */}
@@ -1073,9 +1143,10 @@ const Vendor = () => {
                 placeholder="Price"
                 value={item.price}
                 onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
+                min="0"
               />
             </CCol>
-            <CCol sm={3}>
+            <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
               <input
                 name="txtStudentRangeFrom"
                 type="text"
@@ -1085,7 +1156,7 @@ const Vendor = () => {
                 onChange={(e) => handlePriceChange(index, 'rangeFrom', e.target.value)}
               />
             </CCol>
-            <CCol sm={3}>
+            <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
               <input
                 name="txtStudentRangeTo"
                 type="text"
@@ -1096,7 +1167,7 @@ const Vendor = () => {
               />
             </CCol>
 
-            <CCol sm={3}>
+            <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
               {priceRanges.length > 1 && (
                 <button
                   type="button"
@@ -1111,7 +1182,7 @@ const Vendor = () => {
         ))}
 
         {/* Add More */}
-        <CRow className="mt-3">
+        <CRow className="mt-3" style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
           <CCol>
             <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
               Add More
@@ -1120,7 +1191,7 @@ const Vendor = () => {
         </CRow>
       </div>
 
-      <div className="txtsubtitle">Set Availability</div>
+      <div className="txtsubtitle">Set Availability <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
             {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
@@ -1146,75 +1217,78 @@ const Vendor = () => {
                   </label>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {days[day].times.map((range, index) => (
-                    <div
-                      key={index}
-                      style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}
-                    >
-                      <label>
-                        Start Time:{' '}
-                        <input
-                          className="admin-txt-box"
-                          type="time"
-                          value={range.start}
-                          onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
-                        />
-                      </label>
+                {!days[day].closed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {days[day].times.map((range, index) => (
+                      <div
+                        key={index}
+                        style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}
+                      >
+                        <label>
+                          Start Time <span style={{color:'red'}}>*</span>{' '}
+                          <input
+                            className="admin-txt-box"
+                            type="time"
+                            value={range.start}
+                            onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
+                          />
+                        </label>
 
-                      <label>
-                        End Time:{' '}
-                        <input
-                          className="admin-txt-box"
-                          type="time"
-                          value={range.end}
-                          onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
-                        />
-                      </label>
+                        <label>
+                          End Time <span style={{color:'red'}}>*</span>{' '}
+                          <input
+                            className="admin-txt-box"
+                            type="time"
+                            value={range.end}
+                            onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
+                          />
+                        </label>
 
-                      <label>
-                        Notes:{' '}
-                        <input
-                          type="text"
-                          className="admin-txt-box"
-                          value={range.note || ''}
-                          placeholder="Optional notes"
-                          onChange={() => {}} // if needed
-                        />
-                      </label>
+                        <label>
+                          Notes:{' '}
+                          <input
+                            type="text"
+                            className="admin-txt-box"
+                            value={range.note || ''}
+                            placeholder="Optional notes"
+                            onChange={() => {}} // optional disabled
+                            disabled // 👉 optional note is not enabled
+                          />
+                        </label>
 
-                      <div>
-                        Range Hours: <strong>{range.total || '0.00'}</strong>
+                        <div>
+                          Range Hours: <strong>{range.total || '0.00'}</strong>
+                        </div>
+
+                        {days[day].times.length > 1 && (
+                          <button
+                            type="button"
+                            style={{
+                              background: 'tomato',
+                              color: 'white',
+                              border: 'none',
+                              padding: '4px 8px',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => handleRemoveTimeRange(day, index)}
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
+                    ))}
 
-                      {days[day].times.length > 1 && (
-                        <button
-                          type="button"
-                          style={{
-                            background: 'tomato',
-                            color: 'white',
-                            border: 'none',
-                            padding: '4px 8px',
-                            cursor: 'pointer',
-                          }}
-                          onClick={() => handleRemoveTimeRange(day, index)}
-                        >
-                          Remove
-                        </button>
-                      )}
+                    <div style={{ marginTop: 10 }}>
+                      <button
+                        type="button"
+                        className="admin-buttonv1"
+                        onClick={() => handleAddMore(day)}
+                      >
+                        Add More
+                      </button>
                     </div>
-                  ))}
-
-                  <div style={{ marginTop: 10 }}>
-                    <button
-                      type="button"
-                      className="admin-buttonv1"
-                      onClick={() => handleAddMore(day)}
-                    >
-                      Add More
-                    </button>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           ))}
@@ -1253,9 +1327,12 @@ const Vendor = () => {
                 <input
                   type="number"
                   className="admin-txt-box w-100"
-                  placeholder="Enter price"
-                  value={item.price}
+                  placeholder={item.include ? 'Included (0)' : 'Enter price'}
+                  value={item.include ? 0 : (item.price ?? '')}
                   onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
+                  min="0"
+                  step="0.01"
+                  disabled={item.include}   // 🔒 locked at 0 when included
                 />
               </CCol>
 
@@ -1291,6 +1368,7 @@ const Vendor = () => {
                     accentColor: 'red',
                     cursor: 'pointer',
                   }}
+                  title="If checked, price becomes 0"
                 />
               </CCol>
 
@@ -1320,7 +1398,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Terms And Conditions</div>
+      <div className="txtsubtitle">Terms And Conditions <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">

@@ -13,7 +13,11 @@ import {
 import { CRow, CCol } from '@coreui/react'
 import moneyv1 from '../../../assets/images/moneyv1.png'
 import ReactPlayer from 'react-player'
+
 const Vendor = () => {
+  // ✅ Toggle to hide "Student Range From" and "Student Range To"
+  const HIDE_PRICE_RANGE_UI = true
+
   const [error, setError] = useState('')
   const [txtactImageName1, setactImageName1] = useState(null)
   const [txtactImageName2, setactImageName2] = useState(null)
@@ -325,8 +329,8 @@ const Vendor = () => {
         {/* Table Header */}
         <CRow className="fw-bold text-center mb-2">
           <CCol sm={3}>Price</CCol>
-          <CCol sm={3}>Student Range From</CCol>
-          <CCol sm={3}>Student Range To</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range From</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range To</CCol>
           <CCol sm={3}></CCol> {/* Remove column */}
         </CRow>
 
@@ -345,12 +349,12 @@ const Vendor = () => {
                 {priceItem.Price}
               </div>
             </CCol>
-            <CCol sm={3}>
+            <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
               <div className="admin-lbl-box text-center pink-shadow2">
                 {priceItem.StudentRangeFrom}
               </div>
             </CCol>
-            <CCol sm={3}>
+            <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
               <div className="admin-lbl-box text-center pink-shadow3">
                 {priceItem.StudentRangeTo}
               </div>

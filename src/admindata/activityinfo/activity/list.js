@@ -46,67 +46,61 @@ const ActivityList = () => {
     }
   }, [currentPage, navigate, toastMessage])
 
- const fetchActivity = async () => {
-  setLoading(true);
-  setError(null);
+  const fetchActivity = async () => {
+    setLoading(true);
+    setError(null);
 
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          page: currentPage,
-          limit: ActivityPerPage,
-        }),
-      }
-    );
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: currentPage,
+            limit: ActivityPerPage,
+          }),
+        }
+      );
 
-    // If the server returns a non-2xx, try to read the message and throw
-    if (!response.ok) {
-      let message = `Request failed with status ${response.status}`;
-      try {
-        const errJson = await response.json();
-        if (errJson?.message) message = errJson.message;
-      } catch {
-        // response body not JSON; keep default message
+      if (!response.ok) {
+        let message = `Request failed with status ${response.status}`;
+        try {
+          const errJson = await response.json();
+          console.log('❌ Activity List API Error Response:', JSON.stringify(errJson, null, 2));
+          if (errJson?.message) message = errJson.message;
+        } catch {
+          // Not JSON
+        }
+        throw new Error(message);
       }
-      throw new Error(message);
+
+      const data = await response.json();
+      console.log('✅ Activity List API Response:', JSON.stringify(data, null, 2));
+
+      const list = Array.isArray(data?.data) ? data.data : [];
+      const totalCount =
+        Number.isFinite(data?.totalCount) ? data.totalCount : list.length;
+
+      setActivity(list);
+      setTotalPages(
+        Math.max(1, Math.ceil(totalCount / (ActivityPerPage || 1)))
+      );
+    } catch (error) {
+      setError(error?.message || 'Error fetching activities');
+    } finally {
+      setLoading(false);
     }
-
-    // Happy path
-    const data = await response.json();
-
-    const list = Array.isArray(data?.data) ? data.data : [];
-    const totalCount =
-      Number.isFinite(data?.totalCount) ? data.totalCount : list.length;
-
-    setActivity(list);
-    setTotalPages(
-      Math.max(1, Math.ceil(totalCount / (ActivityPerPage || 1)))
-    );
-  } catch (error) {
-    // Surface a useful error message instead of a fixed string
-    setError(error?.message || 'Error fetching activities');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
 
- 
   const handleViewClick = (ActivityID,VendorID) => {
- navigate(`/admindata/activityinfo/activity/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
+    navigate(`/admindata/activityinfo/activity/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
   const handleBookedClick = (ActivityID,VendorID) => {
-    
-
-       navigate(`/admindata/activityinfo/trip/list?ActivityID=${ActivityID}&VendorID=${VendorID}`)
+    navigate(`/admindata/activityinfo/trip/list?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
-
-  
 
   const getPageRange = () => {
     const range = []
@@ -117,8 +111,6 @@ const ActivityList = () => {
   }
 
   const pageNumbers = getPageRange()
-
-  //Delete
 
   const handleDeleteClick = (ActivityID) => {
     setActivityIDelete(ActivityID)
@@ -154,6 +146,7 @@ const ActivityList = () => {
       setToastMessage('Error deleting Activity')
     }
   }
+
   return (
     <div>
       {loading ? (
@@ -168,13 +161,14 @@ const ActivityList = () => {
                 <th>#</th>
                 <th>Image</th>
                 <th>Activity Name</th>
+                <th>Vendor Name</th>
                 <th>Type</th>
                 <th>Location</th>
                 <th>Gender</th>
                 <th>Price Per Student </th>
-                <th> Date</th>
-                <th>Status </th>
-                 <th>Booked </th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Booked</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -189,14 +183,15 @@ const ActivityList = () => {
                       <img src={logo} alt="logo" style={{ width: '75px' }} />
                     </div>
                   </td>
-                  <td> {Activity.actName} </td>
-                  <td> {Activity.actTypeID} </td>
-                  <td>
-                    {' '}
-                    {Activity.EnCityName} {Activity.actAddress1}
-                    {Activity.actAddress2}{' '}
+                  <td>{Activity.actName}</td>
+                  <td style={{ backgroundColor: 'rgba(158, 227, 158, 0.1)' }}>
+                    {Activity.vdrName || '-'}
                   </td>
-                  <td> {Activity.actGender} </td>
+                  <td>{Activity.actTypeID}</td>
+                  <td>
+                    {Activity.EnCityName} {Activity.actAddress1} {Activity.actAddress2}
+                  </td>
+                  <td>{Activity.actGender}</td>
                   <td
                     style={{
                       whiteSpace: 'nowrap',
@@ -219,28 +214,22 @@ const ActivityList = () => {
                         ))
                       : 'No prices'}
                   </td>
-
                   <td>{formatDate(Activity.CreatedDate)}</td>
-
-                  <td> {dspstatus(Activity.actStatus)} </td>
-                   <td align="center"> 
-              <button
-              onClick={() => handleBookedClick(Activity.ActivityID,Activity.VendorID)}
-              style={{
-              padding: "8px 12px",
-              borderRadius: 12,
-              border: "1px solid #ccc",
-              background: "#ccc",
-              cursor: "pointer",
-              }}
-              > 
-              Booked [ 
-              {Activity?.['TRIP-BOOKED']?.totalProposalCreatd ?? 0}
-               ]
-              </button> 
-                  
-</td>
- 
+                  <td>{dspstatus(Activity.actStatus)}</td>
+                  <td align="center">
+                    <button
+                      onClick={() => handleBookedClick(Activity.ActivityID, Activity.VendorID)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 12,
+                        border: '1px solid #ccc',
+                        background: '#ccc',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Booked [{Activity?.['TRIP-BOOKED']?.totalProposalCreatd ?? 0}]
+                    </button>
+                  </td>
                   <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
                     <div
                       className="text-align"
@@ -250,9 +239,9 @@ const ActivityList = () => {
                         justifyContent: 'center',
                         flexWrap: 'wrap',
                       }}
-                    > 
+                    >
                       <button
-                        onClick={() => handleViewClick(Activity.ActivityID,Activity.VendorID)}
+                        onClick={() => handleViewClick(Activity.ActivityID, Activity.VendorID)}
                         title="View"
                         className="btn btnbtn-default graybox"
                         style={{ padding: '2px', cursor: 'pointer' }}
@@ -275,7 +264,6 @@ const ActivityList = () => {
             >
               {'<<'}
             </button>
-
             {pageNumbers.map((pageNumber) => (
               <button
                 key={pageNumber}
@@ -286,7 +274,6 @@ const ActivityList = () => {
                 {pageNumber}
               </button>
             ))}
-
             <button
               className="pagination-button"
               onClick={() => handlePageClick(currentPage + 1)}

@@ -390,11 +390,9 @@ const Vendor = () => {
             actCategoryID: selectedCategories,
             actDesc: txtactDesc || '',
 
-
-
-            actImageName1: txtactImageName1Val, // file
-            actImageName2: txtactImageName2Val, // file
-            actImageName3: txtactImageName3Val, // file
+            actImageName1: txtactImageName1Val,
+            actImageName2: txtactImageName2Val,
+            actImageName3: txtactImageName3Val,
 
             actYouTubeID1: txtactYouTubeID1,
             actYouTubeID2: txtactYouTubeID2,
@@ -426,8 +424,6 @@ const Vendor = () => {
         },
       )
 
-      console.log('response')
-      console.log(response)
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
       await response.json()
@@ -472,12 +468,13 @@ const Vendor = () => {
   }
 
   const getSearchParams = () => {
-  const search = window.location.search ||
-    (window.location.hash && window.location.hash.includes('?')
-      ? `?${window.location.hash.split('?')[1]}`
-      : '');
-  return new URLSearchParams(search);
-};
+    const search = window.location.search ||
+      (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+    return new URLSearchParams(search);
+  };
+
   const handleAddRange = () => {
     setPriceRanges((prev) => [...prev, { price: '', range: '' }])
   }
@@ -485,9 +482,9 @@ const Vendor = () => {
   const handleRemoveRange = (index) => {
     setPriceRanges((prev) => prev.filter((_, i) => i !== index))
   }
+
   useEffect(() => {
     const fetchInitialData = async () => {
-      
       try {
         // Fetch Cities
         const citiesRes = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
@@ -523,18 +520,14 @@ const Vendor = () => {
         }
 
         // Get ActivityID from URL
-     const urlParams = getSearchParams()
-       
+        const urlParams = getSearchParams()
         const ActivityIDVal = urlParams.get('ActivityID')
- 
         if (ActivityIDVal) {
-          // prevent duplicate call: use lastFetchKey
           const key = `${ActivityIDVal}|`
           if (lastFetchKey !== key) {
             setLastFetchKey(key)
             fetchActivity(ActivityIDVal)
           }
-          
         } else {
           setError('ActivityID is missing in URL')
         }
@@ -551,13 +544,14 @@ const Vendor = () => {
   //Edit
   useEffect(() => {
     if (!ActivityData) return
-setactImageName1(ActivityData.actImageName1Url)
+    setactImageName1(ActivityData.actImageName1Url)
     setactImageName2(ActivityData.actImageName2Url)
     setactImageName3(ActivityData.actImageName3Url)
 
-     setOrgsetactImageName1(ActivityData.actImageName1)
+    setOrgsetactImageName1(ActivityData.actImageName1)
     setOrgsetactImageName2(ActivityData.actImageName2)
     setOrgsetactImageName3(ActivityData.actImageName3)
+
     // Basic info
     setactName(ActivityData.actName || '')
     setactType(ActivityData.actTypeID || '')
@@ -661,21 +655,18 @@ setactImageName1(ActivityData.actImageName1Url)
   }, [ActivityData])
 
   useEffect(() => {
-    // 👇 Extract ActivityID from the URL
-  const urlParams = getSearchParams();
+    const urlParams = getSearchParams();
     const ActivityIDVal = urlParams.get('ActivityID')
     const VendorIDVal = urlParams.get('VendorID')
      
-      if (ActivityIDVal) {
+    if (ActivityIDVal) {
       setActivityIDVal(ActivityIDVal)
       setAVendorVal(VendorIDVal)
-      // prevent duplicate fetch if we already did with another effect
       const key = `${ActivityIDVal}|${VendorIDVal || ''}`
       if (lastFetchKey !== key) {
         setLastFetchKey(key)
         fetchActivity(ActivityIDVal, VendorIDVal);
       }
-      
     } else {
       setError('ActivityID is missing in URL')
     }
@@ -683,13 +674,10 @@ setactImageName1(ActivityData.actImageName1Url)
   }, [])
 
   const fetchActivity = async (ActivityIDVal, VendorIDVal) => {
-    // de-dupe at function-level too
     const key = `${ActivityIDVal}|${VendorIDVal || ''}`
     if (lastFetchKey === key && loading) {
       return
     }
-
-   
 
     setLoading(true)
     try {
@@ -698,22 +686,22 @@ setactImageName1(ActivityData.actImageName1Url)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal }),
       })
-       
- 
+
       if (!response.ok) throw new Error('Failed to fetch activities1')
 
-      const data = await response.json()
-      console.log(data?.data?.actStatus)
-      if (data?.data?.actStatus != 'WAITING-FOR-APPROVAL') {
+      const jsonResponse = await response.json()
+      // Pretty print for debugging
+      console.log('📦 getActivity JSON:', JSON.stringify(jsonResponse, null, 2))
+
+      if (jsonResponse?.data?.actStatus != 'WAITING-FOR-APPROVAL') {
         navigate(
           `/admindata/activityinfo/activity/view?ActivityID=${ActivityIDVal}&VendorID=${VendorIDVal}`,
         )
         return
       }
 
-      console.log(data.data)
-      setActivity(data.data || [])
-      setTotalPages(Math.ceil((data.totalCount || 0) / (ActivityPerPage || 1)))
+      setActivity(jsonResponse.data || [])
+      setTotalPages(Math.ceil((jsonResponse.totalCount || 0) / (ActivityPerPage || 1)))
     } catch (error) {
       setError('Error fetching activities')
     } finally {
@@ -784,14 +772,14 @@ setactImageName1(ActivityData.actImageName1Url)
         }
 
         return {
-          FoodID: item.FoodID || null, // Include it here
+          FoodID: item.FoodID || null,
           FoodName: item.name || '',
           FoodPrice: item.price || '',
           FoodHerozPrice: item.herozprice || '',
           FoodNotes: item.notes || '',
           FoodImage: uploadedImageKey || '',
           Include: item.include || false,
-          RemoveFood: item.ChkRemoveFood || false, // boolean passed here
+          RemoveFood: item.ChkRemoveFood || false,
         }
       }),
     )
@@ -801,7 +789,7 @@ setactImageName1(ActivityData.actImageName1Url)
 
   //price ------------------------------------
   const [priceRanges, setPriceRanges] = useState([
-    { price: '', HerozStudentPrice: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false }, // ✅ better structure
+    { price: '', HerozStudentPrice: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false },
   ])
 
   const handlePriceChange = (index, field, value) => {
@@ -818,14 +806,13 @@ setactImageName1(ActivityData.actImageName1Url)
       HerozStudentPrice: item.HerozStudentPrice || '',
       StudentRangeFrom: item.rangeFrom || '',
       StudentRangeTo: item.rangeTo || '',
-      RemovePrice: item.ChkRemovePrice || false, // boolean passed here
+      RemovePrice: item.ChkRemovePrice || false,
     }))
   }
-  //Country
 
   //Send to Admin Approval
   const handleSave = () => {
-    setShowModal(true) // Show confirmation modal
+    setShowModal(true)
   }
   const handleConfirm = () => {
     setShowModal(false)
@@ -836,18 +823,51 @@ setactImageName1(ActivityData.actImageName1Url)
     setShowModal(false)
   }
 
-  //Save
-
   return (
     <div>
+      {/* STATUS BANNER */}
       <div className="msgbox" style={{ marginBottom: '20px', marginTop: '20px' }}>
         <div className="form-group text-center">
           <div style={{ padding: '20px' }}>
-            {' '}
-            <b>ACTIVITY STATUS : </b> {dspstatusv1(ActivityData?.actStatus)}{' '}
+            <b>ACTIVITY STATUS : </b> {dspstatusv1(ActivityData?.actStatus)}
           </div>
         </div>
       </div>
+
+      {/* VENDOR INFO — ADDED AT THE TOP */}
+      <div
+        className="divbox"
+        style={{
+          marginBottom: 16,
+          background: '#f6fff2',
+          border: '1px solid #dbeed0',
+          borderRadius: 8,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            gap: 24,
+            flexWrap: 'wrap',
+            padding: '12px 16px',
+            alignItems: 'center',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>Vendor Name</div>
+            <div className="admin-lbl-box">{ActivityData?.vdrName || '-'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>Club Name</div>
+            <div className="admin-lbl-box">{ActivityData?.vdrClubName || '-'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>Mobile</div>
+            <div className="admin-lbl-box">{ActivityData?.vdrMobileNo1 || '-'}</div>
+          </div>
+        </div>
+      </div>
+
       <div className="divhbg">
         {/* Left side: Title */}
         <div className="txtheadertitle">Activity</div>
@@ -930,19 +950,12 @@ setactImageName1(ActivityData.actImageName1Url)
 
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
             {fetchcategories.map((item, i) => (
-              <label
-                key={`${item.CategoryID}-${i}`} // ensure unique even if dup IDs appear
-                style={
-                  {
-                    /* your styles */
-                  }
-                }
-              >
+              <label key={`${item.CategoryID}-${i}`}>
                 <input
                   type="checkbox"
                   name="txtactCategoryID"
                   value={item.CategoryID}
-                  checked={selectedCategories.includes(item.CategoryID)} // IMPORTANT
+                  checked={selectedCategories.includes(item.CategoryID)}
                   onChange={() => handleCheckboxChange(item.CategoryID)}
                   style={{
                     marginRight: 18,
@@ -993,10 +1006,7 @@ setactImageName1(ActivityData.actImageName1Url)
               onChange={handleFileUpload(setactImageName1)}
               style={{ height: 50, width: '100%' }}
             />
-           <FilePreview file={txtactImageName1} />
-           <div>
- 
-</div>
+            <FilePreview file={txtactImageName1} />
           </div>
 
           {/* Image 2 */}
@@ -1040,7 +1050,6 @@ setactImageName1(ActivityData.actImageName1Url)
             marginBottom: '20px',
           }}
         >
-          {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 1</label>
             <input
@@ -1052,7 +1061,6 @@ setactImageName1(ActivityData.actImageName1Url)
             />
           </div>
 
-          {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 2</label>
             <input
@@ -1062,10 +1070,8 @@ setactImageName1(ActivityData.actImageName1Url)
               onChange={(e) => setYouTube2(e.target.value)}
               required
             />
-           
           </div>
 
-          {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 3</label>
             <input
@@ -1075,10 +1081,10 @@ setactImageName1(ActivityData.actImageName1Url)
               onChange={(e) => setYouTube3(e.target.value)}
               required
             />
-            
           </div>
         </div>
       </div>
+
       <div className="txtsubtitle">Activity Location </div>
 
       <div className="divbox">
@@ -1187,7 +1193,6 @@ setactImageName1(ActivityData.actImageName1Url)
       </div>
       <div className="txtsubtitle"> Age Range </div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
             <div
@@ -1217,9 +1222,7 @@ setactImageName1(ActivityData.actImageName1Url)
             </div>
           </div>
         </div>
-        {/* // row end */}
 
-        {/* // row start */}
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label className="vendor-label">Gender</label>
@@ -1259,13 +1262,10 @@ setactImageName1(ActivityData.actImageName1Url)
             </label>
           </div>
         </div>
-        {/* // row end */}
       </div>
-      {/* // row end */}
 
       <div className="txtsubtitle">Capacity Information </div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
             <div
@@ -1295,13 +1295,11 @@ setactImageName1(ActivityData.actImageName1Url)
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
 
       <div className="txtsubtitle">Price Per Student</div>
 
       <div className="divbox">
-        {/* Table Header */}
         <CRow className="fw-bold   mb-2">
           <CCol sm={2}>Price</CCol>
           <CCol sm={2} style={{ backgroundColor: '#f8eaf3ff' }}>
@@ -1309,10 +1307,9 @@ setactImageName1(ActivityData.actImageName1Url)
           </CCol>
           <CCol sm={2}>Student Range From</CCol>
           <CCol sm={2}>Student Range To</CCol>
-          <CCol sm={2}>Delete</CCol> {/* Remove column */}
+          <CCol sm={2}>Delete</CCol>
         </CRow>
 
-        {/* Dynamic Form Rows */}
         {priceRanges.map((item, index) => (
           <CRow key={index} className="align-items-center mb-2">
             <CCol sm={2}>
@@ -1364,8 +1361,8 @@ setactImageName1(ActivityData.actImageName1Url)
                   name="chkRemovePrice"
                   onChange={(e) => {
                     const updatedRanges = [...priceRanges]
-                    updatedRanges[index].ChkRemovePrice = e.target.checked // update checked value
-                    setPriceRanges(updatedRanges) // update state
+                    updatedRanges[index].ChkRemovePrice = e.target.checked
+                    setPriceRanges(updatedRanges)
                   }}
                   style={{
                     width: '24px',
@@ -1389,7 +1386,6 @@ setactImageName1(ActivityData.actImageName1Url)
           </CRow>
         ))}
 
-        {/* Add More */}
         <CRow className="mt-3">
           <CCol>
             <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
@@ -1543,7 +1539,6 @@ setactImageName1(ActivityData.actImageName1Url)
       <div className="txtsubtitle">Food Information</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>Food Name</CCol>
             <CCol sm={1}>Price</CCol>
@@ -1553,13 +1548,11 @@ setactImageName1(ActivityData.actImageName1Url)
             <CCol sm={3}>Notes</CCol>
             <CCol sm={2}>Food Image</CCol>
             <CCol sm={1}>Include</CCol>
-            <CCol sm={1}>Delete</CCol> {/* For remove button */}
+            <CCol sm={1}>Delete</CCol>
           </CRow>
 
-          {/* Dynamic Rows */}
           {foods.map((item, index) => (
             <CRow key={index} className="mb-3 align-items-center">
-              {/* Food Name */}
               <CCol sm={3}>
                 <input
                   type="text"
@@ -1570,7 +1563,6 @@ setactImageName1(ActivityData.actImageName1Url)
                 />
               </CCol>
 
-              {/* Price */}
               <CCol sm={1}>
                 <input
                   type="number"
@@ -1580,7 +1572,7 @@ setactImageName1(ActivityData.actImageName1Url)
                   onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                 />
               </CCol>
-              {/* Price */}
+
               <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
                 <input
                   type="number"
@@ -1591,7 +1583,6 @@ setactImageName1(ActivityData.actImageName1Url)
                 />
               </CCol>
 
-              {/* Notes */}
               <CCol sm={3}>
                 <input
                   type="text"
@@ -1602,7 +1593,6 @@ setactImageName1(ActivityData.actImageName1Url)
                 />
               </CCol>
 
-              {/* Image Upload */}
               <CCol sm={2}>
                 <input
                   type="file"
@@ -1612,7 +1602,6 @@ setactImageName1(ActivityData.actImageName1Url)
                 />
               </CCol>
 
-              {/* Include Checkbox */}
               <CCol sm={1} className="text-center">
                 <input
                   type="checkbox"
@@ -1626,7 +1615,6 @@ setactImageName1(ActivityData.actImageName1Url)
                 />
               </CCol>
 
-              {/* Remove Button */}
               <CCol sm={1}>
                 {item.FoodID ? (
                   <input
@@ -1640,7 +1628,7 @@ setactImageName1(ActivityData.actImageName1Url)
                     style={{
                       width: '24px',
                       height: '24px',
-                      accentColor: 'red', // makes the checkmark and background red in modern browsers
+                      accentColor: 'red',
                       cursor: 'pointer',
                     }}
                   />
@@ -1659,7 +1647,6 @@ setactImageName1(ActivityData.actImageName1Url)
             </CRow>
           ))}
 
-          {/* Add More Button */}
           <CRow className="mt-3">
             <CCol>
               <button type="button" className="admin-buttonv1" onClick={handleFoodAddMore}>
@@ -1672,7 +1659,6 @@ setactImageName1(ActivityData.actImageName1Url)
 
       <div className="txtsubtitle">Terms And Conditions</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <textarea
             onChange={(e) => setAdminNotes(e.target.value)}
@@ -1682,8 +1668,8 @@ setactImageName1(ActivityData.actImageName1Url)
             rows={5}
           />
         </div>
-        {/* // row end */}
       </div>
+
       <div className="button-container">
         <button
           className="admin-buttonv1"
