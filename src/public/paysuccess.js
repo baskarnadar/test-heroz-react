@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import ProgramFooter from "../public/prgfooter";
 import PrgHeader from "../public/Prgheader";
 import "../scss/payment.css";
 import { API_BASE_URL } from "../config";
 
 const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPaySuccess`;
-const DEBUG = true; // only used to log the API response
+const DEBUG = true; // only logs API response to console
 
-// ✅ Success icon
+// Success icon
 const SuccessIcon = ({
   size = 56,
   stroke = "#22c55e",
-  fill = "rgba(34,197,94,0.08)",
+  fill = "rgba(34,197,94,0.10)",
   strokeWidth = 2,
 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Payment successful">
@@ -20,7 +20,7 @@ const SuccessIcon = ({
   </svg>
 );
 
-// ✅ Minimal spinner + keyframes
+// Minimal spinner + keyframes
 const Spinner = () => (
   <div
     style={{
@@ -35,81 +35,108 @@ const Spinner = () => (
 );
 const spinnerStyle = `@keyframes spin { to { transform: rotate(360deg); } }`;
 
-// ✅ Copy helper
-async function copyText(txt) {
-  try {
-    await navigator.clipboard.writeText(txt);
-    alert("Copied!");
-  } catch {
-    const ta = document.createElement("textarea");
-    ta.value = txt;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    alert("Copied!");
-  }
-}
-
-// ✅ PayRefNo badge
-const RefBadge = ({ label = "PayRefNo", value }) => {
-  if (!value) return null;
+// Attractive PayRefNo card (no copy button)
+const PayRefCard = ({ value }) => {
+  const val = value || "—";
   return (
     <div
-      role="group"
-      aria-label={`${label} container`}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "10px 14px",
-        borderRadius: 12,
-        background: "rgba(34,197,94,0.08)",
-        border: "1px solid #22c55e33",
-        fontFamily:
-          "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-        fontSize: 14,
+        position: "relative",
+        width: "100%",
+        maxWidth: 520,
+        padding: "22px 24px",
+        borderRadius: 16,
+        background:
+          "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.04))",
+        border: "1px solid rgba(34,197,94,0.25)",
+        boxShadow:
+          "0 10px 30px rgba(34,197,94,0.15), inset 0 1px 0 rgba(255,255,255,0.4)",
+        backdropFilter: "blur(6px)",
+        textAlign: "left",
       }}
+      aria-label="Payment reference card"
     >
-      <span style={{ opacity: 0.8 }}>{label}:</span>
-      <strong>{value}</strong>
-      <button
-        type="button"
-        onClick={() => copyText(value)}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+        <SuccessIcon size={28} />
+        <div
+          style={{
+            fontSize: 14,
+            letterSpacing: 0.6,
+            textTransform: "uppercase",
+            color: "#065f46",
+            opacity: 0.9,
+            fontWeight: 700,
+          }}
+        >
+          Payment reference
+        </div>
+      </div>
+
+      <div
         style={{
-          marginLeft: 6,
-          padding: "6px 10px",
-          borderRadius: 8,
-          border: "1px solid #22c55e55",
-          background: "white",
-          cursor: "pointer",
+          display: "flex",
+          alignItems: "baseline",
+          gap: 8,
+          flexWrap: "wrap",
         }}
       >
-        Copy
-      </button>
+        <span style={{ fontSize: 18, color: "#065f46", opacity: 0.85 }}>PayRefNo:</span>
+        <span
+          style={{
+            fontFamily:
+              "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+            fontWeight: 800,
+            letterSpacing: 2,
+            fontSize: 28,
+            color: "#047857",
+            background: "rgba(16,185,129,0.08)",
+            padding: "6px 10px",
+            borderRadius: 10,
+            border: "1px dashed rgba(5,150,105,0.35)",
+          }}
+        >
+          {val}
+        </span>
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 13, color: "#065f46", opacity: 0.8 }}>
+        Please keep this reference for your records.
+      </div>
     </div>
   );
 };
 
 const PaySuccessPage = () => {
-  // Read URL params (exact casing): ?paymentId=...&id=...
-  const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const urlPaymentId = useMemo(() => params.get("paymentId") || "", [params]);
-  const urlId = useMemo(() => params.get("id") || "", [params]);
+  // Read URL params safely
+  const [paymentId, setPaymentId] = useState("");
+  const [idParam, setIdParam] = useState("");
+  const [lsPayRefNo, setLsPayRefNo] = useState("");
+  const [ready, setReady] = useState(false);
 
-  // Read from localStorage once
-  const lsPayRefNo = localStorage.getItem("PayRefNo") || "";
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const p = new URLSearchParams(window.location.search);
+        setPaymentId(p.get("paymentId") || "");
+        setIdParam(p.get("id") || p.get("Id") || "");
+        setLsPayRefNo(localStorage.getItem("PayRefNo") || "");
+      }
+    } finally {
+      setReady(true);
+    }
+  }, []);
 
   // Final payload: prefer ?id=, fallback to localStorage
-  const payload = useMemo(() => {
-    const finalPayRefNo = urlId || lsPayRefNo;
-    const finalPaymentID = urlPaymentId;
-    return { PayRefNo: finalPayRefNo, PaymentID: finalPaymentID };
-  }, [urlId, lsPayRefNo, urlPaymentId]);
+  const payload = useMemo(
+    () => ({
+      PayRefNo: idParam || lsPayRefNo,
+      PaymentID: paymentId,
+    }),
+    [idParam, lsPayRefNo, paymentId]
+  );
 
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [message, setMessage] = useState("");
-  const [apiResponse, setApiResponse] = useState(null);
 
   // Body class add/remove
   useEffect(() => {
@@ -121,7 +148,7 @@ const PaySuccessPage = () => {
   const callApi = async () => {
     if (!payload.PaymentID || !payload.PayRefNo) {
       setStatus("error");
-      setMessage("Missing paymentId or id in the URL (and no PayRefNo in localStorage).");
+      setMessage("We couldn't verify your payment details.");
       return;
     }
 
@@ -132,7 +159,7 @@ const PaySuccessPage = () => {
       const reqBody = {
         PayRefNo: payload.PayRefNo,
         PaymentID: payload.PaymentID,
-        id: urlId || payload.PaymentID, // also send 'id' for backend payid
+        id: idParam || payload.PaymentID,
       };
 
       const resp = await fetch(API_URL, {
@@ -149,7 +176,6 @@ const PaySuccessPage = () => {
         data = { parseError: true, raw };
       }
 
-      // 🔎 Only this one debug remains
       if (DEBUG) {
         console.log("[PaySuccess API Response]", {
           http: { ok: resp.ok, status: resp.status, statusText: resp.statusText },
@@ -157,19 +183,16 @@ const PaySuccessPage = () => {
         });
       }
 
-      setApiResponse(data);
-
       if (!resp.ok || data?.error) {
         setStatus("error");
-        setMessage(data?.message || "Failed to update payment status.");
+        setMessage("We couldn’t confirm the payment right now.");
         return;
       }
 
-      // ✅ Success
+      // Success (no UI message “Payment marked as APPROVED.”)
       setStatus("success");
-      setMessage(data?.message || "Payment marked as APPROVED.");
 
-      // Optional: clear PayRefNo after confirmed success
+      // Optional: clear PayRefNo on success
       // if (data?.statusCode === 200) localStorage.removeItem("PayRefNo");
     } catch {
       setStatus("error");
@@ -177,11 +200,15 @@ const PaySuccessPage = () => {
     }
   };
 
-  // Call once on mount
+  // Call once after values are ready
+  const calledRef = useRef(false);
   useEffect(() => {
-    callApi();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!ready || calledRef.current) return;
+    if (paymentId || idParam || lsPayRefNo) {
+      calledRef.current = true;
+      callApi();
+    }
+  }, [ready, paymentId, idParam, lsPayRefNo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -198,8 +225,7 @@ const PaySuccessPage = () => {
               justifyContent: "center",
               textAlign: "center",
               minHeight: "100%",
-              height: "360px",
-              gap: "12px",
+              gap: 16,
             }}
           >
             <main
@@ -210,42 +236,14 @@ const PaySuccessPage = () => {
                 justifyContent: "center",
                 alignItems: "center",
                 flexDirection: "column",
-                gap: "12px",
-                textAlign: "center",
+                gap: 16,
                 paddingTop: 50,
                 maxWidth: 720,
               }}
             >
               <h1 style={{ margin: 0 }}>Thank you.</h1>
 
-              {/* PayRefNo badge */}
-              <div style={{ marginTop: 10 }}>
-                <RefBadge label="PayRefNo" value={payload.PayRefNo} />
-              </div>
-
-              {/* Values panel (keeping for clarity; not a console debug) */}
-              <div
-                style={{
-                  fontSize: 13,
-                  opacity: 0.9,
-                  marginTop: 20,
-                  padding: "10px 14px",
-                  border: "1px solid #ccc",
-                  borderRadius: 8,
-                  background: "#f9f9f9",
-                  width: "100%",
-                  maxWidth: 500,
-                  textAlign: "left",
-                }}
-              >
-                <h4 style={{ marginTop: 0 }}>🔍 Detected Values</h4>
-                <div><strong>Query Param - paymentId:</strong> {urlPaymentId || "-"}</div>
-                <div><strong>Query Param - id:</strong> {urlId || "-"}</div>
-                <div><strong>LocalStorage PayRefNo:</strong> {lsPayRefNo || "-"}</div>
-                <div><strong>Payload.PayRefNo (final):</strong> {payload.PayRefNo || "-"}</div>
-                <div><strong>Payload.PaymentID (final):</strong> {payload.PaymentID || "-"}</div>
-              </div>
-
+              {/* Loading */}
               {status === "loading" && (
                 <>
                   <h2 className="trip-gradient-title" style={{ margin: 0 }}>
@@ -253,23 +251,22 @@ const PaySuccessPage = () => {
                   </h2>
                   <Spinner />
                   <p style={{ opacity: 0.8, marginTop: 8 }}>
-                    Please wait while we update your payment status.
+                    Please wait while we finalize your payment.
                   </p>
                 </>
               )}
 
+              {/* Success (no “Payment marked as APPROVED.” message) */}
               {status === "success" && (
                 <>
                   <h2 className="trip-gradient-title" style={{ margin: 0 }}>
-                    Your request has been successfully completed
+                    Your payment is confirmed
                   </h2>
-                  <SuccessIcon size={64} />
-                  <p style={{ opacity: 0.9 }}>
-                    {message || "Payment marked as APPROVED."}
-                  </p>
+                  <PayRefCard value={payload.PayRefNo} />
                 </>
               )}
 
+              {/* Error */}
               {status === "error" && (
                 <>
                   <h2 className="trip-gradient-title" style={{ margin: 0 }}>
@@ -292,32 +289,8 @@ const PaySuccessPage = () => {
                 </>
               )}
 
-              {/* API summary */}
-              {apiResponse && (
-                <div
-                  style={{
-                    fontSize: 13,
-                    opacity: 0.7,
-                    marginTop: 12,
-                    lineHeight: 1.4,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  <div>
-                    <strong>API statusCode:</strong> {apiResponse.statusCode}
-                  </div>
-                  <div>
-                    <strong>API message:</strong> {apiResponse.message}
-                  </div>
-                  {/* If you want to see echoed payload from backend */}
-                  {apiResponse?.data?.requestPayload && (
-                    <div style={{ marginTop: 6 }}>
-                      <strong>Echoed requestPayload:</strong>{" "}
-                      <code>{JSON.stringify(apiResponse.data.requestPayload)}</code>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Always show the PayRef card if we already have it, even before success */}
+              {status === "idle" && <PayRefCard value={payload.PayRefNo} />}
             </main>
           </div>
         </section>
