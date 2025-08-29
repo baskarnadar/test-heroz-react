@@ -112,8 +112,8 @@ const PaySuccessPage = () => {
   const urlId = useMemo(() => params.get("id") || "", [params]);
 
   // Read from localStorage once (avoid re-declare bug)
-  const lsPayRefNo = typeof window !== "undefined" ? localStorage.getItem("PayRefNo") || "" : "";
-
+  const lsPayRefNo =  localStorage.getItem("PayRefNo")  ;
+alert(lsPayRefNo);
   // Final values used for the request body
   const payload = useMemo(() => {
     const finalPayRefNo = urlId || lsPayRefNo;    // prefer ?id=, fallback to localStorage
@@ -169,13 +169,9 @@ const PaySuccessPage = () => {
       };
 
       if (DEBUG) {
-        console.groupCollapsed("[PaySuccess Debug] Request");
-        console.debug("API_URL:", API_URL);
-        console.debug("Location.href:", window.location.href);
-        console.debug("paymentId (URL):", urlPaymentId, "id (URL):", urlId);
-        console.debug("localStorage PayRefNo:", lsPayRefNo);
-        console.debug("Request body:", reqBody);
-        console.groupEnd();
+       
+        console.debug("API_URL:", JSON.stringify(reqBody));
+      
       }
 
       const resp = await fetch(API_URL, fetchOptions);
