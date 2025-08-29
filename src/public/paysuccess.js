@@ -85,7 +85,7 @@ const RefBadge = ({ label = "PayRefNo", value }) => {
           cursor: "pointer",
         }}
       >
-        Copy
+        Copy.
       </button>
     </div>
   );
