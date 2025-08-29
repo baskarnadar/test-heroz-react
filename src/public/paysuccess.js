@@ -7,15 +7,6 @@ import { API_BASE_URL } from "../config";
 const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPaySuccess`;
 const DEBUG = true; // 🔧 toggle console debug logs
 
-/** ✅ Case-insensitive query param getter */
-function getQueryParamCI(params, targetKey) {
-  const wanted = String(targetKey).toLowerCase();
-  for (const [k, v] of params.entries()) {
-    if (String(k).toLowerCase() === wanted) return v;
-  }
-  return null;
-}
-
 // ✅ Success icon
 const SuccessIcon = ({
   size = 56,
@@ -61,7 +52,6 @@ async function copyText(txt) {
     await navigator.clipboard.writeText(txt);
     alert("Copied!");
   } catch {
-    // Fallback for older browsers
     const ta = document.createElement("textarea");
     ta.value = txt;
     document.body.appendChild(ta);
@@ -116,33 +106,20 @@ const RefBadge = ({ label = "PayRefNo", value }) => {
 };
 
 const PaySuccessPage = () => {
-  // Extract query params (case-insensitive)
+  // Read URL params (exact casing): ?paymentId=...&id=...
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const urlPaymentID = useMemo(
-    () =>
-      // Accept any of these: paymentId, PaymentID, paymentid, etc.
-      getQueryParamCI(params, "paymentId") ??
-      getQueryParamCI(params, "paymentID") ??
-      getQueryParamCI(params, "paymentid"),
-    [params]
-  );
-  const urlPayRefNo = useMemo(
-    () =>
-      // Accept any of these: Id, ID, id
-      getQueryParamCI(params, "Id") ??
-      getQueryParamCI(params, "ID") ??
-      getQueryParamCI(params, "id"),
-    [params]
-  );
+  const urlPaymentId = useMemo(() => params.get("paymentId") || "", [params]);
+  const urlId = useMemo(() => params.get("id") || "", [params]);
 
-  const PayRefNo = localStorage.getItem("PayRefNo") ;
+  // Read from localStorage once (avoid re-declare bug)
+  const lsPayRefNo = typeof window !== "undefined" ? localStorage.getItem("PayRefNo") || "" : "";
 
-  // Final payload: use URL first, fallback to localStorage for PayRefNo
+  // Final values used for the request body
   const payload = useMemo(() => {
-    const PayRefNo =   PayRefNo  ;
-    const PaymentID = urlPaymentID || "";
-    return { PayRefNo, PaymentID };
-  }, [urlPayRefNo, urlPaymentID, PayRefNo]);
+    const finalPayRefNo = urlId || lsPayRefNo;    // prefer ?id=, fallback to localStorage
+    const finalPaymentID = urlPaymentId;          // from ?paymentId=
+    return { PayRefNo: finalPayRefNo, PaymentID: finalPaymentID };
+  }, [urlId, lsPayRefNo, urlPaymentId]);
 
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [message, setMessage] = useState("");
@@ -156,24 +133,20 @@ const PaySuccessPage = () => {
 
   // API caller
   const callApi = async () => {
-    // Basic client-side validation
     if (!payload.PaymentID || !payload.PayRefNo) {
       setStatus("error");
       setMessage(
-        !payload.PaymentID && !payload.PayRefNo
-          ? "Missing paymentId and Id in the URL (and no PayRefNo in localStorage)."
-          : !payload.PaymentID
-          ? "Missing paymentId in the URL."
-          : "Missing Id in the URL (and no PayRefNo found in localStorage)."
+        "Missing paymentId or id in the URL (and no PayRefNo in localStorage)."
       );
       if (DEBUG) {
         console.groupCollapsed("[PaySuccess Debug] Missing params");
         console.debug("Location.href:", window.location.href);
         console.debug("Detected query params:", {
-          urlPaymentID,
-          urlPayRefNo,
-          PayRefNo,
+          paymentId: urlPaymentId,
+          id: urlId,
         });
+        console.debug("localStorage PayRefNo:", lsPayRefNo);
+        console.debug("Final payload:", payload);
         console.groupEnd();
       }
       return;
@@ -187,6 +160,7 @@ const PaySuccessPage = () => {
       const reqBody = {
         PayRefNo: payload.PayRefNo,
         PaymentID: payload.PaymentID,
+        id: urlId || payload.PaymentID, // send 'id' too for backend payid
       };
       const fetchOptions = {
         method: "POST",
@@ -194,15 +168,15 @@ const PaySuccessPage = () => {
         body: JSON.stringify(reqBody),
       };
 
-    
+      if (DEBUG) {
         console.groupCollapsed("[PaySuccess Debug] Request");
         console.debug("API_URL:", API_URL);
         console.debug("Location.href:", window.location.href);
-        console.debug("Detected query params:", { urlPaymentID, urlPayRefNo });
-        console.debug("Final payload:", payload);
-        console.debug("Fetch options:", fetchOptions);
+        console.debug("paymentId (URL):", urlPaymentId, "id (URL):", urlId);
+        console.debug("localStorage PayRefNo:", lsPayRefNo);
+        console.debug("Request body:", reqBody);
         console.groupEnd();
-     
+      }
 
       const resp = await fetch(API_URL, fetchOptions);
 
@@ -211,7 +185,7 @@ const PaySuccessPage = () => {
       let data;
       try {
         data = raw ? JSON.parse(raw) : {};
-      } catch (e) {
+      } catch {
         data = { parseError: true, raw };
       }
 
@@ -302,6 +276,29 @@ const PaySuccessPage = () => {
                 <RefBadge label="PayRefNo" value={payload.PayRefNo} />
               </div>
 
+              {/* 🔍 Clear detected values so you can confirm */}
+              <div
+                style={{
+                  fontSize: 13,
+                  opacity: 0.9,
+                  marginTop: 20,
+                  padding: "10px 14px",
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  background: "#f9f9f9",
+                  width: "100%",
+                  maxWidth: 500,
+                  textAlign: "left",
+                }}
+              >
+                <h4 style={{ marginTop: 0 }}>🔍 Detected Values</h4>
+                <div><strong>Query Param - paymentId:</strong> {urlPaymentId || "-"}</div>
+                <div><strong>Query Param - id:</strong> {urlId || "-"}</div>
+                <div><strong>LocalStorage PayRefNo:</strong> {lsPayRefNo || "-"}</div>
+                <div><strong>Payload.PayRefNo (final):</strong> {payload.PayRefNo || "-"}</div>
+                <div><strong>Payload.PaymentID (final):</strong> {payload.PaymentID || "-"}</div>
+              </div>
+
               {status === "loading" && (
                 <>
                   <h2 className="trip-gradient-title" style={{ margin: 0 }}>
@@ -348,34 +345,25 @@ const PaySuccessPage = () => {
                 </>
               )}
 
-              {/* Debug / reference info */}
-              <div
-                style={{
-                  fontSize: 13,
-                  opacity: 0.7,
-                  marginTop: 12,
-                  lineHeight: 1.4,
-                  wordBreak: "break-word",
-                }}
-              >
-                <div>
-                  <strong>PayRefNo (Id):</strong> {payload.PayRefNo || "-"}
-                </div>
-                <div>
-                  <strong>PaymentID  :</strong> {payload.PaymentID || "-"}
-                </div>
-<div>
-                  <strong>PayRefNo  :</strong> {payload.PayRefNo || "-"}
-                </div>
-                
-
-                {apiResponse && (
-                  <div style={{ marginTop: 8 }}>
-                    <strong>API statusCode:</strong> {apiResponse.statusCode} <br />
+              {/* API summary */}
+              {apiResponse && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    opacity: 0.7,
+                    marginTop: 12,
+                    lineHeight: 1.4,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  <div>
+                    <strong>API statusCode:</strong> {apiResponse.statusCode}
+                  </div>
+                  <div>
                     <strong>API message:</strong> {apiResponse.message}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </main>
           </div>
         </section>
