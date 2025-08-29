@@ -89,14 +89,14 @@ const PayFailPage = () => {
               textAlign: "center",
             }}
           >
-            <h1 style={{ margin: 0 }}>Thank you.</h1>
+          <h1 style={{ margin: 0, color: "#b91c1c" }}>We are sorry.</h1>
 
             {/* 🔴 Failure message */}
             <h2
               className="trip-gradient-title"
               style={{
                 margin: 0,
-                color: "#dc2626", // Tailwind red-600
+                color: "#de1717ff", // Tailwind red-600
                 fontWeight: "bold",
               }}
             >
