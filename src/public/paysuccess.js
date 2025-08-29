@@ -54,19 +54,83 @@ const spinnerStyle = `
 @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
+/** ✅ Copy helper */
+async function copyText(txt) {
+  try {
+    await navigator.clipboard.writeText(txt);
+    alert("Copied!");
+  } catch {
+    // Fallback for older browsers
+    const ta = document.createElement("textarea");
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    alert("Copied!");
+  }
+}
+
+/** ✅ Reference badge for PayRefNo (or any label/value) */
+const RefBadge = ({ label = "PayRefNo", value }) => {
+  if (!value) return null;
+  return (
+    <div
+      role="group"
+      aria-label={`${label} container`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "10px 14px",
+        borderRadius: 12,
+        background: "rgba(34,197,94,0.08)",
+        border: "1px solid #22c55e33",
+        fontFamily:
+          "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+        fontSize: 14,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <span style={{ opacity: 0.8 }}>{label}:</span>
+      <strong style={{ letterSpacing: 0.3 }}>{value}</strong>
+      <button
+        type="button"
+        onClick={() => copyText(value)}
+        style={{
+          marginLeft: 6,
+          padding: "6px 10px",
+          borderRadius: 8,
+          border: "1px solid #22c55e55",
+          background: "white",
+          cursor: "pointer",
+        }}
+        aria-label={`Copy ${label}`}
+        title="Copy"
+      >
+        Copy
+      </button>
+    </div>
+  );
+};
+
 const PaySuccessPage = () => {
   // Extract query params (case-insensitive)
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const urlPaymentID = useMemo(
     () =>
       // Accept any of these: paymentId, PaymentID, paymentid, etc.
-      getQueryParamCI(params, "paymentId") ?? getQueryParamCI(params, "paymentID") ?? getQueryParamCI(params, "paymentid"),
+      getQueryParamCI(params, "paymentId") ??
+      getQueryParamCI(params, "paymentID") ??
+      getQueryParamCI(params, "paymentid"),
     [params]
   );
   const urlPayRefNo = useMemo(
     () =>
       // Accept any of these: Id, ID, id
-      getQueryParamCI(params, "Id") ?? getQueryParamCI(params, "ID") ?? getQueryParamCI(params, "id"),
+      getQueryParamCI(params, "Id") ??
+      getQueryParamCI(params, "ID") ??
+      getQueryParamCI(params, "id"),
     [params]
   );
 
@@ -190,6 +254,11 @@ const PaySuccessPage = () => {
               }}
             >
               <h1 style={{ margin: 0 }}>Thank you.</h1>
+
+              {/* ✅ Show PayRefNo as a badge (with Copy) when available */}
+              <div style={{ marginTop: 10 }}>
+                <RefBadge label="PayRefNo" value={payload.PayRefNo} />
+              </div>
 
               {status === "loading" && (
                 <>
