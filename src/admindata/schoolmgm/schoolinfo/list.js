@@ -7,8 +7,8 @@ import { cilFilter } from '@coreui/icons'
 import logo from '../../../assets/logo/default.png'
 import { API_BASE_URL } from '../../../config'
 import { checkLogin } from '../../../utils/auth'
-import { getStatusBadgeColor, formatDate } from '../../../utils/operation'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { getStatusBadgeColor, formatDate,getAuthHeaders,DspToastMessage } from '../../../utils/operation'
+ 
 
 const SchoolList = () => {
   const [Schoolinfo, setSchoolinfo] = useState([])
@@ -34,30 +34,54 @@ const SchoolList = () => {
     }
     return range
   }
+ const fetchSchoolinfo = async () => {
+  const token = localStorage.getItem('token');
+  setLoading(true);
 
-  const fetchSchoolinfo = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch(`${API_BASE_URL}/schoolinfo/school/getschoollist`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ page: currentPage, limit: SchoolinfoPerPage }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch school Info')
-      }
-
-      const data = await response.json()
-      console.log(data)
-      setSchoolinfo(data.data || [])
-      setTotalPages(Math.ceil(data.totalCount / SchoolinfoPerPage))
-    } catch (err) {
-      setError('Error fetching school Info')
-    } finally {
-      setLoading(false)
+  try {
+    if (!token) {
+      throw new Error('Missing auth token');
     }
+
+    const apiUrl = `${API_BASE_URL}/schoolinfo/school/getschoollist`;
+    const payload = {
+      page: currentPage,
+      limit: SchoolinfoPerPage,
+    };
+
+    // Print API URL & Payload
+    console.log("📡 API URL:", apiUrl);
+    console.log("📦 Payload:", payload);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error("❌ API Error:", response.status, response.statusText);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Unauthorized — please log in again.');
+      }
+      throw new Error('Failed to fetch school info');
+    }
+
+    const data = await response.json();
+
+    // Print API Response
+    console.log("✅ API Response:", data);
+
+    setSchoolinfo(Array.isArray(data?.data) ? data.data : []);
+    setTotalPages(Math.ceil((Number(data?.totalCount) || 0) / SchoolinfoPerPage));
+  } catch (err) {
+    console.error("⚠️ Fetch Error:", err);
+    setError(err instanceof Error ? err.message : 'Error fetching school info');
+  } finally {
+    setLoading(false);
   }
+};
+
 
   useEffect(() => {
     const token = localStorage.getItem('token')

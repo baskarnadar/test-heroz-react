@@ -250,8 +250,11 @@ export const GoogleMapEmbed = ({ embedUrl, width = '100%', height = '400px' }) =
 
 export function getAuthHeaders() {
   const token = localStorage.getItem('token');
+  console.log(token);
   return {
+
     'Content-Type': 'application/json',
-    'Authorization': `${token}`
+        'Authorization': `Bearer ${token}`,
+
   };
 }

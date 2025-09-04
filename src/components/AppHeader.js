@@ -19,7 +19,7 @@ import { cilBell, cilContrast, cilMenu, cilMoon, cilSun } from '@coreui/icons'
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
 
-import { getCurrentLoggedUserType } from '../utils/operation'
+import { getCurrentLoggedUserType,getAuthHeaders  } from '../utils/operation'
 import { API_BASE_URL } from '../config'
 
 const UserRoleLabel = () => {
