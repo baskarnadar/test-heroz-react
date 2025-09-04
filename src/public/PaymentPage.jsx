@@ -95,7 +95,7 @@ export default function PaymentPage() {
     try {
       const r = await fetch(`${API}/api/mf/execute`, {
         method: "POST",
-       headers: getAuthHeaders(),
+      headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: Number(amount) || 0,
           currency: "SAR",

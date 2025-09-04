@@ -10,7 +10,7 @@ export default function Success() {
     (async () => {
       const r = await fetch(`${API}/api/mf/status`, {
         method: "POST",
-       headers: getAuthHeaders(),
+       headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paymentId }),
       });
       const data = await r.json();

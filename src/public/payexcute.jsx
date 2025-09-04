@@ -40,7 +40,7 @@ export async function executeMyFatoorahPayment({
 
   const r = await fetch(`${API_BASE_URL}/myfatrooahdata/pay/execute-session`, {
     method: "POST",
-   headers: getAuthHeaders(),
+   headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
