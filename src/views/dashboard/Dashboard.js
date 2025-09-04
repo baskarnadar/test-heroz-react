@@ -61,15 +61,15 @@ const Dashboard = () => {
    // useEffect(() => {
     //checkLogin(navigate);
    // }, [navigate]); 
-    useEffect(() => {
-    const verify = async () => {
-      const hasAccess = await IsUserHasAccessThisPage(navigate,'P100');
-      if (!hasAccess) {
-        navigate('/login');
-      }
-    }; 
-    verify();
-    }, []);
+    // useEffect(() => {
+    // const verify = async () => {
+    //   const hasAccess = await IsUserHasAccessThisPage(navigate,'P100');
+    //   if (!hasAccess) {
+    //     navigate('/login');
+    //   }
+    // }; 
+    // verify();
+    // }, []);
 
 
 
