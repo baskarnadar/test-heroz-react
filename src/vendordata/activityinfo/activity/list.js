@@ -46,10 +46,35 @@ const ActivityList = () => {
       if (timer) clearTimeout(timer)
     }
   }, [currentPage, navigate, toastMessage])
-
   const fetchActivity = async () => {
     setLoading(true)
-   
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/vendordata/activityinfo/activity/activityList`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            page: currentPage,
+            limit: ActivityPerPage,
+            VendorID : getCurrentLoggedUserID()
+          }),
+        },
+      )
+       console.log("Activity.priceList");
+  console.log(Activity.priceList);
+      if (!response.ok) throw new Error('Failed to fetch activities')
+
+      const data = await response.json()
+      console.log('data')
+      console.log(data.data)
+      setActivity(data.data || [])
+      setTotalPages(Math.ceil(data.totalCount / ActivityPerPage))
+    } catch (error) {
+      setError('Error fetching activities')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)

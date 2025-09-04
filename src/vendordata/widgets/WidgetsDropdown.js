@@ -258,7 +258,7 @@ useEffect(() => {
               }}
             >
               <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Total Field Trips</div>
-              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>750</div>
+              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>0</div>
             </div>
           </Link>
         </CCol>
@@ -280,7 +280,7 @@ useEffect(() => {
               }}
             >
               <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Accepted</div>
-              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>25</div>
+              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>0</div>
             </div>
           </Link>
         </CCol>
@@ -303,7 +303,7 @@ useEffect(() => {
               }}
             >
               <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Pending</div>
-              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>500</div>
+              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>0</div>
             </div>
           </Link>
         </CCol>
@@ -326,7 +326,7 @@ useEffect(() => {
               }}
             >
               <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Rejected</div>
-              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>75</div>
+              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>0</div>
             </div>
           </Link>
         </CCol>
@@ -352,7 +352,7 @@ useEffect(() => {
                 Canceled
                 <div style={{ fontSize: '1rem', marginTop: '0.01rem' }}> (School)</div>
               </div>
-              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>75</div>
+              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>0</div>
             </div>
           </Link>
         </CCol>
@@ -374,7 +374,7 @@ useEffect(() => {
               }}
             >
               <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Archive</div>
-              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>75</div>
+              <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>0</div>
             </div>
           </Link>
         </CCol>
@@ -437,7 +437,7 @@ useEffect(() => {
               <div style={{ fontWeight: 'bold', fontSize: '1.51rem' }}>
                 Amount Received From Heroz
               </div>
-              <div style={{ fontSize: '2rem', marginTop: '2rem', fontWeight: 'bold' }}>12,5000</div>
+              <div style={{ fontSize: '2rem', marginTop: '2rem', fontWeight: 'bold' }}>0</div>
             </div>
           </Link>
         </CCol>
@@ -462,7 +462,7 @@ useEffect(() => {
               <div style={{ fontWeight: 'bold', fontSize: '1.51rem' }}>
                 Upcoming Amount From Heroz
               </div>
-              <div style={{ fontSize: '2rem', marginTop: '2rem', fontWeight: 'bold' }}>7,500</div>
+              <div style={{ fontSize: '2rem', marginTop: '2rem', fontWeight: 'bold' }}>0</div>
             </div>
           </Link>
         </CCol>
