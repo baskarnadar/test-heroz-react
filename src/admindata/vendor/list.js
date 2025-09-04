@@ -32,9 +32,7 @@ const VendorList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/vendorinfo/vendor/getvendorlist`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           page: currentPage,
           limit: VendorListPage,
