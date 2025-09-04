@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select";
 import { API_BASE_URL } from "../../../config";
-import { DspToastMessage, dspstatusv1 } from "../../../utils/operation";
+import { DspToastMessage, dspstatusv1   } from "../../../utils/operation";
 import FilePreview from "../../../views/widgets/FilePreview";
 import {
   getFileNameFromUrl,
   getCurrentLoggedUserID,
   YouTubeEmbed,
   GoogleMapEmbed,
-} from "../../../utils/operation";
+  getAuthHeaders } from "../../../utils/operation";
 import { CRow, CCol } from "@coreui/react";
 import moneyv1 from "../../../assets/images/moneyv1.png";
 import ReactPlayer from "react-player";
@@ -36,7 +36,7 @@ const Vendor = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: ActivityIDVal,
             VendorID: VendorIDVal,
@@ -67,7 +67,7 @@ const Vendor = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({ RequestID }),
         }
       );

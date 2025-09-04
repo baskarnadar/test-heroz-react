@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import CIcon from '@coreui/icons-react'
 import { API_BASE_URL } from '../../config'
 import { checkLogin } from '../../utils/auth'
-import { getStatusBadgeColor, formatDate } from '../../utils/operation'
+import { getStatusBadgeColor, formatDate,getAuthHeaders } from '../../utils/operation'
 import { CBadge } from '@coreui/react'
 import { cilFilter } from '@coreui/icons'
 import logo from '../../assets/logo/default.png'
@@ -57,7 +57,7 @@ const VendorList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/vendorinfo/vendor/delvendor`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ VendorID: selectedVendorID }),
       })
 

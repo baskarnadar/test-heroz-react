@@ -44,7 +44,7 @@ const ProductListWithPagination = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/product/getAllProductsList`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           page: currentPage,
           limit: productsPerPage,

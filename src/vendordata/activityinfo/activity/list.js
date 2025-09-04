@@ -10,6 +10,7 @@ import {
   formatDate,
   getCurrentLoggedUserID,
   dspstatus,
+  getAuthHeaders
 } from '../../../utils/operation'
 import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
@@ -48,33 +49,7 @@ const ActivityList = () => {
 
   const fetchActivity = async () => {
     setLoading(true)
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/vendordata/activityinfo/activity/activityList`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            page: currentPage,
-            limit: ActivityPerPage,
-            VendorID : getCurrentLoggedUserID()
-          }),
-        },
-      )
-       console.log("Activity.priceList");
-  console.log(Activity.priceList);
-      if (!response.ok) throw new Error('Failed to fetch activities')
-
-      const data = await response.json()
-      console.log('data')
-      console.log(data.data)
-      setActivity(data.data || [])
-      setTotalPages(Math.ceil(data.totalCount / ActivityPerPage))
-    } catch (error) {
-      setError('Error fetching activities')
-    } finally {
-      setLoading(false)
-    }
+   
   }
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
@@ -111,7 +86,7 @@ const ActivityList = () => {
         `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: ActivityIDToDelete,
             VendorID: getCurrentLoggedUserID(),

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage } from '../../../utils/operation'
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID, dspstatusv1 } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -381,7 +381,7 @@ const Vendor = () => {
         `${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: getActivityIDVal,
             VendorID: getVendorIDVal,
@@ -489,7 +489,7 @@ const Vendor = () => {
         // Fetch Cities
         const citiesRes = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         })
         const citiesResult = await citiesRes.json()
@@ -500,7 +500,7 @@ const Vendor = () => {
         // Fetch Countries
         const countriesRes = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         })
         const countriesResult = await countriesRes.json()
@@ -511,7 +511,7 @@ const Vendor = () => {
         // Fetch Categories
         const categoryRes = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         })
         const categoryResult = await categoryRes.json()
@@ -683,7 +683,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal }),
       })
 

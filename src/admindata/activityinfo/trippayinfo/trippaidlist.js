@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../../../scss/model.css"; // Your existing modal CSS
 import { API_BASE_URL } from "../../../config"; // Make sure this is correct
-import { formatDate } from "../../../utils/operation";
+import { formatDate  , getAuthHeaders } from "../../../utils/operation";
 import "../../../scss/trip.css";
 import moneyv1 from "../../../assets/images/moneyv1.png";
 const TripPaidListWithModal = () => {
@@ -30,7 +30,7 @@ const TripPaidListWithModal = () => {
           `${API_BASE_URL}/admindata/activityinfo/trip/tripPaidList`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+           headers: getAuthHeaders(),
             body: JSON.stringify({ RequestID }),
           }
         );

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
-import { DspToastMessage } from '../../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
 
 const OfferForm = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const OfferForm = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/lookupdata/city/getCity`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ CityID }),
         });
 
@@ -73,7 +73,7 @@ const OfferForm = () => {
 
       const response = await fetch(`${API_BASE_URL}/lookupdata/city/updateCity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

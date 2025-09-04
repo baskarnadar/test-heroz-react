@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage } from '../../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
 
 const CountryList = () => {
   const [Country, setCountry] = useState([]);
@@ -35,7 +35,7 @@ const CountryList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/Country/getCountryList`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: CountryPerPage }),
       });
 
@@ -89,7 +89,7 @@ const CountryList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/Country/delCountry`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ CountryID: selectedCountryID }),
       });
 

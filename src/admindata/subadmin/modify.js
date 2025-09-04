@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
-
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 const UserForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,7 +29,7 @@ const UserForm = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/subadmin/getsubadmin`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ UserID }),
         });
 
@@ -82,7 +82,7 @@ const UserForm = () => {
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

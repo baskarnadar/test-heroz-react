@@ -35,7 +35,7 @@ const OfferList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/offer/getoffers`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: offersPerPage }),
       });
 
@@ -89,7 +89,7 @@ const OfferList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/offer/delofferByID`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ OfferID: selectedOfferId }),
       });
 

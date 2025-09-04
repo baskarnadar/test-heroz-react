@@ -61,7 +61,7 @@ const AppHeader = () => {
       try {
         const noteResponse = await fetch(`${API_BASE_URL}/common/totnote`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ noteTo: getCurrentLoggedUserType() }),
         })
         console.log('noteResponse')

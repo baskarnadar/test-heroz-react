@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,getCurrentLoggedUserID } from '../../../utils/operation'
+import { DspToastMessage,getCurrentLoggedUserID,getAuthHeaders } from '../../../utils/operation'
 const Vendor = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -40,7 +40,7 @@ const Vendor = () => {
   try {
     const response = await fetch(`${API_BASE_URL}/schoolinfo/school/updatepwd`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         prtuserid: SchoolID,
         username: usernameval,
@@ -83,7 +83,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/schoolinfo/school/getschool`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ SchoolID }),
       })
       console.log('response')

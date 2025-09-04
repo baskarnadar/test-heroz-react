@@ -5,7 +5,7 @@ import { CIcon } from '@coreui/icons-react'
 import { cilTrash, cilPencil } from '@coreui/icons'
 import '../../scss/toast.css'
 import { checkLogin } from '../../utils/auth'
-import { DspToastMessage } from '../../utils/operation'
+import { DspToastMessage ,getAuthHeaders} from '../../utils/operation'
 import card1 from '../../assets/card/card1.png'
 import card2 from '../../assets/card/card2.png'
 import card3 from '../../assets/card/card3.jpg'
@@ -46,7 +46,7 @@ const ProductListWithPagination = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/product/getAllProductsList`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           page: currentPage,
           limit: productsPerPage,
@@ -103,7 +103,7 @@ const ProductListWithPagination = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/product/delproductByID`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ ProductID: ProductIDToDelete }),
         })
   

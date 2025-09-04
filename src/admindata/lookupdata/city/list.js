@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage } from '../../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
 
 const CityList = () => {
   const [City, setCity] = useState([]);
@@ -35,7 +35,7 @@ const CityList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/city/getcitylist`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: CityPerPage }),
       });
 
@@ -89,7 +89,7 @@ const CityList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/city/delCity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ CityID: selectedCityID }),
       });
 

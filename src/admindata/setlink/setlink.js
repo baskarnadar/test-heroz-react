@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { API_BASE_URL } from '../../config'
 import { fnNavigation } from './link'
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 const SetLinkList = () => {
   const [NoteInfo, setNoteInfo] = useState([])
   const [loading, setLoading] = useState(false)
@@ -18,7 +19,7 @@ const SetLinkList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/note/getnote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           NoteID: noteIdFromURL,
         }),

@@ -8,7 +8,7 @@ import logo from '../../../assets/logo/default.png'
 import { API_BASE_URL } from '../../../config'
 import { checkLogin } from '../../../utils/auth'
 import { getStatusBadgeColor, formatDate } from '../../../utils/operation'
-import { DspToastMessage } from '../../../utils/operation'
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
 
 const SchoolList = () => {
   const [Schoolinfo, setSchoolinfo] = useState([])
@@ -40,7 +40,7 @@ const SchoolList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/schoolinfo/school/getschoollist`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: SchoolinfoPerPage }),
       })
 
@@ -93,7 +93,7 @@ const SchoolList = () => {
   try {
     const response = await fetch(`${API_BASE_URL}/schoolinfo/school/delschool`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ SchoolID: selectedSchoolID }),
     });
 

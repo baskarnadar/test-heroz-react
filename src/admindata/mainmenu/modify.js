@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage } from '../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 
 const MainMenuForm = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const MainMenuForm = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/mainmenu/getmainmenu`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ MainMenuID }),
         });
 
@@ -78,7 +78,7 @@ const MainMenuForm = () => {
 
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
 

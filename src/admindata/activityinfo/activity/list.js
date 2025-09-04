@@ -10,6 +10,7 @@ import {
   formatDate,
   getCurrentLoggedUserID,
   dspstatus,
+  getAuthHeaders
 } from '../../../utils/operation'
 import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
@@ -55,7 +56,7 @@ const ActivityList = () => {
         `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             page: currentPage,
             limit: ActivityPerPage,
@@ -125,7 +126,7 @@ const ActivityList = () => {
         `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: ActivityIDToDelete,
             VendorID: getCurrentLoggedUserID(),

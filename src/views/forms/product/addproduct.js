@@ -31,7 +31,7 @@ const ProductCategoryDropdown = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/product/getProductCategory`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ IsDataStatus: 1 }),
         });
 
@@ -101,7 +101,7 @@ const ProductCategoryDropdown = () => {
       // Submit product data
       const response = await fetch(`${API_BASE_URL}/product/createProduct`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           PrdCodeNo: PrdCodeNoVal,
           PrdName: EnPrdNameVal,

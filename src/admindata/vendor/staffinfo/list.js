@@ -5,7 +5,7 @@ import { cilFilter } from '@coreui/icons'
 
 import { API_BASE_URL } from '../../../config'
 import { checkLogin } from '../../../utils/auth'
-import { formatDate, DspToastMessage } from '../../../utils/operation'
+import { formatDate, DspToastMessage,getAuthHeaders } from '../../../utils/operation'
 
 const StudentList = () => {
   const navigate = useNavigate()
@@ -35,7 +35,7 @@ const StudentList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/order/getorder`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: ordersPerPage }),
       })
 
@@ -55,7 +55,7 @@ const StudentList = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/product/delproductByID`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ProductID: productIDToDelete }),
       })
 

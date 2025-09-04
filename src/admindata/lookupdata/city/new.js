@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { checkLogin } from '../../../utils/auth'
 import '../../../scss/toast.css'
-import { DspToastMessage } from '../../../utils/operation'
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
 
 const AddCityForm = () => {
   const navigate = useNavigate()
@@ -64,7 +64,7 @@ const AddCityForm = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/city/createCity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           EnCityName,
           ArCityName,

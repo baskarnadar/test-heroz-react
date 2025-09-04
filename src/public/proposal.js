@@ -109,7 +109,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: ActivityIDVal,
             VendorID: VendorIDVal,
@@ -161,7 +161,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({ RequestID }),
         }
       );
@@ -570,7 +570,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify(pendingPayload),
         }
       );
@@ -603,7 +603,7 @@ const ProposalPage = () => {
       // 3) InitiatePayment → choose method id based on selectedMethod
       const initRes = await fetch(`${MF_API}/api/mf/initiate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+       headers: getAuthHeaders(),
         body: JSON.stringify({ amount: totalAmount, currency: "SAR" }),
       });
       const initData = await parseResp(initRes);
@@ -626,7 +626,7 @@ const ProposalPage = () => {
       // 4) ExecutePayment → redirect to PaymentURL
       const execRes = await fetch(`${MF_API}/api/mf/execute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+       headers: getAuthHeaders(),
         body: JSON.stringify({
           amount: totalAmount,
           currency: "SAR",

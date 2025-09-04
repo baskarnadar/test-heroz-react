@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../../../config';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
 import { checkLogin  } from '../../../utils/auth';
-import { DspToastMessage } from '../../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
 
 const SizeList = () => {
   const [sizeList, setSizeList] = useState([]);
@@ -38,7 +38,7 @@ const SizeList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/prdsize/getallproductsize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ProductID, PrdColorCodeID }),
       });
       if (response.ok) {
@@ -86,7 +86,7 @@ const SizeList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/prdsize/delProductSize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ PrdSizeID: PrdSizeIDVal }),
       });
 
@@ -130,7 +130,7 @@ const SizeList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/prdsize/updateprdsize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           PrdSizeID: PrdSizeToEdit.PrdSizeID,
           EnPrdSizeName: newEnPrdSizeName,
@@ -178,7 +178,7 @@ const SizeList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/product/createProductSize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           EnPrdSizeName: newEnPrdSizeName,
           ArPrdSizeName: newArPrdSizeName,

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { DspToastMessage } from '../../utils/operation';
 import FilePreview from '../../views/widgets/FilePreview';
-import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../utils/operation';
+import { getFileNameFromUrl, getCurrentLoggedUserID,getAuthHeaders } from '../../utils/operation';
 import { checkUserExists } from '../../utils/auth';
 
 // ⬇️ Opening hours helpers (separate JS)
@@ -287,7 +287,7 @@ const Vendor = () => {
 
       const response = await fetch(`${API_BASE_URL}/vendorinfo/vendor/createVendor`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -312,7 +312,7 @@ const Vendor = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         });
         const json = await res.json();
@@ -326,7 +326,7 @@ const Vendor = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         });
         const json = await res.json();
@@ -340,7 +340,7 @@ const Vendor = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         });
         const json = await res.json();

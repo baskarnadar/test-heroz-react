@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
-import { getFileNameFromUrl, DspToastMessage } from '../../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
 
@@ -35,7 +35,7 @@ const ParentModifyForm = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/product/getProductByProductID`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ ProductID }),
         });
 
@@ -94,7 +94,7 @@ const ParentModifyForm = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/product/updateProductID`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

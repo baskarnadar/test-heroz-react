@@ -35,7 +35,7 @@ const StudentModifyForm = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/product/getProductByProductID`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ ProductID }),
         });
 
@@ -94,7 +94,7 @@ const StudentModifyForm = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/product/updateProductID`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

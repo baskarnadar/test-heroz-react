@@ -10,7 +10,7 @@ import {
   formatDate,
   getCurrentLoggedUserID,
   dspstatus,
-} from "../../../utils/operation";
+  getAuthHeaders } from "../../../utils/operation";
 import logo from "../../../assets/logo/default.png";
 import moneyv1 from "../../../assets/images/moneyv1.png";
 import { ActionButtonsV1 } from "../../../utils/btn";
@@ -84,7 +84,7 @@ const TripDataList = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/triplist`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({
             page: currentPage,
             limit: TripDataPerPage,

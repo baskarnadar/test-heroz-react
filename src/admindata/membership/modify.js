@@ -6,7 +6,7 @@ import { getFileNameFromUrl } from '../../utils/operation';
 // Removed: import 'react-quill/dist/quill.snow.css'
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage } from '../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 
 
 const ProductCategoryDropdown = () => {
@@ -41,7 +41,7 @@ const ProductCategoryDropdown = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/product/getProductCategory`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ IsDataStatus: 1 }),
         });
         const data = await response.json();
@@ -57,7 +57,7 @@ const ProductCategoryDropdown = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/product/getProductByProductID`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ ProductID }),
         });
 
@@ -144,7 +144,7 @@ const ProductCategoryDropdown = () => {
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

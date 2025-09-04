@@ -112,7 +112,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal, RequestID: RequestIDVal }),
         }
       );
@@ -156,7 +156,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({ RequestID }),
         }
       );
@@ -504,7 +504,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify(pendingPayload),
         }
       );

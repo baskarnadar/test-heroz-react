@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../config';
 import { getFileNameFromUrl } from '../../utils/operation';
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage } from '../../utils/operation';
+import { DspToastMessage,import { DspToastMessage } from '../../utils/operation'; } from '../../utils/operation';
 
 const BannerForm = () => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ const BannerForm = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/banner/getbanner`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ BannerID }),
         });
 
@@ -94,7 +94,7 @@ const BannerForm = () => {
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

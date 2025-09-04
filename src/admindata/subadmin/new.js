@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
-
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 const AddUserForm = () => {
   const navigate = useNavigate();
 
@@ -41,7 +41,7 @@ const AddUserForm = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/createsubadmin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           userfullname,
           username,

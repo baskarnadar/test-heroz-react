@@ -5,7 +5,7 @@ import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage } from '../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 import logo from '../../assets/logo/default.png';
 import { ActionButtonsV1 } from '../../utils/btn';
  
@@ -44,7 +44,7 @@ const [active, setActive] = useState('providers'); // default act
     try {
       const response = await fetch(`${API_BASE_URL}/product/getAllProductsList`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           page: currentPage,
           limit: productsPerPage,

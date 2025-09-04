@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../config'
-
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 // Navigation function
 export const fnNavigation = async (data, navigate) => {
   if (!data) {
@@ -32,7 +32,7 @@ const fnUpdateNoteStatus = async (NoteIDVal) => {
   try {
     const response = await fetch(`${API_BASE_URL}/note/updateNote`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ NoteID: NoteIDVal }),
     })
 

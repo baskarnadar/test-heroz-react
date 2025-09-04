@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
-import { DspToastMessage } from '../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 import { API_BASE_URL } from '../../config';
 
 const AGREEMENT_API = `${API_BASE_URL}/commondata/operation/herozagreement`; // Update endpoint
@@ -33,7 +33,7 @@ const AgreementForm = () => {
         // Some backends expect POST with empty body; if your route supports GET, you can switch to GET.
         const res = await fetch(GET_AGREEMENT_API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         });
 
@@ -91,7 +91,7 @@ const AgreementForm = () => {
     try {
       const res = await fetch(AGREEMENT_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ HerozAgreeDesc: desc }),
       });
 

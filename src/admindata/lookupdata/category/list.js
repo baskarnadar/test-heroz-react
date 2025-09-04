@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage } from '../../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
 
 const CategoryList = () => {
   const [Category, setCategory] = useState([]);
@@ -35,7 +35,7 @@ const CategoryList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryList`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: CategoryPerPage }),
       });
 
@@ -89,7 +89,7 @@ const CategoryList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/Category/delCategory`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ CategoryID: selectedCategoryID }),
       });
 

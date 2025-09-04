@@ -35,7 +35,7 @@ export default function PaymentPage() {
       try {
         const r = await fetch(`${API}/api/mf/initiate`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({ amount: Number(amount) || 0, currency: "SAR" }),
         });
         const data = await parse(r);
@@ -95,7 +95,7 @@ export default function PaymentPage() {
     try {
       const r = await fetch(`${API}/api/mf/execute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+       headers: getAuthHeaders(),
         body: JSON.stringify({
           amount: Number(amount) || 0,
           currency: "SAR",

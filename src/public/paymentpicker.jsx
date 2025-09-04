@@ -59,7 +59,7 @@ export default function PaymentMethodPicker({
     try {
       const r = await fetch(`${API_BASE_URL}/myfatrooahdata/pay/initiate-payment`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+       headers: getAuthHeaders(),
         body: JSON.stringify({
           amount: Number(amount) || 0,
           currency,

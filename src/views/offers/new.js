@@ -49,7 +49,7 @@ const AddOfferForm = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/offer/createOffer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           OfferCode,
           OfferName,

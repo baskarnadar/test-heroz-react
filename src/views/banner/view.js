@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
-
+import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../utils/operation';
 const ViewBanner = () => {
   const navigate = useNavigate();
 
@@ -27,7 +27,7 @@ const ViewBanner = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/banner/getBannerInfo`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ BannerID: BannerIDVal }),
       });
 
@@ -58,7 +58,7 @@ const ViewBanner = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/banner/updateStatus`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           BannerID: BannerIDVal,
           UserStatus: UserStatus,

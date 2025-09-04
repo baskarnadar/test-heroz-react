@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage } from '../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 const AddNewmainmenu = () => {
   const navigate = useNavigate();
 
@@ -27,7 +27,7 @@ const AddNewmainmenu = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/mainmenu/createmainmenu`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           EnMenuName,
           ArMenuName,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage } from '../../../utils/operation'
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -29,6 +29,7 @@ const Vendor = () => {
   // Define state for each input
   const [txtactName, setactName] = useState('')
   const [selectedType, setactType] = useState([]) // kept as-is
+  const [actRating, setactRating] = useState('') // ⭐ NEW: Activity Rating (decimal)
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -65,7 +66,6 @@ const Vendor = () => {
         updated[index].price = 0; // immediately set to 0 in UI
       }
     } else if (field === 'price') {
-      // If include is true, force 0; else allow non-negative (or empty while typing)
       const num = value === '' ? '' : Number(value);
       updated[index].price = updated[index].include ? 0 : num;
     } else {
@@ -98,7 +98,6 @@ const Vendor = () => {
     const newStartMins = lastEnd
     const newEndMins = newStartMins + 60 // 1 hour after
 
-    // Convert back to HH:MM (24h)
     const minutesToTime = (mins) => {
       const h = Math.floor(mins / 60).toString().padStart(2, '0')
       const m = (mins % 60).toString().padStart(2, '0')
@@ -173,7 +172,6 @@ const Vendor = () => {
 
   const timeToMinutes = (time) => {
     if (!time) return null
-    // If time is like "8:00 AM" or "4:00 PM" — not used for inputs anymore
     const [timePart, modifier] = time.split(' ')
     let [hours, minutes] = timePart.split(':').map(Number)
 
@@ -208,7 +206,6 @@ const Vendor = () => {
           const endB = timeStringToMinutes(times[j].end)
           if (startB === null || endB === null) continue
 
-          // Overlap if startA < endB && endA > startB
           if (startA < endB && endA > startB) {
             return { day: dayName, range1: times[i], range2: times[j] }
           }
@@ -271,12 +268,10 @@ const Vendor = () => {
     if (file) setter(file)
   }
   const handleSubmit = async (actStatusVal,e) => {
-  console.log("Submitting with status:", actStatusVal);
-   
- 
-    if (e && e.preventDefault) e.preventDefault(); // Only call if e exists
+    console.log("Submitting with status:", actStatusVal);
+    if (e && e.preventDefault) e.preventDefault();
 
-    // ✅ Pre-submit validation (includes auto-correct included foods -> price 0)
+    // ✅ Pre-submit validation
     const validation = validateActivityForm({
       txtactName,
       selectedType,
@@ -296,6 +291,7 @@ const Vendor = () => {
       days,
       foods,
       txtactAdminNotes,
+      actRating, // ⭐ pass to validator (safe if unused)
     });
 
     if (!validation.ok) {
@@ -316,89 +312,78 @@ const Vendor = () => {
       )
       setToastType('fail')
       setLoading(false)
-      return // stop submission
+      return
     }
-   //Image 1
-     let txtactImageName1Val = "";
-     let uploadedImageKey1 = ''
- 
-     try {
-       if (txtactImageName1 && txtactImageName1 instanceof File) {
-         const formdata = new FormData()
-         formdata.append('image', txtactImageName1)
-         formdata.append('foldername', 'activity')
-         const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-           method: 'POST',
-           body: formdata,
-         })
- 
-         if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-         const uploadResult = await uploadResponse.json()
-         uploadedImageKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
-           txtactImageName1Val = getFileNameFromUrl(uploadedImageKey1)
-       }
- 
-      // ✅ assign to outer variable
-     } catch (error) {
-       console.error('Error uploading tax file:', error)
-       setToastMessage('Failed to upload tax file.')
-       setToastType('fail')
-     }
- 
-     //Image 2
-     let txtactImageName2Val = "";
-     let uploadedImageKey2 = ''
- 
-     try {
-       if (txtactImageName2 && txtactImageName2 instanceof File) {
-         const formdata = new FormData()
-         formdata.append('image', txtactImageName2)
-         formdata.append('foldername', 'activity')
-         const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-           method: 'POST',
-           body: formdata,
-         })
- 
-         if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-         const uploadResult = await uploadResponse.json()
-         uploadedImageKey2 = uploadResult?.data?.key || uploadResult?.data?.Key
-          txtactImageName2Val = getFileNameFromUrl(uploadedImageKey2)
-       }
- 
-       
-     } catch (error) {
-       console.error('Error uploading tax file:', error)
-       setToastMessage('Failed to upload tax file.')
-       setToastType('fail')
-     }
-     //Image 3
-     let txtactImageName3Val = "";
-     let uploadedImageKey3 = ''
- 
-     try {
-       if (txtactImageName3 && txtactImageName3 instanceof File) {
-         const formdata = new FormData()
-         formdata.append('image', txtactImageName3)
-         formdata.append('foldername', 'activity')
-         const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-           method: 'POST',
-           body: formdata,
-         })
- 
-         if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-         const uploadResult = await uploadResponse.json()
-         uploadedImageKey3 = uploadResult?.data?.key || uploadResult?.data?.Key
- 
-          txtactImageName3Val = getFileNameFromUrl(uploadedImageKey3)  
-       }
- 
-      
-     } catch (error) {
-       console.error('Error uploading tax file:', error)
-       setToastMessage('Failed to upload tax file.')
-       setToastType('fail')
-     }
- 
+
+    // Image 1
+    let txtactImageName1Val = "";
+    let uploadedImageKey1 = ''
+    try {
+      if (txtactImageName1 && txtactImageName1 instanceof File) {
+        const formdata = new FormData()
+        formdata.append('image', txtactImageName1)
+        formdata.append('foldername', 'activity')
+        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
+          method: 'POST',
+          body: formdata,
+        })
+        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
+        const uploadResult = await uploadResponse.json()
+        uploadedImageKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
+        txtactImageName1Val = getFileNameFromUrl(uploadedImageKey1)
+      }
+    } catch (error) {
+      console.error('Error uploading tax file:', error)
+      setToastMessage('Failed to upload tax file.')
+      setToastType('fail')
+    }
+
+    // Image 2
+    let txtactImageName2Val = "";
+    let uploadedImageKey2 = ''
+    try {
+      if (txtactImageName2 && txtactImageName2 instanceof File) {
+        const formdata = new FormData()
+        formdata.append('image', txtactImageName2)
+        formdata.append('foldername', 'activity')
+        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
+          method: 'POST',
+          body: formdata,
+        })
+        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
+        const uploadResult = await uploadResponse.json()
+        uploadedImageKey2 = uploadResult?.data?.key || uploadResult?.data?.Key
+        txtactImageName2Val = getFileNameFromUrl(uploadedImageKey2)
+      }
+    } catch (error) {
+      console.error('Error uploading tax file:', error)
+      setToastMessage('Failed to upload tax file.')
+      setToastType('fail')
+    }
+
+    // Image 3
+    let txtactImageName3Val = "";
+    let uploadedImageKey3 = ''
+    try {
+      if (txtactImageName3 && txtactImageName3 instanceof File) {
+        const formdata = new FormData()
+        formdata.append('image', txtactImageName3)
+        formdata.append('foldername', 'activity')
+        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
+          method: 'POST',
+          body: formdata,
+        })
+        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
+        const uploadResult = await uploadResponse.json()
+        uploadedImageKey3 = uploadResult?.data?.key || uploadResult?.data?.Key
+        txtactImageName3Val = getFileNameFromUrl(uploadedImageKey3)
+      }
+    } catch (error) {
+      console.error('Error uploading tax file:', error)
+      setToastMessage('Failed to upload tax file.')
+      setToastType('fail')
+    }
+
     const actfoodDataVal = await getFoodData()
     const actavailDaysHoursVal = getAvailDaysHoursData()
     const actPriceDataVal = getPriceData()
@@ -408,7 +393,7 @@ const Vendor = () => {
         `${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             VendorID: getCurrentLoggedUserID(),
             actName: txtactName || '',
@@ -416,9 +401,9 @@ const Vendor = () => {
             actCategoryID: selectedCategories,
             actDesc: txtactDesc || '',
 
-            actImageName1: txtactImageName1Val, // file
-            actImageName2: txtactImageName2Val, // file
-            actImageName3: txtactImageName3Val, // file
+            actImageName1: txtactImageName1Val,
+            actImageName2: txtactImageName2Val,
+            actImageName3: txtactImageName3Val,
 
             actYouTubeID1: txtactYouTubeID1,
             actYouTubeID2: txtactYouTubeID2,
@@ -443,6 +428,7 @@ const Vendor = () => {
             actFood: actfoodDataVal,
 
             actAdminNotes: txtactAdminNotes || '',
+            actRating: actRating === '' ? '' : Number(actRating), // ⭐ NEW: pass to API as number (or empty)
             actStatus : actStatusVal,
             IsDataStatus: 1,
             CreatedBy: getCurrentLoggedUserID(),
@@ -506,16 +492,11 @@ const Vendor = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // If your API expects data in the body
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
         })
-
         const result = await response.json()
-        if (result.data) {
-          setCityList(result.data)
-        }
+        if (result.data) setCityList(result.data)
       } catch (error) {
         console.error('Error fetching city list:', error)
       }
@@ -525,16 +506,11 @@ const Vendor = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // if needed
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
         })
-
         const result = await response.json()
-        if (result.data) {
-          setCountries(result.data)
-        }
+        if (result.data) setCountries(result.data)
       } catch (error) {
         console.error('Error fetching countries:', error)
       }
@@ -544,12 +520,9 @@ const Vendor = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // optional if your API accepts an empty object
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
         })
-
         const result = await response.json()
         console.log(result.data)
         if (result.data) {
@@ -635,7 +608,7 @@ const Vendor = () => {
           FoodName: item.name || '',
           FoodPrice: item.price || '',
           FoodNotes: item.notes || '',
-          FoodImage: uploadedImageKey || '', // Save uploaded key
+          FoodImage: uploadedImageKey || '',
           Include: item.include || false,
         }
       }),
@@ -645,7 +618,7 @@ const Vendor = () => {
   }
   //price ------------------------------------
   const [priceRanges, setPriceRanges] = useState([
-    { price: '', rangeFrom: '', rangeTo: '' }, // ✅ better structure
+    { price: '', rangeFrom: '', rangeTo: '' },
   ])
 
   const handlePriceChange = (index, field, value) => {
@@ -662,14 +635,12 @@ const Vendor = () => {
       StudentRangeTo: item.rangeTo || '',
     }))
   }
-  //Country
 
   //Send to Admin Approval
   const handlebtnSendToApprovalClick = () => {
-    setShowModal(true) // Show confirmation modal
+    setShowModal(true)
   }
   const handleConfirm = () => {
- 
     setShowModal(false);
     handleSubmit("WAITING-FOR-APPROVAL");
   }
@@ -678,12 +649,11 @@ const Vendor = () => {
     setShowModal(false)
   }
 
-
   //Save 
   const handleSave = () => {
- 
-  handleSubmit("DRAFT");  
-};
+    handleSubmit("DRAFT");  
+  };
+
   return (
     <div>
       <div className="divhbg">
@@ -726,7 +696,7 @@ const Vendor = () => {
           <label style={{ marginBottom: '10px', marginTop: '20px' }}>
             Activity Type <span style={{color:'red'}}>*</span>
           </label>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
@@ -758,9 +728,31 @@ const Vendor = () => {
               />
               <div className="pink-shadow4"> Member</div>
             </label>
+
+          
           </div>
         </div>
 
+  {/* ⭐ NEW: Activity Rating (decimal) */}
+            <div style={{  alignItems: 'center', gap: 8,  }}>
+              <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
+                Activity Rating
+              </label>
+              <input
+                id="actRating"
+                name="actRating"
+                type="number"
+                inputMode="decimal"
+                step="0.1"
+                min="0"
+                max="5"
+                className="admin-txt-box"
+                placeholder="e.g., 4.5"
+                value={actRating}
+                onChange={(e) => setactRating(e.target.value)}
+                style={{ width: 120 }}
+              />
+            </div>
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
             Activity Categories <span style={{color:'red'}}>*</span>
@@ -793,7 +785,7 @@ const Vendor = () => {
                       marginRight: 8,
                       transform: 'scale(2.0)',
                       cursor: 'pointer',
-                      accentColor: 'red', // ✅ sets the checkbox color
+                      accentColor: 'red',
                     }}
                   />
                 </div>
@@ -881,7 +873,6 @@ const Vendor = () => {
             marginBottom: '20px',
           }}
         >
-          {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 1</label>
             <input
@@ -892,7 +883,6 @@ const Vendor = () => {
             />
           </div>
 
-          {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 2</label>
             <input
@@ -901,10 +891,8 @@ const Vendor = () => {
               onChange={(e) => setYouTube2(e.target.value)}
               required
             />
-           
           </div>
 
-          {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 3</label>
             <input
@@ -913,10 +901,10 @@ const Vendor = () => {
               onChange={(e) => setYouTube3(e.target.value)}
               required
             />
-             
           </div>
         </div>
       </div>
+
       <div className="txtsubtitle">Activity Location <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
@@ -939,7 +927,7 @@ const Vendor = () => {
                 className="vendor-input"
                 onChange={(e) => setGlat(e.target.value)}
                 required
-              />{' '}
+              />
             </div>
             <div className="vendor-column">
               <label className="vendor-label">Google Longitude <span style={{color:'red'}}>*</span></label>
@@ -1015,15 +1003,12 @@ const Vendor = () => {
           </div>
         </div>
       </div>
+
       <div className="txtsubtitle"> Age Range </div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Minimum Age</label>
               <input
                 onChange={(e) => setMinAge(e.target.value)}
@@ -1032,10 +1017,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Maximum Age</label>
               <input
                 onChange={(e) => setMaxAge(e.target.value)}
@@ -1045,9 +1027,7 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
 
-        {/* // row start */}
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label className="vendor-label">Gender <span style={{color:'red'}}>*</span></label>
@@ -1084,19 +1064,13 @@ const Vendor = () => {
             </label>
           </div>
         </div>
-        {/* // row end */}
       </div>
-      {/* // row end */}
 
       <div className="txtsubtitle">Capacity Information </div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Minimum Students</label>
               <input
                 onChange={(e) => setMinStudent(e.target.value)}
@@ -1105,10 +1079,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Maximum Students</label>
               <input
                 onChange={(e) => setMaxStudent(e.target.value)}
@@ -1118,21 +1089,18 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
 
       <div className="txtsubtitle">Price Per Student <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
-        {/* Table Header */}
         <CRow className="fw-bold text-center mb-2">
           <CCol sm={3}>Price <span style={{color:'red'}}>*</span></CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range From</CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range To</CCol>
-          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}></CCol> {/* Remove column */}
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}></CCol>
         </CRow>
 
-        {/* Dynamic Form Rows */}
         {priceRanges.map((item, index) => (
           <CRow key={index} className="align-items-center mb-2">
             <CCol sm={3}>
@@ -1181,7 +1149,6 @@ const Vendor = () => {
           </CRow>
         ))}
 
-        {/* Add More */}
         <CRow className="mt-3" style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
           <CCol>
             <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
@@ -1194,7 +1161,7 @@ const Vendor = () => {
       <div className="txtsubtitle">Set Availability <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-            {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
+          {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
             <div
               key={day}
               style={{
@@ -1251,8 +1218,8 @@ const Vendor = () => {
                             className="admin-txt-box"
                             value={range.note || ''}
                             placeholder="Optional notes"
-                            onChange={() => {}} // optional disabled
-                            disabled // 👉 optional note is not enabled
+                            onChange={() => {}}
+                            disabled
                           />
                         </label>
 
@@ -1298,20 +1265,17 @@ const Vendor = () => {
       <div className="txtsubtitle">Food Information</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>Food Name</CCol>
             <CCol sm={2}>Price</CCol>
             <CCol sm={3}>Notes</CCol>
             <CCol sm={2}>Food Image</CCol>
             <CCol sm={1}>Include</CCol>
-            <CCol sm={1}></CCol> {/* For remove button */}
+            <CCol sm={1}></CCol>
           </CRow>
 
-          {/* Dynamic Rows */}
           {foods.map((item, index) => (
             <CRow key={index} className="mb-3 align-items-center">
-              {/* Food Name */}
               <CCol sm={3}>
                 <input
                   type="text"
@@ -1322,7 +1286,6 @@ const Vendor = () => {
                 />
               </CCol>
 
-              {/* Price */}
               <CCol sm={2}>
                 <input
                   type="number"
@@ -1332,11 +1295,10 @@ const Vendor = () => {
                   onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                   min="0"
                   step="0.01"
-                  disabled={item.include}   // 🔒 locked at 0 when included
+                  disabled={item.include}
                 />
               </CCol>
 
-              {/* Notes */}
               <CCol sm={3}>
                 <input
                   type="text"
@@ -1347,7 +1309,6 @@ const Vendor = () => {
                 />
               </CCol>
 
-              {/* Image Upload */}
               <CCol sm={2}>
                 <input
                   type="file"
@@ -1357,22 +1318,16 @@ const Vendor = () => {
                 />
               </CCol>
 
-              {/* Include Checkbox */}
               <CCol sm={1} className="text-center">
                 <input
                   type="checkbox"
                   checked={item.include}
                   onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
-                  style={{
-                    transform: 'scale(1.5)',
-                    accentColor: 'red',
-                    cursor: 'pointer',
-                  }}
+                  style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }}
                   title="If checked, price becomes 0"
                 />
               </CCol>
 
-              {/* Remove Button */}
               <CCol sm={1}>
                 {foods.length > 1 && (
                   <button
@@ -1387,7 +1342,6 @@ const Vendor = () => {
             </CRow>
           ))}
 
-          {/* Add More Button */}
           <CRow className="mt-3">
             <CCol>
               <button type="button" className="admin-buttonv1" onClick={handleFoodAddMore}>
@@ -1400,7 +1354,6 @@ const Vendor = () => {
 
       <div className="txtsubtitle">Terms And Conditions <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <textarea
             onChange={(e) => setAdminNotes(e.target.value)}
@@ -1409,12 +1362,12 @@ const Vendor = () => {
             rows={5}
           />
         </div>
-        {/* // row end */}
       </div>
+
       <div className="button-container">
         <button className="admin-buttonv1" onClick={handlebtnSendToApprovalClick}>
-            Send To Admin Approval
-          </button>
+          Send To Admin Approval
+        </button>
         <button className="admin-buttonv1" onClick={handleSave}>
           Save
         </button>

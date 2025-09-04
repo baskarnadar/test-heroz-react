@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getCurrentLoggedUserID } from '../../../utils/operation'
+import { DspToastMessage, getCurrentLoggedUserID,getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl } from '../../../utils/operation'
 const Vendor = () => {
@@ -152,7 +152,7 @@ const Vendor = () => {
       console.log(`${API_BASE_URL}/schoolinfo/School/updateschool`)
       const response = await fetch(`${API_BASE_URL}/schoolinfo/School/updateschool`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           SchoolID: SchoolIDVal,
           schImageName: txtschImageName1Val, // file
@@ -222,7 +222,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/schoolinfo/School/getSchool`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ SchoolID: SchoolIDVal }),
       })
       console.log(`${API_BASE_URL}/schoolinfo/School/getSchool`)

@@ -4,7 +4,7 @@ import Select from 'react-select'
 import { API_BASE_URL } from '../../config'
 import { DspToastMessage } from '../../utils/operation'
 import FilePreview from '../../views/widgets/FilePreview'
-import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../utils/operation'
+import { getFileNameFromUrl, getCurrentLoggedUserID,getAuthHeaders } from '../../utils/operation'
 import { checkUserExists } from '../../utils/auth'
 const Vendor = () => {
   const [OrgtxtvdrImageName1Val, setOrgsetvdrImageName] = useState('')
@@ -338,7 +338,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/vendorinfo/vendor/updatevendor`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           VendorID: VendorIDVal,
           vdrName: txtvdrName || '',
@@ -505,7 +505,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/Vendorinfo/Vendor/getVendor`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ VendorID: VendorIDVal }),
       })
       console.log(`${API_BASE_URL}/Vendorinfo/Vendor/getVendor`)

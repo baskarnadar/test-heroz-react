@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
-import { DspToastMessage } from '../../../utils/operation';
+import { DspToastMessage,getAuthHeaders} from '../../../utils/operation';
 import '../../../scss/toast.css';
 
 const ViewClass = () => {
@@ -31,7 +31,7 @@ const ViewClass = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/product/getProductByProductID`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ ProductID }),
         });
 

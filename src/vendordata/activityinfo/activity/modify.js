@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage } from '../../../utils/operation'
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -37,6 +37,7 @@ const Vendor = () => {
   // Define state for each input
   const [txtactName, setactName] = useState('')
   const [selectedType, setactType] = useState([])
+  const [actRating, setactRating] = useState('') // ⭐ NEW: Activity Rating (decimal)
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -325,6 +326,7 @@ const Vendor = () => {
       days,
       foods,                // validator will force price=0 for included items
       txtactAdminNotes,
+      actRating,            // ⭐ pass to validator (safe if unused)
     })
 
     if (!validation.ok) {
@@ -431,7 +433,7 @@ const Vendor = () => {
         `${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: getActivityIDVal,
             VendorID: getCurrentLoggedUserID(),
@@ -467,6 +469,7 @@ const Vendor = () => {
             actFood: actfoodDataVal,
 
             actAdminNotes: txtactAdminNotes || '',
+            actRating: actRating === '' ? '' : Number(actRating), // ⭐ NEW: pass to API
             actStatus: actStatusVal,
             IsDataStatus: 1,
             ModifyBy: getCurrentLoggedUserID(),
@@ -535,7 +538,7 @@ const Vendor = () => {
         // Fetch Cities
         const citiesRes = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         })
         const citiesResult = await citiesRes.json()
@@ -546,7 +549,7 @@ const Vendor = () => {
         // Fetch Countries
         const countriesRes = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         })
         const countriesResult = await countriesRes.json()
@@ -557,7 +560,7 @@ const Vendor = () => {
         // Fetch Categories
         const categoryRes = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({}),
         })
         const categoryResult = await categoryRes.json()
@@ -611,6 +614,13 @@ const Vendor = () => {
     setactType(ActivityData.actTypeID || '')
     setSelectedCategories(ActivityData.actCategoryID || [])
     setactDesc(ActivityData.actDesc || '')
+
+    // ⭐ NEW: Rating
+    setactRating(
+      ActivityData.actRating !== undefined && ActivityData.actRating !== null
+        ? String(ActivityData.actRating)
+        : ''
+    )
 
     // YouTube IDs
     setYouTube1(ActivityData.actYouTubeID1 || '')
@@ -732,7 +742,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: getCurrentLoggedUserID() }),
       })
 
@@ -913,7 +923,7 @@ const Vendor = () => {
           <label style={{ marginBottom: '10px', marginTop: '20px' }}>
             Activity Type <span style={{color:'red'}}>*</span>
           </label>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
@@ -948,9 +958,30 @@ const Vendor = () => {
               />
               <div className="pink-shadow4"> Member</div>
             </label>
+
+          
           </div>
         </div>
-
+  {/* ⭐ NEW: Activity Rating (decimal) */}
+            <div style={{   alignItems: 'center', gap: 8,   }}>
+              <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
+                Activity Rating
+              </label>
+              <input
+                id="actRating"
+                name="actRating"
+                type="number"
+                inputMode="decimal"
+                step="0.1"
+                min="0"
+                max="5"
+                className="vendor-input"
+                placeholder="e.g., 4.5"
+                value={actRating}
+                onChange={(e) => setactRating(e.target.value)}
+                style={{ width: 120 }}
+              />
+            </div>
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
             Activity Categories <span style={{color:'red'}}>*</span>

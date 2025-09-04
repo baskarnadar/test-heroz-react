@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import CIcon from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 
 const SubMenuListWithPagination = () => {
   const [subMenus, setSubMenus] = useState([]);
@@ -24,7 +25,7 @@ const SubMenuListWithPagination = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/submenu/getsubmenulist`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: itemsPerPage }),
       });
 
@@ -49,7 +50,7 @@ const SubMenuListWithPagination = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/submenu/deletesubmenu`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ SubMenuID }),
         });
 

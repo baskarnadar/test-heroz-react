@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage } from '../../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
 
 const SchEduLevelList = () => {
   const [SchEduLevel, setSchEduLevel] = useState([]);
@@ -35,7 +35,7 @@ const SchEduLevelList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/schedulevel/getSchedulevelList`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: SchEduLevelPerPage }),
       });
 
@@ -91,7 +91,7 @@ const SchEduLevelList = () => {
        console.log(selectedSchEduLevelID);
       const response = await fetch(`${API_BASE_URL}/lookupdata/schedulevel/delSchedulevel`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ SchEduLevelID: selectedSchEduLevelID }),
        
       });

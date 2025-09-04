@@ -44,7 +44,7 @@ const PayFailPage = () => {
 
         const resp = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify(reqBody),
         });
 

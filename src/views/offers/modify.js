@@ -32,7 +32,7 @@ const OfferForm = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/offer/getoffersbyID`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ OfferID }),
         });
 
@@ -89,7 +89,7 @@ const OfferForm = () => {
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

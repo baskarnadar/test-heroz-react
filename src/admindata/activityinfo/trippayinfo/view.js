@@ -12,7 +12,7 @@ import {
   DspToastMessage,
   getCurrentLoggedUserID,
   generatePayRefNo,
-} from "../../../utils/operation";
+  getAuthHeaders } from "../../../utils/operation";
 
 import FoodInfo from "../../../public/foodinfo";
 import moneyv1 from "../../../assets/images/moneyv1.png";
@@ -59,7 +59,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: ActivityIDVal,
             VendorID: VendorIDVal,
@@ -97,7 +97,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify({ RequestID }),
         }
       );
@@ -291,7 +291,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+         headers: getAuthHeaders(),
           body: JSON.stringify(payload),
         }
       );

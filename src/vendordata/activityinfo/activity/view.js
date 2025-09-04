@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,dspstatusv1 } from '../../../utils/operation'
+import { DspToastMessage,dspstatusv1,getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import {
   getFileNameFromUrl,
@@ -36,7 +36,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: getCurrentLoggedUserID() }),
       })
 

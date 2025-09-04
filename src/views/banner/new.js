@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
-import { getFileNameFromUrl } from '../../utils/operation';
+import { getFileNameFromUrl,getAuthHeaders } from '../../utils/operation';
 import { checkLogin } from '../../utils/auth';
 
 const AddNewBanner = () => {
@@ -51,7 +51,7 @@ const AddNewBanner = () => {
       // Submit banner data with uploaded image filename (extracted from key)
       const response = await fetch(`${API_BASE_URL}/banner/createbanner`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           BannerImage: getFileNameFromUrl(uploadedImageKey),
           createdBy: 'USER',

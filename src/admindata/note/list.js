@@ -11,7 +11,8 @@ import {
   formatDate,
   dspstatus,
   DspToastMessage,
-  dspstatusv1
+  dspstatusv1,
+  getAuthHeaders
 } from '../../utils/operation'
 
 const SchoolList = () => {
@@ -44,7 +45,7 @@ const SchoolList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/note/getnoteList`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ noteTo: getCurrentLoggedUserType() }),
       })
 
@@ -93,7 +94,7 @@ const SchoolList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/note/delNote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ NoteID: selectedNoteID }),
       })
 

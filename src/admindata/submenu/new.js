@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
-
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 const AddNewSubMenu = () => {
   const navigate = useNavigate();
 
@@ -24,7 +24,7 @@ const AddNewSubMenu = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/mainmenu/getmainmenulist`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({}),
       });
 
@@ -49,7 +49,7 @@ const AddNewSubMenu = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/submenu/createsubmenu`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           EnMenuName,
           ArMenuName,

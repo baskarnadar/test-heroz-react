@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage } from '../../../utils/operation'
+import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl } from '../../../utils/operation'
 import { checkUserExists } from '../../../utils/auth'
@@ -157,7 +157,7 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/schoolinfo/School/createSchool`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schName: txtschName || '',
           schImageName: schImageNameVal, // file

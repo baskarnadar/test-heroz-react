@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage } from '../../utils/operation';
+import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -28,7 +28,7 @@ const UserList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/getsubadminall`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ page: currentPage, limit: usersPerPage }),
       });
 
@@ -83,7 +83,7 @@ const UserList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/deletesubadmin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ prtuserid: selectedprtuserid }),
       });
 
