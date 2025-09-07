@@ -142,43 +142,43 @@ const Vendor = () => {
 
   const [days, setDays] = useState({
     sunday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', note: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     monday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', note: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     tuesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', note: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     wednesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', note: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     thursday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', note: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     friday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', note: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
     },
     saturday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', note: '', ChkRemoveDays: false, total: '' }],
       total: '',
       closed: false,
       note: '',
@@ -280,6 +280,20 @@ const Vendor = () => {
           times: updatedTimes,
           total: dayTotal.toFixed(2),
         },
+      }
+    })
+  }
+
+  // ✅ make Notes editable
+  const handleRangeNoteChange = (day, index, value) => {
+    setDays((prevDays) => {
+      const updatedTimes = [...prevDays[day].times]
+      const prevRow = updatedTimes[index] || {}
+      updatedTimes[index] = { ...prevRow, note: value }
+      const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
+      return {
+        ...prevDays,
+        [day]: { ...prevDays[day], times: updatedTimes, total: dayTotal.toFixed(2) },
       }
     })
   }
@@ -788,7 +802,7 @@ const Vendor = () => {
       ...days,
       [day]: {
         ...days[day],
-        times: updatedTimes.length > 0 ? updatedTimes : [{ start: '', end: '', total: '' }],
+        times: updatedTimes.length > 0 ? updatedTimes : [{ start: '', end: '', note: '', total: '' }],
         total: newTotal.toFixed(2),
       },
     })
@@ -1482,8 +1496,7 @@ const Vendor = () => {
                               className="admin-txt-box"
                               placeholder="Optional notes"
                               value={range.note || ''}
-                              onChange={() => {}}
-                              disabled // 🔒 optional note is not enabled
+                              onChange={(e) => handleRangeNoteChange(day, index, e.target.value)}
                             />
                           </label>
 

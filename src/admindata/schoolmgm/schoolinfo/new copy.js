@@ -115,11 +115,7 @@ const Vendor = () => {
   // ----------------------------
   const handleFileUpload = (setter) => async (e) => {
     const file = e.target.files[0]
-    if (file) {
-      setter(file)
-      // clear image error if selecting school image
-      setErrors((p) => ({ ...p, schImageName: '' }))
-    }
+    if (file) setter(file)
   }
 
   const handleFileChange = (e, key) => {
@@ -127,10 +123,7 @@ const Vendor = () => {
     if (!file) return
     if (key === 'certificate') setschCertificateFileName(file)
     else if (key === 'tax') setschTaxFileName(file)
-    else if (key === 'image') {
-      setschImageName(file)
-      setErrors((p) => ({ ...p, schImageName: '' }))
-    }
+    else if (key === 'image') setschImageName(file)
   }
 
   const handleCheckboxChange = (value) => {
@@ -210,11 +203,6 @@ const Vendor = () => {
       txtschGlat,
       txtschAdminNotes,
     })
-
-    // 🔴 Make SCHOOL IMAGE REQUIRED for "Add New"
-    if (!(schImageName instanceof File)) {
-      reqErrors.schImageName = 'School image is required.'
-    }
 
     if (Object.keys(reqErrors).length > 0) {
       setErrors(reqErrors)
@@ -308,7 +296,7 @@ const Vendor = () => {
           body: formdata,
         })
         if (!uploadResponse.ok) throw new Error(`Certificate upload failed: ${uploadResponse.status}`)
-        const uploadResult = await response.json()
+        const uploadResult = await uploadResponse.json()
         const uploadedCRKey1 = uploadResult?.data?.key || uploadResult?.data?.Key || ''
         schCertificateFileNameVal = getFileNameFromUrl(uploadedCRKey1)
       }
@@ -545,18 +533,15 @@ const Vendor = () => {
           <div className="ErrorMsg">{errors.txtschName}</div>
         </div>
 
-        {/* 🔴 School image is REQUIRED */}
         <input
           name="txtschImageName"
           className="admin-txt-box"
           placeholder="Upload Vendor Image"
           type="file"
-          accept="image/*"
           onChange={handleFileUpload(setschImageName)}
           style={{ height: 50, width: '100%' }}
         />
         <FilePreview file={schImageName} />
-        <div className="ErrorMsg">{errors.schImageName}</div>
 
         <div className="form-group">
           <label>Email Address</label>
@@ -574,7 +559,7 @@ const Vendor = () => {
             }}
             onBlur={handleEmailBlur}
           />
-          <div className="ErrorMsg">
+        <div className="ErrorMsg">
             {errors.txtschEmailAddress || (!uniqueOk && ErrorUserExistMsg)}
           </div>
         </div>

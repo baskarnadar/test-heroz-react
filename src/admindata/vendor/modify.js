@@ -1,665 +1,839 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Select from 'react-select'
-import { API_BASE_URL } from '../../config'
-import { DspToastMessage } from '../../utils/operation'
-import FilePreview from '../../views/widgets/FilePreview'
-import { getFileNameFromUrl, getCurrentLoggedUserID,getAuthHeaders } from '../../utils/operation'
-import { checkUserExists } from '../../utils/auth'
-const Vendor = () => {
-  const [OrgtxtvdrImageName1Val, setOrgsetvdrImageName] = useState('')
-  const [OrgtxtvdrTaxFileNameVal, setOrgtxtvdrTaxFileName] = useState('')
-  const [OrgtxtvdrCRFileNameVal, setOrgtxtvdrCRFileName] = useState('')
+// src/pages/admin/VendorEdit.jsx
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../config';
+import { DspToastMessage } from '../../utils/operation';
+import FilePreview from '../../views/widgets/FilePreview';
+import { getFileNameFromUrl, getCurrentLoggedUserID, getAuthHeaders } from '../../utils/operation';
+import { checkVdrUserEmailExists } from '../../utils/auth';
 
-  const navigate = useNavigate()
-  const [error, setError] = useState('')
-  const [ErrorUserExistMsg, setUserExists] = useState(false)
-  const [checking, setChecking] = useState(false)
+// Opening hours helpers (same as create page)
+import {
+  findIncompleteRange,
+  hasOverlap,
+  buildOpeningHoursPayload, // patched to be bulletproof
+} from '../../admindata/vendor/validation/fieldvalidation';
 
-  const [VendorIDVal, setVendorID] = useState(false)
-  const [VendorData, SetVendor] = useState(null)
+const Req = () => <span style={{ color: 'red', fontSize: 18 }}>*</span>;
 
-  const [fetchedCategories, setFetchedCategories] = useState([])
-  const [selectedCategories, setSelectedCategories] = useState([])
+/* =========================
+   Opening-hours helpers
+   ========================= */
+const DAY_KEYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
-  const [loading, setLoading] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const [toastType, setToastType] = useState('info')
+const makeEmptyDays = () => ({
+  sunday:    { times: [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+  monday:    { times: [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+  tuesday:   { times: [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+  wednesday: { times: [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+  thursday:  { times: [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+  friday:    { times: [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+  saturday:  { times: [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+});
 
-  // Define state for each input
-  const [txtvdrName, setVdrName] = useState('')
+const normDay = (s='') => String(s).trim().toLowerCase();
 
-  const [txtvdrClubName, setClubName] = useState('')
-  const [vdrImageName, setvdrImageName] = useState(null)
-  const [vdrTaxFileName, setvdrTaxFileName] = useState(null)
-  const [vdrCRFileName, setvdrCRFileName] = useState(null)
+/** HH:mm → HH:mm difference in hours as "H.MM" (e.g., "1.50"). */
+const diffHours = (start, end) => {
+  if (!start || !end) return '';
+  const [sh, sm] = String(start).split(':').map(Number);
+  const [eh, em] = String(end).split(':').map(Number);
+  if ([sh, sm, eh, em].some(Number.isNaN)) return '';
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins < 0) mins = 0; // guard; adjust if overnight allowed
+  return (Math.round((mins / 60) * 100) / 100).toFixed(2);
+};
 
-  const [txtvdrEmailAddress, setVdrEmailAddress] = useState('')
-  const [txtvdrMobileNo1, setVdrMobileNo1] = useState('')
-  const [txtvdrMobileNo2, setVdrMobileNo2] = useState('')
-  const [txtvdrDesc, setVdrDesc] = useState('')
-  const [txtvdrLevel, setVdrLevel] = useState('')
-  const [txtvdrCRNumber, setCRNumber] = useState('')
-  const [txtvdrAddress1, setAddress1] = useState('')
-  const [txtvdrAddress2, setAddress2] = useState('')
-  const [txtvdrCountryID, setCountryID] = useState('')
+/** Map API OfficeOpenHours-like rows (NewOfficeOpenHours or OfficeOpenHours) into the `days` state shape. */
+const mapOfficeHoursToDays = (officeHours = []) => {
+  const next = makeEmptyDays();
+  // default closed until we add a range
+  for (const k of DAY_KEYS) next[k].closed = true;
 
-  const [txtvdrRegionName, setRegionName] = useState('')
-  const [txtvdrZipCode, setZipCode] = useState('')
-  const [txtvdrWebsiteAddress, setWebsiteAddress] = useState('')
-  const [txtvdrGlat, setGlat] = useState('')
-  const [txtvdrGlan, setGlan] = useState('')
-  const [txtvdrGoogleMap, setVdrGoogleMap] = useState('')
-  const [txtvdrInstagram, setInstagram] = useState('')
-  const [txtvdrFaceBook, setFaceBook] = useState('')
-  const [txtvdrX, setX] = useState('')
-  const [txtvdrSnapChat, setSnapChat] = useState('')
-  const [txtvdrTikTok, setTikTok] = useState('')
-  const [txtvdrYouTube, setYouTube] = useState('')
-  const [txtvdrBankName, setBankName] = useState('')
-  const [txtvdrAccHolderName, setAccHolderName] = useState('')
-  const [txtvdrAccIBANNo, setIBANNo] = useState('')
-  const [txtvdrTaxName, setTaxName] = useState('')
+  officeHours.forEach((row) => {
+    const d = normDay(row?.vdrDayName);
+    if (!DAY_KEYS.includes(d)) return;
 
-  const [txtvdrAdminNotes, setAdminNotes] = useState('')
-  const [cityList, setCityList] = useState([])
-  const [txtvdrCityID, setSelectedCityID] = useState('')
-  const [countries, setCountries] = useState([])
-  const [Category, setCategory] = useState([])
+    const start = row?.vdrStartTime || '';
+    const end   = row?.vdrEndTime   || '';
+    const note  = row?.vdrNote      || '';
+    const total = diffHours(start, end);
 
-  const [chkvdrIsBirthDayService, setBirthDayService] = useState([])
-  const [vdrCapacity, setCapacity] = useState([])
-  const [vdrPricePerPerson, setPricePerPerson] = useState([])
-  const [txtschGoogleMap, setGoogleMap] = useState('')
-  /*  days */
-  const handleAddMore = (day) => {
-    const existingTimes = days[day].times
+    const rangeObj = {
+      start, end, note, total,
+      OpeningHrsID: row?.OpeningHrsID || '',
+      ChkRemoveDays: false,
+    };
 
-    // Calculate default new start and end time (e.g. right after last end)
-    let lastEnd = existingTimes.length
-      ? timeToMinutes(existingTimes[existingTimes.length - 1].end)
-      : 480 // default 8:00 AM = 480 mins
-
-    if (lastEnd === null) lastEnd = 480
-
-    const newStartMins = lastEnd
-    const newEndMins = newStartMins + 60 // 1 hour after
-
-    // Convert back to HH:MM AM/PM
-    const minutesToTime = (mins) => {
-      let h = Math.floor(mins / 60)
-      let m = mins % 60
-      const suffix = h >= 12 ? 'PM' : 'AM'
-      h = h % 12 || 12
-      return `${h}:${m.toString().padStart(2, '0')} ${suffix}`
+    if (next[d].closed) {
+      next[d].times = [rangeObj];
+      next[d].closed = false;
+    } else {
+      next[d].times.push(rangeObj);
     }
+  });
 
-    const newStart = minutesToTime(newStartMins)
-    const newEnd = minutesToTime(newEndMins)
+  // Ensure each day has at least one row
+  for (const k of DAY_KEYS) {
+    if (!next[k].times?.length) {
+      next[k].times = [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }];
+    }
+  }
+  return next;
+};
 
-    const newTimes = [...existingTimes, { start: newStart, end: newEnd }]
-    setDays({
-      ...days,
-      [day]: { ...days[day], times: newTimes },
-    })
+/* =========================
+   Debug Panel
+   ========================= */
+const DebugPanel = ({ title, data }) => {
+  if (data == null) return null;
+  return (
+    <details style={{ marginTop: 12 }}>
+      <summary style={{ cursor: 'pointer', color: '#334155', fontWeight: 600 }}>{title}</summary>
+      <pre
+        style={{
+          background: '#0b1020',
+          color: '#e9f2ff',
+          padding: 12,
+          borderRadius: 8,
+          overflowX: 'auto',
+          marginTop: 8,
+          maxHeight: 380
+        }}
+      >
+{JSON.stringify(data, null, 2)}
+      </pre>
+    </details>
+  );
+};
+
+/* ==========================================
+   Read-only hours viewer (shows NewOfficeOpenHours)
+   ========================================== */
+const OfficeOpenHoursView = ({ rows }) => {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  if (!safeRows.length) {
+    return (
+      <div className="divbox">
+        <div style={{ color: '#666', fontSize: 14 }}>No NewOfficeOpenHours found.</div>
+      </div>
+    );
   }
 
-  const [days, setDays] = useState({
-    sunday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    monday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    tuesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    wednesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    thursday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    friday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    saturday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    // more days...
-  })
+  return (
+    <div className="divbox">
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+          <thead>
+            <tr style={{ background: '#f4f6fb' }}>
+              <th style={th}>#</th>
+              <th style={th}>Day</th>
+              <th style={th}>Start</th>
+              <th style={th}>End</th>
+              <th style={th}>Note</th>
+              <th style={th}>OpeningHrsID</th>
+            </tr>
+          </thead>
+          <tbody>
+            {safeRows.map((r, i) => (
+              <tr key={(r.OpeningHrsID || r._id || i) + ''} style={{ borderTop: '1px solid #e7e7e7' }}>
+                <td style={td}>{i + 1}</td>
+                <td style={td}>{r?.vdrDayName || '-'}</td>
+                <td style={td}>{r?.vdrStartTime || '-'}</td>
+                <td style={td}>{r?.vdrEndTime || '-'}</td>
+                <td style={td}>{r?.vdrNote || '-'}</td>
+                <td style={td} title={r?.OpeningHrsID || ''}>{r?.OpeningHrsID || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <DebugPanel title="Raw NewOfficeOpenHours JSON" data={safeRows} />
+    </div>
+  );
+};
+
+const th = {
+  textAlign: 'left',
+  padding: '10px 12px',
+  fontWeight: 700,
+  fontSize: 14,
+  color: '#1f2937',
+  borderBottom: '1px solid #e7e7e7',
+};
+const td = {
+  padding: '10px 12px',
+  fontSize: 14,
+  color: '#111827',
+};
+
+const Vendor = () => {
+  const navigate = useNavigate();
+
+  // ===== Server/original file names (kept) =====
+  const [OrgtxtvdrImageName1Val, setOrgsetvdrImageName] = useState('');
+  const [OrgtxtvdrTaxFileNameVal, setOrgtxtvdrTaxFileName] = useState('');
+  const [OrgtxtvdrCRFileNameVal, setOrgtxtvdrCRFileName] = useState('');
+
+  // ===== UX + server status =====
+  const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('info');
+
+  // ===== Validation states (match create) =====
+  const [errors, setErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [availabilityErr, setAvailabilityErr] = useState('');
+  const [existErr, setExistErr] = useState(''); // username/email exists
+
+  // ===== Vendor fetch/edit =====
+  const [VendorIDVal, setVendorID] = useState('');
+  const [VendorData, SetVendor] = useState(null);
+
+  // ===== Lookups =====
+  const [cityList, setCityList] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [fetchcategories, setFetchCategories] = useState([]);
+
+  // ===== Categories selection =====
+  const [selectedCategories, setSelectedCategories] = useState([]);
+
+  // ===== Inputs (match create) =====
+  const [txtvdrName, setVdrName] = useState('');
+  const [txtvdrClubName, setClubName] = useState('');
+
+  const [vdrImageName, setvdrImageName] = useState(null);
+  const [vdrTaxFileName, setvdrTaxFileName] = useState(null);
+  const [vdrCRFileName, setvdrCRFileName] = useState(null);
+
+  const [txtvdrEmailAddress, setVdrEmailAddress] = useState('');
+  const [txtvdrMobileNo1, setVdrMobileNo1] = useState(''); // username (read-only shown at top)
+  const [txtvdrMobileNo2, setVdrMobileNo2] = useState('');
+  const [txtvdrDesc, setVdrDesc] = useState('');
+
+  const [txtvdrCRNumber, setCRNumber] = useState('');
+
+  const [txtvdrAddress1, setAddress1] = useState('');
+  const [txtvdrAddress2, setAddress2] = useState('');
+  const [txtvdrCountryID, setCountryID] = useState('');
+  const [txtvdrCityID, setSelectedCityID] = useState('');
+  const [txtvdrRegionName, setRegionName] = useState('');
+  const [txtvdrZipCode, setZipCode] = useState('');
+  const [txtvdrWebsiteAddress, setWebsiteAddress] = useState('');
+  const [txtvdrGoogleMap, setVdrGoogleMap] = useState('');
+
+  const [txtvdrGlat, setGlat] = useState('');
+  const [txtvdrGlan, setGlan] = useState('');
+
+  const [txtvdrInstagram, setInstagram] = useState('');
+  const [txtvdrFaceBook, setFaceBook] = useState('');
+  const [txtvdrX, setX] = useState('');
+  const [txtvdrSnapChat, setSnapChat] = useState('');
+  const [txtvdrTikTok, setTikTok] = useState('');
+  const [txtvdrYouTube, setYouTube] = useState('');
+
+  const [txtvdrBankName, setBankName] = useState('');
+  const [txtvdrAccHolderName, setAccHolderName] = useState('');
+  const [txtvdrAccIBANNo, setIBANNo] = useState('');
+  const [txtvdrTaxName, setTaxName] = useState('');
+
+  const [txtvdrAdminNotes, setAdminNotes] = useState('');
+
+  // ===== Opening hours (same shape as create) =====
+  const [days, setDays] = useState(makeEmptyDays());
+
+  // ===== Debug =====
+  const [debugPayload, setDebugPayload] = useState(null);
+  const [debugResponse, setDebugResponse] = useState(null);
+
+  // ===== Helpers (same as create) =====
+  const sanitizeMobile = (v) => v.replace(/\D+/g, '').slice(0, 10);
+  const isValidMobile = (m) => /^05\d{8}$/.test(m || '');
+
+  const focusFirstError = (errs) => {
+    const order = [
+      'txtvdrName','txtvdrClubName','vdrImageName','txtvdrEmailAddress',
+      'categories','txtvdrAddress1','txtvdrGoogleMap','txtvdrGlan','txtvdrGlat',
+      'availability','openingHours','openingOverlap','txtvdrAdminNotes'
+    ];
+    const firstKey = order.find((k) => errs[k]);
+    if (!firstKey) return;
+    const selectorMap = {
+      txtvdrName: 'input[name="txtvdrName"]',
+      txtvdrClubName: 'input[name="txtvdrClubName"]',
+      vdrImageName: 'input[name="txtvdrImageName"]',
+      txtvdrEmailAddress: 'input[name="txtvdrEmailAddress"]',
+      categories: 'input[name="txtvdrCategoryID"]',
+      txtvdrAddress1: 'input[name="txtvdrAddress1"]',
+      txtvdrGoogleMap: 'input[name="txtvdrGoogleMap"]',
+      txtvdrGlan: 'input[name="txtvdrGLan"]',
+      txtvdrGlat: 'input[name="txtvdrGLat"]',
+      txtvdrAdminNotes: 'textarea[name="txtvdrAdminNotes"]',
+    };
+    const el = document.querySelector(selectorMap[firstKey] || 'body');
+    if (el?.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (el?.focus) setTimeout(() => el.focus(), 250);
+  };
+
+  const buildToastFromErrors = (errs) => {
+    const msgs = Object.values(errs).filter(Boolean);
+    if (!msgs.length) return '';
+    const top = msgs.slice(0, 3);
+    const more = msgs.length > 3 ? ` (and ${msgs.length - 3} more)` : '';
+    return `Please fix: ${top.join(' • ')}${more}`;
+  };
 
   const handleClosedChange = (day, isClosed) => {
-    setDays((prevDays) => ({
-      ...prevDays,
-      [day]: {
-        ...prevDays[day],
-        closed: isClosed,
-      },
-    }))
-  }
-  // days
+    setDays((prev) => {
+      const updated = { ...prev, [day]: { ...prev[day], closed: isClosed } };
+      if (submitted) validateOpeningHours(updated);
+      return updated;
+    });
+  };
 
-  const timeToMinutes = (time) => {
-    if (!time) return null
-    // If time is like "8:00 AM" or "4:00 PM"
-    const [timePart, modifier] = time.split(' ')
-    let [hours, minutes] = timePart.split(':').map(Number)
-
-    if (modifier === 'PM' && hours !== 12) hours += 12
-    if (modifier === 'AM' && hours === 12) hours = 0
-
-    return hours * 60 + minutes
-  }
-
-  const timeStringToMinutes = (timeStr) => {
-    if (!timeStr) return null
-    const [hourStr, minuteStr] = timeStr.split(':')
-    if (!minuteStr) return null
-    let hour = parseInt(hourStr, 10)
-    let minute = parseInt(minuteStr.slice(0, 2), 10)
-    if (isNaN(hour) || isNaN(minute)) return null
-    return hour * 60 + minute
-  }
-
-  const hasOverlap = (days) => {
-    for (const [dayName, dayData] of Object.entries(days)) {
-      if (dayData.closed) continue
-
-      const times = dayData.times.filter((t) => t.start && t.end)
-      for (let i = 0; i < times.length; i++) {
-        const startA = timeStringToMinutes(times[i].start)
-        const endA = timeStringToMinutes(times[i].end)
-        if (startA === null || endA === null) continue
-
-        for (let j = i + 1; j < times.length; j++) {
-          const startB = timeStringToMinutes(times[j].start)
-          const endB = timeStringToMinutes(times[j].end)
-          if (startB === null || endB === null) continue
-
-          // Overlap if startA < endB && endA > startB
-          if (startA < endB && endA > startB) {
-            return { day: dayName, range1: times[i], range2: times[j] }
-          }
-        }
-      }
-    }
-    return null
-  }
-
+  // recompute per-range "total" when editing times
   const handleTimeChange = (day, index, field, value) => {
-    setDays((prevDays) => {
-      const updatedTimes = [...prevDays[day].times]
-      updatedTimes[index] = {
-        ...updatedTimes[index],
-        [field]: value,
-      }
-      return {
-        ...prevDays,
-        [day]: {
-          ...prevDays[day],
-          times: updatedTimes,
-        },
-      }
-    })
-  }
+    setDays((prev) => {
+      const updatedTimes = [...prev[day].times];
+      const nextRow = { ...updatedTimes[index], [field]: value };
+      nextRow.total = diffHours(nextRow.start, nextRow.end); // recompute
+      updatedTimes[index] = nextRow;
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target
-    if (name.startsWith('day_')) {
-      const day = name.split('_')[1]
-      setFormData((prev) => ({
+      const updated = { ...prev, [day]: { ...prev[day], times: updatedTimes } };
+      if (submitted) validateOpeningHours(updated);
+      return updated;
+    });
+  };
+
+  const handleAddMore = (day) => {
+    setDays((prev) => {
+      const existingTimes = prev[day].times || [];
+      const updated = {
         ...prev,
-        daysAvailable: { ...prev.daysAvailable, [day]: checked },
-      }))
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }))
+        [day]: {
+          ...prev[day],
+          times: [
+            ...existingTimes,
+            { start: '', end: '', note: '', total: '', ChkRemoveDays: false }
+          ]
+        }
+      };
+      if (submitted) validateOpeningHours(updated);
+      return updated;
+    });
+  };
+
+  const handleRemoveTimeRange = (day, index) => {
+    setDays((prev) => {
+      const updatedTimes = (prev[day].times || []).filter((_, i) => i !== index);
+      const updated = {
+        ...prev,
+        [day]: {
+          ...prev[day],
+          times: updatedTimes.length
+            ? updatedTimes
+            : [{ start: '', end: '', note: '', total: '', ChkRemoveDays: false }],
+        },
+      };
+      if (submitted) validateOpeningHours(updated);
+      return updated;
+    });
+  };
+
+  const handleFileUpload = (setter) => (e) => {
+    const file = e.target.files?.[0];
+    setter(file || null);
+    if (submitted && setter === setvdrImageName) {
+      setErrors((old) => ({ ...old, vdrImageName: !(file instanceof File) ? 'Vendor Image is required.' : '' }));
     }
-  }
-  const handleFileUpload = (setter) => async (e) => {
-    const file = e.target.files[0]
-    if (file) setter(file)
-  }
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  };
 
-    setLoading(true)
-    setToastMessage('')
+  const hasAtLeastOneCompleteRange = (dys) => {
+    for (const key of Object.keys(dys || {})) {
+      const day = dys[key];
+      if (day.closed) continue;
+      for (const t of day.times || []) {
+        if ((t.start || '').trim() && (t.end || '').trim()) return true;
+      }
+    }
+    return false;
+  };
 
-    const overlap = hasOverlap(days)
+  const validateOpeningHours = (stateDays = days) => {
+    if (!hasAtLeastOneCompleteRange(stateDays)) {
+      setAvailabilityErr('Enter start & end for at least one available day.');
+    } else {
+      setAvailabilityErr('');
+    }
+
+    const inc = findIncompleteRange(stateDays);
+    if (inc) {
+      setErrors((old) => ({
+        ...old,
+        openingHours: `Please enter the ${inc.which} time for ${inc.day} (row ${inc.index + 1}).`,
+      }));
+    } else {
+      setErrors((old) => {
+        const { openingHours, ...rest } = old;
+        return rest;
+      });
+    }
+
+    const overlap = hasOverlap(stateDays);
     if (overlap) {
-      setToastMessage(
-        `Time range overlap on ${overlap.day}: ` +
+      setErrors((old) => ({
+        ...old,
+        openingOverlap:
+          `Time range overlap on ${overlap.day}: ` +
           `${overlap.range1.start} - ${overlap.range1.end} overlaps with ` +
           `${overlap.range2.start} - ${overlap.range2.end}`,
-      )
-      setToastType('fail')
-      return // stop submission
+      }));
+    } else {
+      setErrors((old) => {
+        const { openingOverlap, ...rest } = old;
+        return rest;
+      });
     }
+  };
 
-    let uploadedImageKey = ''
-    let vdrImageNameVal = OrgtxtvdrImageName1Val
-    try {
-      if (vdrImageName && vdrImageName instanceof File) {
-        const formdata = new FormData()
-        formdata.append('image', vdrImageName)
-        formdata.append('foldername', 'vendor')
-        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: 'POST',
-          body: formdata,
-        })
-
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-        const uploadResult = await uploadResponse.json()
-        uploadedImageKey = uploadResult?.data?.key || uploadResult?.data?.Key
-        vdrImageNameVal = getFileNameFromUrl(uploadedImageKey)
+  const revalidateField = (name, value) => {
+    if (!submitted) return;
+    setErrors((old) => {
+      const next = { ...old };
+      switch (name) {
+        case 'txtvdrName':
+          next.txtvdrName = value.trim() ? '' : 'Vendor Name is required.';
+          break;
+        case 'txtvdrClubName':
+          next.txtvdrClubName = value.trim() ? '' : 'Club Name is required.';
+          break;
+        case 'txtvdrEmailAddress':
+          next.txtvdrEmailAddress = value.trim() ? '' : 'Email Address is required.';
+          break;
+        case 'txtvdrAddress1':
+          next.txtvdrAddress1 = value.trim() ? '' : 'Address1 is required.';
+          break;
+        case 'txtvdrGoogleMap':
+          next.txtvdrGoogleMap = value.trim() ? '' : 'Google Map Location is required.';
+          break;
+        case 'txtvdrGlan':
+          next.txtvdrGlan = `${value}`.trim() ? '' : 'Vendor Longitude is required.';
+          break;
+        case 'txtvdrGlat':
+          next.txtvdrGlat = `${value}`.trim() ? '' : 'Vendor Latitude is required.';
+          break;
+        case 'txtvdrAdminNotes':
+          next.txtvdrAdminNotes = value.trim() ? '' : 'Admin Notes is required.';
+          break;
+        default:
+          break;
       }
-    } catch (error) {
-      console.error('Error adding Product:', error)
-      setToastMessage('Failed to add product.')
-      setToastType('fail')
-    }
+      return next;
+    });
+  };
 
-    //Tax
-    let uploadedImageKey1 = ''
-    let vdrTaxFileNameVal = OrgtxtvdrTaxFileNameVal // <-- move this declaration outside
+  // SAFE wrapper: never return null/undefined even if builder is strict.
+  const getOpeningHoursTableDataSafe = (existing = null) => {
+    try {
+      const out = buildOpeningHoursPayload(
+        days,
+        getCurrentLoggedUserID, // can be a function or a string; patched impl handles both
+        existing
+      );
+      return Array.isArray(out) ? out : [];
+    } catch (e) {
+      console.error('buildOpeningHoursPayload crashed:', e);
+      return [];
+    }
+  };
+
+  // ===== Submit (updated with same validation flow) =====
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitted(true);
+    setToastMessage('');
+    setToastType('info');
+    setExistErr('');
+    setLoading(true);
+    setDebugResponse(null);
 
     try {
-      if (vdrTaxFileName && vdrTaxFileName instanceof File) {
-        const formdata = new FormData()
-        formdata.append('image', vdrTaxFileName)
-        formdata.append('foldername', 'vendor')
-        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: 'POST',
-          body: formdata,
-        })
+      // Client-side validation (persistent)
+      const newErrs = validateAll();
+      setErrors(newErrs);
+      validateOpeningHours(days);
 
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-        const uploadResult = await uploadResponse.json()
-        uploadedImageKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
-        vdrTaxFileNameVal = getFileNameFromUrl(uploadedImageKey1)
+      if (Object.keys(newErrs).length) {
+        const msg = buildToastFromErrors(newErrs);
+        setToastMessage(msg || 'Please fix the highlighted errors.');
+        setToastType('fail');
+        focusFirstError(newErrs);
+        setLoading(false);
+        return;
       }
 
-      // ✅ assign to outer variable
-    } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
-      setToastType('fail')
-    }
+      // Server-side username/email existence — skip if unchanged
+      const emailChanged =
+        (txtvdrEmailAddress || '').trim() !== (VendorData?.vdrEmailAddress || '').trim();
+      const mobileChanged =
+        (txtvdrMobileNo1 || '').trim() !== (VendorData?.vdrMobileNo1 || '').trim();
 
-    //CR
-    let uploadedCRKey1 = ''
-    let vdrCRFileNameVal = OrgtxtvdrCRFileNameVal
-
-    try {
-      if (vdrCRFileName && vdrCRFileName instanceof File) {
-        const formdata = new FormData()
-        formdata.append('image', vdrCRFileName)
-        formdata.append('foldername', 'vendor')
-        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: 'POST',
-          body: formdata,
-        })
-
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-        const uploadResult = await uploadResponse.json()
-        uploadedCRKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
-        vdrCRFileNameVal = getFileNameFromUrl(uploadedCRKey1)
+      if (emailChanged || mobileChanged) {
+        try {
+          setChecking(true);
+          const exists = await checkVdrUserEmailExists(txtvdrMobileNo1, txtvdrEmailAddress);
+          if (exists) {
+            setExistErr('Username or Email Address already exists. Enter a different Mobile 1 or Email.');
+            setToastMessage('Username or Email already exists.');
+            setToastType('fail');
+            focusFirstError({ txtvdrEmailAddress: 'exists' });
+            setLoading(false);
+            return;
+          }
+        } catch (ex) {
+          console.error('User/email existence check failed:', ex);
+          setToastMessage('Could not verify username/email availability. Please try again.');
+          setToastType('fail');
+          setLoading(false);
+          return;
+        } finally {
+          setChecking(false);
+        }
       }
 
-      // ✅ assign to outer variable
-    } catch (error) {
-      console.error('Error uploading CR file:', error)
-      setToastMessage('Failed to upload CR file.')
-      setToastType('fail')
-    }
+      // ===== File uploads =====
+      const uploadFile = async (file, originalVal) => {
+        if (!file) return originalVal || '';
+        if (file instanceof File) {
+          const fd = new FormData();
+          fd.append('image', file);
+          fd.append('foldername', 'vendor');
+          const res = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd });
+          if (!res.ok) throw new Error(`File upload failed: ${res.status}`);
+          const j = await res.json();
+          const k = j?.data?.key || j?.data?.Key || '';
+          return getFileNameFromUrl(k);
+        }
+        return originalVal || ''; // already a URL string
+      };
 
-    try {
+      const vdrImageNameVal = await uploadFile(vdrImageName, OrgtxtvdrImageName1Val);
+      const vdrTaxFileNameVal = await uploadFile(vdrTaxFileName, OrgtxtvdrTaxFileNameVal);
+      const vdrCRFileNameVal = await uploadFile(vdrCRFileName, OrgtxtvdrCRFileNameVal);
+
+      // Build hours from DAYS **safely**
+      const officeOpenHoursArr = getOpeningHoursTableDataSafe(
+        Array.isArray(VendorData?.OfficeOpenHours) ? VendorData.OfficeOpenHours : null
+      );
+
+      // Payload (match create keys), with safe hours
+      const payload = {
+        VendorID: VendorIDVal,
+        vdrName: txtvdrName || '',
+        vdrClubName: txtvdrClubName || '',
+        vdrImageName: vdrImageNameVal,
+        vdrTaxFileName: vdrTaxFileNameVal,
+        vdrCRFileName: vdrCRFileNameVal,
+
+        vdrEmailAddress: txtvdrEmailAddress || '',
+        vdrMobileNo1: txtvdrMobileNo1 || '',
+        vdrMobileNo2: txtvdrMobileNo2 || '',
+        vdrDesc: txtvdrDesc || '',
+
+        vdrCategoryID: selectedCategories,
+
+        vdrCRNumber: txtvdrCRNumber || '',
+        vdrCvdrCRFileName: null, // (kept as your original field)
+
+        vdrAddress1: txtvdrAddress1 || '',
+        vdrAddress2: txtvdrAddress2 || '',
+        vdrCountryID: txtvdrCountryID || '',
+        vdrCityID: txtvdrCityID || '',
+        vdrRegionName: txtvdrRegionName || '',
+        vdrZipCode: txtvdrZipCode || '',
+        vdrWebsiteAddress: txtvdrWebsiteAddress || '',
+        vdrGoogleMap: txtvdrGoogleMap || '',
+
+        vdrGlat: txtvdrGlat || '',
+        vdrGlan: txtvdrGlan || '',
+
+        vdrInstagram: txtvdrInstagram || '',
+        vdrFaceBook: txtvdrFaceBook || '',
+        vdrX: txtvdrX || '',
+        vdrSnapChat: txtvdrSnapChat || '',
+        vdrTikTok: txtvdrTikTok || '',
+        vdrYouTube: txtvdrYouTube || '',
+
+        vdrBankName: txtvdrBankName || '',
+        vdrAccHolderName: txtvdrAccHolderName || '',
+        vdrAccIBANNo: txtvdrAccIBANNo || '',
+        vdrTaxName: txtvdrTaxName || '',
+
+        vdrAdminNotes: txtvdrAdminNotes || '',
+
+        // keep whatever your API expects (string/array). We pass back the same value it had.
+        vdrIsBirthDayService: (VendorData?.vdrIsBirthDayService ?? ''),
+
+        vdrCapacity: [],
+        vdrPricePerPerson: [],
+
+        OfficeOpenHours: officeOpenHoursArr, // NEVER null
+
+        IsDataStatus: 1,
+        CreatedBy: typeof getCurrentLoggedUserID === 'function' ? getCurrentLoggedUserID() : getCurrentLoggedUserID,
+        ModifyBy: typeof getCurrentLoggedUserID === 'function' ? getCurrentLoggedUserID() : getCurrentLoggedUserID,
+      };
+
+      // Debug snapshot
+      setDebugPayload(payload);
+      console.log('[VendorEdit] Submitting payload:', payload);
+
       const response = await fetch(`${API_BASE_URL}/vendorinfo/vendor/updatevendor`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          VendorID: VendorIDVal,
-          vdrName: txtvdrName || '',
-          vdrClubName: txtvdrClubName,
-          vdrImageName: vdrImageNameVal, // file
-          vdrTaxFileName: vdrTaxFileNameVal, // file
-          vdrCRFileName: vdrCRFileNameVal,
-          vdrEmailAddress: txtvdrEmailAddress || '',
-          vdrMobileNo1: txtvdrMobileNo1 || '',
-          vdrMobileNo2: txtvdrMobileNo2 || '',
-          vdrDesc: txtvdrDesc || '',
-          vdrCategoryID: selectedCategories,
-          vdrCRNumber: txtvdrCRNumber || '',
-          vdrCvdrCRFileName: null, // file
-          vdrAddress1: txtvdrAddress1 || '',
-          vdrAddress2: txtvdrAddress2 || '',
-          vdrCountryID: txtvdrCountryID || '',
-          vdrCityID: txtvdrCityID || '',
-          vdrRegionName: txtvdrRegionName || '',
-          vdrZipCode: txtvdrZipCode || '',
-          vdrWebsiteAddress: txtvdrWebsiteAddress || '',
-          vdrGoogleMap: txtvdrGoogleMap || '0',
+        body: JSON.stringify(payload),
+      });
 
-          vdrGlat: txtvdrGlat || '',
-          vdrGlan: txtvdrGlan || '',
+      const jsonResponse = await response.json().catch(() => ({}));
+      setDebugResponse({ status: response.status, ok: response.ok, body: jsonResponse });
+      console.log('[VendorEdit] updatevendor response:', response.status, jsonResponse);
 
-          vdrInstagram: txtvdrInstagram || '',
-          vdrFaceBook: txtvdrFaceBook || '',
-          vdrX: txtvdrX || '',
-          vdrSnapChat: txtvdrSnapChat || '',
-          vdrTikTok: txtvdrTikTok || '',
-          vdrYouTube: txtvdrYouTube || '',
-          vdrBankName: txtvdrBankName || '',
-          vdrAccHolderName: txtvdrAccHolderName || '',
-          vdrAccIBANNo: txtvdrAccIBANNo || '',
-          vdrTaxName: txtvdrTaxName || '',
+      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
-          vdrAdminNotes: txtvdrAdminNotes || '',
+      setToastMessage('Vendor updated successfully!');
+      setToastType('success');
 
-          vdrIsBirthDayService: chkvdrIsBirthDayService,
-          vdrCapacity: vdrCapacity,
-          vdrPricePerPerson: vdrPricePerPerson,
-          OfficeOpenHours: getOpeningHoursTableData(),
-          IsDataStatus: 1,
-          CreatedBy: getCurrentLoggedUserID(),
-          ModifyBy: getCurrentLoggedUserID(),
-        }),
-      })
-
-      if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
-
-      await response.json()
-      setToastMessage('Vendor added successfully!')
-      setToastType('success')
-
-      setTimeout(() => navigate('/admindata/vendor/list'), 2000)
+      setTimeout(() => navigate('/admindata/vendor/list'), 1500);
     } catch (err) {
-      console.error('Error adding Vendor:', err)
-      setToastMessage('Failed to add Vendor.')
-      setToastType('fail')
+      console.error('Error updating Vendor:', err);
+      setToastMessage('Failed to update Vendor.');
+      setToastType('fail');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const getOpeningHoursTableData = (OfficeOpenHoursVal) => {
-    const rows = []
+  // ===== Validation builder (same rules as create) =====
+  const validateAll = () => {
+    const newErrs = {};
 
-    Object.entries(days).forEach(([dayName, dayData]) => {
-      if (dayData.closed) return
+    if (!txtvdrName.trim()) newErrs.txtvdrName = 'Vendor Name is required.';
+    if (!txtvdrClubName.trim()) newErrs.txtvdrClubName = 'Club Name is required.';
+    if (!(vdrImageName instanceof File) && !OrgtxtvdrImageName1Val) newErrs.vdrImageName = 'Vendor Image is required.';
+    if (!txtvdrEmailAddress.trim()) newErrs.txtvdrEmailAddress = 'Email Address is required.'; // still required, read-only
 
-      dayData.times.forEach((range) => {
-        rows.push({
-          DayName: dayName,
-          StartTime: range.start,
-          EndTime: range.end,
-          Note: range.note || '',
-          Total: range.total || '0.00',
-          CreatedBy: getCurrentLoggedUserID(),
-          ModifyBy: getCurrentLoggedUserID(),
-        })
-      })
-    })
+    // NOTE: Mobile Number 1 is read-only now → no editable validation needed
 
-    return {
-      OfficeOpenHours: OfficeOpenHoursVal,
-      rows,
+    if (!selectedCategories?.length) newErrs.categories = 'Select at least one Category.';
+    if (!txtvdrAddress1.trim()) newErrs.txtvdrAddress1 = 'Address1 is required.';
+    if (!txtvdrGoogleMap.trim()) newErrs.txtvdrGoogleMap = 'Google Map Location is required.';
+    if (!`${txtvdrGlan}`.trim()) newErrs.txtvdrGlan = 'Vendor Longitude is required.';
+    if (!`${txtvdrGlat}`.trim()) newErrs.txtvdrGlat = 'Vendor Latitude is required.';
+    if (!txtvdrAdminNotes.trim()) newErrs.txtvdrAdminNotes = 'Admin Notes is required.';
+
+    // Opening hours validations
+    if (!hasAtLeastOneCompleteRange(days)) {
+      newErrs.availability = 'Enter start & end for at least one available day.';
     }
-  }
+    const inc = findIncompleteRange(days);
+    if (inc) newErrs.openingHours = `Please enter the ${inc.which} time for ${inc.day} (row ${inc.index + 1}).`;
+    const overlap = hasOverlap(days);
+    if (overlap) {
+      newErrs.openingOverlap =
+        `Time range overlap on ${overlap.day}: ` +
+        `${overlap.range1.start} - ${overlap.range1.end} overlaps with ` +
+        `${overlap.range2.start} - ${overlap.range2.end}`;
+    }
 
+    return newErrs;
+  };
+
+  // ===== Clear server existence error on edits =====
+  useEffect(() => {
+    if (existErr) setExistErr('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txtvdrMobileNo1, txtvdrEmailAddress]);
+
+  // ===== Lookups =====
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
+        const res = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // If your API expects data in the body
-        })
-
-        const result = await response.json()
-        if (result.data) {
-          setCityList(result.data)
-        }
-      } catch (error) {
-        console.error('Error fetching city list:', error)
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        });
+        const json = await res.json();
+        if (json?.data) setCityList(json.data);
+      } catch (e) {
+        console.error('Error fetching city list:', e);
       }
-    }
+    };
 
-    const fetchCountries = async () => {
+    const fetchCountriesList = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
+        const res = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // if needed
-        })
-
-        const result = await response.json()
-        if (result.data) {
-          setCountries(result.data)
-        }
-      } catch (error) {
-        console.error('Error fetching countries:', error)
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        });
+        const json = await res.json();
+        if (json?.data) setCountries(json.data);
+      } catch (e) {
+        console.error('Error fetching countries:', e);
       }
-    }
+    };
 
-    const FetchCategory = async () => {
+    const fetchCategoryList = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
+        const res = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // optional if your API accepts an empty object
-        })
-
-        const result = await response.json()
-        console.log(result.data)
-        if (result.data) {
-          const mappedLevels = result.data.map((item) => ({
-            value: item.CategoryID,
-            label: item.EnCategoryName,
-          }))
-          setFetchCategories(result.data)
-        }
-      } catch (error) {
-        console.error('Error fetching education levels:', error)
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        });
+        const json = await res.json();
+        if (json?.data) setFetchCategories(json.data);
+      } catch (e) {
+        console.error('Error fetching categories:', e);
       }
-    }
+    };
 
-    fetchCities()
-    fetchCountries()
-    FetchCategory()
-  }, [])
+    fetchCities();
+    fetchCountriesList();
+    fetchCategoryList();
+  }, []);
 
-  const fetchVendor = async (VendorIDVal) => {
-    console.log('VendorIDVal.data')
-    console.log(VendorIDVal)
-    setLoading(true)
+  // ===== Vendor fetch =====
+  const getSearchParams = () => {
+    const search =
+      window.location.search ||
+      (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+    return new URLSearchParams(search);
+  };
 
+  const fetchVendor = async (id) => {
+    setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/Vendorinfo/Vendor/getVendor`, {
+      const response = await fetch(`${API_BASE_URL}/vendorinfo/vendor/getVendor`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ VendorID: VendorIDVal }),
-      })
-      console.log(`${API_BASE_URL}/Vendorinfo/Vendor/getVendor`)
-      if (!response.ok) throw new Error('Failed to fetch Vendor')
-
-      const data = await response.json()
-      console.log('data.data')
-      console.log(data.data)
-      SetVendor(data.data || [])
-    } catch (error) {
-      setError('Error fetching Vendor')
+        body: JSON.stringify({ VendorID: id }),
+      });
+      if (!response.ok) throw new Error('Failed to fetch Vendor');
+      const data = await response.json();
+      console.log('[VendorEdit] getVendor data:', data?.data);
+      SetVendor(data.data || null);
+    } catch (err) {
+      console.error(err);
+      setError('Error fetching Vendor');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-   const getSearchParams = () => {
-  const search = window.location.search ||
-    (window.location.hash && window.location.hash.includes('?')
-      ? `?${window.location.hash.split('?')[1]}`
-      : '');
-  return new URLSearchParams(search);
-};
-
-  // ✅ Now this works fine
   useEffect(() => {
-  
-     const urlParams = getSearchParams()
-    const VendorIDVal = urlParams.get('VendorID')
-    console.log('VendorIDVal')
-    console.log(VendorIDVal)
-
-    if (VendorIDVal) {
-      setVendorID(VendorIDVal)
-      fetchVendor(VendorIDVal)
+    const urlParams = getSearchParams();
+    const vid = urlParams.get('VendorID');
+    if (vid) {
+      setVendorID(vid);
+      fetchVendor(vid);
     } else {
-      setError('VendorID is missing in URL')
+      setError('VendorID is missing in URL');
     }
-  }, [])
+  }, []);
 
-  const handleFileChange = (e, key) => {
-    const file = e.target.files[0]
-    if (key === 'certificate') {
-      setCertificateFile(file)
-    } else if (key === 'tax') {
-      setTaxFile(file)
-    }
-  }
+  // Helper: some payloads show vdrIsBirthDayService as [] instead of "Yes"/"No"
+  const vdrIsBirthdayYes = (() => {
+    const v = VendorData?.vdrIsBirthDayService;
+    if (Array.isArray(v)) return false;
+    const s = String(v || '').trim().toLowerCase();
+    return s === 'yes' || s === 'y' || s === 'true' || s === '1';
+  })();
+  const vdrIsBirthdayNo = !vdrIsBirthdayYes;
 
-  const addPhoneField = () => {
-    setFormData((prev) => ({
-      ...prev,
-      phoneNumbers: [...prev.phoneNumbers, ''],
-    }))
-  }
-  const [fetchcategories, setFetchCategories] = useState([])
-
-  const handleRemoveTimeRange = (day, index) => {
-    const updatedTimes = days[day].times.filter((_, i) => i !== index)
-    const newTotal = updatedTimes.reduce((sum, t) => sum + parseFloat(t.total || 0), 0)
-
-    setDays({
-      ...days,
-      [day]: {
-        ...days[day],
-        times: updatedTimes.length > 0 ? updatedTimes : [{ start: '', end: '', total: '' }],
-        total: newTotal.toFixed(2),
-      },
-    })
-  }
-  const handleCheckboxChange = (id) => {
-    const idStr = String(id)
-    setSelectedCategories((prev) => {
-      const updated = prev.includes(idStr) ? prev.filter((val) => val !== idStr) : [...prev, idStr]
-
-      console.log('Updated selectedCategories:', updated)
-      return updated
-    })
-  }
+  // ===== Hydrate state from VendorData =====
   useEffect(() => {
-    console.log('VendorData')
-    console.log(VendorData)
-    if (!VendorData) return
+    if (!VendorData) return;
 
-    setvdrImageName(VendorData.vdrImageNameUrl)
-    setvdrCRFileName(VendorData.vdrCRFileNameUrl)
-    setvdrTaxFileName(VendorData.vdrTaxFileNameUrl)
+    setvdrImageName(VendorData.vdrImageNameUrl);
+    setvdrCRFileName(VendorData.vdrCRFileNameUrl);
+    setvdrTaxFileName(VendorData.vdrTaxFileNameUrl);
 
-    setOrgsetvdrImageName(VendorData.vdrImageName)
-    setOrgtxtvdrTaxFileName(VendorData.vdrTaxFileName)
-    setOrgtxtvdrCRFileName(VendorData.vdrCRFileName)
+    setOrgsetvdrImageName(VendorData.vdrImageName);
+    setOrgtxtvdrTaxFileName(VendorData.vdrTaxFileName);
+    setOrgtxtvdrCRFileName(VendorData.vdrCRFileName);
 
-    setVdrName(VendorData.vdrName || '')
-    setClubName(VendorData.vdrClubName || '')
-    setVdrEmailAddress(VendorData.vdrEmailAddress || '')
-    setVdrEmailAddress(VendorData.vdrEmailAddress || '')
-    setVdrMobileNo1(VendorData.vdrMobileNo1 || '')
-    setVdrMobileNo2(VendorData.vdrMobileNo2 || '')
+    setVdrName(VendorData.vdrName || '');
+    setClubName(VendorData.vdrClubName || '');
+    setVdrEmailAddress(VendorData.vdrEmailAddress || '');
+    setVdrMobileNo1(VendorData.vdrMobileNo1 || '');
+    setVdrMobileNo2(VendorData.vdrMobileNo2 || '');
+    setVdrDesc(VendorData.vdrDesc || '');
 
-    setVdrDesc(VendorData.vdrDesc || '')
+    setAddress1(VendorData.vdrAddress1 || '');
+    setAddress2(VendorData.vdrAddress2 || '');
 
-    setVdrLevel(VendorData.vdrLevel || '')
-    // setCertificateName(VendorData.vdrCertificateName || '')
+    setCountryID(VendorData.vdrCountryID || '');
+    setSelectedCityID(VendorData.vdrCityID || '');
 
-    setAddress1(VendorData.vdrAddress1 || '')
-    setAddress2(VendorData.vdrAddress2 || '')
+    setRegionName(VendorData.vdrRegionName || '');
+    setZipCode(VendorData.vdrZipCode || '');
+    setWebsiteAddress(VendorData.vdrWebsiteAddress || '');
+    setVdrGoogleMap(VendorData.vdrGoogleMap || '');
+    setGlat(VendorData.vdrGlat || '');
+    setGlan(VendorData.vdrGlan || '');
 
-    setCountryID(VendorData.vdrCountryID || '')
-    setSelectedCityID(VendorData.vdrCityID || '')
+    setInstagram(VendorData.vdrInstagram || '');
+    setFaceBook(VendorData.vdrFaceBook || '');
+    setX(VendorData.vdrX || '');
+    setSnapChat(VendorData.vdrSnapChat || '');
+    setTikTok(VendorData.vdrTikTok || '');
+    setYouTube(VendorData.vdrYouTube || '');
 
-    setRegionName(VendorData.vdrRegionName)
-    setZipCode(VendorData.vdrZipCode)
-    setWebsiteAddress(VendorData.vdrWebsiteAddress)
-    setVdrGoogleMap(VendorData.vdrGoogleMap)
-    setGlat(VendorData.vdrGlat)
-    setGlan(VendorData.vdrGlan)
+    setBankName(VendorData.vdrBankName || '');
+    setAccHolderName(VendorData.vdrAccHolderName || '');
+    setIBANNo(VendorData.vdrAccIBANNo || '');
+    setTaxName(VendorData.vdrTaxName || '');
 
-    setInstagram(VendorData.vdrInstagram)
-    setFaceBook(VendorData.vdrFaceBook)
-    setX(VendorData.vdrX)
-    setSnapChat(VendorData.vdrSnapChat)
-    setTikTok(VendorData.vdrTikTok)
-    setYouTube(VendorData.vdrYouTube)
-
-    setBankName(VendorData.vdrBankName)
-    setAccHolderName(VendorData.vdrAccHolderName)
-    setIBANNo(VendorData.vdrAccIBANNo)
-    setTaxName(VendorData.vdrTaxName)
-    setAdminNotes(VendorData.vdrAdminNotes)
-    setCRNumber(VendorData.vdrCRNumber)
-
-    console.log('VendorData')
-    console.log(VendorData.vdrName)
+    setAdminNotes(VendorData.vdrAdminNotes || '');
+    setCRNumber(VendorData.vdrCRNumber || '');
 
     if (VendorData?.vdrCategoryID) {
-      const ids = VendorData.vdrCategoryID.map((id) => String(id)) // normalize to string
-      setSelectedCategories(ids)
-      console.log('Preselected categories:', ids)
-
-      if (VendorData?.vdrIsBirthDayService) {
-        setBirthDayService(VendorData.vdrIsBirthDayService) // "Yes" or "No"
-      }
+      const ids = VendorData.vdrCategoryID.map((id) => String(id));
+      setSelectedCategories(ids);
     }
-  }, [VendorData])
+
+    // Prefer NewOfficeOpenHours; fallback to legacy OfficeOpenHours
+    const hoursRows = Array.isArray(VendorData?.NewOfficeOpenHours)
+      ? VendorData.NewOfficeOpenHours
+      : Array.isArray(VendorData?.OfficeOpenHours)
+        ? VendorData.OfficeOpenHours
+        : [];
+
+    if (hoursRows.length) {
+      const mapped = mapOfficeHoursToDays(hoursRows);
+      setDays(mapped);
+      validateOpeningHours(mapped);
+    } else {
+      const empty = makeEmptyDays();
+      setDays(empty);
+      validateOpeningHours(empty);
+    }
+  }, [VendorData]);
+
+  // ===== Render =====
   return (
     <div>
       <div className="divhbg">
-        {/* Left side: Title */}
-        <div className="txtheadertitle">Add New Vendor</div>
-
-        {/* Right side: Buttons */}
+        <div className="txtheadertitle">Edit Vendor</div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="admin-buttonv1" onClick={handleSubmit}>
-            Save
+          <button className="admin-buttonv1" onClick={handleSubmit} disabled={loading || checking}>
+            {loading ? 'Saving...' : 'Save'}
           </button>
           <button
             type="button"
@@ -671,32 +845,94 @@ const Vendor = () => {
         </div>
       </div>
 
+      {/* READ-ONLY username + email block */}
       <div className="form-group">
-        <label>
-          <span style={{ color: 'red', padding: '10px', fontSize: '22px', fontWeight: 'bold' }}>
-            username
-          </span>
-        </label>
-        <div
-          className="mobile-input-group"
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: '20px',
-            padding: '10px',
-            fontSize: '22px',
-            fontWeight: 'bold',
-            margin: '10px',
-          }}
-        >
-          {txtvdrMobileNo1}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div>
+            <label style={{ display: 'block' }}>
+              <span style={{ color: 'red', padding: '10px', fontSize: '22px', fontWeight: 'bold' }}>
+                username
+              </span>
+            </label>
+            <div
+              className="mobile-input-group"
+              style={{
+                border: '1px solid #ccc',
+                borderRadius: '20px',
+                padding: '10px 14px',
+                fontSize: '18px',
+                fontWeight: 600,
+                minWidth: 220,
+              }}
+            >
+              {txtvdrMobileNo1 || '-'}
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block' }}>
+              <span style={{ color: '#444', padding: '10px', fontSize: '18px', fontWeight: 'bold' }}>
+                Email
+              </span>
+            </label>
+            <div
+              className="mobile-input-group"
+              style={{
+                border: '1px solid #ccc',
+                borderRadius: '20px',
+                padding: '10px 14px',
+                fontSize: '16px',
+                fontWeight: 500,
+                minWidth: 260,
+                background: '#f7f7f7',
+              }}
+              title={txtvdrEmailAddress}
+            >
+              {txtvdrEmailAddress || '-'}
+            </div>
+          </div>
         </div>
+
+        {/* Inline errors (read-only area) */}
+        {existErr && <div className="ErrorMsg" style={{ marginTop: 8 }}>{existErr}</div>}
+        {submitted && !txtvdrEmailAddress?.trim() && (
+          <div className="ErrorMsg" style={{ marginTop: 8 }}>Email Address is required.</div>
+        )}
       </div>
+
+      {/* ==== Raw API response from getVendor ==== */}
+      {VendorData && (
+        <>
+          {/* <div className="txtsubtitle">API Response (getVendor)</div>
+          <div className="divbox">
+            <pre
+              style={{
+                background: '#0b1020',
+                color: '#e9f2ff',
+                padding: '12px',
+                borderRadius: '8px',
+                overflowX: 'auto',
+                maxHeight: 300
+              }}
+            >
+{JSON.stringify(VendorData, null, 2)}
+            </pre>
+          </div> */}
+        </>
+      )}
+
+      {/* DEBUG: Outgoing payload & incoming response */}
+      {/* <div className="txtsubtitle">Debug: Update Payload & Response</div>
+      <div className="divbox">
+        <DebugPanel title="Outgoing Payload (updatevendor)" data={debugPayload} />
+        <DebugPanel title="API Response (updatevendor)" data={debugResponse} />
+      </div> */}
 
       <div className="txtsubtitle">Vendor Information</div>
 
       <div className="divbox">
         <div className="form-group">
-          <label>Vendor Name</label>
+          <label>Vendor Name <Req /></label>
           <input
             name="txtvdrName"
             className="admin-txt-box"
@@ -704,51 +940,29 @@ const Vendor = () => {
             type="text"
             required
             value={txtvdrName}
-            onChange={(e) => setVdrName(e.target.value)}
+            onChange={(e) => { setVdrName(e.target.value); revalidateField('txtvdrName', e.target.value); }}
+            aria-invalid={!!errors.txtvdrName}
           />
+          {errors.txtvdrName && <div className="ErrorMsg">{errors.txtvdrName}</div>}
         </div>
+
         <div className="form-group">
-          <label>Club Name</label>
+          <label>Club Name <Req /></label>
           <input
             name="txtvdrClubName"
             className="admin-txt-box"
-            placeholder="Enter Vendor Name"
+            placeholder="Enter Club Name"
             type="text"
             required
             value={txtvdrClubName}
-            onChange={(e) => setClubName(e.target.value)}
+            onChange={(e) => { setClubName(e.target.value); revalidateField('txtvdrClubName', e.target.value); }}
+            aria-invalid={!!errors.txtvdrClubName}
           />
+          {errors.txtvdrClubName && <div className="ErrorMsg">{errors.txtvdrClubName}</div>}
         </div>
 
-        <div className="form-group">
-          <label>Vendor Image</label>
-          <input
-            name="txtvdrImageName"
-            className="admin-txt-box"
-            placeholder="Upload Vendor Image"
-            type="file"
-            onChange={handleFileUpload(setvdrImageName)}
-          />
-          {console.log('vdrImageName:', vdrImageName)}
-          {vdrImageName && <FilePreview file={vdrImageName} />}
-        </div>
+        {/* Email stays read-only above; editable Mobile 1 removed */}
 
-        <div className="form-group">
-          <label>Email Address</label>
-          <input
-            name="txtvdrEmailAddress"
-            placeholder="Enter Email Address"
-            className="admin-txt-box"
-            type="text"
-            required
-            value={txtvdrEmailAddress}
-            onChange={(e) => setVdrEmailAddress(e.target.value)}
-          />
-        </div>
-
-        <div className="form-group">
-          <div className="ErrorMsg"> {ErrorUserExistMsg}</div>
-        </div>
         <div className="form-group">
           <label>Mobile Number 2</label>
           <div className="mobile-input-group">
@@ -757,11 +971,12 @@ const Vendor = () => {
               className="admin-txt-box"
               type="text"
               value={txtvdrMobileNo2}
-              placeholder="Enter mobile number2"
-              onChange={(e) => setVdrMobileNo2(e.target.value)}
+              placeholder="Enter mobile number 2"
+              onChange={(e) => setVdrMobileNo2(sanitizeMobile(e.target.value))}
             />
           </div>
         </div>
+
         <div className="form-group">
           <label>Vendor Description</label>
           <textarea
@@ -770,66 +985,61 @@ const Vendor = () => {
             placeholder="Enter Vendor Description"
             rows={4}
             onChange={(e) => setVdrDesc(e.target.value)}
-            required
             value={txtvdrDesc}
           />
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Select Categories
+            Select Categories <Req />
           </label>
-
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-              {fetchcategories.map((item) => {
-                const id = String(item.CategoryID)
-                const isChecked = selectedCategories.includes(id)
-
-                console.log(
-                  `Rendering category: ${item.EnCategoryName} (${id}) - Checked: ${isChecked}`,
-                )
-                return (
-                  <label
-                    key={id}
-                    style={{
-                      width: '33.33%',
-                      marginBottom: 10,
-                      display: 'flex',
-                      alignItems: 'center',
+            {fetchcategories.map((item) => {
+              const id = String(item.CategoryID);
+              const isChecked = selectedCategories.includes(id);
+              return (
+                <label key={id} style={{ width: '33.33%', marginBottom: 10, display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    name="txtvdrCategoryID"
+                    value={id}
+                    checked={isChecked}
+                    onChange={() => {
+                      setSelectedCategories((prev) => {
+                        const updated = prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id];
+                        if (submitted) {
+                          setErrors((old) => ({ ...old, categories: updated.length ? '' : 'Select at least one Category.' }));
+                        }
+                        return updated;
+                      });
                     }}
-                  >
-                    <input
-                      type="checkbox"
-                      value={id}
-                      onChange={() => handleCheckboxChange(id)}
-                      checked={isChecked}
-                      style={{ marginRight: 8 }}
-                    />
-                    {item.EnCategoryName}
-                  </label>
-                )
-              })}
-            </div>
+                    style={{ marginRight: 8 }}
+                  />
+                  {item.EnCategoryName}
+                </label>
+              );
+            })}
           </div>
+          {errors.categories && <div className="ErrorMsg">{errors.categories}</div>}
         </div>
       </div>
 
-      <div className="txtsubtitle">Vendor Location </div>
-
+      <div className="txtsubtitle">Vendor Location</div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Address1</label>
+              <label className="vendor-label">Address1 <Req /></label>
               <input
                 name="txtvdrAddress1"
                 value={txtvdrAddress1}
                 className="vendor-input"
                 placeholder="Enter Street Address1"
-                onChange={(e) => setAddress1(e.target.value)}
+                onChange={(e) => { setAddress1(e.target.value); revalidateField('txtvdrAddress1', e.target.value); }}
                 required
+                aria-invalid={!!errors.txtvdrAddress1}
               />
+              {errors.txtvdrAddress1 && <div className="ErrorMsg">{errors.txtvdrAddress1}</div>}
             </div>
 
             <div className="vendor-column">
@@ -849,13 +1059,7 @@ const Vendor = () => {
                 onChange={(e) => setCountryID(e.target.value)}
                 name="txtvdrCountryID"
                 value={txtvdrCountryID}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                }}
-                required
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
               >
                 <option value="">Select a country</option>
                 {countries.map((country) => (
@@ -877,7 +1081,6 @@ const Vendor = () => {
                 value={txtvdrCityID}
                 className="admin-txt-box"
                 onChange={(e) => setSelectedCityID(e.target.value)}
-                required
               >
                 <option value="">Select City</option>
                 {cityList.map((city) => (
@@ -894,9 +1097,8 @@ const Vendor = () => {
                 value={txtvdrRegionName}
                 name="txtvdrRegionName"
                 className="vendor-input"
-                placeholder="Enter Region  "
+                placeholder="Enter Region"
                 onChange={(e) => setRegionName(e.target.value)}
-                required
               />
             </div>
 
@@ -908,7 +1110,6 @@ const Vendor = () => {
                 className="vendor-input"
                 placeholder="Enter Zip Code"
                 onChange={(e) => setZipCode(e.target.value)}
-                required
               />
             </div>
           </div>
@@ -916,10 +1117,7 @@ const Vendor = () => {
 
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Website Address</label>
               <input
                 onChange={(e) => setWebsiteAddress(e.target.value)}
@@ -934,18 +1132,18 @@ const Vendor = () => {
 
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <label className="vendor-label">Google Map Location</label>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">Google Map Location <Req /></label>
               <input
                 value={txtvdrGoogleMap}
-                onChange={(e) => setVdrGoogleMap(e.target.value)}
+                onChange={(e) => { setVdrGoogleMap(e.target.value); revalidateField('txtvdrGoogleMap', e.target.value); }}
                 name="txtvdrGoogleMap"
                 className="vendor-input"
                 placeholder="Enter Google Map Location"
+                required
+                aria-invalid={!!errors.txtvdrGoogleMap}
               />
+              {errors.txtvdrGoogleMap && <div className="ErrorMsg">{errors.txtvdrGoogleMap}</div>}
             </div>
           </div>
         </div>
@@ -953,39 +1151,41 @@ const Vendor = () => {
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Vendor Longitude</label>
+              <label className="vendor-label">Vendor Longitude <Req /></label>
               <input
                 value={txtvdrGlan}
-                name="txtvdrGlan "
+                name="txtvdrGLan"
                 className="vendor-input"
-                placeholder="Enter Longitude  "
-                onChange={(e) => setGlan(e.target.value)}
+                placeholder="Enter Longitude"
+                onChange={(e) => { setGlan(e.target.value); revalidateField('txtvdrGlan', e.target.value); }}
+                required
+                aria-invalid={!!errors.txtvdrGlan}
               />
+              {errors.txtvdrGlan && <div className="ErrorMsg">{errors.txtvdrGlan}</div>}
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">Vendor Lattitude</label>
+              <label className="vendor-label">Vendor Latitude <Req /></label>
               <input
                 value={txtvdrGlat}
-                name="txtvdrGlat"
+                name="txtvdrGLat"
                 className="vendor-input"
-                placeholder="Enter Lattitude  "
-                onChange={(e) => setGlat(e.target.value)}
+                placeholder="Enter Latitude"
+                onChange={(e) => { setGlat(e.target.value); revalidateField('txtvdrGlat', e.target.value); }}
+                required
+                aria-invalid={!!errors.txtvdrGlat}
               />
+              {errors.txtvdrGlat && <div className="ErrorMsg">{errors.txtvdrGlat}</div>}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle"> Social Media Information </div>
+      <div className="txtsubtitle">Social Media Information</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Instagram</label>
               <input
                 value={txtvdrInstagram}
@@ -996,10 +1196,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">FaceBook</label>
               <input
                 value={txtvdrFaceBook}
@@ -1011,15 +1208,10 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
 
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">X</label>
               <input
                 onChange={(e) => setX(e.target.value)}
@@ -1030,10 +1222,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">SnapChat</label>
               <input
                 onChange={(e) => setSnapChat(e.target.value)}
@@ -1045,15 +1234,10 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
 
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">TikTok</label>
               <input
                 onChange={(e) => setTikTok(e.target.value)}
@@ -1064,10 +1248,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Youtube</label>
               <input
                 value={txtvdrYouTube}
@@ -1080,28 +1261,22 @@ const Vendor = () => {
           </div>
         </div>
       </div>
-      {/* // row end */}
 
-      <div className="txtsubtitle">Birth Day Information </div>
+      <div className="txtsubtitle">Birth Day Information</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <label className="vendor-label">Are you offering Birth Day?</label>
-
+          <div className="vendor-row" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div className="vendor-column" style={{ flex: 1 }}>
+              <label className="vendor-label">Are you offering Birth Day?</label>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: 6 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <input
                     type="radio"
                     name="chkvdrIsBirthDayService"
                     value="Yes"
-                    onChange={(e) => setBirthDayService(e.target.value)}
-                    checked={chkvdrIsBirthDayService === 'Yes'}
-                    style={{ width: '24px', height: '24px' }}
+                    onChange={() => {}}
+                    checked={vdrIsBirthdayYes}
+                    style={{ width: '20px', height: '20px' }}
                   />
                   Yes
                 </label>
@@ -1111,9 +1286,9 @@ const Vendor = () => {
                     type="radio"
                     name="chkvdrIsBirthDayService"
                     value="No"
-                    onChange={(e) => setBirthDayService(e.target.value)}
-                    checked={chkvdrIsBirthDayService === 'No'}
-                    style={{ width: '24px', height: '24px' }}
+                    onChange={() => {}}
+                    checked={vdrIsBirthdayNo}
+                    style={{ width: '20px', height: '20px' }}
                   />
                   No
                 </label>
@@ -1121,18 +1296,108 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
 
-      <div className="txtsubtitle">Banking Information </div>
+      <div className="txtsubtitle">Opening Hours Information</div>
       <div className="divbox">
-        {/* // row start */}
+        <div style={{ margin: '20px auto' }}>
+          {DAY_KEYS.map((day) => (
+            <div key={day} style={{ padding: '12px 0', borderBottom: '1px solid #ccc' }}>
+              <div style={{ fontWeight: 'bold', textTransform: 'capitalize', marginBottom: 8 }}>
+                <label>
+                  {day}{' '}
+                  <input
+                    type="checkbox"
+                    checked={!days[day].closed}
+                    onChange={(e) => handleClosedChange(day, !e.target.checked)}
+                  />{' '}
+                  Available
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {days[day].times.map((range, index) => (
+                  <div key={index} style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label>
+                      Start Time:{' '}
+                      <input
+                        className="admin-txt-box"
+                        type="time"
+                        value={range.start}
+                        onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
+                        disabled={days[day].closed}
+                      />
+                    </label>
+
+                    <label>
+                      End Time:{' '}
+                      <input
+                        className="admin-txt-box"
+                        type="time"
+                        value={range.end}
+                        onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
+                        disabled={days[day].closed}
+                      />
+                    </label>
+
+                    <label>
+                      Notes:{' '}
+                      <input
+                        type="text"
+                        className="admin-txt-box"
+                        value={range.note || ''}
+                        onChange={(e) => handleTimeChange(day, index, 'note', e.target.value)}
+                        placeholder="Optional notes"
+                        disabled={days[day].closed}
+                      />
+                    </label>
+
+                    <div>
+                      Range Hours: <strong>{range.total || '0.00'}</strong>
+                    </div>
+
+                    {days[day].times.length > 1 && (
+                      <button
+                        type="button"
+                        style={{ background: 'tomato', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
+                        onClick={() => handleRemoveTimeRange(day, index)}
+                        disabled={days[day].closed}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="admin-buttonv1" onClick={() => handleAddMore(day)} disabled={days[day].closed}>
+                    Add More
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {(availabilityErr || errors.availability || errors.openingHours || errors.openingOverlap) && (
+            <div className="ErrorMsg" style={{ marginTop: 8 }}>
+              {availabilityErr || errors.availability || errors.openingHours || errors.openingOverlap}
+            </div>
+          )}
+          <div style={{ marginTop: 8, color: '#666', fontSize: 13 }}>
+            <em><Req /> At least one day must have both Start and End time.</em>
+          </div>
+        </div>
+      </div>
+
+      {/* NewOfficeOpenHours (read-only) */}
+      {/* <div className="txtsubtitle">NewOfficeOpenHours (from API)</div>
+      <OfficeOpenHoursView rows={VendorData?.NewOfficeOpenHours} /> */}
+
+      <div className="txtsubtitle">Banking Information</div>
+      <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Bank Name</label>
               <input
                 onChange={(e) => setBankName(e.target.value)}
@@ -1140,22 +1405,16 @@ const Vendor = () => {
                 value={txtvdrBankName}
                 className="vendor-input"
                 placeholder="Enter Bank Name"
-                required
               />
             </div>
           </div>
         </div>
-        {/* // row end */}
 
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Name of Account Holder</label>
               <input
-                required
                 value={txtvdrAccHolderName}
                 name="txtvdrAccHolderName"
                 className="vendor-input"
@@ -1164,10 +1423,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">IBAN Account Number</label>
               <input
                 value={txtvdrAccIBANNo}
@@ -1175,30 +1431,27 @@ const Vendor = () => {
                 name="txtvdrAccIBANNo"
                 className="vendor-input"
                 placeholder="Enter IBAN Account Number"
-                required
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle"> Document Information </div>
+      <div className="txtsubtitle">Document Information</div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
-            {/* Left: Commercial Registration Number */}
             <div className="vendor-column">
-              <label className="vendor-label">CR Number </label>
+              <label className="vendor-label">CR Number</label>
               <input
                 value={txtvdrCRNumber}
                 name="txtvdrCRNumber"
                 className="vendor-input"
-                placeholder="Enter Vendor Certificate"
+                placeholder="Enter Commercial Registration Number"
                 onChange={(e) => setCRNumber(e.target.value)}
               />
             </div>
 
-            {/* Right: Upload Commercial Registration */}
             <div className="vendor-column">
               <label className="vendor-label">Upload CR No Certificate</label>
               <input
@@ -1211,28 +1464,21 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row start */}
+
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Tax Name</label>
               <input
                 value={txtvdrTaxName}
                 onChange={(e) => setTaxName(e.target.value)}
                 name="txtvdrTaxName"
                 className="vendor-input"
-                placeholder="Tax Document Information "
-                required
+                placeholder="Tax Document Information"
               />
             </div>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <label className="vendor-label">Upload Document </label>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">Upload Document</label>
               <input
                 name="txtvdrTaxFileName"
                 type="file"
@@ -1243,35 +1489,33 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
 
-      <div className="txtsubtitle">Admin Notes Information </div>
+      <div className="txtsubtitle">Admin Notes Information</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <label className="vendor-label">Enter Admin Notes</label>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">Enter Admin Notes <Req /></label>
               <textarea
                 value={txtvdrAdminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
+                onChange={(e) => { setAdminNotes(e.target.value); revalidateField('txtvdrAdminNotes', e.target.value); }}
                 name="txtvdrAdminNotes"
                 className="vendor-input"
-                placeholder="Enter Admin Notes "
+                placeholder="Enter Admin Notes"
                 rows={4}
+                required
+                aria-invalid={!!errors.txtvdrAdminNotes}
               />
+              {errors.txtvdrAdminNotes && <div className="ErrorMsg">{errors.txtvdrAdminNotes}</div>}
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
+
       <div className="button-container">
-        <button className="admin-buttonv1" onClick={handleSubmit}>
-          Save
+        <button className="admin-buttonv1" onClick={handleSubmit} disabled={loading || checking}>
+          {loading ? 'Saving...' : 'Save'}
         </button>
         <button
           type="button"
@@ -1281,8 +1525,10 @@ const Vendor = () => {
           Cancel
         </button>
       </div>
+
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
-  )
-}
-export default Vendor
+  );
+};
+
+export default Vendor;

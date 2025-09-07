@@ -246,15 +246,7 @@ const ActivityList = () => {
                             <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
                           </button>
                        
-                      <button
-                        onClick={() => handleViewClick(Activity.ActivityID)}
-                        title="Transfer/تحويل"
-                        className="btn btnbtn-default graybox"
-                        style={{ padding: '2px', cursor: 'pointer' }}
-                        aria-label="View"
-                      >
-                        <i style={{ color: '#cf2037' }} className="fa fa-eye" />
-                      </button>
+                       
                     </div>
                   </td>
                 </tr>

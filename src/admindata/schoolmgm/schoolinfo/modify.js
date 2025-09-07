@@ -1,10 +1,17 @@
+// new.js
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getCurrentLoggedUserID,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getCurrentLoggedUserID, getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl } from '../../../utils/operation'
+
+import {
+  validateSchoolRequired,
+  normalizeMobile05,
+} from '../../validation/schRequiredfld'
+
 const Vendor = () => {
   const [SchoolIDVal, setSchoolID] = useState('')
   const [OrgtxtschImageName1Val, setOrgsetSchImageName] = useState('')
@@ -17,60 +24,122 @@ const Vendor = () => {
 
   const [SchoolData, SetSchool] = useState(null)
   const navigate = useNavigate()
+
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
-  // Define state for each input
-  const [txtschName, setSchName] = useState('')
+  // Errors for required/format issues (keys must match validator)
+  const [errors, setErrors] = useState({})
 
-  const [txtschEmailAddress, setSchEmailAddress] = useState('')
-  const [txtschMobileNo1, setSchMobileNo1] = useState('')
+  // Form state
+  const [txtschName, setSchName] = useState('')
+  const [txtschEmailAddress, setSchEmailAddress] = useState('') // read-only; still submitted + validated
+  const [txtschMobileNo1, setSchMobileNo1] = useState('')       // username (read-only display, validated)
   const [txtschMobileNo2, setSchMobileNo2] = useState('')
+
   const [txtschDesc, setSchDesc] = useState('')
   const [txtschLevel, setSchLevel] = useState('')
   const [txtschCertificateName, setCertificateName] = useState('')
+
   const [txtschAddress1, setAddress1] = useState('')
   const [txtschAddress2, setAddress2] = useState('')
   const [txtschCountryID, setCountryID] = useState('')
+  const [txtschCityID, setSelectedCityID] = useState('')
 
   const [txtschRegionName, setRegionName] = useState('')
   const [txtschZipCode, setZipCode] = useState('')
   const [txtschWebsiteAddress, setWebsiteAddress] = useState('')
-  const [txtschGlat, setGlat] = useState('')
-  const [txtschGlan, setGlan] = useState('')
+
+  const [txtschGlat, setGlat] = useState('') // Latitude
+  const [txtschGlan, setGlan] = useState('') // Longitude
   const [txtschGoogleMap, setGoogleMap] = useState('')
+
   const [txtschInstagram, setInstagram] = useState('')
   const [txtschFaceBook, setFaceBook] = useState('')
   const [txtschX, setX] = useState('')
   const [txtschSnapChat, setSnapChat] = useState('')
   const [txtschTikTok, setTikTok] = useState('')
   const [txtschYouTube, setYouTube] = useState('')
+
   const [txtschBankName, setBankName] = useState('')
   const [txtschAccHolderName, setAccHolderName] = useState('')
   const [txtschAccIBANNo, setIBANNo] = useState('')
   const [txtschTaxName, setTaxName] = useState('')
 
   const [txtschAdminNotes, setAdminNotes] = useState('')
+
+  // Lookups
   const [cityList, setCityList] = useState([])
-  const [txtschCityID, setSelectedCityID] = useState('')
   const [countries, setCountries] = useState([])
   const [educationLevels, setEducationLevels] = useState([])
+  const [selectedOptions, setSelectedOptions] = useState([])
+
+  // Generic fetch error (for top-level load failures)
   const [error, setError] = useState('')
+
+  // ----------------------------
+  // Helpers
+  // ----------------------------
   const handleFileUpload = (setter) => async (e) => {
     const file = e.target.files[0]
-    if (file) setter(file)
+    if (file) {
+      setter(file)
+      setErrors((p) => ({ ...p, txtschImageName1: '' })) // clear image error on select
+    }
   }
+
+  const getSearchParams = () => {
+    const search =
+      window.location.search ||
+      (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '')
+    return new URLSearchParams(search)
+  }
+
+  // ----------------------------
+  // Submit (with required-field validation)
+  // ----------------------------
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     setLoading(true)
     setToastMessage('')
+    setToastType('info')
 
-    //Image 1
+    // Validate required fields using your shared validator
+    const reqErrors = validateSchoolRequired({
+      txtschName,
+      txtschEmailAddress,
+      txtschMobileNo1,  // read-only username still validated
+      txtschAddress1,
+      txtschGoogleMap,
+      txtschGlan,       // Longitude
+      txtschGlat,       // Latitude
+      txtschAdminNotes, // Admin Notes
+    })
+
+    // Make school image REQUIRED:
+    // Either an existing server image (OrgtxtschImageName1Val) OR a newly selected file must be present.
+    if (!OrgtxtschImageName1Val && !(txtschImageName1 instanceof File)) {
+      reqErrors.txtschImageName1 = 'School image is required.'
+    }
+
+    if (Object.keys(reqErrors).length > 0) {
+      setErrors(reqErrors)
+      setToastMessage('Please fix the required fields.')
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    // Username normalization (even if read-only, keep consistent with API expectations)
+    const normalizedMobile = normalizeMobile05(String(txtschMobileNo1 || ''))
+
+    // -------- File uploads ----------
+    // Image
     let txtschImageName1Val = OrgtxtschImageName1Val
-    let uploadedImageKey1 = ''
-
     try {
       if (txtschImageName1 && txtschImageName1 instanceof File) {
         const formdata = new FormData()
@@ -80,24 +149,21 @@ const Vendor = () => {
           method: 'POST',
           body: formdata,
         })
-
         if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
         const uploadResult = await uploadResponse.json()
-        uploadedImageKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
+        const uploadedImageKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
         txtschImageName1Val = getFileNameFromUrl(uploadedImageKey1)
       }
-
-      // ✅ assign to outer variable
     } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
+      console.error('Error uploading image file:', error)
+      setToastMessage('Failed to upload image.')
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
-    //Tax
-    let uploadedImageKey2 = "";
-    let schTaxFileNameVal = OrgtxtschTaxFileNameVal // <-- move this declaration outside
-
+    // Tax
+    let schTaxFileNameVal = OrgtxtschTaxFileNameVal
     try {
       if (txtschTaxFileName && txtschTaxFileName instanceof File) {
         const formdata = new FormData()
@@ -107,24 +173,21 @@ const Vendor = () => {
           method: 'POST',
           body: formdata,
         })
-
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
+        if (!uploadResponse.ok) throw new Error(`Tax upload failed: ${uploadResponse.status}`)
         const uploadResult = await uploadResponse.json()
-        uploadedImageKey2 = uploadResult?.data?.key || uploadResult?.data?.Key
+        const uploadedImageKey2 = uploadResult?.data?.key || uploadResult?.data?.Key
         schTaxFileNameVal = getFileNameFromUrl(uploadedImageKey2)
       }
-
-      // ✅ assign to outer variable
     } catch (error) {
       console.error('Error uploading tax file:', error)
       setToastMessage('Failed to upload tax file.')
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
-    //Certificate
-    let uploadedCRKey1 = "";
-    let schCertificateFileNameVal = OrgtxtschCertificateFileNameVal // <-- move this declaration outside
-
+    // Certificate
+    let schCertificateFileNameVal = OrgtxtschCertificateFileNameVal
     try {
       if (txtschCertificateFileName && txtschCertificateFileName instanceof File) {
         const formdata = new FormData()
@@ -134,35 +197,36 @@ const Vendor = () => {
           method: 'POST',
           body: formdata,
         })
-
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
+        if (!uploadResponse.ok) throw new Error(`Certificate upload failed: ${uploadResponse.status}`)
         const uploadResult = await uploadResponse.json()
-        uploadedCRKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
+        const uploadedCRKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
         schCertificateFileNameVal = getFileNameFromUrl(uploadedCRKey1)
       }
-
-      // ✅ assign to outer variable
     } catch (error) {
-      console.error('Error uploading CR file:', error)
-      setToastMessage('Failed to upload CR file.')
+      console.error('Error uploading certificate file:', error)
+      setToastMessage('Failed to upload certificate file.')
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
+    // -------- Submit ----------
     try {
-      console.log(`${API_BASE_URL}/schoolinfo/School/updateschool`)
       const response = await fetch(`${API_BASE_URL}/schoolinfo/School/updateschool`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           SchoolID: SchoolIDVal,
-          schImageName: txtschImageName1Val, // file
-          schTaxFileName: schTaxFileNameVal, // file
-          schCertificateFileName: schCertificateFileNameVal, // file
+
+          schImageName: txtschImageName1Val,
+          schTaxFileName: schTaxFileNameVal,
+          schCertificateFileName: schCertificateFileNameVal,
 
           schName: txtschName || '',
           schEmailAddress: txtschEmailAddress || '',
-          schMobileNo1: txtschMobileNo1 || '',
+          schMobileNo1: normalizedMobile || '',
           schMobileNo2: txtschMobileNo2 || '',
+
           schDesc: txtschDesc || '',
           schLevel: txtschLevel || '',
           schEduLevel: selectedOptions.map((opt) => opt.value),
@@ -186,10 +250,12 @@ const Vendor = () => {
           schSnapChat: txtschSnapChat || '',
           schTikTok: txtschTikTok || '',
           schYouTube: txtschYouTube || '',
+
           schBankName: txtschBankName || '',
           schAccHolderName: txtschAccHolderName || '',
           schAccIBANNo: txtschAccIBANNo || '',
           schTaxName: txtschTaxName || '',
+
           schAdminNotes: txtschAdminNotes || '',
 
           IsDataStatus: 1,
@@ -204,7 +270,7 @@ const Vendor = () => {
       setToastMessage('School Updated successfully!')
       setToastType('success')
 
-       setTimeout(() => navigate('/admindata/schoolmgm/schoolinfo/list'), 2000)
+      setTimeout(() => navigate('/admindata/schoolmgm/schoolinfo/list'), 2000)
     } catch (err) {
       console.error('Error Updated School:', err)
       setToastMessage('Failed to Updated School.')
@@ -214,23 +280,19 @@ const Vendor = () => {
     }
   }
 
-  const fetchSchool = async (SchoolIDVal) => {
-    console.log('SchoolIDVal.data')
-    console.log(SchoolIDVal)
+  // ----------------------------
+  // Fetch School (prefill)
+  // ----------------------------
+  const fetchSchool = async (SchoolIDValParam) => {
     setLoading(true)
-
     try {
       const response = await fetch(`${API_BASE_URL}/schoolinfo/School/getSchool`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ SchoolID: SchoolIDVal }),
+        body: JSON.stringify({ SchoolID: SchoolIDValParam }),
       })
-      console.log(`${API_BASE_URL}/schoolinfo/School/getSchool`)
       if (!response.ok) throw new Error('Failed to fetch school')
-
       const data = await response.json()
-      console.log('data.data')
-      console.log(data.data)
       SetSchool(data.data || [])
     } catch (error) {
       setError('Error fetching school')
@@ -239,37 +301,18 @@ const Vendor = () => {
     }
   }
 
-  // ✅ Now this works fine
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1])
-    const SchoolIDVal = urlParams.get('SchoolID')
-    console.log('SchoolIDVal')
-    console.log(SchoolIDVal)
-    fetchCountries()
-    fetchSchoolEducationLevels()
-    fetchCities()
-    if (SchoolIDVal) {
-      setSchoolID(SchoolIDVal)
-      fetchSchool(SchoolIDVal)
-    } else {
-      setError('SchoolID is missing in URL')
-    }
-  }, [])
-
+  // ----------------------------
+  // Lookups
+  // ----------------------------
   const fetchCities = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}), // If your API expects data in the body
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       })
-
       const result = await response.json()
-      if (result.data) {
-        setCityList(result.data)
-      }
+      if (result.data) setCityList(result.data)
     } catch (error) {
       console.error('Error fetching city list:', error)
     }
@@ -279,16 +322,11 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}), // if needed
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       })
-
       const result = await response.json()
-      if (result.data) {
-        setCountries(result.data)
-      }
+      if (result.data) setCountries(result.data)
     } catch (error) {
       console.error('Error fetching countries:', error)
     }
@@ -298,48 +336,63 @@ const Vendor = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/lookupdata/schedulevel/getSchedulevelAllList`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}), // optional if your API accepts an empty object
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       })
-
       const result = await response.json()
-      console.log(result.data)
       if (result.data) {
-        const mappedLevels = result.data.map((item) => ({
+        const mapped = result.data.map((item) => ({
           value: item.SchEduLevelID,
           label: item.EnSchEduLevelName,
         }))
-        setEducationLevels(mappedLevels)
+        setEducationLevels(mapped)
       }
     } catch (error) {
       console.error('Error fetching education levels:', error)
     }
   }
 
+  // ----------------------------
+  // Initial load
+  // ----------------------------
   useEffect(() => {
-    console.log('SchoolData')
-    console.log(SchoolData)
+    const urlParams = getSearchParams()
+    const SchoolIDFromUrl = urlParams.get('SchoolID')
+
+    fetchCountries()
+    fetchSchoolEducationLevels()
+    fetchCities()
+
+    if (SchoolIDFromUrl) {
+      setSchoolID(SchoolIDFromUrl)
+      fetchSchool(SchoolIDFromUrl)
+    } else {
+      setError('SchoolID is missing in URL')
+    }
+  }, [])
+
+  // ----------------------------
+  // Populate form when SchoolData arrives
+  // ----------------------------
+  useEffect(() => {
     if (!SchoolData) return
 
-    console.log(SchoolData.schImageNameUrl)
+    // Files (string URLs or File—FilePreview handles both)
     setSchImageName(SchoolData.schImageNameUrl)
     setschTaxFileName(SchoolData.schTaxFileNameUrl)
     setschCertificateFileName(SchoolData.schCertificateFileNameUrl)
 
-    setOrgsetSchImageName(SchoolData.schImageName)
-    setOrgtxtschTaxFileNameVal(SchoolData.schTaxFileName)
-    setOrgtxtschCertificateFileNameVal(SchoolData.schCertificateFileName)
+    setOrgsetSchImageName(SchoolData.schImageName || '')
+    setOrgtxtschTaxFileNameVal(SchoolData.schTaxFileName || '')
+    setOrgtxtschCertificateFileNameVal(SchoolData.schCertificateFileName || '')
 
+    // Core fields
     setSchName(SchoolData.schName || '')
-    setSchEmailAddress(SchoolData.schEmailAddress || '')
     setSchEmailAddress(SchoolData.schEmailAddress || '')
     setSchMobileNo1(SchoolData.schMobileNo1 || '')
     setSchMobileNo2(SchoolData.schMobileNo2 || '')
 
     setSchDesc(SchoolData.schDesc || '')
-
     setSchLevel(SchoolData.schLevel || '')
     setCertificateName(SchoolData.schCertificateName || '')
 
@@ -349,69 +402,41 @@ const Vendor = () => {
     setCountryID(SchoolData.schCountryID || '')
     setSelectedCityID(SchoolData.schCityID || '')
 
-    setRegionName(SchoolData.schRegionName)
-    setZipCode(SchoolData.schZipCode)
-    setWebsiteAddress(SchoolData.schWebsiteAddress)
-    setGoogleMap(SchoolData.schGoogleMap)
-    setGlat(SchoolData.schGlat)
-    setGlan(SchoolData.schGlan)
+    setRegionName(SchoolData.schRegionName || '')
+    setZipCode(SchoolData.schZipCode || '')
+    setWebsiteAddress(SchoolData.schWebsiteAddress || '')
+    setGoogleMap(SchoolData.schGoogleMap || '')
 
-    setInstagram(SchoolData.schInstagram)
-    setFaceBook(SchoolData.schFaceBook)
-    setX(SchoolData.schX)
-    setSnapChat(SchoolData.schSnapChat)
-    setTikTok(SchoolData.schTikTok)
-    setYouTube(SchoolData.schYouTube)
+    setGlat(SchoolData.schGlat || '')
+    setGlan(SchoolData.schGlan || '')
 
-    setBankName(SchoolData.schBankName)
-    setAccHolderName(SchoolData.schAccHolderName)
-    setIBANNo(SchoolData.schAccIBANNo)
-    setTaxName(SchoolData.schTaxName)
-    setAdminNotes(SchoolData.schAdminNotes)
+    setInstagram(SchoolData.schInstagram || '')
+    setFaceBook(SchoolData.schFaceBook || '')
+    setX(SchoolData.schX || '')
+    setSnapChat(SchoolData.schSnapChat || '')
+    setTikTok(SchoolData.schTikTok || '')
+    setYouTube(SchoolData.schYouTube || '')
 
-    console.log('SchoolData')
-    console.log(SchoolData.schName)
+    setBankName(SchoolData.schBankName || '')
+    setAccHolderName(SchoolData.schAccHolderName || '')
+    setIBANNo(SchoolData.schAccIBANNo || '')
+    setTaxName(SchoolData.schTaxName || '')
+    setAdminNotes(SchoolData.schAdminNotes || '')
   }, [SchoolData])
 
-  const handleFileChange = (e, key) => {
-    const file = e.target.files[0]
-    if (key === 'certificate') {
-      setCertificateFile(file)
-    } else if (key === 'tax') {
-      setTaxFile(file)
-    }
-  }
+  // Education levels multi-select
+  const handleChange = (selected) => setSelectedOptions(selected || [])
 
-  const addPhoneField = () => {
-    setFormData((prev) => ({
-      ...prev,
-      phoneNumbers: [...prev.phoneNumbers, ''],
-    }))
-  }
-
-  const [categories, setCategories] = useState([])
-
-  const handleCheckboxChange = (value) => {
-    setCategories((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
-    )
-  }
-
-  const [selectedOptions, setSelectedOptions] = useState([])
-  const handleChange = (selected) => {
-    setSelectedOptions(selected || [])
-  }
-
+  // ----------------------------
+  // UI
+  // ----------------------------
   return (
     <div>
       <div className="divhbg">
-        {/* Left side: Title */}
-        <div className="txtheadertitle">Add New School</div>
-
-        {/* Right side: Buttons */}
+        <div className="txtheadertitle">Update School</div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="admin-buttonv1" onClick={handleSubmit}>
-            Save
+          <button className="admin-buttonv1" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Saving…' : 'Save'}
           </button>
           <button
             type="button"
@@ -423,9 +448,8 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">School Information</div>
-
-      <div className="divbox">
+      {/* Username + Email (email next to username, both read-only) */}
+      <div className="divbox" style={{ marginTop: 12 }}>
         <div className="form-group">
           <label>
             <span style={{ color: 'red', padding: '10px', fontSize: '22px', fontWeight: 'bold' }}>
@@ -436,16 +460,38 @@ const Vendor = () => {
             className="mobile-input-group"
             style={{
               border: '1px solid #ccc',
-              borderRadius: '20px',
+              borderRadius: '12px',
               padding: '10px',
-              fontSize: '22px',
-              fontWeight: 'bold',
+              fontSize: '18px',
+              fontWeight: '600',
+              background: '#f8f8f8',
             }}
+            title="Mobile username (read-only)"
           >
             {txtschMobileNo1}
           </div>
+          <div className="ErrorMsg">{errors.txtschMobileNo1}</div>
         </div>
 
+        <div className="form-group" style={{ marginTop: 8 }}>
+          <label>Email Address</label>
+          <input
+            name="txtschEmailAddress"
+            className="admin-txt-box"
+            type="text"
+            value={txtschEmailAddress}
+            readOnly
+            disabled
+            style={{ background: '#f0f0f0', color: '#555' }}
+            title="Email (read-only)"
+          />
+          <div className="ErrorMsg">{errors.txtschEmailAddress}</div>
+        </div>
+      </div>
+
+      <div className="txtsubtitle">School Information</div>
+
+      <div className="divbox">
         <div className="form-group">
           <label>School Name</label>
           <input
@@ -453,33 +499,29 @@ const Vendor = () => {
             className="admin-txt-box"
             placeholder="Enter School Name"
             type="text"
-            required
             value={txtschName}
-            onChange={(e) => setSchName(e.target.value)}
+            onChange={(e) => {
+              setSchName(e.target.value)
+              setErrors((p) => ({ ...p, txtschName: '' }))
+            }}
           />
+          <div className="ErrorMsg">{errors.txtschName}</div>
         </div>
 
-        <input
-          name="txtschImageName1"
-          className="admin-txt-box"
-          placeholder="Upload Vendor Image"
-          type="file"
-          onChange={handleFileUpload(setSchImageName)}
-          style={{ height: 50, width: '100%' }}
-        />
-        <FilePreview file={txtschImageName1} />
-
+        {/* School main image (REQUIRED) */}
         <div className="form-group">
-          <label>Email Address</label>
+          <label>School Image</label>
           <input
-            name="txtschEmailAddress"
-            placeholder="Enter Email Address"
+            name="txtschImageName1"
             className="admin-txt-box"
-            type="text"
-            required
-            value={txtschEmailAddress}
-            onChange={(e) => setSchEmailAddress(e.target.value)}
+            placeholder="Upload School Image"
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload(setSchImageName)}
+            style={{ height: 50, width: '100%' }}
           />
+          <FilePreview file={txtschImageName1 || (OrgtxtschImageName1Val ? SchoolData?.schImageNameUrl : null)} />
+          <div className="ErrorMsg">{errors.txtschImageName1}</div>
         </div>
 
         <div className="form-group">
@@ -490,11 +532,12 @@ const Vendor = () => {
               className="admin-txt-box"
               type="text"
               value={txtschMobileNo2}
-              placeholder="Enter mobile number2"
+              placeholder="Enter mobile number 2"
               onChange={(e) => setSchMobileNo2(e.target.value)}
             />
           </div>
         </div>
+
         <div className="form-group">
           <label>School Description</label>
           <textarea
@@ -504,29 +547,25 @@ const Vendor = () => {
             rows={4}
             value={txtschDesc}
             onChange={(e) => setSchDesc(e.target.value)}
-            required
           />
         </div>
 
         <div className="vendor-container">
           <div className="vendor-row">
-            {/* Left: Commercial Registration Number */}
             <div className="vendor-column">
-              <label className="vendor-label">School Level </label>
+              <label className="vendor-label">School Level</label>
               <input
                 name="txtschLevel"
                 value={txtschLevel}
                 className="vendor-input"
                 placeholder="Enter School Level"
                 onChange={(e) => setSchLevel(e.target.value)}
-                required
               />
             </div>
 
-            {/* Right: Upload Commercial Registration */}
             <div className="vendor-column">
-              <div style={{ width: '300px' }}>
-                <label style={{ marginBottom: '8px', display: 'block' }}>
+              <div style={{ width: 300 }}>
+                <label style={{ marginBottom: 8, display: 'block' }}>
                   Select Education Levels:
                 </label>
                 <Select
@@ -534,11 +573,10 @@ const Vendor = () => {
                   isMulti
                   options={educationLevels}
                   value={selectedOptions}
-                  onChange={handleChange}
+                  onChange={(sel) => setSelectedOptions(sel || [])}
                   placeholder="Choose levels..."
-                  required
                 />
-                <div style={{ marginTop: '10px' }}>
+                <div style={{ marginTop: 10 }}>
                   <strong>Selected:</strong>{' '}
                   {selectedOptions.length > 0
                     ? selectedOptions.map((opt) => opt.label).join(', ')
@@ -551,9 +589,8 @@ const Vendor = () => {
 
         <div className="vendor-container">
           <div className="vendor-row">
-            {/* Left: Commercial Registration Number */}
             <div className="vendor-column">
-              <label className="vendor-label">School Certificate </label>
+              <label className="vendor-label">School Certificate</label>
               <input
                 name="txtschCertificateName"
                 value={txtschCertificateName}
@@ -563,7 +600,6 @@ const Vendor = () => {
               />
             </div>
 
-            {/* Right: Upload Commercial Registration */}
             <div className="vendor-column">
               <label className="vendor-label">Upload Certificate</label>
               <input
@@ -578,7 +614,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">School Location </div>
+      <div className="txtsubtitle">School Location</div>
 
       <div className="divbox">
         <div className="vendor-container">
@@ -590,9 +626,12 @@ const Vendor = () => {
                 value={txtschAddress1}
                 className="vendor-input"
                 placeholder="Enter Street Address1"
-                onChange={(e) => setAddress1(e.target.value)}
-                required
+                onChange={(e) => {
+                  setAddress1(e.target.value)
+                  setErrors((p) => ({ ...p, txtschAddress1: '' }))
+                }}
               />
+              <div className="ErrorMsg">{errors.txtschAddress1}</div>
             </div>
 
             <div className="vendor-column">
@@ -609,16 +648,10 @@ const Vendor = () => {
             <div className="vendor-column">
               <label className="vendor-label">Country</label>
               <select
-                value={txtschCountryID} // ✅ bind the selected value
+                value={txtschCountryID}
                 onChange={(e) => setCountryID(e.target.value)}
                 name="txtschCountryID"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                }}
-                required
+                style={{ width: '100%', padding: '10px', borderRadius: '4px' }}
               >
                 <option value="">Select a country</option>
                 {countries.map((country) => (
@@ -638,9 +671,8 @@ const Vendor = () => {
               <select
                 name="txtschCityID"
                 className="admin-txt-box"
-                value={txtschCityID} // ✅ controlled input
+                value={txtschCityID}
                 onChange={(e) => setSelectedCityID(e.target.value)}
-                required
               >
                 <option value="">Select City</option>
                 {cityList.map((city) => (
@@ -656,10 +688,9 @@ const Vendor = () => {
               <input
                 name="txtschRegionName"
                 className="vendor-input"
-                placeholder="Enter Region  "
+                placeholder="Enter Region"
                 value={txtschRegionName}
                 onChange={(e) => setRegionName(e.target.value)}
-                required
               />
             </div>
 
@@ -671,18 +702,14 @@ const Vendor = () => {
                 placeholder="Enter Zip Code"
                 value={txtschZipCode}
                 onChange={(e) => setZipCode(e.target.value)}
-                required
               />
             </div>
           </div>
         </div>
 
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Website Address</label>
               <input
                 onChange={(e) => setWebsiteAddress(e.target.value)}
@@ -696,19 +723,20 @@ const Vendor = () => {
         </div>
 
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Google Map Location</label>
               <input
-                onChange={(e) => setGoogleMap(e.target.value)}
+                onChange={(e) => {
+                  setGoogleMap(e.target.value)
+                  setErrors((p) => ({ ...p, txtschGoogleMap: '' }))
+                }}
                 name="txtschGoogleMap"
                 value={txtschGoogleMap}
                 className="vendor-input"
                 placeholder="Enter Google Map Location"
               />
+              <div className="ErrorMsg">{errors.txtschGoogleMap}</div>
             </div>
           </div>
         </div>
@@ -721,34 +749,38 @@ const Vendor = () => {
                 value={txtschGlan}
                 name="txtschGlan"
                 className="vendor-input"
-                placeholder="Enter Longitude  "
-                onChange={(e) => setGlan(e.target.value)}
+                placeholder="Enter Longitude"
+                onChange={(e) => {
+                  setGlan(e.target.value)
+                  setErrors((p) => ({ ...p, txtschGlan: '' }))
+                }}
               />
+              <div className="ErrorMsg">{errors.txtschGlan}</div>
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">School Lattitude</label>
+              <label className="vendor-label">School Latitude</label>
               <input
                 value={txtschGlat}
                 name="txtschGlat"
                 className="vendor-input"
-                placeholder="Enter Lattitude  "
-                onChange={(e) => setGlat(e.target.value)}
+                placeholder="Enter Latitude"
+                onChange={(e) => {
+                  setGlat(e.target.value)
+                  setErrors((p) => ({ ...p, txtschGlat: '' }))
+                }}
               />
+              <div className="ErrorMsg">{errors.txtschGlat}</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle"> Social Media Information </div>
+      <div className="txtsubtitle">Social Media Information</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Instagram</label>
               <input
                 onChange={(e) => setInstagram(e.target.value)}
@@ -759,10 +791,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">FaceBook</label>
               <input
                 value={txtschFaceBook}
@@ -774,15 +803,10 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
 
-        {/* // row start */}
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">X</label>
               <input
                 onChange={(e) => setX(e.target.value)}
@@ -793,10 +817,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">SnapChat</label>
               <input
                 onChange={(e) => setSnapChat(e.target.value)}
@@ -808,15 +829,10 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
 
-        {/* // row start */}
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">TikTok</label>
               <input
                 value={txtschTikTok}
@@ -827,10 +843,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Youtube</label>
               <input
                 value={txtschYouTube}
@@ -843,17 +856,12 @@ const Vendor = () => {
           </div>
         </div>
       </div>
-      {/* // row end */}
 
-      <div className="txtsubtitle">Banking Information </div>
+      <div className="txtsubtitle">Banking Information</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Bank Name</label>
               <input
                 value={txtschBankName}
@@ -861,22 +869,16 @@ const Vendor = () => {
                 name="txtschBankName"
                 className="vendor-input"
                 placeholder="Enter Bank Name"
-                required
               />
             </div>
           </div>
         </div>
-        {/* // row end */}
 
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Name of Account Holder</label>
               <input
-                required
                 value={txtschAccHolderName}
                 name="txtschAccHolderName"
                 className="vendor-input"
@@ -885,10 +887,7 @@ const Vendor = () => {
               />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">IBAN Account Number</label>
               <input
                 value={txtschAccIBANNo}
@@ -896,76 +895,67 @@ const Vendor = () => {
                 name="txtschAccIBANNo"
                 className="vendor-input"
                 placeholder="Enter IBAN Account Number"
-                required
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">Tax Document Information </div>
+      <div className="txtsubtitle">Tax Document Information</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Tax Name</label>
               <input
                 onChange={(e) => setTaxName(e.target.value)}
                 value={txtschTaxName}
                 name="txtschTaxName"
                 className="vendor-input"
-                placeholder="Tax Document Information "
-                required
+                placeholder="Tax Document Information"
               />
             </div>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <label className="vendor-label">Upload Document </label>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">Upload Document</label>
               <input
                 name="txtschTaxFileName"
                 type="file"
                 onChange={handleFileUpload(setschTaxFileName)}
                 className="vendor-input"
               />
-            <FilePreview file={txtschTaxFileName} />
+              <FilePreview file={txtschTaxFileName} />
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
 
-      <div className="txtsubtitle">Admin Notes Information </div>
+      <div className="txtsubtitle">Admin Notes Information</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Enter Admin Notes</label>
               <textarea
-                onChange={(e) => setAdminNotes(e.target.value)}
+                onChange={(e) => {
+                  setAdminNotes(e.target.value)
+                  setErrors((p) => ({ ...p, txtschAdminNotes: '' }))
+                }}
                 value={txtschAdminNotes}
                 name="txtschAdminNotes"
                 className="vendor-input"
-                placeholder="Enter Admin Notes "
+                placeholder="Enter Admin Notes"
                 rows={4}
               />
+              <div className="ErrorMsg">{errors.txtschAdminNotes}</div>
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
+
+      {/* Footer buttons */}
       <div className="button-container">
-        <button className="admin-buttonv1" onClick={handleSubmit}>
-          Save
+        <button className="admin-buttonv1" onClick={handleSubmit} disabled={loading}>
+          {loading ? 'Saving…' : 'Save'}
         </button>
         <button
           type="button"
@@ -975,8 +965,10 @@ const Vendor = () => {
           Cancel
         </button>
       </div>
+
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   )
 }
+
 export default Vendor

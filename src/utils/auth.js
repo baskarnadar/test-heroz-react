@@ -66,3 +66,72 @@ export const checkUserExists = async (username) => {
     return false; // assume false on error
   }
 };
+ 
+export const checkSchUserExists = async (username, schEmailAddress) => {
+  console.log('checkSchUserExists -> request:', { username, schEmailAddress });
+
+  try {
+    const res = await axios.post(`${API_BASE_URL}/common/SchIsUserEmailExist`, {
+      username,
+      schEmailAddress,
+    });
+
+    console.log('checkVdrUserEmailExists -> response:', JSON.stringify(res.data, null, 2));
+
+    const data = res?.data?.data || {};
+
+    // Backward-compat: if API returns a single `exists` boolean, use it
+    if (typeof data.exists === 'boolean') return data.exists;
+
+    // New shape: return true if username OR email exists; false only if both are falsey
+    const usernameExists = !!data.usernameExists;
+    const emailExists = !!data.emailExists;
+    return usernameExists || emailExists;
+  } catch (error) {
+    if (error.response) {
+      console.error(
+        'checkVdrUserEmailExists -> error response:',
+        error.response.status,
+        JSON.stringify(error.response.data, null, 2)
+      );
+    } else {
+      console.error('checkVdrUserEmailExists -> network/other error:', error.message);
+    }
+    return false; // On error, treat as "does not exist" to avoid blocking
+  }
+};
+
+
+export const checkVdrUserEmailExists = async (username, vdrEmailAddress) => {
+  console.log('checkVdrUserEmailExists -> request:', { username, vdrEmailAddress });
+
+  try {
+    const res = await axios.post(`${API_BASE_URL}/common/VdrIsUserEmailExist`, {
+      username,
+      vdrEmailAddress,
+    });
+
+    console.log('checkVdrUserEmailExists -> response:', JSON.stringify(res.data, null, 2));
+
+    const data = res?.data?.data || {};
+
+    // Backward-compat: if API returns a single `exists` boolean, use it
+    if (typeof data.exists === 'boolean') return data.exists;
+
+    // New shape: return true if username OR email exists; false only if both are falsey
+    const usernameExists = !!data.usernameExists;
+    const emailExists = !!data.emailExists;
+    return usernameExists || emailExists;
+  } catch (error) {
+    if (error.response) {
+      console.error(
+        'checkVdrUserEmailExists -> error response:',
+        error.response.status,
+        JSON.stringify(error.response.data, null, 2)
+      );
+    } else {
+      console.error('checkVdrUserEmailExists -> network/other error:', error.message);
+    }
+    return false; // On error, treat as "does not exist" to avoid blocking
+  }
+};

@@ -30,6 +30,9 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
+  // === NEW: single flag to hide price-range & delete UI (kept logic, just hidden)
+  const HIDE_PRICE_RANGE_UI = true
+
   // --- helpers added (no removals) ---
   const uniqueBy = (arr, key) =>
     Array.from(new Map((arr || []).map(item => [item?.[key], item])).values())
@@ -68,20 +71,32 @@ const Vendor = () => {
 
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
+  // ⭐ NEW: Activity Rating (0–5, decimal string for input)
+  const [actRating, setactRating] = useState('')
+
   const [foods, setFoods] = useState([
-    { name: '', price: '', herozprice: '', include: false, ChkRemoveFood: false },
+    { name: '', price: '', herozprice: '', include: false, ChkRemoveFood: false, notes: '', image: null },
   ])
   const [countries, setCountries] = useState([])
   const [cityList, setCityList] = useState([])
 
+  // === UPDATED: if include is turned on, force both prices to "0" and keep state in sync
   const handleFoodChange = (index, field, value) => {
-    const updated = [...foods]
-    updated[index][field] = value
-    setFoods(updated)
+    setFoods(prev => {
+      const updated = [...prev]
+      // toggle / set field first
+      updated[index] = { ...updated[index], [field]: value }
+      // rule: when include == true -> prices must be 0
+      if (field === 'include' && value === true) {
+        updated[index].price = '0'
+        updated[index].herozprice = '0'
+      }
+      return updated
+    })
   }
 
   const handleFoodAddMore = () => {
-    setFoods([...foods, { name: '', price: '', herozprice: '', include: false }])
+    setFoods([...foods, { name: '', price: '', herozprice: '', include: false, notes: '', image: null }])
   }
 
   const handleFoodRemoveFood = (index) => {
@@ -417,6 +432,9 @@ const Vendor = () => {
             actFood: actfoodDataVal,
 
             actAdminNotes: txtactAdminNotes || '',
+            // ⭐ NEW: include rating in payload as number or empty string
+            actRating: actRating === '' ? '' : Number(actRating),
+
             actStatus: actStatusVal,
             IsDataStatus: 1,
             ModifyBy: getCurrentLoggedUserID(),
@@ -558,6 +576,13 @@ const Vendor = () => {
     setSelectedCategories(ActivityData.actCategoryID || [])
     setactDesc(ActivityData.actDesc || '')
 
+    // ⭐ NEW: load rating
+    setactRating(
+      ActivityData?.actRating !== undefined && ActivityData?.actRating !== null
+        ? String(ActivityData.actRating)
+        : ''
+    )
+
     // YouTube IDs
     setYouTube1(ActivityData.actYouTubeID1 || '')
     setYouTube2(ActivityData.actYouTubeID2 || '')
@@ -606,6 +631,7 @@ const Vendor = () => {
         notes: item.FoodNotes || '',
         image: item.FoodImage || null,
         include: item.Include || false,
+        ChkRemoveFood: false,
       }))
       setFoods(mappedFoods)
     } else {
@@ -693,13 +719,6 @@ const Vendor = () => {
       // Pretty print for debugging
       console.log('📦 getActivity JSON:', JSON.stringify(jsonResponse, null, 2))
 
-      if (jsonResponse?.data?.actStatus != 'WAITING-FOR-APPROVAL') {
-        navigate(
-          `/admindata/activityinfo/activity/view?ActivityID=${ActivityIDVal}&VendorID=${VendorIDVal}`,
-        )
-        return
-      }
-
       setActivity(jsonResponse.data || [])
       setTotalPages(Math.ceil((jsonResponse.totalCount || 0) / (ActivityPerPage || 1)))
     } catch (error) {
@@ -771,11 +790,15 @@ const Vendor = () => {
           uploadedImageKey = await uploadFoodImage(item.image)
         }
 
+        // Guarantee price zeros if include is true (server-safety)
+        const priceOut = item.include ? '0' : (item.price || '')
+        const herozOut = item.include ? '0' : (item.herozprice || '')
+
         return {
           FoodID: item.FoodID || null,
           FoodName: item.name || '',
-          FoodPrice: item.price || '',
-          FoodHerozPrice: item.herozprice || '',
+          FoodPrice: priceOut,
+          FoodHerozPrice: herozOut,
           FoodNotes: item.notes || '',
           FoodImage: uploadedImageKey || '',
           Include: item.include || false,
@@ -804,6 +827,7 @@ const Vendor = () => {
       PriceID: item.PriceID || '',
       Price: item.price || '',
       HerozStudentPrice: item.HerozStudentPrice || '',
+      // keep these fields in payload for backward compatibility (even if UI is hidden)
       StudentRangeFrom: item.rangeFrom || '',
       StudentRangeTo: item.rangeTo || '',
       RemovePrice: item.ChkRemovePrice || false,
@@ -813,6 +837,9 @@ const Vendor = () => {
   //Send to Admin Approval
   const handleSave = () => {
     setShowModal(true)
+  }
+  const handleUnPublish = () => {
+    handleSubmit('WAITING-FOR-APPROVAL')
   }
   const handleConfirm = () => {
     setShowModal(false)
@@ -875,8 +902,15 @@ const Vendor = () => {
         {/* Right side: Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="admin-buttonv1 btn-green" onClick={handleSave}>
-            Approve
+            PUBLISH
           </button>
+         <button
+  className="admin-buttonv1"
+  style={{ backgroundColor: 'orange', color: 'white' }}
+  onClick={handleUnPublish}
+>
+  SAVE & UNPUBLISH
+</button>
 
           <button
             type="button"
@@ -941,6 +975,24 @@ const Vendor = () => {
               <div className="pink-shadow4"> Member</div>
             </label>
           </div>
+        </div>
+
+        {/* ⭐ NEW: Activity Rating */}
+        <div className="form-group" style={{ marginTop: 8 }}>
+          <label>Activity Rating</label>
+          <input
+            name="actRating"
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            min="0"
+            max="5"
+            className="vendor-input"
+            placeholder="e.g., 4.5"
+            value={actRating}
+            onChange={(e) => setactRating(e.target.value)}
+            style={{ width: 140 }}
+          />
         </div>
 
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
@@ -1300,19 +1352,18 @@ const Vendor = () => {
       <div className="txtsubtitle">Price Per Student</div>
 
       <div className="divbox">
+        {/* Header: Only Price & Heroz Price (others hidden) */}
         <CRow className="fw-bold   mb-2">
-          <CCol sm={2}>Price</CCol>
-          <CCol sm={2} style={{ backgroundColor: '#f8eaf3ff' }}>
+          <CCol sm={3}>Price</CCol>
+          <CCol sm={3} style={{ backgroundColor: '#f8eaf3ff' }}>
             Heroz Price
           </CCol>
-          <CCol sm={2}>Student Range From</CCol>
-          <CCol sm={2}>Student Range To</CCol>
-          <CCol sm={2}>Delete</CCol>
+          {/* Hidden columns intentionally omitted */}
         </CRow>
 
         {priceRanges.map((item, index) => (
           <CRow key={index} className="align-items-center mb-2">
-            <CCol sm={2}>
+            <CCol sm={3}>
               <input
                 name="txtPricePerStudent"
                 type="number"
@@ -1322,7 +1373,7 @@ const Vendor = () => {
                 onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
               />
             </CCol>
-            <CCol sm={2} style={{ backgroundColor: '#f8eaf3ff' }}>
+            <CCol sm={3} style={{ backgroundColor: '#f8eaf3ff' }}>
               <input
                 name="txtHerozStudentPrice"
                 type="number"
@@ -1332,67 +1383,12 @@ const Vendor = () => {
                 onChange={(e) => handlePriceChange(index, 'HerozStudentPrice', e.target.value)}
               />
             </CCol>
-            <CCol sm={2}>
-              <input
-                name="txtStudentRangeFrom"
-                type="text"
-                className="vendor-input w-100 text-center"
-                placeholder=""
-                value={item.rangeFrom}
-                onChange={(e) => handlePriceChange(index, 'rangeFrom', e.target.value)}
-              />
-            </CCol>
-            <CCol sm={2}>
-              <input
-                name="txtStudentRangeTo"
-                type="text"
-                className="vendor-input w-100 text-center"
-                placeholder=""
-                value={item.rangeTo}
-                onChange={(e) => handlePriceChange(index, 'rangeTo', e.target.value)}
-              />
-            </CCol>
 
-            <CCol sm={2}>
-              {item.PriceID ? (
-                <input
-                  key={index}
-                  type="checkbox"
-                  name="chkRemovePrice"
-                  onChange={(e) => {
-                    const updatedRanges = [...priceRanges]
-                    updatedRanges[index].ChkRemovePrice = e.target.checked
-                    setPriceRanges(updatedRanges)
-                  }}
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    accentColor: 'red',
-                    cursor: 'pointer',
-                  }}
-                />
-              ) : (
-                priceRanges.length > 1 && (
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={() => handleRemoveRange(index)}
-                  >
-                    Remove
-                  </button>
-                )
-              )}
-            </CCol>
+            {/* Hidden: Student Range From / To / Delete actions */}
           </CRow>
         ))}
 
-        <CRow className="mt-3">
-          <CCol>
-            <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
-              Add More
-            </button>
-          </CCol>
-        </CRow>
+        {/* Hidden: Add More button */}
       </div>
 
       <div className="txtsubtitle">Set Availability</div>
@@ -1570,6 +1566,7 @@ const Vendor = () => {
                   placeholder="Enter price"
                   value={item.price}
                   onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
+                  disabled={item.include === true}
                 />
               </CCol>
 
@@ -1580,6 +1577,7 @@ const Vendor = () => {
                   placeholder="Enter Heroz price"
                   value={item.herozprice}
                   onChange={(e) => handleFoodChange(index, 'herozprice', e.target.value)}
+                  disabled={item.include === true}
                 />
               </CCol>
 
@@ -1676,9 +1674,15 @@ const Vendor = () => {
           style={{ backgroundColor: 'green', color: 'white' }}
           onClick={handleSave}
         >
-          Approve
+          PUBLISH
         </button>
-
+  <button
+  className="admin-buttonv1"
+  style={{ backgroundColor: 'orange', color: 'white' }}
+  onClick={handleUnPublish}
+>
+SAVE & UNPUBLISH
+</button>
         <button
           type="button"
           className="admin-buttonv1"

@@ -107,7 +107,10 @@ const Vendor = () => {
     const newStart = minutesToTime(newStartMins)
     const newEnd = minutesToTime(newEndMins)
 
-    const newTimes = [...existingTimes, { start: newStart, end: newEnd, total: '1.00' }]
+    const newTimes = [
+      ...existingTimes,
+      { start: newStart, end: newEnd, total: '1.00', note: '' }, // ✅ include note
+    ]
     setDays({
       ...days,
       [day]: { ...days[day], times: newTimes },
@@ -116,49 +119,49 @@ const Vendor = () => {
 
   const [days, setDays] = useState({
     sunday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
       total: '',
       closed: false,
       note: '',
     },
     monday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
       total: '',
       closed: false,
       note: '',
     },
     tuesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
       total: '',
       closed: false,
       note: '',
     },
     wednesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
       total: '',
       closed: false,
       note: '',
     },
     thursday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
       total: '',
       closed: false,
       note: '',
     },
     friday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
       total: '',
       closed: false,
       note: '',
     },
     saturday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '' }],
+      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
       total: '',
       closed: false,
       note: '',
     },
-    // more days...
   })
+
   const handleClosedChange = (day, isClosed) => {
     setDays((prevDays) => ({
       ...prevDays,
@@ -168,7 +171,6 @@ const Vendor = () => {
       },
     }))
   }
-  // days
 
   const timeToMinutes = (time) => {
     if (!time) return null
@@ -215,7 +217,7 @@ const Vendor = () => {
     return null
   }
 
-  // ✅ Show Range Hours when both start & end present (and end > start)
+  // ✅ Recalculate total hours when start/end change
   const handleTimeChange = (day, index, field, value) => {
     setDays((prevDays) => {
       const updatedTimes = [...prevDays[day].times]
@@ -251,6 +253,20 @@ const Vendor = () => {
     })
   }
 
+  // ✅ Allow typing into Notes
+  const handleRangeNoteChange = (day, index, value) => {
+    setDays((prevDays) => {
+      const updatedTimes = [...prevDays[day].times]
+      const prev = updatedTimes[index] || {}
+      updatedTimes[index] = { ...prev, note: value }
+      const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
+      return {
+        ...prevDays,
+        [day]: { ...prevDays[day], times: updatedTimes, total: dayTotal.toFixed(2) },
+      }
+    })
+  }
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     if (name.startsWith('day_')) {
@@ -263,10 +279,12 @@ const Vendor = () => {
       setFormData((prev) => ({ ...prev, [name]: value }))
     }
   }
+
   const handleFileUpload = (setter) => async (e) => {
     const file = e.target.files[0]
     if (file) setter(file)
   }
+
   const handleSubmit = async (actStatusVal,e) => {
     console.log("Submitting with status:", actStatusVal);
     if (e && e.preventDefault) e.preventDefault();
@@ -428,7 +446,7 @@ const Vendor = () => {
             actFood: actfoodDataVal,
 
             actAdminNotes: txtactAdminNotes || '',
-            actRating: actRating === '' ? '' : Number(actRating), // ⭐ NEW: pass to API as number (or empty)
+            actRating: actRating === '' ? '' : Number(actRating),
             actStatus : actStatusVal,
             IsDataStatus: 1,
             CreatedBy: getCurrentLoggedUserID(),
@@ -465,7 +483,7 @@ const Vendor = () => {
           DayName: dayName,
           StartTime: range.start,
           EndTime: range.end,
-          Note: range.note || '',
+          Note: range.note || '', // ✅ includes note
           Total: range.total || '0.00',
           CreatedBy: getCurrentLoggedUserID(),
           ModifyBy: getCurrentLoggedUserID(),
@@ -524,12 +542,7 @@ const Vendor = () => {
           body: JSON.stringify({}),
         })
         const result = await response.json()
-        console.log(result.data)
         if (result.data) {
-          const mappedLevels = result.data.map((item) => ({
-            value: item.CategoryID,
-            label: item.EnCategoryName,
-          }))
           setFetchCategories(result.data)
         }
       } catch (error) {
@@ -567,7 +580,7 @@ const Vendor = () => {
       ...days,
       [day]: {
         ...days[day],
-        times: updatedTimes.length > 0 ? updatedTimes : [{ start: '', end: '', total: '' }],
+        times: updatedTimes.length > 0 ? updatedTimes : [{ start: '', end: '', total: '', note: '' }],
         total: newTotal.toFixed(2),
       },
     })
@@ -728,31 +741,30 @@ const Vendor = () => {
               />
               <div className="pink-shadow4"> Member</div>
             </label>
-
-          
           </div>
         </div>
 
-  {/* ⭐ NEW: Activity Rating (decimal) */}
-            <div style={{  alignItems: 'center', gap: 8,  }}>
-              <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
-                Activity Rating
-              </label>
-              <input
-                id="actRating"
-                name="actRating"
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                min="0"
-                max="5"
-                className="admin-txt-box"
-                placeholder="e.g., 4.5"
-                value={actRating}
-                onChange={(e) => setactRating(e.target.value)}
-                style={{ width: 120 }}
-              />
-            </div>
+        {/* ⭐ NEW: Activity Rating (decimal) */}
+        <div style={{  alignItems: 'center', gap: 8 }}>
+          <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
+            Activity Rating
+          </label>
+          <input
+            id="actRating"
+            name="actRating"
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            min="0"
+            max="5"
+            className="admin-txt-box"
+            placeholder="e.g., 4.5"
+            value={actRating}
+            onChange={(e) => setactRating(e.target.value)}
+            style={{ width: 120 }}
+          />
+        </div>
+
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
             Activity Categories <span style={{color:'red'}}>*</span>
@@ -1218,8 +1230,7 @@ const Vendor = () => {
                             className="admin-txt-box"
                             value={range.note || ''}
                             placeholder="Optional notes"
-                            onChange={() => {}}
-                            disabled
+                            onChange={(e) => handleRangeNoteChange(day, index, e.target.value)} // ✅ enable edits
                           />
                         </label>
 

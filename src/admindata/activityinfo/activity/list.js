@@ -241,15 +241,28 @@ const ActivityList = () => {
                         flexWrap: 'wrap',
                       }}
                     >
-                      <button
-                        onClick={() => handleViewClick(Activity.ActivityID, Activity.VendorID)}
-                        title="View"
-                        className="btn btnbtn-default graybox"
-                        style={{ padding: '2px', cursor: 'pointer' }}
-                        aria-label="View"
-                      >
-                        <i style={{ color: '#cf2037' }} className="fa fa-eye" />
-                      </button>
+                     <button
+  onClick={() => handleViewClick(Activity.ActivityID, Activity.VendorID)}
+  title="View"
+  className="btn btnbtn-default graybox"
+  style={{
+    padding: '4px',
+    cursor: 'pointer',
+    border: '2px solid #cf2037',   // border color
+    borderRadius: '6px',           // rounded corners
+    backgroundColor: 'white'       // optional for contrast
+  }}
+  aria-label="View"
+>
+  <i
+    style={{
+      color: '#cf2037',
+      fontSize: '22px'
+    }}
+    className="fa fa-pencil"
+  />
+</button>
+
                     </div>
                   </td>
                 </tr>

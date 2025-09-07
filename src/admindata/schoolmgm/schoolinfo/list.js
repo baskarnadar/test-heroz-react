@@ -262,13 +262,7 @@ const SchoolList = () => {
                         >
                           <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
                         </button>
-                        <button
-                          onClick={() => handleViewClick(schooldata.SchoolID)}
-                          title="View"
-                          className="  graybox"
-                        >
-                          <i className="fa fa-eye" style={{ color: '#cf2037' }} />
-                        </button>
+                        
                         <button
                           onClick={() => handleCahngePwdClick(schooldata.SchoolID)}
                           title="Edit"
