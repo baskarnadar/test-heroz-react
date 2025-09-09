@@ -68,9 +68,6 @@ const ProposalPage = () => {
   const [absoluteLogoUrl, setAbsoluteLogoUrl] = useState("");
   const [shareUrl, setShareUrl] = useState("");
 
-  // API for PaymentMethodPicker (backend that serves initiate-payment)
-   
-
   // Error Modal
   const [errModalOpen, setErrModalOpen] = useState(false);
   const [errModalTitle, setErrModalTitle] = useState("Error");
@@ -156,7 +153,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
         {
           method: "POST",
-         headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ RequestID }),
         }
       );
@@ -286,9 +283,13 @@ const ProposalPage = () => {
   }, [TripData]);
 
   // Trip price total (per student)
-  const filteredPriceList = (ActivityData?.priceList ?? []).filter(
-    (p) => Number(p?.RequestSchoolPrice) > 0
-  );
+  // --- UPDATED FILTER: keep the row if ANY of the three components parses as a number (>= 0) ---
+  const filteredPriceList = (ActivityData?.priceList ?? []).filter((p) => {
+    const vendor = parseFloat(p?.Price);
+    const heroz = parseFloat(p?.HerozStudentPrice);
+    const school = parseFloat(p?.RequestSchoolPrice);
+    return Number.isFinite(vendor) || Number.isFinite(heroz) || Number.isFinite(school);
+  });
 
   const priceTotal = filteredPriceList.reduce((sum, item) => {
     const perStudent =
