@@ -841,6 +841,10 @@ const Vendor = () => {
   const handleUnPublish = () => {
     handleSubmit('WAITING-FOR-APPROVAL')
   }
+  const handleUnPending = () => {
+    handleSubmit('PENDING')
+  }
+  
   const handleConfirm = () => {
     setShowModal(false)
     handleSubmit('APPROVED')
@@ -903,7 +907,13 @@ const Vendor = () => {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="admin-buttonv1 btn-green" onClick={handleSave}>
             PUBLISH
-          </button>
+          </button><button
+  className="admin-buttonv1"
+  style={{ backgroundColor: 'Gray', color: 'white' }}
+  onClick={handleUnPending}
+>
+Pending
+</button>
          <button
   className="admin-buttonv1"
   style={{ backgroundColor: 'orange', color: 'white' }}
@@ -1682,6 +1692,13 @@ const Vendor = () => {
   onClick={handleUnPublish}
 >
 SAVE & UNPUBLISH
+</button>
+<button
+  className="admin-buttonv1"
+  style={{ backgroundColor: 'Marron', color: 'white' }}
+  onClick={handleUnPublish}
+>
+Pending
 </button>
         <button
           type="button"

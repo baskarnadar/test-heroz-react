@@ -763,7 +763,7 @@ const Vendor = () => {
       if (!response.ok) throw new Error('Failed to fetch activities')
 
       const data = await response.json()
-      if (data?.data?.actStatus !== 'DRAFT') {
+      if ((data?.data?.actStatus !== 'DRAFT')|| (data?.data?.actStatus !== 'DRAFT')) {
         navigate(`/vendordata/activityinfo/activity/view?ActivityID=${ActivityIDVal}`)
         return
       }
