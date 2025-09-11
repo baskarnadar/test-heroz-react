@@ -61,11 +61,15 @@ const ActivityList = () => {
           }),
         },
       )
+      console.log("📡 API Status:", response.status);
        console.log("Activity.priceList");
+      
+
   console.log(Activity.priceList);
       if (!response.ok) throw new Error('Failed to fetch activities')
 
       const data = await response.json()
+      console.log("📦 API Response:", data);
       console.log('data')
       console.log(data.data)
       setActivity(data.data || [])

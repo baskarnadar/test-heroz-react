@@ -30,6 +30,9 @@ const ActivityList = () => {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
+  // NEW: typed confirmation state
+  const [confirmText, setConfirmText] = useState('')
+
   const ActivityPerPage = 10
   const navigate = useNavigate()
 
@@ -113,8 +116,10 @@ const ActivityList = () => {
 
   const pageNumbers = getPageRange()
 
-  const handleDeleteClick = (ActivityID) => {
+  // keep the signature as you called it (ActivityID, VendorID), we ignore the VendorID here
+  const handleDeleteClick = (ActivityID /* , VendorID */) => {
     setActivityIDelete(ActivityID)
+    setConfirmText('') // reset typed text each time
     setShowDeleteModal(true)
   }
 
@@ -123,13 +128,12 @@ const ActivityList = () => {
     console.log(getCurrentLoggedUserID())
     try {
       const response = await fetch(
-        `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
+        `${API_BASE_URL}/admindata/activityinfo/activity/deleteActivity`,
         {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            ActivityID: ActivityIDToDelete,
-            VendorID: getCurrentLoggedUserID(),
+            ActivityID: ActivityIDToDelete, // pass only ActivityID as requested
           }),
         },
       )
@@ -138,6 +142,10 @@ const ActivityList = () => {
         setToastType('success')
         setToastMessage('Activity deleted successfully!')
         setShowDeleteModal(false)
+        setConfirmText('')
+        setActivityIDelete(null)
+        // refresh list
+        fetchActivity()
       } else {
         setToastType('fail')
         setToastMessage('Failed to delete Activity!')
@@ -147,6 +155,8 @@ const ActivityList = () => {
       setToastMessage('Error deleting Activity')
     }
   }
+
+  const isConfirmMatch = confirmText.trim() === 'Delete Activity'
 
   return (
     <div>
@@ -241,28 +251,43 @@ const ActivityList = () => {
                         flexWrap: 'wrap',
                       }}
                     >
-                     <button
-  onClick={() => handleViewClick(Activity.ActivityID, Activity.VendorID)}
-  title="View"
-  className="btn btnbtn-default graybox"
-  style={{
-    padding: '4px',
-    cursor: 'pointer',
-    border: '2px solid #cf2037',   // border color
-    borderRadius: '6px',           // rounded corners
-    backgroundColor: 'white'       // optional for contrast
-  }}
-  aria-label="View"
->
-  <i
-    style={{
-      color: '#cf2037',
-      fontSize: '22px'
-    }}
-    className="fa fa-pencil"
-  />
-</button>
+                      <button
+                        onClick={() => handleViewClick(Activity.ActivityID, Activity.VendorID)}
+                        title="View"
+                        className="btn btnbtn-default graybox"
+                        style={{
+                          padding: '4px',
+                          cursor: 'pointer',
+                          border: '2px solid #cf2037',
+                          borderRadius: '6px',
+                          backgroundColor: 'white'
+                        }}
+                        aria-label="View"
+                      >
+                        <i
+                          style={{ color: '#cf2037', fontSize: '22px' }}
+                          className="fa fa-pencil"
+                        />
+                      </button>
 
+                      <button
+                        onClick={() => handleDeleteClick(Activity.ActivityID, Activity.VendorID)}
+                        title="Delete"
+                        className="btn btnbtn-default graybox"
+                        style={{
+                          padding: '4px',
+                          cursor: 'pointer',
+                          border: '2px solid #cf2037',
+                          borderRadius: '6px',
+                          backgroundColor: 'white'
+                        }}
+                        aria-label="Delete"
+                      >
+                        <i
+                          style={{ color: '#cf2037', fontSize: '22px' }}
+                          className="fa fa-trash"
+                        />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -302,14 +327,54 @@ const ActivityList = () => {
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">
-            <h4>Confirm Delete</h4>
-            <p>Are you sure you want to delete this Activity?</p>
-            <div className="modal-buttons">
-              <button className="admin-buttonv1" onClick={confirmDelete}>
-                Yes
+            <h4 style={{ color: '#cf2037', marginBottom: 8, fontWeight: 700 }}>
+              Confirm Deletion
+            </h4>
+            <p style={{ color: '#cf2037', marginBottom: 12 }}>
+              ⚠️ This will permanently delete <strong>all data related to this activity</strong>.
+              <br />
+              <strong>This action cannot be undone.</strong>
+            </p>
+
+            <div style={{ marginBottom: 10 }}>
+              <label htmlFor="confirm-delete" style={{ display: 'block', marginBottom: 6 }}>
+                To confirm, type <code>Delete Activity</code>:
+              </label>
+              <input
+                id="confirm-delete"
+                type="text"
+                className="form-control"
+                placeholder="Delete Activity"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                style={{ padding: '8px', width: '100%' }}
+                autoFocus
+              />
+            </div>
+
+            <div className="modal-buttons" style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="admin-buttonv1"
+                onClick={confirmDelete}
+                disabled={!isConfirmMatch}
+                style={{
+                  opacity: isConfirmMatch ? 1 : 0.6,
+                  cursor: isConfirmMatch ? 'pointer' : 'not-allowed',
+                  backgroundColor: isConfirmMatch ? '#cf2037' : '#bbb',
+                  borderColor: '#cf2037',
+                  color: '#fff'
+                }}
+              >
+                Confirm Delete
               </button>
-              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>
-                No
+              <button
+                className="admin-buttonv1"
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setConfirmText('')
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>
