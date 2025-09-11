@@ -19,7 +19,7 @@ import { cilBell, cilContrast, cilMenu, cilMoon, cilSun } from '@coreui/icons'
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
 
-import { getCurrentLoggedUserType,getAuthHeaders  } from '../utils/operation'
+import { getCurrentLoggedUserType,getAuthHeadersV1  } from '../utils/operation'
 import { API_BASE_URL } from '../config'
 
 const UserRoleLabel = () => {
@@ -61,7 +61,7 @@ const AppHeader = () => {
       try {
         const noteResponse = await fetch(`${API_BASE_URL}/common/totnote`, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: getAuthHeadersV1(),
           body: JSON.stringify({ noteTo: getCurrentLoggedUserType() }),
         })
         console.log('noteResponse')

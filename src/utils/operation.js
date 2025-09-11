@@ -266,12 +266,12 @@ export function getAuthHeaders() {
   console.log("token:", token);
 
   // ✅ Check expiry before returning headers
-  // if (!token || isTokenExpired(token)) {
-  //   console.warn("Token missing or expired — redirecting to login");
-  //   localStorage.removeItem('token');
-  //   window.location.href = BaseURL;
-  //   return {}; // return empty headers
-  // }
+  if (!token || isTokenExpired(token)) {
+    console.warn("Token missing or expired — redirecting to login");
+    localStorage.removeItem('token');
+    window.location.href = BaseURL;
+    return {}; // return empty headers
+  }
 
   return { 
     'Content-Type': 'application/json',
@@ -279,3 +279,13 @@ export function getAuthHeaders() {
   };
 }
 
+export function getAuthHeadersV1() {
+  const token = localStorage.getItem('token');
+//alert(BaseURL);
+  console.log("token:", token); 
+
+  return { 
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+}
