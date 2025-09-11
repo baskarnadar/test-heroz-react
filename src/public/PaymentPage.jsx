@@ -34,10 +34,16 @@ export default function PaymentPage() {
       setErr("");
       try {
         const r = await fetch(`${API}/api/mf/initiate`, {
-          method: "POST",
-         headers: getAuthHeaders(),
-          body: JSON.stringify({ amount: Number(amount) || 0, currency: "SAR" }),
-        });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    amount: Number(amount) || 0,
+    currency: "SAR",
+  }),
+});
+
         const data = await parse(r);
         if (!r.ok) {
           console.error("INITIATE error:", data);

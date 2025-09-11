@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import '../scss/toast.css'
 import ReactPlayer from 'react-player'
- 
+ import { BaseURL } from '../config'
  import { format, parseISO } from 'date-fns';
 export function convertToAMPM(timeRange) {
   try {
@@ -248,13 +248,34 @@ export const GoogleMapEmbed = ({ embedUrl, width = '100%', height = '400px' }) =
   )
 }
 
+ function isTokenExpired(token) {
+  try {
+    // JWT format: header.payload.signature → we take payload
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const now = Math.floor(Date.now() / 1000); // current time in seconds
+    return payload.exp && payload.exp < now;
+  } catch (e) {
+    console.error("Invalid token format", e);
+    return true; // treat as expired if broken
+  }
+}
+
 export function getAuthHeaders() {
   const token = localStorage.getItem('token');
-  console.log(token);
-  return {
+//alert(BaseURL);
+  console.log("token:", token);
 
+  // ✅ Check expiry before returning headers
+  // if (!token || isTokenExpired(token)) {
+  //   console.warn("Token missing or expired — redirecting to login");
+  //   localStorage.removeItem('token');
+  //   window.location.href = BaseURL;
+  //   return {}; // return empty headers
+  // }
+
+  return { 
     'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-
+    'Authorization': `Bearer ${token}`,
   };
 }
+

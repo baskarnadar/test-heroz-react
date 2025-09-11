@@ -18,19 +18,16 @@ import { ActionButtonsV1 } from '../../../utils/btn'
 
 const ActivityList = () => {
   const [ActivityIDToDelete, setActivityIDelete] = useState(null)
+  const [VendorIDToDelete, setVendorIDToDelete] = useState(null)
   const [Activity, setActivity] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
   const [selectedActivity, setSelectedActivity] = useState(null)
-
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-
-  // NEW: typed confirmation state
   const [confirmText, setConfirmText] = useState('')
 
   const ActivityPerPage = 10
@@ -51,9 +48,8 @@ const ActivityList = () => {
   }, [currentPage, navigate, toastMessage])
 
   const fetchActivity = async () => {
-    setLoading(true);
-    setError(null);
-
+    setLoading(true)
+    setError(null)
     try {
       const response = await fetch(
         `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
@@ -65,44 +61,39 @@ const ActivityList = () => {
             limit: ActivityPerPage,
           }),
         }
-      );
+      )
 
       if (!response.ok) {
-        let message = `Request failed with status ${response.status}`;
+        let message = `Request failed with status ${response.status}`
         try {
-          const errJson = await response.json();
-          console.log('❌ Activity List API Error Response:', JSON.stringify(errJson, null, 2));
-          if (errJson?.message) message = errJson.message;
+          const errJson = await response.json()
+          if (errJson?.message) message = errJson.message
         } catch {
           // Not JSON
         }
-        throw new Error(message);
+        throw new Error(message)
       }
 
-      const data = await response.json();
-      console.log('✅ Activity List API Response:', JSON.stringify(data, null, 2));
+      const data = await response.json()
+      const list = Array.isArray(data?.data) ? data.data : []
+      const totalCount = Number.isFinite(data?.totalCount) ? data.totalCount : list.length
 
-      const list = Array.isArray(data?.data) ? data.data : [];
-      const totalCount =
-        Number.isFinite(data?.totalCount) ? data.totalCount : list.length;
-
-      setActivity(list);
-      setTotalPages(
-        Math.max(1, Math.ceil(totalCount / (ActivityPerPage || 1)))
-      );
+      setActivity(list)
+      setTotalPages(Math.max(1, Math.ceil(totalCount / (ActivityPerPage || 1))))
     } catch (error) {
-      setError(error?.message || 'Error fetching activities');
+      setError(error?.message || 'Error fetching activities')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
 
-  const handleViewClick = (ActivityID,VendorID) => {
+  const handleViewClick = (ActivityID, VendorID) => {
     navigate(`/admindata/activityinfo/activity/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
-  const handleBookedClick = (ActivityID,VendorID) => {
+
+  const handleBookedClick = (ActivityID, VendorID) => {
     navigate(`/admindata/activityinfo/trip/list?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
 
@@ -116,16 +107,14 @@ const ActivityList = () => {
 
   const pageNumbers = getPageRange()
 
-  // keep the signature as you called it (ActivityID, VendorID), we ignore the VendorID here
-  const handleDeleteClick = (ActivityID /* , VendorID */) => {
+  const handleDeleteClick = (ActivityID, VendorID) => {
     setActivityIDelete(ActivityID)
-    setConfirmText('') // reset typed text each time
+    setVendorIDToDelete(VendorID)
+    setConfirmText('')
     setShowDeleteModal(true)
   }
 
   const confirmDelete = async () => {
-    console.log(ActivityIDToDelete)
-    console.log(getCurrentLoggedUserID())
     try {
       const response = await fetch(
         `${API_BASE_URL}/admindata/activityinfo/activity/deleteActivity`,
@@ -133,24 +122,28 @@ const ActivityList = () => {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            ActivityID: ActivityIDToDelete, // pass only ActivityID as requested
+            ActivityID: ActivityIDToDelete,
+            VendorID: VendorIDToDelete,
+            DeletedByID: getCurrentLoggedUserID(),
           }),
-        },
+        }
       )
+
+      const data = await response.json()
 
       if (response.ok) {
         setToastType('success')
-        setToastMessage('Activity deleted successfully!')
+        setToastMessage(data.message || 'Activity deleted successfully!')
         setShowDeleteModal(false)
         setConfirmText('')
         setActivityIDelete(null)
-        // refresh list
+        setVendorIDToDelete(null)
         fetchActivity()
       } else {
         setToastType('fail')
-        setToastMessage('Failed to delete Activity!')
+        setToastMessage(data.message || 'Failed to delete Activity!')
       }
-    } catch (error) {
+    } catch {
       setToastType('fail')
       setToastMessage('Error deleting Activity')
     }
@@ -176,7 +169,7 @@ const ActivityList = () => {
                 <th>Type</th>
                 <th>Location</th>
                 <th>Gender</th>
-                <th>Price Per Student </th>
+                <th>Price Per Student</th>
                 <th>Date</th>
                 <th>Status</th>
                 <th>Booked</th>
@@ -203,14 +196,7 @@ const ActivityList = () => {
                     {Activity.EnCityName} {Activity.actAddress1} {Activity.actAddress2}
                   </td>
                   <td>{Activity.actGender}</td>
-                  <td
-                    style={{
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '250px',
-                    }}
-                  >
+                  <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '250px' }}>
                     <img
                       src={moneyv1}
                       alt="logo"
@@ -242,15 +228,7 @@ const ActivityList = () => {
                     </button>
                   </td>
                   <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
-                    <div
-                      className="text-align"
-                      style={{
-                        display: 'flex',
-                        gap: '6px',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap',
-                      }}
-                    >
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                       <button
                         onClick={() => handleViewClick(Activity.ActivityID, Activity.VendorID)}
                         title="View"
@@ -264,12 +242,8 @@ const ActivityList = () => {
                         }}
                         aria-label="View"
                       >
-                        <i
-                          style={{ color: '#cf2037', fontSize: '22px' }}
-                          className="fa fa-pencil"
-                        />
+                        <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-pencil" />
                       </button>
-
                       <button
                         onClick={() => handleDeleteClick(Activity.ActivityID, Activity.VendorID)}
                         title="Delete"
@@ -283,10 +257,7 @@ const ActivityList = () => {
                         }}
                         aria-label="Delete"
                       >
-                        <i
-                          style={{ color: '#cf2037', fontSize: '22px' }}
-                          className="fa fa-trash"
-                        />
+                        <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-trash" />
                       </button>
                     </div>
                   </td>
@@ -338,7 +309,7 @@ const ActivityList = () => {
 
             <div style={{ marginBottom: 10 }}>
               <label htmlFor="confirm-delete" style={{ display: 'block', marginBottom: 6 }}>
-                To confirm, type <code>Delete Activity</code>:
+                To confirm, type <code>Delete Activity</code>
               </label>
               <input
                 id="confirm-delete"
@@ -355,11 +326,11 @@ const ActivityList = () => {
             <div className="modal-buttons" style={{ display: 'flex', gap: 8 }}>
               <button
                 className="admin-buttonv1"
-                onClick={confirmDelete}
-                disabled={!isConfirmMatch}
+                onClick={confirmDelete}  // ✅ uses stored ActivityIDToDelete & VendorIDToDelete
+                disabled={!isConfirmMatch || !ActivityIDToDelete || !VendorIDToDelete}
                 style={{
-                  opacity: isConfirmMatch ? 1 : 0.6,
-                  cursor: isConfirmMatch ? 'pointer' : 'not-allowed',
+                  opacity: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 1 : 0.6,
+                  cursor: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 'pointer' : 'not-allowed',
                   backgroundColor: isConfirmMatch ? '#cf2037' : '#bbb',
                   borderColor: '#cf2037',
                   color: '#fff'
@@ -372,6 +343,8 @@ const ActivityList = () => {
                 onClick={() => {
                   setShowDeleteModal(false)
                   setConfirmText('')
+                  setActivityIDelete(null)
+                  setVendorIDToDelete(null)
                 }}
               >
                 Cancel
