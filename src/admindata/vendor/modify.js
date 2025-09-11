@@ -347,7 +347,7 @@ const Vendor = () => {
     const file = e.target.files?.[0];
     setter(file || null);
     if (submitted && setter === setvdrImageName) {
-      setErrors((old) => ({ ...old, vdrImageName: !(file instanceof File) ? 'Vendor Image is required.' : '' }));
+      setErrors((old) => ({ ...old, vdrImageName: !(file instanceof File) && !OrgtxtvdrImageName1Val ? 'Vendor Image is required.' : '' }));
     }
   };
 
@@ -654,7 +654,7 @@ const Vendor = () => {
   // ===== Clear server existence error on edits =====
   useEffect(() => {
     if (existErr) setExistErr('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txtvdrMobileNo1, txtvdrEmailAddress]);
 
   // ===== Lookups =====
@@ -826,6 +826,9 @@ const Vendor = () => {
     }
   }, [VendorData]);
 
+  // ===== Precompute day-level overlap for inline display =====
+  const dayOverlapInfo = submitted ? hasOverlap(days) : null;
+
   // ===== Render =====
   return (
     <div>
@@ -903,30 +906,11 @@ const Vendor = () => {
       {/* ==== Raw API response from getVendor ==== */}
       {VendorData && (
         <>
-          {/* <div className="txtsubtitle">API Response (getVendor)</div>
-          <div className="divbox">
-            <pre
-              style={{
-                background: '#0b1020',
-                color: '#e9f2ff',
-                padding: '12px',
-                borderRadius: '8px',
-                overflowX: 'auto',
-                maxHeight: 300
-              }}
-            >
-{JSON.stringify(VendorData, null, 2)}
-            </pre>
-          </div> */}
+          {/* (debug hidden) */}
         </>
       )}
 
-      {/* DEBUG: Outgoing payload & incoming response */}
-      {/* <div className="txtsubtitle">Debug: Update Payload & Response</div>
-      <div className="divbox">
-        <DebugPanel title="Outgoing Payload (updatevendor)" data={debugPayload} />
-        <DebugPanel title="API Response (updatevendor)" data={debugResponse} />
-      </div> */}
+      {/* DEBUG: Outgoing payload & incoming response (hidden) */}
 
       <div className="txtsubtitle">Vendor Information</div>
 
@@ -959,6 +943,19 @@ const Vendor = () => {
             aria-invalid={!!errors.txtvdrClubName}
           />
           {errors.txtvdrClubName && <div className="ErrorMsg">{errors.txtvdrClubName}</div>}
+        </div>
+
+        {/* ✅ Vendor Image upload (required) */}
+        <div className="form-group">
+          <label>Vendor Image <Req /></label>
+          <input
+            name="txtvdrImageName"
+            type="file"
+            onChange={handleFileUpload(setvdrImageName)}
+            className="vendor-input"
+          />
+          {vdrImageName && <FilePreview file={vdrImageName} />}
+          {errors.vdrImageName && <div className="ErrorMsg">{errors.vdrImageName}</div>}
         </div>
 
         {/* Email stays read-only above; editable Mobile 1 removed */}
@@ -1298,7 +1295,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Opening Hours Information</div>
+      <div className="txtsubtitle">Opening Hours Information <Req /></div>
       <div className="divbox">
         <div style={{ margin: '20px auto' }}>
           {DAY_KEYS.map((day) => (
@@ -1316,58 +1313,78 @@ const Vendor = () => {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {days[day].times.map((range, index) => (
-                  <div key={index} style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <label>
-                      Start Time:{' '}
-                      <input
-                        className="admin-txt-box"
-                        type="time"
-                        value={range.start}
-                        onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
-                        disabled={days[day].closed}
-                      />
-                    </label>
+                {days[day].times.map((range, index) => {
+                  const startFilled = (range.start || '').trim();
+                  const endFilled = (range.end || '').trim();
+                  const showRowError = submitted && !days[day].closed && ((startFilled && !endFilled) || (!startFilled && endFilled));
+                  const which = startFilled && !endFilled ? 'end' : 'start';
+                  return (
+                    <div key={index} style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <label>
+                        Start Time:{' '}
+                        <input
+                          className="admin-txt-box"
+                          type="time"
+                          value={range.start}
+                          onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
+                          disabled={days[day].closed}
+                        />
+                      </label>
 
-                    <label>
-                      End Time:{' '}
-                      <input
-                        className="admin-txt-box"
-                        type="time"
-                        value={range.end}
-                        onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
-                        disabled={days[day].closed}
-                      />
-                    </label>
+                      <label>
+                        End Time:{' '}
+                        <input
+                          className="admin-txt-box"
+                          type="time"
+                          value={range.end}
+                          onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
+                          disabled={days[day].closed}
+                        />
+                      </label>
 
-                    <label>
-                      Notes:{' '}
-                      <input
-                        type="text"
-                        className="admin-txt-box"
-                        value={range.note || ''}
-                        onChange={(e) => handleTimeChange(day, index, 'note', e.target.value)}
-                        placeholder="Optional notes"
-                        disabled={days[day].closed}
-                      />
-                    </label>
+                      <label>
+                        Notes:{' '}
+                        <input
+                          type="text"
+                          className="admin-txt-box"
+                          value={range.note || ''}
+                          onChange={(e) => handleTimeChange(day, index, 'note', e.target.value)}
+                          placeholder="Optional notes"
+                          disabled={days[day].closed}
+                        />
+                      </label>
 
-                    <div>
-                      Range Hours: <strong>{range.total || '0.00'}</strong>
+                      <div>
+                        Range Hours: <strong>{range.total || '0.00'}</strong>
+                      </div>
+
+                      {days[day].times.length > 1 && (
+                        <button
+                          type="button"
+                          style={{ background: 'tomato', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
+                          onClick={() => handleRemoveTimeRange(day, index)}
+                          disabled={days[day].closed}
+                        >
+                          Remove
+                        </button>
+                      )}
+
+                      {/* 🔴 Inline row-level error: missing start or end */}
+                      {showRowError && (
+                        <div className="ErrorMsg" style={{ width: '100%' }}>
+                          Please enter the {which} time for {day} (row {index + 1}).
+                        </div>
+                      )}
                     </div>
+                  );
+                })}
 
-                    {days[day].times.length > 1 && (
-                      <button
-                        type="button"
-                        style={{ background: 'tomato', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
-                        onClick={() => handleRemoveTimeRange(day, index)}
-                        disabled={days[day].closed}
-                      >
-                        Remove
-                      </button>
-                    )}
+                {/* 🔴 Inline day-level overlap error */}
+                {dayOverlapInfo && dayOverlapInfo.day === day && (
+                  <div className="ErrorMsg">
+                    Time range overlap on {day}: {dayOverlapInfo.range1.start} - {dayOverlapInfo.range1.end} overlaps with {dayOverlapInfo.range2.start} - {dayOverlapInfo.range2.end}
                   </div>
-                ))}
+                )}
 
                 <div style={{ marginTop: 10 }}>
                   <button type="button" className="admin-buttonv1" onClick={() => handleAddMore(day)} disabled={days[day].closed}>

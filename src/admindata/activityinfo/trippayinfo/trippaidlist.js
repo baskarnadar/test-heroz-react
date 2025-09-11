@@ -10,9 +10,17 @@ const TripPaidListWithModal = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+      const getSearchParams = () => {
+        const search = window.location.search ||
+        (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+        return new URLSearchParams(search);
+        };
+
   // 🔍 Extract RequestID from the hash URL
   const getRequestIDFromHash = () => {
-    const hashParams = new URLSearchParams(window.location.hash.split("?")[1]);
+    const hashParams = getSearchParams();
     return hashParams.get("RequestID");
   };
 

@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID, dspstatusv1 } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
+
+// ✅ bring the shared validator
+import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
+
+// ✅ tiny error renderer (same as other page)
+const ErrorText = ({ msg }) =>
+  msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
 
 const Vendor = () => {
   const [error, setError] = useState('')
@@ -30,16 +37,21 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
+  // ✅ NEW: field-level errors holder
+  const [errors, setErrors] = useState({})
+
   // === NEW: single flag to hide price-range & delete UI (kept logic, just hidden)
   const HIDE_PRICE_RANGE_UI = true
 
   // --- helpers added (no removals) ---
   const uniqueBy = (arr, key) =>
-    Array.from(new Map((arr || []).map(item => [item?.[key], item])).values())
+    Array.from(new Map((arr || []).map((item) => [item?.[key], item])).values())
 
   // Fallbacks to avoid ReferenceError in this component
   const [__dummyTotalPages, __setDummyTotalPages] = useState(0)
-  const setTotalPages = (val) => { __setDummyTotalPages(val) }
+  const setTotalPages = (val) => {
+    __setDummyTotalPages(val)
+  }
   const ActivityPerPage = 10
 
   // prevent duplicate fetches when two effects call fetchActivity
@@ -48,7 +60,7 @@ const Vendor = () => {
 
   // Define state for each input
   const [txtactName, setactName] = useState('')
-  const [selectedType, setactType] = useState('') // was []; this is used like a string everywhere
+  const [selectedType, setactType] = useState('') // was []; used like a string everywhere
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -71,7 +83,7 @@ const Vendor = () => {
 
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
-  // ⭐ NEW: Activity Rating (0–5, decimal string for input)
+  // ⭐ Activity Rating (0–5 UI). We’ll validate by mapping to 1–10 scale internally.
   const [actRating, setactRating] = useState('')
 
   const [foods, setFoods] = useState([
@@ -82,7 +94,7 @@ const Vendor = () => {
 
   // === UPDATED: if include is turned on, force both prices to "0" and keep state in sync
   const handleFoodChange = (index, field, value) => {
-    setFoods(prev => {
+    setFoods((prev) => {
       const updated = [...prev]
       // toggle / set field first
       updated[index] = { ...updated[index], [field]: value }
@@ -109,9 +121,7 @@ const Vendor = () => {
     const existingTimes = days[day].times
 
     // Calculate default new start and end time
-    let lastEnd = existingTimes.length
-      ? timeToMinutes(existingTimes[existingTimes.length - 1].end)
-      : 480 // 08:00
+    let lastEnd = existingTimes.length ? timeToMinutes(existingTimes[existingTimes.length - 1].end) : 480 // 08:00
 
     if (lastEnd === null) lastEnd = 480
 
@@ -153,49 +163,13 @@ const Vendor = () => {
   }
 
   const [days, setDays] = useState({
-    sunday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    monday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    tuesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    wednesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    thursday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    friday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    saturday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    // more days...
+    sunday: { times: [{ start: '', end: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+    monday: { times: [{ start: '', end: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+    tuesday: { times: [{ start: '', end: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+    wednesday: { times: [{ start: '', end: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+    thursday: { times: [{ start: '', end: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+    friday: { times: [{ start: '', end: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
+    saturday: { times: [{ start: '', end: '', ChkRemoveDays: false }], total: '', closed: false, note: '' },
   })
 
   const handleClosedChange = (day, isClosed) => {
@@ -293,27 +267,66 @@ const Vendor = () => {
     const file = e.target.files[0]
     if (file) setter(file)
   }
+
   const handleSubmit = async (actStatusVal, e) => {
-    console.log('Submitting with status:', actStatusVal)
+    if (e && e.preventDefault) e.preventDefault()
 
-    if (e && e.preventDefault) e.preventDefault() // Only call if e exists
+    // ✅ 1) Build payload for validation (mirror the other page)
+    // Note: our UI rating is 0–5. Convert to 1–10 *for validation only*.
+    const ratingForValidation =
+      actRating === '' ? '' : String(Math.min(10, Math.max(0, Number(actRating) * 2)))
 
+    const validation = validateActivityForm({
+      txtactName,
+      selectedType,
+      selectedCategories,
+      txtactDesc,
+      txtactImageName1: txtactImageName1 || OrgtxtactImageName1,
+      txtactImageName2: txtactImageName2 || OrgtxtactImageName2,
+      txtactImageName3: txtactImageName3 || OrgtxtactImageName3,
+      txtactGoogleMap,
+      txtactGlat,
+      txtactGlan,
+      ddactCountryID,
+      ddactCityID,
+      txtactAddress1,
+      rdoactGender,
+      priceRanges,
+      days,
+      foods, // validator enforces include => price=0 rule & non-negative
+      txtactAdminNotes,
+      actRating: ratingForValidation, // mapped
+      txtactMinAge,
+      txtactMaxAge,
+      txtactMinStudent,
+      txtactMaxStudent,
+    })
+
+    if (!validation.ok) {
+      setErrors(validation.errors || {}) // show errors under fields/sections
+      setToastMessage(validation.message || 'Please correct the highlighted fields.')
+      setToastType('fail')
+      return
+    }
+
+    // ✅ clear errors if validation passed
+    setErrors({})
     setLoading(true)
     setToastMessage('')
 
+    // ✅ 2) Overlap check (your existing extra guard)
     const overlap = hasOverlap(days)
     if (overlap) {
       setToastMessage(
-        `Time range overlap on ${overlap.day}: ` +
-          `${overlap.range1.start} - ${overlap.range1.end} overlaps with ` +
-          `${overlap.range2.start} - ${overlap.range2.end}`,
+        `Time range overlap on ${overlap.day}: ${overlap.range1.start} - ${overlap.range1.end} overlaps with ${overlap.range2.start} - ${overlap.range2.end}`,
       )
       setToastType('fail')
-      setLoading(false) // ensure spinner stops
-      return // stop submission
+      setLoading(false)
+      return
     }
 
-    //Image 1
+    // ✅ 3) Uploads + submit (unchanged)
+    // Image 1
     let txtactImageName1Val = OrgtxtactImageName1
     let uploadedImageKey1 = ''
     try {
@@ -331,15 +344,13 @@ const Vendor = () => {
         uploadedImageKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
         txtactImageName1Val = getFileNameFromUrl(uploadedImageKey1)
       }
-
-      // ✅ assign to outer variable
     } catch (error) {
       console.error('Error uploading activity image 1:', error)
       setToastMessage('Failed to upload Activity Image 1.')
       setToastType('fail')
     }
 
-    //Image 2
+    // Image 2
     let txtactImageName2Val = OrgtxtactImageName2
     let uploadedImageKey2 = ''
     try {
@@ -362,7 +373,8 @@ const Vendor = () => {
       setToastMessage('Failed to upload Activity Image 2.')
       setToastType('fail')
     }
-    //Image 3
+
+    // Image 3
     let txtactImageName3Val = OrgtxtactImageName3
     let uploadedImageKey3 = ''
     try {
@@ -378,7 +390,6 @@ const Vendor = () => {
         if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
         const uploadResult = await uploadResponse.json()
         uploadedImageKey3 = uploadResult?.data?.key || uploadResult?.data?.Key
-
         txtactImageName3Val = getFileNameFromUrl(uploadedImageKey3)
       }
     } catch (error) {
@@ -390,7 +401,7 @@ const Vendor = () => {
     const actfoodDataVal = await getFoodData()
     const actavailDaysHoursVal = getAvailDaysHoursData()
     const actPriceDataVal = getPriceData()
- 
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`,
@@ -432,7 +443,7 @@ const Vendor = () => {
             actFood: actfoodDataVal,
 
             actAdminNotes: txtactAdminNotes || '',
-            // ⭐ NEW: include rating in payload as number or empty string
+            // keep UI scale (0–5) for backend, as in your current page
             actRating: actRating === '' ? '' : Number(actRating),
 
             actStatus: actStatusVal,
@@ -465,6 +476,7 @@ const Vendor = () => {
       if (dayData.closed) return
 
       dayData.times.forEach((range) => {
+        if (!range.start || !range.end) return
         rows.push({
           AvailDaysHoursID: range.AvailDaysHoursID,
           DayName: dayName,
@@ -486,12 +498,13 @@ const Vendor = () => {
   }
 
   const getSearchParams = () => {
-    const search = window.location.search ||
+    const search =
+      window.location.search ||
       (window.location.hash && window.location.hash.includes('?')
         ? `?${window.location.hash.split('?')[1]}`
-        : '');
-    return new URLSearchParams(search);
-  };
+        : '')
+    return new URLSearchParams(search)
+  }
 
   const handleAddRange = () => {
     setPriceRanges((prev) => [...prev, { price: '', range: '' }])
@@ -576,11 +589,11 @@ const Vendor = () => {
     setSelectedCategories(ActivityData.actCategoryID || [])
     setactDesc(ActivityData.actDesc || '')
 
-    // ⭐ NEW: load rating
+    // ⭐ load rating (UI 0–5)
     setactRating(
       ActivityData?.actRating !== undefined && ActivityData?.actRating !== null
         ? String(ActivityData.actRating)
-        : ''
+        : '',
     )
 
     // YouTube IDs
@@ -616,9 +629,7 @@ const Vendor = () => {
       }))
       setPriceRanges(formattedPriceRanges)
     } else {
-      setPriceRanges([
-        { PriceID: '', price: '', HerozStudentPrice: '', rangeFrom: '', rangeTo: '' },
-      ])
+      setPriceRanges([{ PriceID: '', price: '', HerozStudentPrice: '', rangeFrom: '', rangeTo: '' }])
     }
 
     // Set Food List ( Display Food Data)
@@ -681,17 +692,17 @@ const Vendor = () => {
   }, [ActivityData])
 
   useEffect(() => {
-    const urlParams = getSearchParams();
+    const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get('ActivityID')
     const VendorIDVal = urlParams.get('VendorID')
-     
+
     if (ActivityIDVal) {
       setActivityIDVal(ActivityIDVal)
       setAVendorVal(VendorIDVal)
       const key = `${ActivityIDVal}|${VendorIDVal || ''}`
       if (lastFetchKey !== key) {
         setLastFetchKey(key)
-        fetchActivity(ActivityIDVal, VendorIDVal);
+        fetchActivity(ActivityIDVal, VendorIDVal)
       }
     } else {
       setError('ActivityID is missing in URL')
@@ -791,8 +802,8 @@ const Vendor = () => {
         }
 
         // Guarantee price zeros if include is true (server-safety)
-        const priceOut = item.include ? '0' : (item.price || '')
-        const herozOut = item.include ? '0' : (item.herozprice || '')
+        const priceOut = item.include ? '0' : item.price || ''
+        const herozOut = item.include ? '0' : item.herozprice || ''
 
         return {
           FoodID: item.FoodID || null,
@@ -844,7 +855,7 @@ const Vendor = () => {
   const handleUnPending = () => {
     handleSubmit('PENDING')
   }
-  
+
   const handleConfirm = () => {
     setShowModal(false)
     handleSubmit('APPROVED')
@@ -907,20 +918,21 @@ const Vendor = () => {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="admin-buttonv1 btn-green" onClick={handleSave}>
             PUBLISH
-          </button><button
-  className="admin-buttonv1"
-  style={{ backgroundColor: 'Gray', color: 'white' }}
-  onClick={handleUnPending}
->
-Pending
-</button>
-         <button
-  className="admin-buttonv1"
-  style={{ backgroundColor: 'orange', color: 'white' }}
-  onClick={handleUnPublish}
->
-  SAVE & UNPUBLISH
-</button>
+          </button>
+          <button
+            className="admin-buttonv1"
+            style={{ backgroundColor: 'Gray', color: 'white' }}
+            onClick={handleUnPending}
+          >
+            Pending
+          </button>
+          <button
+            className="admin-buttonv1"
+            style={{ backgroundColor: 'orange', color: 'white' }}
+            onClick={handleUnPublish}
+          >
+            SAVE & UNPUBLISH
+          </button>
 
           <button
             type="button"
@@ -936,7 +948,7 @@ Pending
 
       <div className="divbox">
         <div className="form-group">
-          <label>Activity Name</label>
+          <label>Activity Name <span style={{color:'red'}}>*</span></label>
           <input
             name="txtactName"
             className="admin-txt-box"
@@ -945,10 +957,13 @@ Pending
             value={txtactName}
             onChange={(e) => setactName(e.target.value)}
           />
+          <ErrorText msg={errors.txtactName} />
         </div>
 
         <div className="form-group">
-          <label style={{ marginBottom: '10px', marginTop: '20px' }}>Activity Type</label>
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>
+            Activity Type <span style={{color:'red'}}>*</span>
+          </label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
@@ -985,11 +1000,12 @@ Pending
               <div className="pink-shadow4"> Member</div>
             </label>
           </div>
+          <ErrorText msg={errors.selectedType} />
         </div>
 
-        {/* ⭐ NEW: Activity Rating */}
+        {/* ⭐ Activity Rating */}
         <div className="form-group" style={{ marginTop: 8 }}>
-          <label>Activity Rating</label>
+          <label>Activity Rating <span style={{color:'red'}}>*</span></label>
           <input
             name="actRating"
             type="number"
@@ -1003,11 +1019,13 @@ Pending
             onChange={(e) => setactRating(e.target.value)}
             style={{ width: 140 }}
           />
+          {/* We still use errors.actRating from shared validator */}
+          <ErrorText msg={errors.actRating} />
         </div>
 
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories
+            Activity Categories <span style={{color:'red'}}>*</span>
           </label>
 
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -1031,10 +1049,11 @@ Pending
               </label>
             ))}
           </div>
+          <ErrorText msg={errors.selectedCategories} />
         </div>
 
         <div className="form-group">
-          <label>Activity Description</label>
+          <label>Activity Description <span style={{color:'red'}}>*</span></label>
           <textarea
             name="txtactDesc"
             className="vendor-input"
@@ -1043,10 +1062,11 @@ Pending
             onChange={(e) => setactDesc(e.target.value)}
             required
           />
+          <ErrorText msg={errors.txtactDesc} />
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Images </div>
+      <div className="txtsubtitle">Activity Images <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div
           style={{
@@ -1069,6 +1089,8 @@ Pending
               style={{ height: 50, width: '100%' }}
             />
             <FilePreview file={txtactImageName1} />
+            {/* Show overall images error here too */}
+            <ErrorText msg={errors.txtactImageName1 || errors.images} />
           </div>
 
           {/* Image 2 */}
@@ -1083,6 +1105,7 @@ Pending
               style={{ height: 50, width: '100%' }}
             />
             <FilePreview file={txtactImageName2} />
+            <ErrorText msg={errors.txtactImageName2 || errors.images} />
           </div>
 
           {/* Image 3 */}
@@ -1097,11 +1120,14 @@ Pending
               style={{ height: 50, width: '100%' }}
             />
             <FilePreview file={txtactImageName3} />
+            <ErrorText msg={errors.txtactImageName3 || errors.images} />
           </div>
         </div>
+        {/* Keep section-level too (works with current validator) */}
+        <ErrorText msg={errors.images} />
       </div>
 
-      <div className="txtsubtitle">Activity Youtube Videos </div>
+      <div className="txtsubtitle">Activity Youtube Videos</div>
       <div className="divbox">
         <div
           style={{
@@ -1119,7 +1145,6 @@ Pending
               className="vendor-input"
               value={txtactYouTubeID1}
               onChange={(e) => setYouTube1(e.target.value)}
-              required
             />
           </div>
 
@@ -1130,7 +1155,6 @@ Pending
               value={txtactYouTubeID2}
               className="vendor-input"
               onChange={(e) => setYouTube2(e.target.value)}
-              required
             />
           </div>
 
@@ -1141,13 +1165,12 @@ Pending
               className="vendor-input"
               value={txtactYouTubeID3}
               onChange={(e) => setYouTube3(e.target.value)}
-              required
             />
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Location </div>
+      <div className="txtsubtitle">Activity Location <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
         <div className="vendor-container">
@@ -1161,6 +1184,7 @@ Pending
                 onChange={(e) => setactGoogleMap(e.target.value)}
                 required
               />
+              <ErrorText msg={errors.txtactGoogleMap} />
             </div>
 
             <div className="vendor-column">
@@ -1173,6 +1197,7 @@ Pending
                 onChange={(e) => setGlat(e.target.value)}
                 required
               />
+              <ErrorText msg={errors.txtactGlat} />
             </div>
             <div className="vendor-column">
               <label className="vendor-label">Google Longitude</label>
@@ -1183,6 +1208,7 @@ Pending
                 onChange={(e) => setGlan(e.target.value)}
                 required
               />
+              <ErrorText msg={errors.txtactGlan} />
             </div>
           </div>
         </div>
@@ -1211,6 +1237,7 @@ Pending
                   </option>
                 ))}
               </select>
+              <ErrorText msg={errors.ddactCountryID} />
             </div>
 
             <div className="vendor-column">
@@ -1229,6 +1256,7 @@ Pending
                   </option>
                 ))}
               </select>
+              <ErrorText msg={errors.ddactCityID} />
             </div>
             <div className="vendor-column">
               <label className="vendor-label">Address1</label>
@@ -1239,6 +1267,7 @@ Pending
                 onChange={(e) => setAddress1(e.target.value)}
                 required
               />
+              <ErrorText msg={errors.txtactAddress1} />
             </div>
             <div className="vendor-column">
               <label className="vendor-label">Address2</label>
@@ -1247,7 +1276,6 @@ Pending
                 name="txtactAddress2"
                 className="vendor-input"
                 onChange={(e) => setAddress2(e.target.value)}
-                required
               />
             </div>
           </div>
@@ -1257,37 +1285,33 @@ Pending
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <label className="vendor-label">Minimum Age</label>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">Minimum Age <span style={{color:'red'}}>*</span></label>
               <input
                 value={txtactMinAge}
                 onChange={(e) => setMinAge(e.target.value)}
                 name="txtactMinAge"
                 className="vendor-input"
               />
+              <ErrorText msg={errors.txtactMinAge} />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <label className="vendor-label">Maximum Age</label>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">Maximum Age <span style={{color:'red'}}>*</span></label>
               <input
                 value={txtactMaxAge}
                 onChange={(e) => setMaxAge(e.target.value)}
                 name="txtactMaxAge"
                 className="vendor-input"
               />
+              <ErrorText msg={errors.txtactMaxAge} />
             </div>
           </div>
         </div>
 
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label className="vendor-label">Gender</label>
+            <label className="vendor-label">Gender <span style={{color:'red'}}>*</span></label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
@@ -1323,17 +1347,15 @@ Pending
               <div className="pink-shadow4"> Both</div>
             </label>
           </div>
+          <ErrorText msg={errors.rdoactGender} />
         </div>
       </div>
 
-      <div className="txtsubtitle">Capacity Information </div>
+      <div className="txtsubtitle">Capacity Information <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Minimum Students</label>
               <input
                 value={txtactMinStudent}
@@ -1341,12 +1363,10 @@ Pending
                 name="txtactMinStudent"
                 className="vendor-input"
               />
+              <ErrorText msg={errors.txtactMinStudent} />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">Maximum Students</label>
               <input
                 value={txtactMaxStudent}
@@ -1354,12 +1374,13 @@ Pending
                 name="txtactMaxStudent"
                 className="vendor-input"
               />
+              <ErrorText msg={errors.txtactMaxStudent} />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">Price Per Student</div>
+      <div className="txtsubtitle">Price Per Student <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
         {/* Header: Only Price & Heroz Price (others hidden) */}
@@ -1368,7 +1389,6 @@ Pending
           <CCol sm={3} style={{ backgroundColor: '#f8eaf3ff' }}>
             Heroz Price
           </CCol>
-          {/* Hidden columns intentionally omitted */}
         </CRow>
 
         {priceRanges.map((item, index) => (
@@ -1382,6 +1402,15 @@ Pending
                 value={item.price}
                 onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
               />
+              {/* per-row error if provided; otherwise show global price error only under first row */}
+              <ErrorText
+                msg={
+                  (errors.priceRanges &&
+                    errors.priceRanges[index] &&
+                    errors.priceRanges[index].price) ||
+                  (index === 0 ? errors.price : '')
+                }
+              />
             </CCol>
             <CCol sm={3} style={{ backgroundColor: '#f8eaf3ff' }}>
               <input
@@ -1392,16 +1421,24 @@ Pending
                 value={item.HerozStudentPrice}
                 onChange={(e) => handlePriceChange(index, 'HerozStudentPrice', e.target.value)}
               />
+              <ErrorText
+                msg={
+                  errors.priceRanges &&
+                  errors.priceRanges[index] &&
+                  errors.priceRanges[index].HerozStudentPrice
+                    ? errors.priceRanges[index].HerozStudentPrice
+                    : ''
+                }
+              />
             </CCol>
-
-            {/* Hidden: Student Range From / To / Delete actions */}
           </CRow>
         ))}
-
-        {/* Hidden: Add More button */}
       </div>
 
       <div className="txtsubtitle">Set Availability</div>
+      {/* section-level error display (like other page) */}
+      <ErrorText msg={errors.availability} />
+
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map(
@@ -1543,6 +1580,9 @@ Pending
       </div>
 
       <div className="txtsubtitle">Food Information</div>
+      {/* section-level error (if foods rule fails) */}
+      <ErrorText msg={errors.foods} />
+
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
@@ -1665,7 +1705,7 @@ Pending
         </div>
       </div>
 
-      <div className="txtsubtitle">Terms And Conditions</div>
+      <div className="txtsubtitle">Terms And Conditions <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div className="vendor-container">
           <textarea
@@ -1675,6 +1715,7 @@ Pending
             className="vendor-input"
             rows={5}
           />
+          <ErrorText msg={errors.txtactAdminNotes} />
         </div>
       </div>
 
@@ -1686,20 +1727,20 @@ Pending
         >
           PUBLISH
         </button>
-  <button
-  className="admin-buttonv1"
-  style={{ backgroundColor: 'orange', color: 'white' }}
-  onClick={handleUnPublish}
->
-SAVE & UNPUBLISH
-</button>
-<button
-  className="admin-buttonv1"
-  style={{ backgroundColor: 'Marron', color: 'white' }}
-  onClick={handleUnPublish}
->
-Pending
-</button>
+        <button
+          className="admin-buttonv1"
+          style={{ backgroundColor: 'orange', color: 'white' }}
+          onClick={handleUnPublish}
+        >
+          SAVE & UNPUBLISH
+        </button>
+        <button
+          className="admin-buttonv1"
+          style={{ backgroundColor: 'Marron', color: 'white' }}
+          onClick={handleUnPending}
+        >
+          Pending
+        </button>
         <button
           type="button"
           className="admin-buttonv1"

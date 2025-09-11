@@ -100,9 +100,18 @@ const Vendor = () => {
     setactImageName3(ActivityData.actImageName3Url || "");
   }, [ActivityData]);
 
+  
+      const getSearchParams = () => {
+        const search = window.location.search ||
+        (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+        return new URLSearchParams(search);
+        };
+
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-    const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
+    const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get("ActivityID");
     const VendorIDVal = urlParams.get("VendorID");
     const RequestID = urlParams.get("RequestID");

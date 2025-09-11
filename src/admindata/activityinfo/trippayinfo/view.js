@@ -144,9 +144,17 @@ const ProposalPage = () => {
     }
   }, [ActivityData]);
 
+    const getSearchParams = () => {
+        const search = window.location.search ||
+        (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '');
+        return new URLSearchParams(search);
+        };
+
   useEffect(() => {
     // Extract RequestID from hash URL (#/public/proposal?RequestID=...)
-    const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
+    const urlParams = getSearchParams();
     const RequestID = urlParams.get("RequestID");
     if (RequestID) {
       fetchTripData(RequestID);
