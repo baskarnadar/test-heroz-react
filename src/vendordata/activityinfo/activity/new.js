@@ -2,16 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
 
-// ✅ Validator
+// ✅ Validator (returns { ok, errors, message })
 import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
 
+const ErrorText = ({ msg }) =>
+  msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
+
 const Vendor = () => {
-  // ✅ Toggle to hide Student Range From / Student Range To / Delete (Remove)
   const HIDE_PRICE_RANGE_UI = true
 
   const [showModal, setShowModal] = useState(false)
@@ -20,18 +22,17 @@ const Vendor = () => {
   const [txtactImageName3, setactImageName3] = useState(null)
 
   const navigate = useNavigate()
-  const [fetchedCategories, setFetchedCategories] = useState([])
-
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
-  // Define state for each input
+  // form fields
   const [txtactName, setactName] = useState('')
-  const [selectedType, setactType] = useState([]) // kept as-is
-  const [actRating, setactRating] = useState('') // ⭐ NEW: Activity Rating (decimal)
+  const [selectedType, setactType] = useState('') // radio -> string
+  const [actRating, setactRating] = useState('')  // 1..10 required
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
+
   const [txtactYouTubeID1, setYouTube1] = useState('')
   const [txtactYouTubeID2, setYouTube2] = useState('')
   const [txtactYouTubeID3, setYouTube3] = useState('')
@@ -46,168 +47,57 @@ const Vendor = () => {
 
   const [txtactMinAge, setMinAge] = useState('')
   const [txtactMaxAge, setMaxAge] = useState('')
-  const [rdoactGender, setGenderService] = useState([]) // kept as-is
-  const [txtactMinStudent, setMinStudent] = useState([])
-  const [txtactMaxStudent, setMaxStudent] = useState([])
+  const [rdoactGender, setGenderService] = useState('') // radio -> string
+
+  const [txtactMinStudent, setMinStudent] = useState('')
+  const [txtactMaxStudent, setMaxStudent] = useState('')
 
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
   const [foods, setFoods] = useState([{ name: '', price: '', include: false }])
   const [countries, setCountries] = useState([])
   const [cityList, setCityList] = useState([])
+  const [fetchcategories, setFetchCategories] = useState([])
 
-  // ✅ Auto-set price to 0 when Include is checked; keep 0 while included
-  const handleFoodChange = (index, field, value) => {
-    const updated = [...foods];
+  const [errors, setErrors] = useState({}) // ⬅️ per-field error messages
 
-    if (field === 'include') {
-      updated[index].include = value;
-      if (value === true) {
-        updated[index].price = 0; // immediately set to 0 in UI
-      }
-    } else if (field === 'price') {
-      const num = value === '' ? '' : Number(value);
-      updated[index].price = updated[index].include ? 0 : num;
-    } else {
-      updated[index][field] = value;
-    }
-
-    setFoods(updated);
-  };
-
-  const handleFoodAddMore = () => {
-    setFoods([...foods, { name: '', price: '', include: false }])
-  }
-
-  const handleFoodRemoveFood = (index) => {
-    const updated = foods.filter((_, i) => i !== index)
-    setFoods(updated)
-  }
-
-  /*  days */
-  const handleAddMore = (day) => {
-    const existingTimes = days[day].times
-
-    // Calculate default new start and end time (e.g. right after last end)
-    let lastEnd = existingTimes.length
-      ? timeStringToMinutes(existingTimes[existingTimes.length - 1].end)
-      : 480 // default 8:00 AM = 480 mins
-
-    if (lastEnd === null) lastEnd = 480
-
-    const newStartMins = lastEnd
-    const newEndMins = newStartMins + 60 // 1 hour after
-
-    const minutesToTime = (mins) => {
-      const h = Math.floor(mins / 60).toString().padStart(2, '0')
-      const m = (mins % 60).toString().padStart(2, '0')
-      return `${h}:${m}`
-    }
-
-    const newStart = minutesToTime(newStartMins)
-    const newEnd = minutesToTime(newEndMins)
-
-    const newTimes = [
-      ...existingTimes,
-      { start: newStart, end: newEnd, total: '1.00', note: '' }, // ✅ include note
-    ]
-    setDays({
-      ...days,
-      [day]: { ...days[day], times: newTimes },
-    })
-  }
-
+  // availability
   const [days, setDays] = useState({
-    sunday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    monday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    tuesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    wednesday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    thursday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    friday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
-      total: '',
-      closed: false,
-      note: '',
-    },
-    saturday: {
-      times: [{ start: '', end: '', ChkRemoveDays: false, total: '', note: '' }],
-      total: '',
-      closed: false,
-      note: '',
-    },
+    sunday:    { times: [{ start: '', end: '', total: '', note: '' }], total: '', closed: false, note: '' },
+    monday:    { times: [{ start: '', end: '', total: '', note: '' }], total: '', closed: false, note: '' },
+    tuesday:   { times: [{ start: '', end: '', total: '', note: '' }], total: '', closed: false, note: '' },
+    wednesday: { times: [{ start: '', end: '', total: '', note: '' }], total: '', closed: false, note: '' },
+    thursday:  { times: [{ start: '', end: '', total: '', note: '' }], total: '', closed: false, note: '' },
+    friday:    { times: [{ start: '', end: '', total: '', note: '' }], total: '', closed: false, note: '' },
+    saturday:  { times: [{ start: '', end: '', total: '', note: '' }], total: '', closed: false, note: '' },
   })
 
-  const handleClosedChange = (day, isClosed) => {
-    setDays((prevDays) => ({
-      ...prevDays,
-      [day]: {
-        ...prevDays[day],
-        closed: isClosed,
-      },
-    }))
-  }
+  // price
+  const [priceRanges, setPriceRanges] = useState([{ price: '', rangeFrom: '', rangeTo: '' }])
 
-  const timeToMinutes = (time) => {
-    if (!time) return null
-    const [timePart, modifier] = time.split(' ')
-    let [hours, minutes] = timePart.split(':').map(Number)
-
-    if (modifier === 'PM' && hours !== 12) hours += 12
-    if (modifier === 'AM' && hours === 12) hours = 0
-
-    return hours * 60 + minutes
-  }
-
+  // utils
   const timeStringToMinutes = (timeStr) => {
     if (!timeStr) return null
     const [hourStr, minuteStr] = timeStr.split(':')
     if (!minuteStr) return null
-    let hour = parseInt(hourStr, 10)
-    let minute = parseInt(minuteStr, 10)
-    if (isNaN(hour) || isNaN(minute)) return null
+    const hour = parseInt(hourStr, 10)
+    const minute = parseInt(minuteStr, 10)
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return null
     return hour * 60 + minute
   }
 
-  const hasOverlap = (days) => {
-    for (const [dayName, dayData] of Object.entries(days)) {
+  const hasOverlap = (daysObj) => {
+    for (const [dayName, dayData] of Object.entries(daysObj)) {
       if (dayData.closed) continue
-
       const times = dayData.times.filter((t) => t.start && t.end)
       for (let i = 0; i < times.length; i++) {
         const startA = timeStringToMinutes(times[i].start)
         const endA = timeStringToMinutes(times[i].end)
         if (startA === null || endA === null) continue
-
         for (let j = i + 1; j < times.length; j++) {
           const startB = timeStringToMinutes(times[j].start)
           const endB = timeStringToMinutes(times[j].end)
           if (startB === null || endB === null) continue
-
           if (startA < endB && endA > startB) {
             return { day: dayName, range1: times[i], range2: times[j] }
           }
@@ -217,12 +107,16 @@ const Vendor = () => {
     return null
   }
 
-  // ✅ Recalculate total hours when start/end change
+  // handlers
+  const handleClosedChange = (day, isClosed) => {
+    setDays((prev) => ({ ...prev, [day]: { ...prev[day], closed: isClosed } }))
+  }
+
   const handleTimeChange = (day, index, field, value) => {
-    setDays((prevDays) => {
-      const updatedTimes = [...prevDays[day].times]
-      const prev = updatedTimes[index] || {}
-      const next = { ...prev, [field]: value }
+    setDays((prev) => {
+      const updatedTimes = [...prev[day].times]
+      const prevRow = updatedTimes[index] || {}
+      const next = { ...prevRow, [field]: value }
 
       const s = String(next.start || '').trim()
       const e = String(next.end || '').trim()
@@ -241,55 +135,187 @@ const Vendor = () => {
 
       updatedTimes[index] = next
       const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
-
-      return {
-        ...prevDays,
-        [day]: {
-          ...prevDays[day],
-          times: updatedTimes,
-          total: dayTotal.toFixed(2),
-        },
-      }
+      return { ...prev, [day]: { ...prev[day], times: updatedTimes, total: dayTotal.toFixed(2) } }
     })
   }
 
-  // ✅ Allow typing into Notes
   const handleRangeNoteChange = (day, index, value) => {
-    setDays((prevDays) => {
-      const updatedTimes = [...prevDays[day].times]
-      const prev = updatedTimes[index] || {}
-      updatedTimes[index] = { ...prev, note: value }
+    setDays((prev) => {
+      const updatedTimes = [...prev[day].times]
+      updatedTimes[index] = { ...(updatedTimes[index] || {}), note: value }
       const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
-      return {
-        ...prevDays,
-        [day]: { ...prevDays[day], times: updatedTimes, total: dayTotal.toFixed(2) },
-      }
+      return { ...prev, [day]: { ...prev[day], times: updatedTimes, total: dayTotal.toFixed(2) } }
     })
   }
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target
-    if (name.startsWith('day_')) {
-      const day = name.split('_')[1]
-      setFormData((prev) => ({
-        ...prev,
-        daysAvailable: { ...prev.daysAvailable, [day]: checked },
-      }))
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }))
+  const handleAddMore = (day) => {
+    const existingTimes = days[day].times
+    const lastEnd = existingTimes.length
+      ? timeStringToMinutes(existingTimes[existingTimes.length - 1].end) ?? 480
+      : 480 // 8:00
+    const minutesToTime = (mins) => {
+      const h = String(Math.floor(mins / 60)).padStart(2, '0')
+      const m = String(mins % 60).padStart(2, '0')
+      return `${h}:${m}`
     }
+    const newStart = lastEnd
+    const newEnd = newStart + 60
+    const newTimes = [...existingTimes, { start: minutesToTime(newStart), end: minutesToTime(newEnd), total: '1.00', note: '' }]
+    setDays({ ...days, [day]: { ...days[day], times: newTimes } })
   }
+
+  const handleRemoveTimeRange = (day, index) => {
+    const updatedTimes = days[day].times.filter((_, i) => i !== index)
+    const newTotal = updatedTimes.reduce((sum, t) => sum + parseFloat(t.total || 0), 0)
+    setDays({
+      ...days,
+      [day]: {
+        ...days[day],
+        times: updatedTimes.length ? updatedTimes : [{ start: '', end: '', total: '', note: '' }],
+        total: newTotal.toFixed(2),
+      },
+    })
+  }
+
+  const handlePriceChange = (index, field, value) => {
+    setPriceRanges((prev) => {
+      const updated = [...prev]
+      updated[index][field] = value
+      return updated
+    })
+  }
+
+  const handleAddRange = () => setPriceRanges((prev) => [...prev, { price: '', rangeFrom: '', rangeTo: '' }])
+  const handleRemoveRange = (index) => setPriceRanges((prev) => prev.filter((_, i) => i !== index))
 
   const handleFileUpload = (setter) => async (e) => {
     const file = e.target.files[0]
     if (file) setter(file)
   }
 
-  const handleSubmit = async (actStatusVal,e) => {
-    console.log("Submitting with status:", actStatusVal);
-    if (e && e.preventDefault) e.preventDefault();
+  const handleCheckboxChange = (CategoryID) => {
+    setSelectedCategories((prevSelected) =>
+      prevSelected.includes(CategoryID)
+        ? prevSelected.filter((id) => id !== CategoryID)
+        : [...prevSelected, CategoryID],
+    )
+  }
 
-    // ✅ Pre-submit validation
+  // food
+  const uploadFoodImage = async (file) => {
+    const formdata = new FormData()
+    formdata.append('image', file)
+    formdata.append('foldername', 'files/product/food')
+    const res = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: formdata })
+    const result = await res.json()
+    return result.data?.key || result.data?.Key
+  }
+
+  const handleFoodChange = (index, field, value) => {
+    const updated = [...foods]
+    if (field === 'include') {
+      updated[index].include = value
+      if (value === true) updated[index].price = 0
+    } else if (field === 'price') {
+      const num = value === '' ? '' : Number(value)
+      updated[index].price = updated[index].include ? 0 : num
+    } else {
+      updated[index][field] = value
+    }
+    setFoods(updated)
+  }
+
+  const handleFoodAddMore = () => setFoods([...foods, { name: '', price: '', include: false }])
+  const handleFoodRemoveFood = (index) => setFoods(foods.filter((_, i) => i !== index))
+
+  const getFoodData = async () => {
+    const foodData = await Promise.all(
+      foods.map(async (item) => {
+        let uploadedImageKey = ''
+        if (item.image instanceof File) uploadedImageKey = await uploadFoodImage(item.image)
+        return {
+          FoodName: item.name || '',
+          FoodPrice: item.price || '',
+          FoodNotes: item.notes || '',
+          FoodImage: uploadedImageKey || '',
+          Include: item.include || false,
+        }
+      }),
+    )
+    return foodData
+  }
+
+  const getPriceData = () =>
+    priceRanges.map((item) => ({
+      Price: item.price || '',
+      StudentRangeFrom: item.rangeFrom || '',
+      StudentRangeTo: item.rangeTo || '',
+    }))
+
+  const getAvailDaysHoursData = (val) => {
+    const rows = []
+    Object.entries(days).forEach(([dayName, dayData]) => {
+      if (dayData.closed) return
+      dayData.times.forEach((range) => {
+        if (!range.start || !range.end) return
+        rows.push({
+          DayName: dayName,
+          StartTime: range.start,
+          EndTime: range.end,
+          Note: range.note || '',
+          Total: range.total || '0.00',
+          CreatedBy: getCurrentLoggedUserID(),
+          ModifyBy: getCurrentLoggedUserID(),
+        })
+      })
+    })
+    return { actAvailDaysHours: val, rows }
+  }
+
+  // load lookups
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        })
+        const result = await response.json()
+        if (result.data) setCityList(result.data)
+      } catch {}
+    }
+    const fetchCountries = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        })
+        const result = await response.json()
+        if (result.data) setCountries(result.data)
+      } catch {}
+    }
+    const FetchCategory = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        })
+        const result = await response.json()
+        if (result.data) setFetchCategories(result.data)
+      } catch {}
+    }
+    fetchCities()
+    fetchCountries()
+    FetchCategory()
+  }, [])
+
+  // submit
+  const handleSubmit = async (actStatusVal, e) => {
+    if (e?.preventDefault) e.preventDefault()
+
     const validation = validateActivityForm({
       txtactName,
       selectedType,
@@ -305,101 +331,75 @@ const Vendor = () => {
       ddactCityID,
       txtactAddress1,
       rdoactGender,
+      txtactMinAge,
+      txtactMaxAge,
+      actRating,
+      txtactMinStudent,
+      txtactMaxStudent,
       priceRanges,
       days,
       foods,
       txtactAdminNotes,
-      actRating, // ⭐ pass to validator (safe if unused)
-    });
+    })
 
     if (!validation.ok) {
-      setToastMessage(validation.message);
-      setToastType('fail');
-      return;
+      setErrors(validation.errors || {})
+      setToastMessage(validation.message || 'Please fix the highlighted fields.')
+      setToastType('fail')
+
+      // scroll to first field with error
+      const firstField = Object.keys(validation.errors || {})[0]
+      if (firstField) {
+        const el = document.querySelector(`[name="${firstField}"]`)
+        if (el?.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (el?.focus) el.focus()
+      }
+      return
     }
 
+    setErrors({})
     setLoading(true)
     setToastMessage('')
 
     const overlap = hasOverlap(days)
     if (overlap) {
       setToastMessage(
-        `Time range overlap on ${overlap.day}: ` +
-          `${overlap.range1.start} - ${overlap.range1.end} overlaps with ` +
-          `${overlap.range2.start} - ${overlap.range2.end}`,
+        `Time range overlap on ${overlap.day}: ${overlap.range1.start}–${overlap.range1.end} overlaps with ${overlap.range2.start}–${overlap.range2.end}`,
       )
       setToastType('fail')
       setLoading(false)
       return
     }
 
-    // Image 1
-    let txtactImageName1Val = "";
-    let uploadedImageKey1 = ''
+    // upload images if any
+    let img1 = '', img2 = '', img3 = ''
     try {
-      if (txtactImageName1 && txtactImageName1 instanceof File) {
-        const formdata = new FormData()
-        formdata.append('image', txtactImageName1)
-        formdata.append('foldername', 'activity')
-        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: 'POST',
-          body: formdata,
-        })
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-        const uploadResult = await uploadResponse.json()
-        uploadedImageKey1 = uploadResult?.data?.key || uploadResult?.data?.Key
-        txtactImageName1Val = getFileNameFromUrl(uploadedImageKey1)
+      if (txtactImageName1 instanceof File) {
+        const fd = new FormData()
+        fd.append('image', txtactImageName1)
+        fd.append('foldername', 'activity')
+        const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
+        const j = await r.json()
+        img1 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
       }
-    } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
-      setToastType('fail')
-    }
-
-    // Image 2
-    let txtactImageName2Val = "";
-    let uploadedImageKey2 = ''
-    try {
-      if (txtactImageName2 && txtactImageName2 instanceof File) {
-        const formdata = new FormData()
-        formdata.append('image', txtactImageName2)
-        formdata.append('foldername', 'activity')
-        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: 'POST',
-          body: formdata,
-        })
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-        const uploadResult = await uploadResponse.json()
-        uploadedImageKey2 = uploadResult?.data?.key || uploadResult?.data?.Key
-        txtactImageName2Val = getFileNameFromUrl(uploadedImageKey2)
+      if (txtactImageName2 instanceof File) {
+        const fd = new FormData()
+        fd.append('image', txtactImageName2)
+        fd.append('foldername', 'activity')
+        const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
+        const j = await r.json()
+        img2 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
       }
-    } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
-      setToastType('fail')
-    }
-
-    // Image 3
-    let txtactImageName3Val = "";
-    let uploadedImageKey3 = ''
-    try {
-      if (txtactImageName3 && txtactImageName3 instanceof File) {
-        const formdata = new FormData()
-        formdata.append('image', txtactImageName3)
-        formdata.append('foldername', 'activity')
-        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: 'POST',
-          body: formdata,
-        })
-        if (!uploadResponse.ok) throw new Error(`Image upload failed: ${uploadResponse.status}`)
-        const uploadResult = await uploadResponse.json()
-        uploadedImageKey3 = uploadResult?.data?.key || uploadResult?.data?.Key
-        txtactImageName3Val = getFileNameFromUrl(uploadedImageKey3)
+      if (txtactImageName3 instanceof File) {
+        const fd = new FormData()
+        fd.append('image', txtactImageName3)
+        fd.append('foldername', 'activity')
+        const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
+        const j = await r.json()
+        img3 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
       }
-    } catch (error) {
-      console.error('Error uploading tax file:', error)
-      setToastMessage('Failed to upload tax file.')
-      setToastType('fail')
+    } catch {
+      // image errors are already validated as "at least one"
     }
 
     const actfoodDataVal = await getFoodData()
@@ -407,63 +407,58 @@ const Vendor = () => {
     const actPriceDataVal = getPriceData()
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            VendorID: getCurrentLoggedUserID(),
-            actName: txtactName || '',
-            actTypeID: selectedType,
-            actCategoryID: selectedCategories,
-            actDesc: txtactDesc || '',
+      const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          VendorID: getCurrentLoggedUserID(),
+          actName: txtactName || '',
+          actTypeID: selectedType,
+          actCategoryID: selectedCategories,
+          actDesc: txtactDesc || '',
 
-            actImageName1: txtactImageName1Val,
-            actImageName2: txtactImageName2Val,
-            actImageName3: txtactImageName3Val,
+          actImageName1: img1,
+          actImageName2: img2,
+          actImageName3: img3,
 
-            actYouTubeID1: txtactYouTubeID1,
-            actYouTubeID2: txtactYouTubeID2,
-            actYouTubeID3: txtactYouTubeID3,
+          actYouTubeID1: txtactYouTubeID1,
+          actYouTubeID2: txtactYouTubeID2,
+          actYouTubeID3: txtactYouTubeID3,
 
-            actGoogleMap: txtactGoogleMap || '',
-            actGlat: txtactGlat || '',
-            actGlan: txtactGlan || '',
-            actAddress1: txtactAddress1 || '',
-            actAddress2: txtactAddress2 || '',
-            actCountryID: ddactCountryID || '',
-            actCityID: ddactCityID || '',
+          actGoogleMap: txtactGoogleMap || '',
+          actGlat: txtactGlat || '',
+          actGlan: txtactGlan || '',
+          actAddress1: txtactAddress1 || '',
+          actAddress2: txtactAddress2 || '',
+          actCountryID: ddactCountryID || '',
+          actCityID: ddactCityID || '',
 
-            actMinAge: txtactMinAge || '',
-            actMaxAge: txtactMaxAge || '',
-            actGender: rdoactGender,
-            actMinStudent: txtactMinStudent || '',
-            actMaxStudent: txtactMaxStudent || '',
+          actMinAge: txtactMinAge || '',
+          actMaxAge: txtactMaxAge || '',
+          actGender: rdoactGender,
+          actMinStudent: txtactMinStudent || '',
+          actMaxStudent: txtactMaxStudent || '',
 
-            actPrice: actPriceDataVal,
-            actAvailDaysHours: actavailDaysHoursVal,
-            actFood: actfoodDataVal,
+          actPrice: actPriceDataVal,
+          actAvailDaysHours: actavailDaysHoursVal,
+          actFood: actfoodDataVal,
 
-            actAdminNotes: txtactAdminNotes || '',
-            actRating: actRating === '' ? '' : Number(actRating),
-            actStatus : actStatusVal,
-            IsDataStatus: 1,
-            CreatedBy: getCurrentLoggedUserID(),
-            ModifyBy: getCurrentLoggedUserID(),
-          }),
-        },
-      )
+          actAdminNotes: txtactAdminNotes || '',
+          actRating: Number(actRating),
+          actStatus: actStatusVal,
+          IsDataStatus: 1,
+          CreatedBy: getCurrentLoggedUserID(),
+          ModifyBy: getCurrentLoggedUserID(),
+        }),
+      })
 
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
       await response.json()
       setToastMessage('Activity added successfully!')
       setToastType('success')
-
       setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
-    } catch (err) {
-      console.error('Error adding Activity:', err)
+    } catch {
       setToastMessage('Failed to add Activity.')
       setToastType('fail')
     } finally {
@@ -471,223 +466,16 @@ const Vendor = () => {
     }
   }
 
-  const getAvailDaysHoursData = (actAvailDaysHoursVal) => {
-    const rows = []
-
-    Object.entries(days).forEach(([dayName, dayData]) => {
-      if (dayData.closed) return
-
-      dayData.times.forEach((range) => {
-        if (!range.start || !range.end) return
-        rows.push({
-          DayName: dayName,
-          StartTime: range.start,
-          EndTime: range.end,
-          Note: range.note || '', // ✅ includes note
-          Total: range.total || '0.00',
-          CreatedBy: getCurrentLoggedUserID(),
-          ModifyBy: getCurrentLoggedUserID(),
-        })
-      })
-    })
-
-    return {
-      actAvailDaysHours: actAvailDaysHoursVal,
-      rows,
-    }
-  }
-
-  const handleAddRange = () => {
-    setPriceRanges((prev) => [...prev, { price: '', rangeFrom: '', rangeTo: '' }])
-  }
-
-  const handleRemoveRange = (index) => {
-    setPriceRanges((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({}),
-        })
-        const result = await response.json()
-        if (result.data) setCityList(result.data)
-      } catch (error) {
-        console.error('Error fetching city list:', error)
-      }
-    }
-
-    const fetchCountries = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({}),
-        })
-        const result = await response.json()
-        if (result.data) setCountries(result.data)
-      } catch (error) {
-        console.error('Error fetching countries:', error)
-      }
-    }
-
-    const FetchCategory = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({}),
-        })
-        const result = await response.json()
-        if (result.data) {
-          setFetchCategories(result.data)
-        }
-      } catch (error) {
-        console.error('Error fetching education levels:', error)
-      }
-    }
-
-    fetchCities()
-    fetchCountries()
-    FetchCategory()
-  }, [])
-
-  const handleFileChange = (e, key) => {
-    const file = e.target.files[0]
-    if (key === 'certificate') {
-      setCertificateFile(file)
-    } else if (key === 'tax') {
-      setTaxFile(file)
-    }
-  }
-
-  const addPhoneField = () => {
-    setFormData((prev) => ({
-      ...prev,
-      phoneNumbers: [...prev.phoneNumbers, ''],
-    }))
-  }
-  const [fetchcategories, setFetchCategories] = useState([])
-
-  const handleRemoveTimeRange = (day, index) => {
-    const updatedTimes = days[day].times.filter((_, i) => i !== index)
-    const newTotal = updatedTimes.reduce((sum, t) => sum + parseFloat(t.total || 0), 0)
-
-    setDays({
-      ...days,
-      [day]: {
-        ...days[day],
-        times: updatedTimes.length > 0 ? updatedTimes : [{ start: '', end: '', total: '', note: '' }],
-        total: newTotal.toFixed(2),
-      },
-    })
-  }
-
-  const handleCheckboxChange = (CategoryID) => {
-    setSelectedCategories((prevSelected) =>
-      prevSelected.includes(CategoryID)
-        ? prevSelected.filter((id) => id !== CategoryID)
-        : [...prevSelected, CategoryID],
-    )
-  }
-
-  //Food--------------------------
-  const uploadFoodImage = async (file) => {
-    const formdata = new FormData()
-    formdata.append('image', file)
-    formdata.append('foldername', 'files/product/food')
-
-    const res = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-      method: 'POST',
-      body: formdata,
-    })
-
-    const result = await res.json()
-    return result.data?.key || result.data?.Key
-  }
-
-  const getFoodData = async () => {
-    const foodData = await Promise.all(
-      foods.map(async (item) => {
-        let uploadedImageKey = ''
-        if (item.image instanceof File) {
-          uploadedImageKey = await uploadFoodImage(item.image)
-        }
-
-        return {
-          FoodName: item.name || '',
-          FoodPrice: item.price || '',
-          FoodNotes: item.notes || '',
-          FoodImage: uploadedImageKey || '',
-          Include: item.include || false,
-        }
-      }),
-    )
-
-    return foodData
-  }
-  //price ------------------------------------
-  const [priceRanges, setPriceRanges] = useState([
-    { price: '', rangeFrom: '', rangeTo: '' },
-  ])
-
-  const handlePriceChange = (index, field, value) => {
-    setPriceRanges((prev) => {
-      const updated = [...prev]
-      updated[index][field] = value
-      return updated
-    })
-  }
-  const getPriceData = () => {
-    return priceRanges.map((item) => ({
-      Price: item.price || '',
-      StudentRangeFrom: item.rangeFrom || '',
-      StudentRangeTo: item.rangeTo || '',
-    }))
-  }
-
-  //Send to Admin Approval
-  const handlebtnSendToApprovalClick = () => {
-    setShowModal(true)
-  }
-  const handleConfirm = () => {
-    setShowModal(false);
-    handleSubmit("WAITING-FOR-APPROVAL");
-  }
-
-  const handleCancel = () => {
-    setShowModal(false)
-  }
-
-  //Save 
-  const handleSave = () => {
-    handleSubmit("DRAFT");  
-  };
+  // UI
 
   return (
     <div>
       <div className="divhbg">
-        {/* Left side: Title */}
         <div className="txtheadertitle">Add New Activity</div>
-
-        {/* Right side: Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="admin-buttonv1" onClick={handlebtnSendToApprovalClick}>
-            Send To Admin Approval
-          </button>
-          <button className="admin-buttonv1" onClick={handleSave}>
-            Save
-          </button>
-          <button
-            type="button"
-            className="admin-buttonv1"
-            onClick={() => navigate('/vendordata/activityinfo/activity/list')}
-          >
-            Return
-          </button>
+          <button className="admin-buttonv1" onClick={() => setShowModal(true)}>Send To Admin Approval</button>
+          <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>Save</button>
+          <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>Return</button>
         </div>
       </div>
 
@@ -696,58 +484,34 @@ const Vendor = () => {
       <div className="divbox">
         <div className="form-group">
           <label>Activity Name <span style={{color:'red'}}>*</span></label>
-          <input
-            name="txtactName"
-            className="admin-txt-box"
-            type="text"
-            required
-            onChange={(e) => setactName(e.target.value)}
-          />
+          <input name="txtactName" className="admin-txt-box" type="text" value={txtactName} onChange={(e) => setactName(e.target.value)} />
+          <ErrorText msg={errors.txtactName} />
         </div>
 
         <div className="form-group">
-          <label style={{ marginBottom: '10px', marginTop: '20px' }}>
+          <label style={{ marginBottom: 10, marginTop: 20 }}>
             Activity Type <span style={{color:'red'}}>*</span>
           </label>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactTyper"
-                value="SCHOOL"
-                onChange={(e) => setactType(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> School</div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input type="radio" name="selectedType" value="SCHOOL" checked={selectedType === 'SCHOOL'} onChange={(e) => setactType(e.target.value)} style={{ width: 24, height: 24 }} />
+              <div className="pink-shadow4">School</div>
             </label>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactTyper"
-                value="INDIVIDUAL"
-                onChange={(e) => setactType(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> Individual</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input type="radio" name="selectedType" value="INDIVIDUAL" checked={selectedType === 'INDIVIDUAL'} onChange={(e) => setactType(e.target.value)} style={{ width: 24, height: 24 }} />
+              <div className="pink-shadow4">Individual</div>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactTyper"
-                value="MEMBER"
-                onChange={(e) => setactType(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> Member</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input type="radio" name="selectedType" value="MEMBER" checked={selectedType === 'MEMBER'} onChange={(e) => setactType(e.target.value)} style={{ width: 24, height: 24 }} />
+              <div className="pink-shadow4">Member</div>
             </label>
           </div>
+          <ErrorText msg={errors.selectedType} />
         </div>
 
-        {/* ⭐ NEW: Activity Rating (decimal) */}
-        <div style={{  alignItems: 'center', gap: 8 }}>
+        <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
           <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
-            Activity Rating
+            Activity Rating <span style={{color:'red'}}>*</span>
           </label>
           <input
             id="actRating"
@@ -755,356 +519,188 @@ const Vendor = () => {
             type="number"
             inputMode="decimal"
             step="0.1"
-            min="0"
-            max="5"
+            min="1"
+            max="10"
             className="admin-txt-box"
-            placeholder="e.g., 4.5"
+            placeholder="Enter rating 1–10 (e.g., 8.5)"
             value={actRating}
             onChange={(e) => setactRating(e.target.value)}
-            style={{ width: 120 }}
+            style={{ width: 160 }}
           />
+          <ErrorText msg={errors.actRating} />
         </div>
 
-        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+        <div style={{ marginBottom: 10, marginTop: 20 }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
             Activity Categories <span style={{color:'red'}}>*</span>
           </label>
-
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
             {fetchcategories.map((item) => (
-              <label
-                key={item.CategoryID}
-                style={{
-                  width: '33.33%',
-                  marginBottom: 10,
-                  marginTop: 20,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    marginLeft: 8,
-                    marginRight: 8,
-                  }}
-                >
+              <label key={item.CategoryID} style={{ width: '33.33%', marginBottom: 10, marginTop: 20, display: 'flex', alignItems: 'center' }}>
+                <div style={{ marginLeft: 8, marginRight: 8 }}>
                   <input
                     type="checkbox"
-                    name="txtactCategoryID"
+                    name="selectedCategories"
                     value={item.CategoryID}
+                    checked={selectedCategories.includes(item.CategoryID)}
                     onChange={() => handleCheckboxChange(item.CategoryID)}
-                    style={{
-                      marginRight: 8,
-                      transform: 'scale(2.0)',
-                      cursor: 'pointer',
-                      accentColor: 'red',
-                    }}
+                    style={{ marginRight: 8, transform: 'scale(2.0)', cursor: 'pointer', accentColor: 'red' }}
                   />
                 </div>
-                <div className="pink-shadow4"> {item.EnCategoryName}</div>
+                <div className="pink-shadow4">{item.EnCategoryName}</div>
               </label>
             ))}
           </div>
+          <ErrorText msg={errors.selectedCategories} />
         </div>
 
         <div className="form-group">
           <label>Activity Description <span style={{color:'red'}}>*</span></label>
-          <textarea
-            name="txtactDesc"
-            className="vendor-input"
-            rows={4}
-            onChange={(e) => setactDesc(e.target.value)}
-            required
-          />
+          <textarea name="txtactDesc" className="vendor-input" rows={4} value={txtactDesc} onChange={(e) => setactDesc(e.target.value)} />
+          <ErrorText msg={errors.txtactDesc} />
         </div>
       </div>
 
       <div className="txtsubtitle">Activity Images <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
-        <div
-          style={{
-            display: 'flex',
-            gap: '20px',
-            flexWrap: 'wrap',
-            marginTop: '20px',
-            marginBottom: '20px',
-          }}
-        >
-          {/* Image 1 */}
-          <div className="form-group" style={{ flex: '1' }}>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 20, marginBottom: 8 }}>
+          <div className="form-group" style={{ flex: 1 }}>
             <label>Activity Image 1</label>
-            <input
-              name="txtactImageName1"
-              className="admin-txt-box"
-              placeholder="Upload Vendor Image"
-              type="file"
-              onChange={handleFileUpload(setactImageName1)}
-              style={{ height: 50, width: '100%' }}
-            />
+            <input name="txtactImageName1" className="admin-txt-box" type="file" onChange={handleFileUpload(setactImageName1)} style={{ height: 50, width: '100%' }} />
             <FilePreview file={txtactImageName1} />
           </div>
-
-          {/* Image 2 */}
-          <div className="form-group" style={{ flex: '1' }}>
+          <div className="form-group" style={{ flex: 1 }}>
             <label>Activity Image 2</label>
-            <input
-              name="txtactImageName2"
-              className="admin-txt-box"
-              placeholder="Upload Vendor Image"
-              type="file"
-              onChange={handleFileUpload(setactImageName2)}
-              style={{ height: 50, width: '100%' }}
-            />
+            <input name="txtactImageName2" className="admin-txt-box" type="file" onChange={handleFileUpload(setactImageName2)} style={{ height: 50, width: '100%' }} />
             <FilePreview file={txtactImageName2} />
           </div>
-
-          {/* Image 3 */}
-          <div className="form-group" style={{ flex: '1' }}>
+          <div className="form-group" style={{ flex: 1 }}>
             <label>Activity Image 3</label>
-            <input
-              name="txtactImageName3"
-              className="admin-txt-box"
-              placeholder="Upload Vendor Image"
-              type="file"
-              onChange={handleFileUpload(setactImageName3)}
-              style={{ height: 50, width: '100%' }}
-            />
+            <input name="txtactImageName3" className="admin-txt-box" type="file" onChange={handleFileUpload(setactImageName3)} style={{ height: 50, width: '100%' }} />
             <FilePreview file={txtactImageName3} />
           </div>
         </div>
-      </div>
-
-      <div className="txtsubtitle">Activity Youtube Videos </div>
-      <div className="divbox">
-        <div
-          style={{
-            display: 'flex',
-            gap: '20px',
-            flexWrap: 'wrap',
-            marginTop: '20px',
-            marginBottom: '20px',
-          }}
-        >
-          <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 1</label>
-            <input
-              name="txtactYouTubeID1"
-              className="vendor-input"
-              onChange={(e) => setYouTube1(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 2</label>
-            <input
-              name="txtactYouTubeID2"
-              className="vendor-input"
-              onChange={(e) => setYouTube2(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 3</label>
-            <input
-              name="txtactYouTubeID3"
-              className="vendor-input"
-              onChange={(e) => setYouTube3(e.target.value)}
-              required
-            />
-          </div>
-        </div>
+        <ErrorText msg={errors.images} />
       </div>
 
       <div className="txtsubtitle">Activity Location <span style={{color:'red'}}>*</span></div>
-
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
               <label className="vendor-label">Google Map Location <span style={{color:'red'}}>*</span></label>
-              <input
-                name="txtactGoogleMap"
-                className="vendor-input"
-                onChange={(e) => setactGoogleMap(e.target.value)}
-                required
-              />
+              <input name="txtactGoogleMap" className="vendor-input" value={txtactGoogleMap} onChange={(e) => setactGoogleMap(e.target.value)} />
+              <ErrorText msg={errors.txtactGoogleMap} />
             </div>
-
             <div className="vendor-column">
               <label className="vendor-label">Google Latitude <span style={{color:'red'}}>*</span></label>
-              <input
-                name="txtactGlat"
-                className="vendor-input"
-                onChange={(e) => setGlat(e.target.value)}
-                required
-              />
+              <input name="txtactGlat" className="vendor-input" value={txtactGlat} onChange={(e) => setGlat(e.target.value)} />
+              <ErrorText msg={errors.txtactGlat} />
             </div>
             <div className="vendor-column">
               <label className="vendor-label">Google Longitude <span style={{color:'red'}}>*</span></label>
-              <input
-                name="txtactGlan"
-                className="vendor-input"
-                onChange={(e) => setGlan(e.target.value)}
-                required
-              />
+              <input name="txtactGlan" className="vendor-input" value={txtactGlan} onChange={(e) => setGlan(e.target.value)} />
+              <ErrorText msg={errors.txtactGlan} />
             </div>
           </div>
         </div>
       </div>
+
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
               <label className="vendor-label">Country <span style={{color:'red'}}>*</span></label>
-              <select
-                onChange={(e) => setCountryID(e.target.value)}
-                name="txtactCountryID"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                }}
-                required
-              >
+              <select name="ddactCountryID" value={ddactCountryID} onChange={(e) => setCountryID(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 4, border: '1px solid #ccc' }}>
                 <option value="">Select a country</option>
                 {countries.map((country) => (
-                  <option key={country.CountryID} value={country.CountryID}>
-                    {country.EnCountryName}
-                  </option>
+                  <option key={country.CountryID} value={country.CountryID}>{country.EnCountryName}</option>
                 ))}
               </select>
+              <ErrorText msg={errors.ddactCountryID} />
             </div>
 
             <div className="vendor-column">
               <label className="vendor-label">City <span style={{color:'red'}}>*</span></label>
-              <select
-                name="txtactCityID"
-                className="admin-txt-box"
-                onChange={(e) => setSelectedCityID(e.target.value)}
-                required
-              >
+              <select name="ddactCityID" className="admin-txt-box" value={ddactCityID} onChange={(e) => setSelectedCityID(e.target.value)}>
                 <option value="">Select City</option>
                 {cityList.map((city) => (
-                  <option key={city.CityID} value={city.CityID}>
-                    {city.EnCityName}
-                  </option>
+                  <option key={city.CityID} value={city.CityID}>{city.EnCityName}</option>
                 ))}
               </select>
+              <ErrorText msg={errors.ddactCityID} />
             </div>
+
             <div className="vendor-column">
               <label className="vendor-label">Address1 <span style={{color:'red'}}>*</span></label>
-              <input
-                name="txtactAddress1"
-                className="vendor-input"
-                onChange={(e) => setAddress1(e.target.value)}
-                required
-              />
+              <input name="txtactAddress1" className="vendor-input" value={txtactAddress1} onChange={(e) => setAddress1(e.target.value)} />
+              <ErrorText msg={errors.txtactAddress1} />
             </div>
+
             <div className="vendor-column">
               <label className="vendor-label">Address2</label>
-              <input
-                name="txtactAddress2"
-                className="vendor-input"
-                onChange={(e) => setAddress2(e.target.value)}
-                required
-              />
+              <input name="txtactAddress2" className="vendor-input" value={txtactAddress2} onChange={(e) => setAddress2(e.target.value)} />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle"> Age Range </div>
+      <div className="txtsubtitle">Age Range <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <label className="vendor-label">Minimum Age</label>
-              <input
-                onChange={(e) => setMinAge(e.target.value)}
-                name="txtactMinAge"
-                className="vendor-input"
-              />
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1 }}>
+              <label className="vendor-label">Minimum Age <span style={{color:'red'}}>*</span></label>
+              <input name="txtactMinAge" type="number" min="0" className="vendor-input" value={txtactMinAge} onChange={(e) => setMinAge(e.target.value)} />
+              <ErrorText msg={errors.txtactMinAge} />
             </div>
-
-            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <label className="vendor-label">Maximum Age</label>
-              <input
-                onChange={(e) => setMaxAge(e.target.value)}
-                name="txtactMaxAge"
-                className="vendor-input"
-              />
+            <div className="vendor-column" style={{ flex: 1 }}>
+              <label className="vendor-label">Maximum Age <span style={{color:'red'}}>*</span></label>
+              <input name="txtactMaxAge" type="number" min="0" className="vendor-input" value={txtactMaxAge} onChange={(e) => setMaxAge(e.target.value)} />
+              <ErrorText msg={errors.txtactMaxAge} />
             </div>
           </div>
         </div>
 
-        <div className="vendor-container">
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="vendor-container" style={{ marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <label className="vendor-label">Gender <span style={{color:'red'}}>*</span></label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactGender"
-                value="BOYS"
-                onChange={(e) => setGenderService(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> Boys</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input type="radio" name="rdoactGender" value="BOYS" checked={rdoactGender === 'BOYS'} onChange={(e) => setGenderService(e.target.value)} style={{ width: 24, height: 24 }} />
+              <div className="pink-shadow4">Boys</div>
             </label>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactGender"
-                value="GIRLS"
-                onChange={(e) => setGenderService(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> Girls</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input type="radio" name="rdoactGender" value="GIRLS" checked={rdoactGender === 'GIRLS'} onChange={(e) => setGenderService(e.target.value)} style={{ width: 24, height: 24 }} />
+              <div className="pink-shadow4">Girls</div>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactGender"
-                value="BOTH"
-                onChange={(e) => setGenderService(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> Both</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input type="radio" name="rdoactGender" value="BOTH" checked={rdoactGender === 'BOTH'} onChange={(e) => setGenderService(e.target.value)} style={{ width: 24, height: 24 }} />
+              <div className="pink-shadow4">Both</div>
             </label>
           </div>
+          <ErrorText msg={errors.rdoactGender} />
         </div>
       </div>
 
-      <div className="txtsubtitle">Capacity Information </div>
+      <div className="txtsubtitle">Capacity Information <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div className="vendor-container">
-          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <label className="vendor-label">Minimum Students</label>
-              <input
-                onChange={(e) => setMinStudent(e.target.value)}
-                name="txtactMinStudent"
-                className="vendor-input"
-              />
+          <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
+            <div className="vendor-column" style={{ flex: 1 }}>
+              <label className="vendor-label">Minimum Students <span style={{color:'red'}}>*</span></label>
+              <input name="txtactMinStudent" type="number" min="1" className="vendor-input" value={txtactMinStudent} onChange={(e) => setMinStudent(e.target.value)} />
+              <ErrorText msg={errors.txtactMinStudent} />
             </div>
-
-            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <label className="vendor-label">Maximum Students</label>
-              <input
-                onChange={(e) => setMaxStudent(e.target.value)}
-                name="txtactMaxStudent"
-                className="vendor-input"
-              />
+            <div className="vendor-column" style={{ flex: 1 }}>
+              <label className="vendor-label">Maximum Students <span style={{color:'red'}}>*</span></label>
+              <input name="txtactMaxStudent" type="number" min="1" className="vendor-input" value={txtactMaxStudent} onChange={(e) => setMaxStudent(e.target.value)} />
+              <ErrorText msg={errors.txtactMaxStudent} />
             </div>
           </div>
         </div>
       </div>
 
       <div className="txtsubtitle">Price Per Student <span style={{color:'red'}}>*</span></div>
-
       <div className="divbox">
         <CRow className="fw-bold text-center mb-2">
           <CCol sm={3}>Price <span style={{color:'red'}}>*</span></CCol>
@@ -1117,7 +713,7 @@ const Vendor = () => {
           <CRow key={index} className="align-items-center mb-2">
             <CCol sm={3}>
               <input
-                name="txtPricePerStudent"
+                name={`price_${index}`}
                 type="number"
                 className="vendor-input w-100"
                 placeholder="Price"
@@ -1125,37 +721,18 @@ const Vendor = () => {
                 onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
                 min="0"
               />
+              {/* attach any price error to the first price input */}
+              {index === 0 && <ErrorText msg={errors.price} />}
             </CCol>
             <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
-              <input
-                name="txtStudentRangeFrom"
-                type="text"
-                className="vendor-input w-100 text-center"
-                placeholder=""
-                value={item.rangeFrom}
-                onChange={(e) => handlePriceChange(index, 'rangeFrom', e.target.value)}
-              />
+              <input name={`rangeFrom_${index}`} type="text" className="vendor-input w-100 text-center" value={item.rangeFrom} onChange={(e) => handlePriceChange(index, 'rangeFrom', e.target.value)} />
             </CCol>
             <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
-              <input
-                name="txtStudentRangeTo"
-                type="text"
-                className="vendor-input w-100 text-center"
-                placeholder=""
-                value={item.rangeTo}
-                onChange={(e) => handlePriceChange(index, 'rangeTo', e.target.value)}
-              />
+              <input name={`rangeTo_${index}`} type="text" className="vendor-input w-100 text-center" value={item.rangeTo} onChange={(e) => handlePriceChange(index, 'rangeTo', e.target.value)} />
             </CCol>
-
             <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
               {priceRanges.length > 1 && (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={() => handleRemoveRange(index)}
-                >
-                  Remove
-                </button>
+                <button type="button" className="btn btn-danger" onClick={() => handleRemoveRange(index)}>Remove</button>
               )}
             </CCol>
           </CRow>
@@ -1163,91 +740,50 @@ const Vendor = () => {
 
         <CRow className="mt-3" style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
           <CCol>
-            <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
-              Add More
-            </button>
+            <button type="button" className="admin-buttonv1" onClick={handleAddRange}>Add More</button>
           </CCol>
         </CRow>
       </div>
 
       <div className="txtsubtitle">Set Availability <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
+        <ErrorText msg={errors.availability} />
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
-            <div
-              key={day}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '12px 0',
-                borderBottom: '1px solid #ccc',
-              }}
-            >
+          {['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].map((day) => (
+            <div key={day} style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #ccc' }}>
               <div style={{ flexGrow: 1 }}>
                 <div style={{ fontWeight: 'bold', textTransform: 'capitalize', marginBottom: 8 }}>
                   <label>
                     {day}{' '}
-                    <input
-                      type="checkbox"
-                      checked={!days[day].closed}
-                      onChange={(e) => handleClosedChange(day, !e.target.checked)}
-                    />{' '}
-                    Available
+                    <input type="checkbox" checked={!days[day].closed} onChange={(e) => handleClosedChange(day, !e.target.checked)} /> Available
                   </label>
                 </div>
 
                 {!days[day].closed && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {days[day].times.map((range, index) => (
-                      <div
-                        key={index}
-                        style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}
-                      >
+                      <div key={index} style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
                         <label>
                           Start Time <span style={{color:'red'}}>*</span>{' '}
-                          <input
-                            className="admin-txt-box"
-                            type="time"
-                            value={range.start}
-                            onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
-                          />
+                          <input className="admin-txt-box" type="time" name={`start_${day}_${index}`} value={range.start} onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)} />
                         </label>
 
                         <label>
                           End Time <span style={{color:'red'}}>*</span>{' '}
-                          <input
-                            className="admin-txt-box"
-                            type="time"
-                            value={range.end}
-                            onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
-                          />
+                          <input className="admin-txt-box" type="time" name={`end_${day}_${index}`} value={range.end} onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)} />
                         </label>
 
                         <label>
                           Notes:{' '}
-                          <input
-                            type="text"
-                            className="admin-txt-box"
-                            value={range.note || ''}
-                            placeholder="Optional notes"
-                            onChange={(e) => handleRangeNoteChange(day, index, e.target.value)} // ✅ enable edits
-                          />
+                          <input type="text" className="admin-txt-box" value={range.note || ''} placeholder="Optional notes" onChange={(e) => handleRangeNoteChange(day, index, e.target.value)} />
                         </label>
 
-                        <div>
-                          Range Hours: <strong>{range.total || '0.00'}</strong>
-                        </div>
+                        <div>Range Hours: <strong>{range.total || '0.00'}</strong></div>
 
                         {days[day].times.length > 1 && (
                           <button
                             type="button"
-                            style={{
-                              background: 'tomato',
-                              color: 'white',
-                              border: 'none',
-                              padding: '4px 8px',
-                              cursor: 'pointer',
-                            }}
+                            style={{ background: 'tomato', color: 'white', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
                             onClick={() => handleRemoveTimeRange(day, index)}
                           >
                             Remove
@@ -1255,15 +791,8 @@ const Vendor = () => {
                         )}
                       </div>
                     ))}
-
                     <div style={{ marginTop: 10 }}>
-                      <button
-                        type="button"
-                        className="admin-buttonv1"
-                        onClick={() => handleAddMore(day)}
-                      >
-                        Add More
-                      </button>
+                      <button type="button" className="admin-buttonv1" onClick={() => handleAddMore(day)}>Add More</button>
                     </div>
                   </div>
                 )}
@@ -1288,13 +817,7 @@ const Vendor = () => {
           {foods.map((item, index) => (
             <CRow key={index} className="mb-3 align-items-center">
               <CCol sm={3}>
-                <input
-                  type="text"
-                  className="admin-txt-box w-100"
-                  placeholder="Enter name"
-                  value={item.name}
-                  onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
-                />
+                <input type="text" className="admin-txt-box w-100" placeholder="Enter name" value={item.name} onChange={(e) => handleFoodChange(index, 'name', e.target.value)} />
               </CCol>
 
               <CCol sm={2}>
@@ -1311,41 +834,20 @@ const Vendor = () => {
               </CCol>
 
               <CCol sm={3}>
-                <input
-                  type="text"
-                  className="admin-txt-box w-100"
-                  placeholder="Enter notes"
-                  value={item.notes}
-                  onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
-                />
+                <input type="text" className="admin-txt-box w-100" placeholder="Enter notes" value={item.notes} onChange={(e) => handleFoodChange(index, 'notes', e.target.value)} />
               </CCol>
 
               <CCol sm={2}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="w-100"
-                  onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])}
-                />
+                <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />
               </CCol>
 
               <CCol sm={1} className="text-center">
-                <input
-                  type="checkbox"
-                  checked={item.include}
-                  onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
-                  style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }}
-                  title="If checked, price becomes 0"
-                />
+                <input type="checkbox" checked={item.include} onChange={(e) => handleFoodChange(index, 'include', e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }} title="If checked, price becomes 0" />
               </CCol>
 
               <CCol sm={1}>
                 {foods.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleFoodRemoveFood(index)}
-                    className="btn btn-danger btn-sm"
-                  >
+                  <button type="button" onClick={() => handleFoodRemoveFood(index)} className="btn btn-danger btn-sm">
                     Remove
                   </button>
                 )}
@@ -1366,22 +868,14 @@ const Vendor = () => {
       <div className="txtsubtitle">Terms And Conditions <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div className="vendor-container">
-          <textarea
-            onChange={(e) => setAdminNotes(e.target.value)}
-            name="txtactAdminNotes"
-            className="vendor-input"
-            rows={5}
-          />
+          <textarea name="txtactAdminNotes" className="vendor-input" rows={5} value={txtactAdminNotes} onChange={(e) => setAdminNotes(e.target.value)} />
+          <ErrorText msg={errors.txtactAdminNotes} />
         </div>
       </div>
 
       <div className="button-container">
-        <button className="admin-buttonv1" onClick={handlebtnSendToApprovalClick}>
-          Send To Admin Approval
-        </button>
-        <button className="admin-buttonv1" onClick={handleSave}>
-          Save
-        </button>
+        <button className="admin-buttonv1" onClick={() => setShowModal(true)}>Send To Admin Approval</button>
+        <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>Save</button>
         <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
           Cancel
         </button>
@@ -1390,15 +884,11 @@ const Vendor = () => {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">
-            <h4> Send To Admin Approval</h4>
+            <h4>Send To Admin Approval</h4>
             <p>Are you sure you want to send this for admin approval?</p>
             <div className="modal-buttons">
-              <button className="admin-buttonv1" onClick={handleConfirm}>
-                Yes
-              </button>
-              <button className="admin-buttonv1" onClick={handleCancel}>
-                No
-              </button>
+              <button className="admin-buttonv1" onClick={(e) => { setShowModal(false); handleSubmit('WAITING-FOR-APPROVAL', e); }}>Yes</button>
+              <button className="admin-buttonv1" onClick={() => setShowModal(false)}>No</button>
             </div>
           </div>
         </div>
@@ -1408,4 +898,5 @@ const Vendor = () => {
     </div>
   )
 }
+
 export default Vendor

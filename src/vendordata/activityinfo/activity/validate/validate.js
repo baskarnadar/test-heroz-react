@@ -1,20 +1,11 @@
-// Simple, dependency-free validator for your Vendor activity form.
-// Returns: { ok: boolean, message: string }
+// Structured validator with per-field errors.
+// Returns: { ok: boolean, message: string, errors: Record<string,string> }
 
-/**
- * Parse flexible time strings into minutes-from-midnight.
- * Accepts:
- *  - "h:mm am/pm" (case-insensitive, minutes can be 1 or 2 digits)
- *  - "h:m: am/pm" (tolerates an extra colon before am/pm, e.g., "9:5: pm")
- *  - "HH:MM" 24-hour
- * Returns number of minutes, or null if invalid.
- */
 function parseFlexibleTimeToMinutes(str) {
   if (!str) return null;
   const raw = String(str).trim().toLowerCase();
 
   // 12-hour with am/pm (tolerate extra colon before meridiem)
-  // Examples: "7:8 pm", "7:08 pm", "9:5: pm", "12:30 am", "12:05pm"
   const re12h = /^(\d{1,2})\s*:\s*(\d{1,2})\s*:?\s*(am|pm)$/i;
   const m12 = raw.match(re12h);
   if (m12) {
@@ -26,11 +17,8 @@ function parseFlexibleTimeToMinutes(str) {
     if (hour < 1 || hour > 12) return null;
     if (minute < 0 || minute > 59) return null;
 
-    if (mer === 'am') {
-      if (hour === 12) hour = 0;
-    } else { // pm
-      if (hour !== 12) hour += 12;
-    }
+    if (mer === 'am') { if (hour === 12) hour = 0; }
+    else { if (hour !== 12) hour += 12; }
     return hour * 60 + minute;
   }
 
@@ -50,77 +38,132 @@ function parseFlexibleTimeToMinutes(str) {
 }
 
 export function validateActivityForm(payload) {
+  const errors = {};
+
   // 1) Activity Name
   if (!String(payload.txtactName || '').trim()) {
-    return { ok: false, message: 'Activity Name is required.' };
+    errors.txtactName = 'Activity Name is required.';
   }
 
   // 2) Activity Type
   if (!String(payload.selectedType || '').trim()) {
-    return { ok: false, message: 'Activity Type is required.' };
+    errors.selectedType = 'Activity Type is required.';
   }
 
   // 3) Activity Categories
   if (!Array.isArray(payload.selectedCategories) || payload.selectedCategories.length === 0) {
-    return { ok: false, message: 'Select at least one Activity Category.' };
+    errors.selectedCategories = 'Select at least one Activity Category.';
   }
 
   // 4) Activity Description
   if (!String(payload.txtactDesc || '').trim()) {
-    return { ok: false, message: 'Activity Description is required.' };
+    errors.txtactDesc = 'Activity Description is required.';
   }
 
-  // 5) Activity Images: at least one of the three must be provided
+  // 5) At least one image
   const hasImg1 = !!payload.txtactImageName1;
   const hasImg2 = !!payload.txtactImageName2;
   const hasImg3 = !!payload.txtactImageName3;
   if (!hasImg1 && !hasImg2 && !hasImg3) {
-    return { ok: false, message: 'Upload at least one Activity Image.' };
+    errors.images = 'Upload at least one Activity Image.';
   }
 
-  // 6) Activity Location
+  // 6) Location
   if (!String(payload.txtactGoogleMap || '').trim()) {
-    return { ok: false, message: 'Google Map Location is required.' };
+    errors.txtactGoogleMap = 'Google Map Location is required.';
   }
   if (!String(payload.txtactGlat || '').trim()) {
-    return { ok: false, message: 'Google Latitude is required.' };
+    errors.txtactGlat = 'Google Latitude is required.';
   }
   if (!String(payload.txtactGlan || '').trim()) {
-    return { ok: false, message: 'Google Longitude is required.' };
+    errors.txtactGlan = 'Google Longitude is required.';
   }
   if (!String(payload.ddactCountryID || '').trim()) {
-    return { ok: false, message: 'Country is required.' };
+    errors.ddactCountryID = 'Country is required.';
   }
   if (!String(payload.ddactCityID || '').trim()) {
-    return { ok: false, message: 'City is required.' };
+    errors.ddactCityID = 'City is required.';
   }
   if (!String(payload.txtactAddress1 || '').trim()) {
-    return { ok: false, message: 'Address1 is required.' };
+    errors.txtactAddress1 = 'Address1 is required.';
   }
 
   // 7) Gender
   if (!String(payload.rdoactGender || '').trim()) {
-    return { ok: false, message: 'Gender is required.' };
+    errors.rdoactGender = 'Gender is required.';
   }
 
-  // 8) Price Per Student (at least one price > 0; each filled price must be > 0)
-  const ranges = Array.isArray(payload.priceRanges) ? payload.priceRanges : [];
-  const anyPricePositive = ranges.some((r) => Number(r.price) > 0);
-  if (!anyPricePositive) {
-    return { ok: false, message: 'Enter at least one Price Per Student greater than 0.' };
+  // 7.1) Age Range (REQUIRED)
+  const minAgeStr = String(payload.txtactMinAge ?? '').trim();
+  const maxAgeStr = String(payload.txtactMaxAge ?? '').trim();
+  if (!minAgeStr) {
+    errors.txtactMinAge = 'Minimum Age is required.';
   }
-  for (const r of ranges) {
-    if (String(r.price || '').trim() !== '' && Number(r.price) <= 0) {
-      return { ok: false, message: 'Price Per Student must be greater than 0.' };
+  if (!maxAgeStr) {
+    errors.txtactMaxAge = 'Maximum Age is required.';
+  }
+  const minAge = Number(minAgeStr);
+  const maxAge = Number(maxAgeStr);
+  if (!errors.txtactMinAge && (!Number.isFinite(minAge) || minAge < 0)) {
+    errors.txtactMinAge = 'Minimum Age must be a number ≥ 0.';
+  }
+  if (!errors.txtactMaxAge && (!Number.isFinite(maxAge) || maxAge <= 0)) {
+    errors.txtactMaxAge = 'Maximum Age must be a number > 0.';
+  }
+  if (!errors.txtactMinAge && !errors.txtactMaxAge && maxAge < minAge) {
+    errors.txtactMaxAge = 'Maximum Age must be greater than or equal to Minimum Age.';
+  }
+
+  // 7.2) Rating (REQUIRED, 1..10)
+  const ratingStr = String(payload.actRating ?? '').trim();
+  if (!ratingStr) {
+    errors.actRating = 'Activity Rating is required (1–10).';
+  } else {
+    const ratingNum = Number(ratingStr);
+    if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 10) {
+      errors.actRating = 'Activity Rating must be between 1 and 10.';
     }
   }
 
-  // 9) Set Availability (UPDATED)
-  // - Do NOT require any day to have time ranges.
-  // - If a row has any value, it must have BOTH start & end,
-  //   must parse as valid time (flexible formats), and End > Start.
+  // 8) Capacity (REQUIRED)
+  const minStuStr = String(payload.txtactMinStudent ?? '').trim();
+  const maxStuStr = String(payload.txtactMaxStudent ?? '').trim();
+  if (!minStuStr) {
+    errors.txtactMinStudent = 'Minimum Students is required.';
+  }
+  if (!maxStuStr) {
+    errors.txtactMaxStudent = 'Maximum Students is required.';
+  }
+  const minStu = Number(minStuStr);
+  const maxStu = Number(maxStuStr);
+  if (!errors.txtactMinStudent && (!Number.isFinite(minStu) || minStu < 1)) {
+    errors.txtactMinStudent = 'Minimum Students must be a number ≥ 1.';
+  }
+  if (!errors.txtactMaxStudent && (!Number.isFinite(maxStu) || maxStu < 1)) {
+    errors.txtactMaxStudent = 'Maximum Students must be a number ≥ 1.';
+  }
+  if (!errors.txtactMinStudent && !errors.txtactMaxStudent && maxStu < minStu) {
+    errors.txtactMaxStudent = 'Maximum Students must be ≥ Minimum Students.';
+  }
+
+  // 9) Price Per Student (at least one price > 0; each filled price > 0)
+  const ranges = Array.isArray(payload.priceRanges) ? payload.priceRanges : [];
+  const anyPricePositive = ranges.some((r) => Number(r.price) > 0);
+  if (!anyPricePositive) {
+    errors.price = 'Enter at least one Price Per Student greater than 0.';
+  } else {
+    for (const r of ranges) {
+      if (String(r.price || '').trim() !== '' && Number(r.price) <= 0) {
+        errors.price = 'Price Per Student must be greater than 0.';
+        break;
+      }
+    }
+  }
+
+  // 10) Availability: at least one valid slot required
   const days = payload.days || {};
   const dayNames = Object.keys(days);
+  let validSlotCount = 0;
 
   for (const d of dayNames) {
     const day = days[d];
@@ -132,48 +175,55 @@ export function validateActivityForm(payload) {
       const sRaw = String(t.start || '').trim();
       const eRaw = String(t.end || '').trim();
 
-      // If nothing entered, skip
-      if (!sRaw && !eRaw) continue;
+      if (!sRaw && !eRaw) continue; // empty row
 
-      // If one side filled, both required
       if (!sRaw || !eRaw) {
-        return {
-          ok: false,
-          message: `Start and End time are required for ${d} (row ${i + 1}). Expected like "7:08 am" or "9:05 pm".`,
-        };
+        errors.availability = `Start and End time are required for ${d} (row ${i + 1}).`;
+        break;
       }
 
-      // Parse flexible formats
       const sMin = parseFlexibleTimeToMinutes(sRaw);
       const eMin = parseFlexibleTimeToMinutes(eRaw);
       if (sMin === null || eMin === null) {
-        return {
-          ok: false,
-          message: `Invalid time format on ${d} (row ${i + 1}). Use "7:08 am", "9:5 pm", or "21:05".`,
-        };
+        errors.availability = `Invalid time format on ${d} (row ${i + 1}). Use "7:08 am" or "21:05".`;
+        break;
       }
 
       if (eMin <= sMin) {
-        return { ok: false, message: `End time must be after Start time on ${d} (row ${i + 1}).` };
+        errors.availability = `End time must be after Start time on ${d} (row ${i + 1}).`;
+        break;
       }
+
+      validSlotCount += 1;
     }
+    if (errors.availability) break;
   }
 
-  // 10) Food: if Include == true, force price = 0 (mutates payload.foods)
+  if (!errors.availability && validSlotCount === 0) {
+    errors.availability = 'Please add at least one availability time slot (start & end).';
+  }
+
+  // 11) Food: include -> price = 0; no negatives
   const foods = Array.isArray(payload.foods) ? payload.foods : [];
   for (let i = 0; i < foods.length; i++) {
     const f = foods[i] || {};
     if (f.include === true) {
       foods[i].price = 0;
     } else if (f.price != null && Number(f.price) < 0) {
-      return { ok: false, message: `Food "${f.name || ''}" price cannot be negative.` };
+      errors.foods = 'Food price cannot be negative.';
+      break;
     }
   }
 
-  // 11) Terms and Conditions
+  // 12) Terms and Conditions
   if (!String(payload.txtactAdminNotes || '').trim()) {
-    return { ok: false, message: 'Terms and Conditions are required.' };
+    errors.txtactAdminNotes = 'Terms and Conditions are required.';
   }
 
-  return { ok: true, message: 'OK' };
+  const ok = Object.keys(errors).length === 0
+  return {
+    ok,
+    message: ok ? 'OK' : 'Please fix the highlighted fields.',
+    errors,
+  }
 }
