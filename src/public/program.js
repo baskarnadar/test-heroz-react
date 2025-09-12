@@ -887,7 +887,7 @@ const ProposalPage = () => {
                     <strong>Included Food:</strong> {confirmSummary.included}
                   </div>
 
-                  <div style={{ marginBottom: 12 }}>
+                  {/* <div style={{ marginBottom: 12 }}>
                     <strong>Extra Food:</strong>
                     {confirmSummary.extras.length === 0 ? (
                       <div>None</div>
@@ -902,7 +902,7 @@ const ProposalPage = () => {
                         ))}
                       </ul>
                     )}
-                  </div>
+                  </div> */}
 
                   <div style={{ marginBottom: 12 }}>
                     <strong>Payment Method:</strong> {confirmSummary.paymentLabel}
