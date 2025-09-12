@@ -609,7 +609,15 @@ const ProposalPage = () => {
                   Trip Information
                 </h2>
                 <h3 className="card-title">About This Trip</h3>
-                <p className="card-text">{ActivityData?.actDesc}</p>
+                <p className="card-text">
+  {ActivityData?.actDesc?.split('\n').map((line, index) => (
+    <React.Fragment key={index}>
+      {line}
+      <br />
+    </React.Fragment>
+  ))}
+</p>
+
               </div>
 
               <div className="about-right">
@@ -861,16 +869,39 @@ const ProposalPage = () => {
 
               <div className="terms">
                 <h4>Proposal Message</h4>
-                <div className="terms-text">{TripData?.ProposalMessage}</div>
+                <div className="terms-text"> 
+  {TripData?.ProposalMessage?.split('\n').map((line, index) => (
+    <React.Fragment key={index}>
+      {line}
+      <br />
+    </React.Fragment>
+  ))}
+</div>
               </div>
+
+
+             
+
+
 
               <div className="terms">
                 <h4>Vendor Terms & Condition</h4>
-                <div className="terms-text">{ActivityData?.actAdminNotes}</div>
+                <div className="terms-text"> {ActivityData?.actAdminNotes?.split('\n').map((line, index) => (
+    <React.Fragment key={index}>
+      {line}
+      <br />
+    </React.Fragment>
+  ))}</div>
               </div>
               <div className="terms">
                 <h4>School Terms & Condition</h4>
-                <div className="terms-text">{TripData?.SchoolTerms}</div>
+                <div className="terms-text"> {TripData?.SchoolTerms?.split('\n').map((line, index) => (
+    <React.Fragment key={index}>
+      {line}
+      <br />
+    </React.Fragment>
+  ))}
+</div>
               </div>
             </div>
           </section>
