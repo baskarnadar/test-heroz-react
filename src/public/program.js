@@ -735,7 +735,8 @@ const ProposalPage = () => {
               </div>
 
               <div className="summary-row total trip-gradient-color">
-                <span>Total Payable (per student)</span>
+                <span>
+                  <div>Total Payable </div> <div>(per student)</div></span>
                 <span>
                   {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
                 </span>

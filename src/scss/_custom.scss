@@ -1046,3 +1046,28 @@ label {
 {
  color: #000000 !important;
 }
+
+@if $enable-dark-mode {
+  @include color-mode(dark) {
+  .b, strong {
+   color: #9c9999 !important;
+  }
+
+  .footer-contact li {
+    margin: 6px 0;
+    color: #9c9999 !important;
+}
+.footer-contact
+{
+   color: #9c9999 !important;
+}
+.footer-links
+{
+   color: #9c9999 !important;
+}
+.nav {
+   color: #9c9999 !important;
+}
+
+}
+}

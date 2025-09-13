@@ -30,11 +30,11 @@ const FoodInfo = ({
   const renderHeader = () => (
      <CRow className="mb-1 fw-bold hbg">
   <CCol sm={1} xs={1}>#</CCol>
-  <CCol sm={9} xs={9}>Name</CCol> 
+  <CCol sm={9} xs={6}>Name</CCol> 
     <CCol sm={2}  style={{display:"none"}}>School</CCol>
     <CCol sm={2}  style={{display:"none"}}>Vendor</CCol>
     <CCol sm={2}  style={{display:"none"}}>Heroz</CCol>
-  <CCol sm={2} xs={2}>Total</CCol>
+  <CCol sm={2} xs={5}>Total</CCol>
 </CRow>
 
   );
@@ -84,10 +84,10 @@ const FoodInfo = ({
           <CCol sm={2} xs={2} style={{display:"none"}} className="text-end">
             {herozPrice.toFixed(2)}
           </CCol>
-          <CCol sm={9} xs={9}>
+          <CCol sm={9} xs={6}>
             <div>{foodItem?.FoodName}</div>
           </CCol> 
-          <CCol sm={2} xs={2}  >
+          <CCol sm={2} xs={5}  >
             {total.toFixed(2)}
           </CCol>
         </CRow>
