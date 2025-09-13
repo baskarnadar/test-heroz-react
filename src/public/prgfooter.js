@@ -48,8 +48,10 @@ const ProgramFooter = ({ className = "" }) => {
               <strong>Phone Number:</strong> +966 548066660
             </li>
             <li>
-              <strong>Headquarters:</strong> 8408 these alyamnees street,
-              Jeddah, Saudi arabia. 23454
+              <strong>Headquarters:</strong> 8408 Dhu Al Yaminayn - As Safa
+Unit No. 1
+Jeddah 23454 - 4108
+Kingdom Of Saudi Arabia
             </li>
             <li>
               <strong>CR:</strong> 4030580386
