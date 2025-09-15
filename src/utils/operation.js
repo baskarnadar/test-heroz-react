@@ -261,9 +261,8 @@ export const GoogleMapEmbed = ({ embedUrl, width = '100%', height = '400px' }) =
 }
 
 export function getAuthHeaders() {
-  const token = localStorage.getItem('token');
-//alert(BaseURL);
-  console.log("token:", token);
+  const token = localStorage.getItem('token'); 
+  //console.log("token:", token);
 
   // ✅ Check expiry before returning headers
   if (!token || isTokenExpired(token)) {

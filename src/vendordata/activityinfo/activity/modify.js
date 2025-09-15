@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -15,8 +15,9 @@ const ErrorText = ({ msg }) =>
   msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
 
 const Vendor = () => {
-  // === NEW: single flag to hide range & delete UI (kept code, just hidden)
+  // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
+  const HIDE_FOOD_IMAGE = true // ⬅️ Hide Food Image everywhere (UI + payload)
 
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({}) // ✅ field-level errors
@@ -42,7 +43,7 @@ const Vendor = () => {
   // Define state for each input
   const [txtactName, setactName] = useState('')
   const [selectedType, setactType] = useState([])
-  const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..10 (validator-enforced)
+  const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -66,7 +67,7 @@ const Vendor = () => {
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
   const [foods, setFoods] = useState([
-    { name: '', price: '', include: false, ChkRemoveFood: false },
+    { name: '', price: '', include: false, ChkRemoveFood: false, notes: '', image: null },
   ])
   const [countries, setCountries] = useState([])
   const [cityList, setCityList] = useState([])
@@ -88,7 +89,7 @@ const Vendor = () => {
   }
 
   const handleFoodAddMore = () => {
-    setFoods([...foods, { name: '', price: '', include: false }])
+    setFoods([...foods, { name: '', price: '', include: false, notes: '', image: null }])
   }
 
   const handleFoodRemoveFood = (index) => {
@@ -315,8 +316,26 @@ const Vendor = () => {
     if (file) setter(file)
   }
 
+  // 🔒 Validate rating 1..5 (decimals allowed) and show as read-only
+  const isValidActRating = (val) => {
+    if (val === '' || val === null || typeof val === 'undefined') return false
+    const n = Number(val)
+    return Number.isFinite(n) && n >= 1 && n <= 5
+  }
+
   const handleSubmit = async (actStatusVal, e) => {
     if (e && e.preventDefault) e.preventDefault()
+
+    // ❗ Enforce Activity Rating 1..5 (decimals allowed)
+    if (!isValidActRating(actRating)) {
+      setErrors((prev) => ({
+        ...prev,
+        actRating: 'Activity Rating must be between 1 and 5 (decimals allowed).',
+      }))
+      setToastMessage('Please correct Activity Rating.')
+      setToastType('fail')
+      return
+    }
 
     // ✅ Run validation first (uses original images if no new upload)
     const validation = validateActivityForm({
@@ -336,7 +355,7 @@ const Vendor = () => {
       rdoactGender,
       priceRanges,
       days,
-      foods,                // validator will force price=0 for included items
+      foods, // validator will force price=0 for included items
       txtactAdminNotes,
       actRating,
       txtactMinAge,
@@ -484,7 +503,7 @@ const Vendor = () => {
             actFood: actfoodDataVal,
 
             actAdminNotes: txtactAdminNotes || '',
-            actRating: actRating === '' ? '' : Number(actRating),
+            actRating: actRating === '' ? '' : Number(actRating), // still sent to API
             actStatus: actStatusVal,
             IsDataStatus: 1,
             ModifyBy: getCurrentLoggedUserID(),
@@ -660,7 +679,7 @@ const Vendor = () => {
         name: item.FoodName || '',
         price: item.FoodPrice || '',
         notes: item.FoodNotes || '',
-        image: item.FoodImage || null,
+        image: HIDE_FOOD_IMAGE ? null : (item.FoodImage || null), // keep state consistent
         include: item.Include || false,
         ChkRemoveFood: false,
       }))
@@ -743,7 +762,7 @@ const Vendor = () => {
       if (!response.ok) throw new Error('Failed to fetch activities')
 
       const data = await response.json()
-      if ((data?.data?.actStatus !== 'DRAFT')|| (data?.data?.actStatus !== 'DRAFT')) {
+      if ((data?.data?.actStatus !== 'DRAFT') || (data?.data?.actStatus !== 'DRAFT')) {
         navigate(`/vendordata/activityinfo/activity/view?ActivityID=${ActivityIDVal}`)
         return
       }
@@ -771,6 +790,7 @@ const Vendor = () => {
       phoneNumbers: [...prev.phoneNumbers, ''],
     }))
   }
+
   const [fetchcategories, setFetchCategories] = useState([])
 
   const handleRemoveTimeRange = (day, index) => {
@@ -813,6 +833,20 @@ const Vendor = () => {
   const getFoodData = async () => {
     const foodData = await Promise.all(
       foods.map(async (item) => {
+        // When hidden, we never upload nor send an image key
+        if (HIDE_FOOD_IMAGE) {
+          return {
+            FoodID: item.FoodID || null,
+            FoodName: item.name || '',
+            FoodPrice: item.price || '',
+            FoodNotes: item.notes || '',
+            FoodImage: '', // ⬅️ always blank when hidden
+            Include: item.include || false,
+            RemoveFood: item.ChkRemoveFood || false,
+          }
+        }
+
+        // ELSE (if showing images): normal behavior
         let uploadedImageKey = ''
         if (item.image instanceof File) {
           uploadedImageKey = await uploadFoodImage(item.image)
@@ -845,6 +879,7 @@ const Vendor = () => {
       return updated
     })
   }
+
   const getPriceData = () => {
     return priceRanges.map((item) => ({
       PriceID: item.PriceID || '',
@@ -954,25 +989,24 @@ const Vendor = () => {
           <ErrorText msg={errors.selectedType} />
         </div>
 
-        {/* ⭐ Activity Rating */}
-        <div style={{ alignItems: 'center', gap: 8 }}>
-          <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
+        {/* ⭐ Activity Rating – read-only display, validated 1..5 (decimals allowed) */}
+        <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
+          <label className="vendor-label" style={{ margin: 0 }}>
             Activity Rating <span style={{color:'red'}}>*</span>
           </label>
-          <input
-            id="actRating"
-            name="actRating"
-            type="number"
-            inputMode="numeric"
-            step="1"
-            min="1"
-            max="10"
+          <div
             className="vendor-input"
-            placeholder="1 - 10"
-            value={actRating}
-            onChange={(e) => setactRating(e.target.value)}
-            style={{ width: 120 }}
-          />
+            style={{
+              width: 120,
+              background: '#f7f7f7',
+              cursor: 'not-allowed',
+              userSelect: 'none',
+            }}
+            title="This value is read-only"
+          >
+            {actRating === '' ? '—' : actRating}
+          </div>
+          <input type="hidden" name="actRating" value={actRating} readOnly />
           <ErrorText msg={errors.actRating} />
         </div>
 
@@ -1543,7 +1577,7 @@ const Vendor = () => {
             <CCol sm={3}>Food Name</CCol>
             <CCol sm={2}>Price</CCol>
             <CCol sm={3}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
+            {!HIDE_FOOD_IMAGE && <CCol sm={2}>Food Image</CCol>}
             <CCol sm={1}>Include</CCol>
             <CCol sm={1}>Delete</CCol>
           </CRow>
@@ -1583,14 +1617,17 @@ const Vendor = () => {
                 />
               </CCol>
 
-              <CCol sm={2}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="w-100"
-                  onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])}
-                />
-              </CCol>
+              {/* Food Image column (hidden when HIDE_FOOD_IMAGE) */}
+              {!HIDE_FOOD_IMAGE && (
+                <CCol sm={2}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="w-100"
+                    onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])}
+                  />
+                </CCol>
+              )}
 
               <CCol sm={1} className="text-center">
                 <input

@@ -10,14 +10,10 @@ import {
   CSpinner, CAlert,
 } from '@coreui/react'
 
-// =======================================
-// Endpoints (match your Dart ApiBaseUrl)
-// =======================================
+ 
 const GET_VDR_SUMMARY = `${API_BASE_URL}/vendordata/dashboard/getvdrsummary`
 
-// =====================
-// StatCard + WalletCard
-// =====================
+ 
 function StatCard({ title, value, color = 'primary', onClick }) {
   return (
     <CCard
@@ -163,7 +159,7 @@ const Dashboard = () => {
           <WalletCard label="Amount Received" amount={'0'} />
         </CCol>
         <CCol xs={12} md={6}>
-          <WalletCard label="Balance" amount={String(totalPayableSchoolAmount || 0)} />
+          <WalletCard label="Balance" amount={'0'} />
         </CCol>
       </CRow>
 

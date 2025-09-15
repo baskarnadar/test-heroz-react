@@ -5,8 +5,8 @@ import {
   CCard, CCardBody, CCardHeader, CRow, CCol,
   CSpinner, CAlert, CBadge, CButton
 } from '@coreui/react'
-import { API_BASE_URL } from '../../../config'
-import { getAuthHeaders, getCurrentLoggedUserID } from '../../../utils/operation'
+import { API_BASE_URL } from '../../config'
+import { getAuthHeaders, getCurrentLoggedUserID } from '../../utils/operation'
 
 const GET_ACTIVITY_REQUESTS = `${API_BASE_URL}/vendordata/activityinfo/activity/getAllActivityRequest`
 
@@ -14,13 +14,19 @@ const toStr = (v) => (v ?? '').toString()
 
 function mapItem(json) {
   return {
+    // 🔧 include ActivityID so onClick works
+    ActivityID: toStr(json.ActivityID),
     RequestID: toStr(json.RequestID),
+    SchoolID: toStr(json.SchoolID),
+    VendorID: toStr(json.VendorID),
     actName: toStr(json.actName),
     actRequestRefNo: toStr(json.actRequestRefNo),
     actRequestDate: toStr(json.actRequestDate),
     actRequestTime: toStr(json.actRequestTime),
     actRequestStatus: toStr(json.actRequestStatus),
     actRequestMessage: toStr(json.actRequestMessage),
+    actTypeID: toStr(json.actTypeID),
+    totalPaidStudent: Number.parseInt(json.totalPaidStudent ?? 0, 10) || 0,
     actTotalNoStudents: Number.parseInt(json.actTotalNoStudents ?? 0, 10) || 0,
   }
 }
@@ -105,9 +111,6 @@ const ActivityRequestList = () => {
           actRequestStatus,
         }
 
-        console.log('API:', url)
-        console.log('API PAYLOAD:', payload)
-
         const resp = await fetch(url, {
           method: 'POST',
           headers: getAuthHeaders(),
@@ -115,24 +118,16 @@ const ActivityRequestList = () => {
         })
 
         const json = await resp.json()
-        console.log('API RESPONSE:', json)
 
         if (!resp.ok) {
           throw new Error(`HTTP ${resp.status}`)
         }
 
-        // Accept multiple response shapes:
-        // 1) { status, data: [...] }
-        // 2) [ ... ]
-        // 3) { ...single object... }
+        // Accept multiple response shapes
         let listRaw = []
-        if (Array.isArray(json?.data)) {
-          listRaw = json.data
-        } else if (Array.isArray(json)) {
-          listRaw = json
-        } else if (json && typeof json === 'object') {
-          listRaw = [json]
-        }
+        if (Array.isArray(json?.data)) listRaw = json.data
+        else if (Array.isArray(json)) listRaw = json
+        else if (json && typeof json === 'object') listRaw = [json]
 
         const mapped = listRaw.map(mapItem)
         if (alive) setItems(mapped)
@@ -175,11 +170,21 @@ const ActivityRequestList = () => {
                 <div className="d-flex flex-column" style={{ gap: 12 }}>
                   {items.map((req) => (
                     <div
-                      key={req.RequestID}
+                      key={req.RequestID || req.ActivityID}
                       className="p-3 bg-white border rounded"
                       style={{ borderColor: '#f5c2e7' }}
                       role="button"
-                      onClick={() => navigate(`/vendor/activity/${encodeURIComponent(req.RequestID)}`)}
+                      onClick={() => {
+                        // 🔒 robust fallback: prefer ActivityID, else use RequestID path
+                        if (req.ActivityID) {
+                          navigate(`/vendordata/actrequest/actreqinfo/${encodeURIComponent(req.ActivityID)}`)
+                        } else if (req.RequestID) {
+                          // if you have a details route by RequestID, use it; otherwise remove this branch
+                          navigate(`/vendordata/actrequest/actreqinfo/by-request/${encodeURIComponent(req.RequestID)}`)
+                        } else {
+                          console.warn('No ActivityID/RequestID available for navigation', req)
+                        }
+                      }}
                     >
                       <div className="fw-semibold mb-2" style={{ color: '#333', fontSize: 16 }}>
                         {req.actName || '-'}
@@ -195,9 +200,10 @@ const ActivityRequestList = () => {
                         <InfoRow label="Trip Time" value={req.actRequestTime || '-'} color="#444" />
                       </div>
 
+                      {/* If you want to show status: */}
                       {/* <InfoRow
                         label="Status"
-                        value={<span><CBadge color={statusColor(req.actRequestStatus)}>{req.actRequestStatus || '-'}</CBadge></span>}
+                        value={<CBadge color={statusColor(req.actRequestStatus)}>{req.actRequestStatus || '-'}</CBadge>}
                         color="#444"
                       /> */}
 
@@ -208,18 +214,7 @@ const ActivityRequestList = () => {
                         trailing={
                           <TrailingByStatus
                             status={req.actRequestStatus}
-                            onViewPaid={(e) => {
-                              e.stopPropagation()
-                              navigate(`/vendor/activity/${encodeURIComponent(req.RequestID)}?tab=paid`)
-                            }}
-                            onWaiting={(e) => {
-                              e.stopPropagation()
-                              navigate(`/vendor/activity/${encodeURIComponent(req.RequestID)}?tab=review`)
-                            }}
-                            onApprove={(e) => {
-                              e.stopPropagation()
-                              navigate(`/vendor/activity/${encodeURIComponent(req.RequestID)}?tab=approved`)
-                            }}
+                            
                           />
                         }
                       />
