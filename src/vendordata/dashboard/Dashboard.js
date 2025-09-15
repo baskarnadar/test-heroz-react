@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { IsUserAccessPage } from '../../utils/auth'
 import { API_BASE_URL } from '../../config'
 import { getAuthHeaders, getCurrentLoggedUserID } from '../../utils/operation'
-
+import VdrCalenderScreen from "../calender/VdrCalenderScreen";
 import {
   CCard, CCardBody, CCardHeader, CRow, CCol, CProgress, CBadge,
   CSpinner, CAlert,
@@ -177,7 +177,7 @@ const Dashboard = () => {
           </CCard>
         </CCol>
       </CRow>
-
+  <VdrCalenderScreen />
       {/* Loading / Error */}
       {loading && (
         <div className="text-center my-4">

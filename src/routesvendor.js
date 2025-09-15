@@ -1,4 +1,4 @@
-// src/routes.js
+//routeVendor.js
 import React from 'react'
 
 // Vendor dashboard & activity pages
@@ -8,9 +8,9 @@ const ActivityNew = React.lazy(() => import('./vendordata/activityinfo/activity/
 const ActivityModify = React.lazy(() => import('./vendordata/activityinfo/activity/modify'))
 const ActivityView = React.lazy(() => import('./vendordata/activityinfo/activity/view'))
 
-// Activity requests (from dashboard cards / sidebar)
+// ✅ Vendor Activity screen
+const ViewActivityScreen = React.lazy(() => import('./vendordata/activity/ViewActivityScreen.jsx'))
 const ActivityRequestList = React.lazy(() => import('./vendordata/actrequest/actreqlist.jsx'))
-// ✅ NEW: Activity request detail page (dynamic :requestId)
 const ActivityRequestInfo = React.lazy(() => import('./vendordata/actrequest/ActReqInfo.jsx'))
 
 // ✅ Vendor Info page
@@ -24,7 +24,7 @@ const routes = [
   { path: '/vendor/activity-requests', name: 'Activity Requests', element: ActivityRequestList },
   { path: '/vendor/info', name: 'Vendor Info', element: VendorInfoPage },
 
-  // ✅ Activity request detail (works with /vendordata/actrequest/actreqinfo/4eb22742c7124588964b67132)
+  // ✅ Activity request detail
   { path: '/vendordata/actrequest/actreqinfo/:requestId', name: 'Activity Request Info', element: ActivityRequestInfo },
 
   // Activity pages
@@ -32,6 +32,9 @@ const routes = [
   { path: '/vendordata/activityinfo/activity/new', name: 'New', element: ActivityNew },
   { path: '/vendordata/activityinfo/activity/modify', name: 'Modify', element: ActivityModify },
   { path: '/vendordata/activityinfo/activity/view', name: 'View', element: ActivityView },
+
+  // ✅ Vendor Activity Screen (both paths point to same component)
+  { path: '/vendordata/activity/ViewActivityScreen', name: 'ViewActivityScreen', element: ViewActivityScreen },
 ]
 
 export default routes
