@@ -212,10 +212,10 @@ const ViewActivityScreen = () => {
   }
 
   return (
-     
+ 
     <div dir={dir} style={{ padding: 16 }}>
       <CategoryBox activity={activity} activityRequest={activityRequestData} />
-      <div style={{ height: 20 }} />
+      <div style={{ height: 21 }} />
       {/* These will render only if activity is loaded */}
       <PriceListCard prices={activity?.priceList} title="Vendor Price" />
       <div style={{ height: 20 }} />
