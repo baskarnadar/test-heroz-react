@@ -15,6 +15,8 @@ const ErrorText = ({ msg }) =>
 
 const Vendor = () => {
   const HIDE_PRICE_RANGE_UI = true
+  const HIDE_ACTIVITY_RATING_UI = false   // actRating field visible
+  const HIDE_FOOD_IMAGE = true            // 👈 hide Food Image everywhere
 
   const [showModal, setShowModal] = useState(false)
   const [txtactImageName1, setactImageName1] = useState(null)
@@ -29,7 +31,10 @@ const Vendor = () => {
   // form fields
   const [txtactName, setactName] = useState('')
   const [selectedType, setactType] = useState('') // radio -> string
-  const [actRating, setactRating] = useState('')  // 1..10 required
+
+  // default rating kept, now visible
+  const [actRating, setactRating] = useState('0')  // 1..10 required
+
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
 
@@ -59,7 +64,7 @@ const Vendor = () => {
   const [cityList, setCityList] = useState([])
   const [fetchcategories, setFetchCategories] = useState([])
 
-  const [errors, setErrors] = useState({}) // ⬅️ per-field error messages
+  const [errors, setErrors] = useState({}) // per-field error messages
 
   // availability
   const [days, setDays] = useState({
@@ -231,6 +236,17 @@ const Vendor = () => {
   const getFoodData = async () => {
     const foodData = await Promise.all(
       foods.map(async (item) => {
+        // 🔒 When hidden, never upload or send a key
+        if (HIDE_FOOD_IMAGE) {
+          return {
+            FoodName: item.name || '',
+            FoodPrice: item.price || '',
+            FoodNotes: item.notes || '',
+            FoodImage: '',            // ← blank when hidden
+            Include: item.include || false,
+          }
+        }
+        // ELSE (if showing): upload if provided
         let uploadedImageKey = ''
         if (item.image instanceof File) uploadedImageKey = await uploadFoodImage(item.image)
         return {
@@ -333,7 +349,7 @@ const Vendor = () => {
       rdoactGender,
       txtactMinAge,
       txtactMaxAge,
-      actRating,
+      actRating, // now visible
       txtactMinStudent,
       txtactMaxStudent,
       priceRanges,
@@ -347,7 +363,6 @@ const Vendor = () => {
       setToastMessage(validation.message || 'Please fix the highlighted fields.')
       setToastType('fail')
 
-      // scroll to first field with error
       const firstField = Object.keys(validation.errors || {})[0]
       if (firstField) {
         const el = document.querySelector(`[name="${firstField}"]`)
@@ -371,7 +386,7 @@ const Vendor = () => {
       return
     }
 
-    // upload images if any
+    // upload activity images if any
     let img1 = '', img2 = '', img3 = ''
     try {
       if (txtactImageName1 instanceof File) {
@@ -399,7 +414,7 @@ const Vendor = () => {
         img3 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
       }
     } catch {
-      // image errors are already validated as "at least one"
+      // ignore upload error here; validator ensures at least one if required
     }
 
     const actfoodDataVal = await getFoodData()
@@ -441,10 +456,10 @@ const Vendor = () => {
 
           actPrice: actPriceDataVal,
           actAvailDaysHours: actavailDaysHoursVal,
-          actFood: actfoodDataVal,
+          actFood: actfoodDataVal,        // 👈 FoodImage will be '' when hidden
 
           actAdminNotes: txtactAdminNotes || '',
-          actRating: Number(actRating),
+          actRating: Number(actRating),   // visible + submitted
           actStatus: actStatusVal,
           IsDataStatus: 1,
           CreatedBy: getCurrentLoggedUserID(),
@@ -467,7 +482,6 @@ const Vendor = () => {
   }
 
   // UI
-
   return (
     <div>
       <div className="divhbg">
@@ -509,26 +523,28 @@ const Vendor = () => {
           <ErrorText msg={errors.selectedType} />
         </div>
 
-        <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
-          <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
-            Activity Rating <span style={{color:'red'}}>*</span>
-          </label>
-          <input
-            id="actRating"
-            name="actRating"
-            type="number"
-            inputMode="decimal"
-            step="0.1"
-            min="1"
-            max="10"
-            className="admin-txt-box"
-            placeholder="Enter rating 1–10 (e.g., 8.5)"
-            value={actRating}
-            onChange={(e) => setactRating(e.target.value)}
-            style={{ width: 160 }}
-          />
-          <ErrorText msg={errors.actRating} />
-        </div>
+        {!HIDE_ACTIVITY_RATING_UI && (
+          <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
+            <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
+              Activity Rating <span style={{color:'red'}}>*</span>
+            </label>
+            <input
+              id="actRating"
+              name="actRating"
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              min="1"
+              max="10"
+              className="admin-txt-box"
+              placeholder="Enter rating 1–10 (e.g., 8.5)"
+              value={actRating}
+              onChange={(e) => setactRating(e.target.value)}
+              style={{ width: 160 }}
+            />
+            <ErrorText msg={errors.actRating} />
+          </div>
+        )}
 
         <div style={{ marginBottom: 10, marginTop: 20 }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
@@ -721,7 +737,6 @@ const Vendor = () => {
                 onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
                 min="0"
               />
-              {/* attach any price error to the first price input */}
               {index === 0 && <ErrorText msg={errors.price} />}
             </CCol>
             <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
@@ -809,7 +824,7 @@ const Vendor = () => {
             <CCol sm={3}>Food Name</CCol>
             <CCol sm={2}>Price</CCol>
             <CCol sm={3}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
+            {!HIDE_FOOD_IMAGE && <CCol sm={2}>Food Image</CCol>}
             <CCol sm={1}>Include</CCol>
             <CCol sm={1}></CCol>
           </CRow>
@@ -834,15 +849,24 @@ const Vendor = () => {
               </CCol>
 
               <CCol sm={3}>
-                <input type="text" className="admin-txt-box w-100" placeholder="Enter notes" value={item.notes} onChange={(e) => handleFoodChange(index, 'notes', e.target.value)} />
+                <input type="text" className="admin-txt-box w-100" placeholder="Enter notes" value={item.notes || ''} onChange={(e) => handleFoodChange(index, 'notes', e.target.value)} />
               </CCol>
 
-              <CCol sm={2}>
-                <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />
-              </CCol>
+              {/* Food Image column (hidden when HIDE_FOOD_IMAGE) */}
+              {!HIDE_FOOD_IMAGE && (
+                <CCol sm={2}>
+                  <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />
+                </CCol>
+              )}
 
               <CCol sm={1} className="text-center">
-                <input type="checkbox" checked={item.include} onChange={(e) => handleFoodChange(index, 'include', e.target.checked)} style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }} title="If checked, price becomes 0" />
+                <input
+                  type="checkbox"
+                  checked={item.include}
+                  onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
+                  style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }}
+                  title="If checked, price becomes 0"
+                />
               </CCol>
 
               <CCol sm={1}>

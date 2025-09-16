@@ -1,10 +1,13 @@
+// src/App.js
 import React, { Suspense, useEffect } from 'react'
-import { BrowserRouter, HashRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
+
 // Containers
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
+
 // Pages
 const Login = React.lazy(() => import('./views/pages/login/login'))
 const Register = React.lazy(() => import('./views/pages/register/Register'))
@@ -64,7 +67,8 @@ const App = () => {
     }
 
     setColorMode(storedTheme)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <BrowserRouter>
@@ -74,22 +78,29 @@ const App = () => {
             <CSpinner color="primary" variant="grow" />
           </div>
         }
-      ><Routes>
-          {/* MyFatoorah result pages (hash routes). 
-              The web server or static redirect files should send /paysuccess → /#/public/paysuccess */}
+      >
+        <Routes>
+          {/* Public result pages */}
           <Route path="/public/paysuccessv1" element={<PaySuccess />} />
           <Route path="/public/payerrorv1" element={<PayError />} />
 
-          {/* Existing app pages */}
-          <Route path="/login" name="Login Page" element={<Login />} />
-          <Route path="/register" name="Register Page" element={<Register />} />
-          <Route path="/404" name="Page 404" element={<Page404 />} />
-          <Route path="/500" name="Page 500" element={<Page500 />} />
-          {/* Wildcard route last */}
-          <Route path="*" name="Home" element={<DefaultLayout />} />
+          {/* Auth pages */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Error pages */}
+          <Route path="/404" element={<Page404 />} />
+          <Route path="/500" element={<Page500 />} />
+
+          {/* 🔁 Redirect root to /login (must be above the wildcard) */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+
+          {/* Wildcard LAST: your app layout (dashboards, etc.) */}
+          <Route path="*" element={<DefaultLayout />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
   )
 }
+
 export default App

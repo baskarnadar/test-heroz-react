@@ -1024,3 +1024,50 @@ body {
  
     color: #000000 !important;
 }
+.hbg
+{
+    color: #000000 !important;
+}
+label {
+    color: #000000 !important;
+}
+.proposal .food-wrap
+{
+ color: #000000 !important;
+}
+.modal-backdrop.show
+{
+   color: #000000 !important;
+}
+.modal-body {
+   color: #000000 !important;
+}
+.modal-header
+{
+ color: #000000 !important;
+}
+
+@if $enable-dark-mode {
+  @include color-mode(dark) {
+  .b, strong {
+   color: #9c9999 !important;
+  }
+
+  .footer-contact li {
+    margin: 6px 0;
+    color: #9c9999 !important;
+}
+.footer-contact
+{
+   color: #9c9999 !important;
+}
+.footer-links
+{
+   color: #9c9999 !important;
+}
+.nav {
+   color: #9c9999 !important;
+}
+
+}
+}
