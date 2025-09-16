@@ -212,6 +212,7 @@ const ViewActivityScreen = () => {
   }
 
   return (
+     
     <div dir={dir} style={{ padding: 16 }}>
       <CategoryBox activity={activity} activityRequest={activityRequestData} />
       <div style={{ height: 20 }} />
