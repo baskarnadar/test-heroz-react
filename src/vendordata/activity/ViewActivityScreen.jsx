@@ -217,7 +217,7 @@ const ViewActivityScreen = () => {
       <CategoryBox activity={activity} activityRequest={activityRequestData} />
       <div style={{ height: 21 }} />
       {/* These will render only if activity is loaded */}
-      <PriceListCard prices={activity?.priceList} title="Vendor Price" />
+      <PriceListCard prices={activity?.priceList} title="Vendor Price." />
       <div style={{ height: 20 }} />
       <AdditionalMeals
         includedMeals={(activity?.foodList || []).filter((f) => f.include === true)}
