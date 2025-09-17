@@ -42,8 +42,7 @@ const Vendor = () => {
 
   // Define state for each input
   const [txtactName, setactName] = useState('')
-  // 🔒 Force Activity Type to SCHOOL by default
-  const [selectedType, setactType] = useState('SCHOOL')
+  const [selectedType, setactType] = useState([])
   const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
@@ -634,9 +633,6 @@ const Vendor = () => {
 
     setactName(ActivityData.actName || '')
     setactType(ActivityData.actTypeID || '')
-    // 🔒 Always force SCHOOL regardless of loaded data
-    setactType('SCHOOL')
-
     setSelectedCategories(ActivityData.actCategoryID || [])
     setactDesc(ActivityData.actDesc || '')
 
@@ -731,11 +727,6 @@ const Vendor = () => {
       setDays(dayMap)
     }
   }, [ActivityData])
-
-  // 🔒 Safety net: if anything tries to change it, snap back to SCHOOL
-  useEffect(() => {
-    if (selectedType !== 'SCHOOL') setactType('SCHOOL')
-  }, [selectedType])
 
   useEffect(() => {
     const getSearchParams = () => {
@@ -972,11 +963,7 @@ const Vendor = () => {
               <div className="pink-shadow4"> School</div>
             </label>
 
-            {/* ⛔ Hidden options: INDIVIDUAL, MEMBER (kept but not displayed) */}
-            <label
-              style={{ display: 'none', alignItems: 'center', gap: '5px' }}
-              aria-hidden="true"
-            >
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
                 name="rdoactTyper"
@@ -984,15 +971,10 @@ const Vendor = () => {
                 checked={selectedType === 'INDIVIDUAL'}
                 onChange={(e) => setactType(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
-                tabIndex={-1}
-                disabled
               />
               <div className="pink-shadow4"> Individual</div>
             </label>
-            <label
-              style={{ display: 'none', alignItems: 'center', gap: '5px' }}
-              aria-hidden="true"
-            >
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
                 name="rdoactTyper"
@@ -1000,14 +982,10 @@ const Vendor = () => {
                 checked={selectedType === 'MEMBER'}
                 onChange={(e) => setactType(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
-                tabIndex={-1}
-                disabled
               />
               <div className="pink-shadow4"> Member</div>
             </label>
           </div>
-          {/* Hidden input to ensure value is posted/validated as SCHOOL */}
-          <input type="hidden" name="selectedType" value="SCHOOL" />
           <ErrorText msg={errors.selectedType} />
         </div>
 
@@ -1019,7 +997,7 @@ const Vendor = () => {
           <div
             className="vendor-input"
             style={{
-              
+              width: 120,
               background: '#f7f7f7',
               cursor: 'not-allowed',
               userSelect: 'none',
@@ -1264,7 +1242,7 @@ const Vendor = () => {
               <ErrorText msg={errors.ddactCityID} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Location <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">Address1 <span style={{color:'red'}}>*</span></label>
               <input
                 value={txtactAddress1}
                 name="txtactAddress1"
