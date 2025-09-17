@@ -30,10 +30,11 @@ const Vendor = () => {
 
   // form fields
   const [txtactName, setactName] = useState('')
-  const [selectedType, setactType] = useState('') // radio -> string
+  // 🔒 Activity Type fixed to SCHOOL
+  const [selectedType, setactType] = useState('SCHOOL')
 
   // default rating kept, now visible
-  const [actRating, setactRating] = useState('0')  // 1..10 required
+  const [actRating, setactRating] = useState('0')  // 1..5 required
 
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
@@ -334,7 +335,7 @@ const Vendor = () => {
 
     const validation = validateActivityForm({
       txtactName,
-      selectedType,
+      selectedType,            // fixed 'SCHOOL'
       selectedCategories,
       txtactDesc,
       txtactImageName1,
@@ -428,7 +429,7 @@ const Vendor = () => {
         body: JSON.stringify({
           VendorID: getCurrentLoggedUserID(),
           actName: txtactName || '',
-          actTypeID: selectedType,
+          actTypeID: selectedType,           // 'SCHOOL'
           actCategoryID: selectedCategories,
           actDesc: txtactDesc || '',
 
@@ -502,23 +503,17 @@ const Vendor = () => {
           <ErrorText msg={errors.txtactName} />
         </div>
 
+        {/* 🔒 Activity Type fixed to School (only) */}
         <div className="form-group">
           <label style={{ marginBottom: 10, marginTop: 20 }}>
             Activity Type <span style={{color:'red'}}>*</span>
           </label>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <input type="radio" name="selectedType" value="SCHOOL" checked={selectedType === 'SCHOOL'} onChange={(e) => setactType(e.target.value)} style={{ width: 24, height: 24 }} />
-              <div className="pink-shadow4">School</div>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <input type="radio" name="selectedType" value="INDIVIDUAL" checked={selectedType === 'INDIVIDUAL'} onChange={(e) => setactType(e.target.value)} style={{ width: 24, height: 24 }} />
-              <div className="pink-shadow4">Individual</div>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <input type="radio" name="selectedType" value="MEMBER" checked={selectedType === 'MEMBER'} onChange={(e) => setactType(e.target.value)} style={{ width: 24, height: 24 }} />
-              <div className="pink-shadow4">Member</div>
-            </label>
+            <div className="pink-shadow4" style={{ fontWeight: 700, padding: '6px 12px', borderRadius: 8 }}>
+              School
+            </div>
+            {/* keep a hidden input so validators / form refs see the value */}
+            <input type="hidden" name="selectedType" value="SCHOOL" />
           </div>
           <ErrorText msg={errors.selectedType} />
         </div>
@@ -537,10 +532,9 @@ const Vendor = () => {
               min="1"
               max="5"
               className="admin-txt-box"
-              placeholder="Enter rating 1 t 5  "
+              placeholder="Enter rating 1 to 5"
               value={actRating}
               onChange={(e) => setactRating(e.target.value)}
-              
             />
             <ErrorText msg={errors.actRating} />
           </div>

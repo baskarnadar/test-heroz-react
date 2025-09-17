@@ -28,6 +28,15 @@ function mapItem(json) {
     actTypeID: toStr(json.actTypeID),
     totalPaidStudent: Number.parseInt(json.totalPaidStudent ?? 0, 10) || 0,
     actTotalNoStudents: Number.parseInt(json.actTotalNoStudents ?? 0, 10) || 0,
+
+    // ✅ NEW: map reject reason (with robust fallbacks)
+    RequestRejectReason: toStr(
+      json.RequestRejectReason ??
+      json.requestRejectReason ??
+      json.RejectReason ??
+      json.rejectReason ??
+      ''
+    ),
   }
 }
 
@@ -200,6 +209,25 @@ const ActivityRequestList = () => {
                         <InfoRow label="Trip Time" value={req.actRequestTime || '-'} color="#444" />
                       </div>
 
+                      {/* ✅ NEW: Reject reason (shown if present). Yellow rgba 0.5 with rounded border */}
+                      {req.RequestRejectReason && req.RequestRejectReason.trim() !== '' && (
+                        <div
+                          className="mt-2"
+                          style={{
+                            background: 'rgba(255, 193, 7, 0.5)',   // yellow @ 0.5
+                            borderRadius: 14,
+                            border: '1px solid #ffecb5',            // soft yellow border
+                            padding: '10px 12px',
+                            color: '#5c3c00',                        // readable on yellow
+                            whiteSpace: 'pre-wrap',
+                          }}
+                          onClick={(e) => e.stopPropagation()} // don't trigger card navigation
+                        >
+                          <div className="fw-bold mb-1">Reject Reason</div>
+                          {req.RequestRejectReason}
+                        </div>
+                      )}
+
                       {/* If you want to show status: */}
                       {/* <InfoRow
                         label="Status"
@@ -214,7 +242,6 @@ const ActivityRequestList = () => {
                         trailing={
                           <TrailingByStatus
                             status={req.actRequestStatus}
-                            
                           />
                         }
                       />

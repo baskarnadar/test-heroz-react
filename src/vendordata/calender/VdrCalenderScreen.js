@@ -23,17 +23,59 @@ const dateKey = (d) => format(d, "yyyy-MM-dd");
 const isFri = (d) => d.getDay() === 5;
 const isSat = (d) => d.getDay() === 6;
 
-const STATUS_COLORS = {
-  "WAITING-FOR-APPROVAL": "#8a6d3b", // brown-ish
-  "TRIP-BOOKED": "#2e7d32",          // green
-  APPROVED: "#1565c0",               // blue
-  REJECTED: "#c62828",               // red
-  PENDING: "#6a1b9a",                // purple
+/**
+ * Status color maps
+ * Base (text) colors + semi-transparent backgrounds for tiles/chips
+ */
+const STATUS_BASE = {
+  PENDING: "#1976d2",                 // blue
+  "WAITING-FOR-APPROVAL": "#fdd835",  // yellow
+  REJECTED: "#e53935",                // red
+  APPROVED: "#2e7d32",                // green
+  "TRIP-BOOKED": "#2e7d32",           // treat as green
 };
 
-const statusColor = (statusRaw) => {
-  const k = (statusRaw || "").toString().toUpperCase();
-  return STATUS_COLORS[k] || "#333";
+const STATUS_BG = {
+  PENDING: "rgba(25, 118, 210, 0.5)",
+  "WAITING-FOR-APPROVAL": "rgba(253, 216, 53, 0.5)",
+  REJECTED: "rgba(229, 57, 53, 0.5)",
+  APPROVED: "rgba(46, 125, 50, 0.5)",
+  "TRIP-BOOKED": "rgba(46, 125, 50, 0.5)",
+};
+
+const BTN_BG = {
+  PENDING: "rgba(25, 118, 210, 0.2)",
+  "WAITING-FOR-APPROVAL": "rgba(253, 216, 53, 0.2)",
+  REJECTED: "rgba(229, 57, 53, 0.2)",
+  APPROVED: "rgba(46, 125, 50, 0.2)",
+  "TRIP-BOOKED": "rgba(46, 125, 50, 0.2)",
+};
+
+const BTN_COLOR = {
+  PENDING: "#1976d2",
+  "WAITING-FOR-APPROVAL": "#222", // better contrast on yellow
+  REJECTED: "#e53935",
+  APPROVED: "#2e7d32",
+  "TRIP-BOOKED": "#2e7d32",
+};
+
+const STATUS_PRIORITY = [
+  "REJECTED",
+  "WAITING-FOR-APPROVAL",
+  "PENDING",
+  "APPROVED",
+  "TRIP-BOOKED",
+];
+
+const normalizeStatus = (s) => (s || "").toString().toUpperCase();
+const statusColor = (statusRaw) => STATUS_BASE[normalizeStatus(statusRaw)] || "#333";
+const statusBg = (statusRaw) => STATUS_BG[normalizeStatus(statusRaw)] || "rgba(245,245,245,1)";
+
+/** Pick a single status for a day if multiple exist, by priority above */
+const pickDayStatus = (activities = []) => {
+  const set = new Set(activities.map((a) => normalizeStatus(a?.actRequestStatus)));
+  for (const s of STATUS_PRIORITY) if (set.has(s)) return s;
+  return activities.length ? normalizeStatus(activities[0]?.actRequestStatus) : null;
 };
 
 const defaultL = {
@@ -44,8 +86,6 @@ const defaultL = {
 };
 
 const getDir = () => {
-  // If you have a global ValueNotifier-like bridge, read it here.
-  // Fallback to document direction or 'ltr'
   if (typeof document !== "undefined") {
     return document?.dir === "rtl" ? "rtl" : "ltr";
   }
@@ -79,62 +119,60 @@ export default function VdrCalenderScreen() {
 
   const fz = useMemo(() => {
     const w = typeof window !== "undefined" ? window.innerWidth : 1200;
-    // mirroring Flutter: width * 0.030 (but clamp reasonably)
     const calc = w * 0.030;
     return Math.max(12, Math.min(calc, 24));
   }, []);
 
-  const L = defaultL; // If you have your i18n L object, replace with it.
+  const L = defaultL;
 
   useEffect(() => {
     (async () => {
       setIsLoading(true);
-     try {
-  // API details
-  const url = `${API_BASE_URL}/vendordata/calendar/vdrgetallactstatus`;
-  const headers = {
-    ...(await getAuthHeaders()), // should include Authorization
-    "Content-Type": "application/json",
-  };
+      try {
+        // API details
+        const url = `${API_BASE_URL}/vendordata/calendar/vdrgetallactstatus`;
+        const headers = {
+          ...(await getAuthHeaders()),
+          "Content-Type": "application/json",
+        };
 
-  const body = JSON.stringify({
-    VendorID: getCurrentLoggedUserID?.() || "", // adjust if you store vendor id elsewhere
-  });
+        const body = JSON.stringify({
+          VendorID: getCurrentLoggedUserID?.() || "",
+        });
 
-  console.log("[API CALL] URL:", url);
-  console.log("[API CALL] Payload:", JSON.parse(body));
+        console.log("[API CALL] URL:", url);
+        console.log("[API CALL] Payload:", JSON.parse(body));
 
-  const res = await fetch(url, { method: "POST", headers, body });
+        const res = await fetch(url, { method: "POST", headers, body });
 
-  const text = await res.text();
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = { parseError: true, raw: text };
-  }
+        const text = await res.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = { parseError: true, raw: text };
+        }
 
-  console.log("[API RESPONSE]:", json);
+        console.log("[API RESPONSE]:", json);
 
-  if (json?.status === "success" && Array.isArray(json?.data)) {
-    const temp = {};
-    for (const item of json.data) {
-      if (!item?.actRequestDate) continue;
-      const key = format(new Date(item.actRequestDate), "yyyy-MM-dd");
-      if (!temp[key]) temp[key] = [];
-      temp[key].push(item);
-    }
-    setGroupedData(temp);
-  } else {
-    setGroupedData({});
-  }
-} catch (e) {
-  console.error("fetchActivityData error:", e);
-  setGroupedData({});
-} finally {
-  setIsLoading(false);
-}
-
+        if (json?.status === "success" && Array.isArray(json?.data)) {
+          const temp = {};
+          for (const item of json.data) {
+            if (!item?.actRequestDate) continue;
+            const key = format(new Date(item.actRequestDate), "yyyy-MM-dd");
+            if (!temp[key]) temp[key] = [];
+            temp[key].push(item);
+          }
+          setGroupedData(temp);
+        } else {
+          setGroupedData({});
+        }
+      } catch (e) {
+        console.error("fetchActivityData error:", e);
+        setGroupedData({});
+      } finally {
+        setIsLoading(false);
+      }
     })();
   }, []); // fetch once like the Flutter version
 
@@ -186,8 +224,6 @@ export default function VdrCalenderScreen() {
   };
 
   const handleItemClick = (RequestID) => {
-    // Mirror Flutter: push to detail screen
-    // Adjust route as in your app.
     navigate(`/vendordata/activity/ViewActivityScreen?RequestID=${encodeURIComponent(RequestID)}`);
   };
 
@@ -252,27 +288,37 @@ export default function VdrCalenderScreen() {
             >
               {week.map((d, dIdx) => {
                 const key = dateKey(d);
-                const hasData = Boolean(groupedData[key]?.length);
+                const acts = groupedData[key] || [];
+                const hasData = acts.length > 0;
                 const weekend = isFri(d) || isSat(d);
                 const isTodayCell = isSameDay(d, today);
 
+                // Pick a single status for the day (if any)
+                const dayStatus = hasData ? pickDayStatus(acts) : null;
+
                 // Background selection
-                let bg = "#f5f5f5"; // light grey
-                if (hasData) {
-                  bg = "rgba(0, 128, 0, 0.5)"; // green @ 0.5
+                let bg = "#f5f5f5"; // default light gray
+                if (hasData && dayStatus) {
+                  bg = statusBg(dayStatus); // status-driven background
                 } else if (weekend) {
-                  bg = "rgba(255, 0, 0, 0.5)"; // red @ 0.5
+                  bg = "rgba(255, 0, 0, 0.5)"; // red @ 0.5 for weekend with no data
                 } else if (isTodayCell) {
-                  bg = "#e6d9ff"; // purple-ish
+                  bg = "#e6d9ff"; // highlight today when no data
                 }
 
-                const dayNumColor = hasData
-                  ? "#1b5e20"
-                  : weekend
-                  ? "red"
-                  : isTodayCell
-                  ? "#5e35b1"
-                  : "#000";
+                // Day number color for contrast
+                let dayNumColor = "#000";
+                if (hasData && dayStatus) {
+                  dayNumColor = dayStatus === "WAITING-FOR-APPROVAL" ? "#222" : "#fff";
+                } else if (weekend) {
+                  dayNumColor = "red";
+                } else if (isTodayCell) {
+                  dayNumColor = "#5e35b1";
+                }
+
+                // Chip (count button) colors
+                const chipBg = hasData && dayStatus ? BTN_BG[dayStatus] : "rgba(0,0,0,0.08)";
+                const chipColor = hasData && dayStatus ? BTN_COLOR[dayStatus] : "#333";
 
                 return (
                   <div key={dIdx} style={{ width: "12%", minWidth: 80 }}>
@@ -310,8 +356,8 @@ export default function VdrCalenderScreen() {
                           style={{
                             cursor: "pointer",
                             border: "none",
-                            background: "rgba(0, 100, 0, 0.20)",
-                            color: "#1b5e20",
+                            background: chipBg,
+                            color: chipColor,
                             fontWeight: 700,
                             padding: "2px 14px",
                             borderRadius: 6,
@@ -319,7 +365,7 @@ export default function VdrCalenderScreen() {
                           }}
                           title="View activities"
                         >
-                          {groupedData[key].length}
+                          {acts.length}
                         </button>
                       )}
                     </div>
