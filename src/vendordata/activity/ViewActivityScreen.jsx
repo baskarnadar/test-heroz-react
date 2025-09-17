@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  CCard, CCardBody, CCardHeader, CRow, CCol,
-  CSpinner, CAlert, CBadge, CButton,
+  CCard, CCardBody, CRow, CCol,
+  CSpinner, CAlert, CButton,
   CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter,
 } from "@coreui/react";
 
@@ -11,7 +11,7 @@ import { API_BASE_URL } from "../../config";
 import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
 import { AppColors } from "../../_shared/colors";
 
-// ⬇️ NEW: import externalized components
+// ⬇️ externalized components (your utils versions)
 import PriceListCard from "../../utils/pricelist";
 import AdditionalMeals from "../../utils/additional";
 
@@ -39,21 +39,14 @@ async function authHeaderObj() {
 // Extract a single record from common API shapes
 function extractOne(json) {
   if (json == null) return null;
-  // Prefer data/Data fields
   const d = json.data ?? json.Data ?? json.result?.data ?? json.Result?.Data;
   if (Array.isArray(d)) return d[0] ?? null;
   if (d && typeof d === "object") return d;
-
-  // Top-level array?
   if (Array.isArray(json)) return json[0] ?? null;
-
-  // Some APIs return {code:200, ...payload fields here...}
   if (json.code && Object.keys(json).length > 1) {
     const { code, ...rest } = json;
     if (Object.keys(rest).length) return rest;
   }
-
-  // Otherwise assume top-level object is the record
   return json;
 }
 
@@ -82,6 +75,98 @@ const useDocDir = () => {
   }, []);
   return dir;
 };
+
+// --- Normalize data into the exact shape UI expects ---
+
+function toBoolLoose(v) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (v == null) return false;
+  const s = String(v).trim().toLowerCase();
+  return s === "true" || s === "yes" || s === "1";
+}
+
+// Returns array of { PriceTitle, PriceDesc, PriceAmount }
+function normalizePricesForCard(activity) {
+  const raw =
+    activity?.priceList ??
+    activity?.PriceList ??
+    activity?.prices ??
+    activity?.PriceInfo ??
+    activity?.price_info ??
+    [];
+
+  const arr = Array.isArray(raw) ? raw : [];
+
+  const mapped = arr.map((p, i) => {
+    // try to cover your Flutter fields (PriceInfo) + generic variants
+    const rangeFrom = p?.studentRangeFrom ?? p?.StudentRangeFrom ?? p?.from ?? p?.min;
+    const rangeTo = p?.studentRangeTo ?? p?.StudentRangeTo ?? p?.to ?? p?.max;
+
+    const title =
+      p?.PriceTitle ??
+      p?.title ??
+      (rangeFrom != null || rangeTo != null
+        ? `Price per student ${rangeFrom ?? ""}${rangeFrom != null || rangeTo != null ? " - " : ""}${rangeTo ?? ""}`
+        : "Price");
+
+    // Accept multiple amount keys
+    const amount =
+      p?.PriceAmount ??
+      p?.price ??
+      p?.Price ??
+      p?.amount ??
+      p?.HerozStudentPrice ??
+      p?.herozStudentPrice ??
+      p?.total ??
+      p?.Total ??
+      "--";
+
+    return {
+      PriceTitle: title,
+      PriceDesc: p?.PriceDesc ?? p?.desc ?? p?.description ?? "",
+      PriceAmount: amount,
+    };
+  });
+
+  return mapped;
+}
+
+// Returns { includedMeals: [...], excludedMeals: [...] } where each item: { name, desc, foodPrice }
+function normalizeMealsForCard(activity) {
+  const raw =
+    activity?.foodList ??
+    activity?.FoodList ??
+    activity?.foods ??
+    activity?.food_info ??
+    [];
+
+  const arr = Array.isArray(raw) ? raw : [];
+
+  const items = arr.map((f) => {
+    const includeFlag =
+      f?.include ?? f?.Include ?? f?.isIncluded ?? f?.is_included ?? f?.Included ?? false;
+
+    const price =
+      f?.foodPrice ?? f?.FoodPrice ?? f?.price ?? f?.Price ?? f?.amount ?? 0;
+
+    const name = f?.name ?? f?.FoodName ?? f?.foodName ?? "Meal";
+    const desc = f?.desc ?? f?.description ?? f?.FoodDesc ?? "";
+
+    return {
+      name,
+      desc,
+      foodPrice: Number.parseFloat(price) || 0,
+      __include: toBoolLoose(includeFlag),
+      __raw: f,
+    };
+  });
+
+  const includedMeals = items.filter((m) => m.__include).map(({ __include, __raw, ...rest }) => rest);
+  const excludedMeals = items.filter((m) => !m.__include).map(({ __include, __raw, ...rest }) => rest);
+
+  return { includedMeals, excludedMeals };
+}
 
 // ---------- API calls ----------
 async function fetchActivityRequestInfo(RequestID) {
@@ -114,7 +199,7 @@ async function fetchActivityRequestInfo(RequestID) {
     throw new Error("Response not JSON");
   }
   console.groupEnd();
- 
+
   if (!res.ok) throw new Error(`Failed to load activity request (${res.status})`);
   const rec = extractOne(raw);
   if (!rec) throw new Error("No activity request record in response");
@@ -127,7 +212,7 @@ async function fetchActivityInfo(ActivityID) {
     "Content-Type": "application/json",
     ...(await authHeaderObj()),
   };
- 
+
   console.groupCollapsed("%c📡 fetchActivityInfo (POST)", "color:#2c4696;font-weight:700");
   console.log("🔗 URL:", url);
   console.log("📩 Payload:", { ActivityID, VendorID: getCurrentLoggedUserID() });
@@ -183,7 +268,6 @@ const ViewActivityScreen = () => {
         setActivityRequestData(reqRec);
 
         const actID = pickActivityID(reqRec);
-        
         if (actID) {
           const actRec = await fetchActivityInfo(actID);
           if (!mounted) return;
@@ -198,6 +282,30 @@ const ViewActivityScreen = () => {
     return () => { mounted = false; };
   }, [RequestID]);
 
+  // ----- derived / normalized data for the two components -----
+  const pricesForCard = useMemo(() => normalizePricesForCard(activity), [activity]);
+  const mealsForCard = useMemo(() => normalizeMealsForCard(activity), [activity]);
+
+  // quick debug logs
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log("🧩 Normalized Prices:", pricesForCard);
+    // eslint-disable-next-line no-console
+    console.log("🍽️ Normalized Meals:", mealsForCard);
+    if (Array.isArray(pricesForCard)) {
+      // eslint-disable-next-line no-console
+      console.table(pricesForCard);
+    }
+    if (Array.isArray(mealsForCard?.includedMeals)) {
+      // eslint-disable-next-line no-console
+      console.table(mealsForCard.includedMeals);
+    }
+    if (Array.isArray(mealsForCard?.excludedMeals)) {
+      // eslint-disable-next-line no-console
+      console.table(mealsForCard.excludedMeals);
+    }
+  }, [pricesForCard, mealsForCard]);
+
   if (loading) {
     return (
       <div dir={dir} style={{ padding: 16 }}>
@@ -206,7 +314,6 @@ const ViewActivityScreen = () => {
     );
   }
 
-  // ✅ Only require the request data to render the page
   if (!activityRequestData) {
     return (
       <div dir={dir} style={{ padding: 16 }}>
@@ -220,15 +327,15 @@ const ViewActivityScreen = () => {
       <CategoryBox activity={activity} activityRequest={activityRequestData} />
       <div style={{ height: 21 }} />
 
-      {/* Prices (from external component) */}
-      <PriceListCard prices={activity?.priceList} title="Vendor Price." />
+      {/* Prices (from external component) — now fed normalized data */}
+      <PriceListCard prices={pricesForCard} title="Vendor Price." />
 
       <div style={{ height: 20 }} />
 
-      {/* Meals (from external component) */}
+      {/* Meals (from external component) — now fed normalized data */}
       <AdditionalMeals
-        includedMeals={(activity?.foodList || []).filter((f) => f.include === true)}
-        excludedMeals={(activity?.foodList || []).filter((f) => f.include === false)}
+        includedMeals={mealsForCard.includedMeals}
+        excludedMeals={mealsForCard.excludedMeals}
         header="Additional"
       />
 
@@ -534,7 +641,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
 };
 
 // ---------- Key/Value row ----------
-const KVRow = ({ k, v, spaced, screenWidth }) => {
+const KVRow = ({ k, v, spaced }) => {
   const dir = useDocDir();
   return (
     <div
