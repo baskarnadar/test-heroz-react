@@ -48,13 +48,15 @@ export default defineConfig(() => {
     server: {
       host: '0.0.0.0',  // Allow external access
       port: 3000,       // Default dev port
+      allowedHosts: ['school.heroz.sa'], // ✅ Fix here
       proxy: {
         // Add proxy settings here if needed
       },
     },
     preview: {
-      host: '0.0.0.0',  // Also for vite preview
+      host: '0.0.0.0',
       port: 3000,
+      allowedHosts: ['school.heroz.sa'], // also add here if you run `vite preview`
     },
   }
 })
