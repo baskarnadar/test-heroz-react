@@ -155,7 +155,7 @@ const vendormenu = [
   {
     component: CNavItem,
     name: 'Notification',
-    to: 'admindata/note/list',
+    to: 'vendordata/note/list',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
   },
  

@@ -19,7 +19,7 @@ import { cilBell, cilContrast, cilMenu, cilMoon, cilSun } from '@coreui/icons'
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
 
-import { getCurrentLoggedUserType,getAuthHeadersV1  } from '../utils/operation'
+import { getCurrentLoggedUserType, getAuthHeadersV1 } from '../utils/operation'
 import { API_BASE_URL } from '../config'
 
 const UserRoleLabel = () => {
@@ -46,6 +46,15 @@ const AppHeader = () => {
   const dispatch = useDispatch()
   const sidebarShow = useSelector((state) => state.sidebarShow)
 
+  // Derive user type and destination for notifications
+  const userType = localStorage.getItem('usertype') || getCurrentLoggedUserType()
+  const noteLink =
+    userType === 'VENDOR-SUBADMIN'
+      ? '/vendordata/note/list'
+      : userType === 'ADMIN'
+      ? '/admindata/note/list'
+      : null
+
   useEffect(() => {
     // Scroll shadow logic
     const handleScroll = () => {
@@ -64,18 +73,12 @@ const AppHeader = () => {
           headers: getAuthHeadersV1(),
           body: JSON.stringify({ noteTo: getCurrentLoggedUserType() }),
         })
-        console.log('noteResponse')
-        console.log(noteResponse)
+
         if (noteResponse.ok) {
           const noteData = await noteResponse.json()
-          console.log(noteData)
-          const totalCountVal = noteData?.data?.totalCount || 0
-
-          const total = noteData?.data?.totalCount || 0
+          const total = noteData?.data?.totalCount ?? 0
           setTotalCountVal(total)
-
-          console.log('Total New Notifications:', totalCountVal)
-          // You can store this in state if needed
+          console.log('Total New Notifications:', total)
         } else {
           console.warn('Failed to fetch total notifications')
         }
@@ -103,6 +106,7 @@ const AppHeader = () => {
         >
           <CIcon icon={cilMenu} size="lg" />
         </CHeaderToggler>
+
         <div className="flex-grow-1 text-center">
           <h4>
             {localStorage.getItem('loggedusername')} <UserRoleLabel />
@@ -111,18 +115,21 @@ const AppHeader = () => {
 
         <CHeaderNav className="ms-auto">
           <CNavItem>
-            <Link to="/admindata/note/list" className="nav-link position-relative">
-              <CIcon icon={cilBell} size="lg" />
-              <span
-                className="position-absolute top-0 start-100 badge rounded-pill bg-danger"
-                style={{
-                  transform: 'translate(-50%, 10%)',
-                  fontSize: '0.7rem',
-                }}
-              >
-                {totalCountVal}
-              </span>
-            </Link>
+            {/* Render one bell link based on user type */}
+            {noteLink && (
+              <Link to={noteLink} className="nav-link position-relative">
+                <CIcon icon={cilBell} size="lg" />
+                <span
+                  className="position-absolute top-0 start-100 badge rounded-pill bg-danger"
+                  style={{
+                    transform: 'translate(-50%, 10%)',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  {totalCountVal}
+                </span>
+              </Link>
+            )}
           </CNavItem>
         </CHeaderNav>
 
@@ -130,8 +137,10 @@ const AppHeader = () => {
           <li className="nav-item py-1">
             <div className="vr h-100 mx-2 text-body text-opacity-75"></div>
           </li>
-        
-        {/*   <CDropdown variant="nav-item" placement="bottom-end">
+
+          {/* Theme switcher kept as comment per your original */}
+          {/*
+          <CDropdown variant="nav-item" placement="bottom-end">
             <CDropdownToggle caret={false}>
               {colorMode === 'dark' ? (
                 <CIcon icon={cilMoon} size="lg" />
@@ -167,9 +176,9 @@ const AppHeader = () => {
                 <CIcon className="me-2" icon={cilContrast} size="lg" /> Auto
               </CDropdownItem>
             </CDropdownMenu>
-            
           </CDropdown>
           */}
+
           <li className="nav-item py-1">
             <div className="vr h-100 mx-2 text-body text-opacity-75"></div>
           </li>
