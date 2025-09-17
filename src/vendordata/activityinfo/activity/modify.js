@@ -42,7 +42,8 @@ const Vendor = () => {
 
   // Define state for each input
   const [txtactName, setactName] = useState('')
-  const [selectedType, setactType] = useState([])
+  // 🔒 Force Activity Type to SCHOOL only (default + guards below)
+  const [selectedType, setactType] = useState('SCHOOL')
   const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
@@ -322,6 +323,11 @@ const Vendor = () => {
     const n = Number(val)
     return Number.isFinite(n) && n >= 1 && n <= 5
   }
+
+  // 🔒 Guard: if anything tries to set a non-SCHOOL value, force back to SCHOOL
+  useEffect(() => {
+    if (selectedType !== 'SCHOOL') setactType('SCHOOL')
+  }, [selectedType])
 
   const handleSubmit = async (actStatusVal, e) => {
     if (e && e.preventDefault) e.preventDefault()
@@ -632,7 +638,10 @@ const Vendor = () => {
     setOrgsetactImageName3(ActivityData.actImageName3)
 
     setactName(ActivityData.actName || '')
-    setactType(ActivityData.actTypeID || '')
+    setactType(ActivityData.actTypeID || '')        // ← keep your original line
+    if (ActivityData.actTypeID !== 'SCHOOL') {      // ← enforce SCHOOL anyway
+      setactType('SCHOOL')
+    }
     setSelectedCategories(ActivityData.actCategoryID || [])
     setactDesc(ActivityData.actDesc || '')
 
@@ -957,31 +966,51 @@ const Vendor = () => {
                 name="rdoactTyper"
                 value="SCHOOL"
                 checked={selectedType === 'SCHOOL'}
-                onChange={(e) => setactType(e.target.value)}
+                onChange={() => setactType('SCHOOL')}    
                 style={{ width: '24px', height: '24px' }}
               />
               <div className="pink-shadow4"> School</div>
             </label>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            {/* Keep your original options but hide + disable them */}
+            <label
+              style={{
+                display: 'none',                             // 🔒 hidden
+                alignItems: 'center',
+                gap: '5px',
+                opacity: 0.4,
+                pointerEvents: 'none',
+              }}
+            >
               <input
                 type="radio"
                 name="rdoactTyper"
                 value="INDIVIDUAL"
                 checked={selectedType === 'INDIVIDUAL'}
-                onChange={(e) => setactType(e.target.value)}
+                onChange={() => setactType('SCHOOL')}        
                 style={{ width: '24px', height: '24px' }}
+                disabled
               />
               <div className="pink-shadow4"> Individual</div>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+
+            <label
+              style={{
+                display: 'none',                             // 🔒 hidden
+                alignItems: 'center',
+                gap: '5px',
+                opacity: 0.4,
+                pointerEvents: 'none',
+              }}
+            >
               <input
                 type="radio"
                 name="rdoactTyper"
                 value="MEMBER"
                 checked={selectedType === 'MEMBER'}
-                onChange={(e) => setactType(e.target.value)}
+                onChange={() => setactType('SCHOOL')}       
                 style={{ width: '24px', height: '24px' }}
+                disabled
               />
               <div className="pink-shadow4"> Member</div>
             </label>
@@ -997,7 +1026,7 @@ const Vendor = () => {
           <div
             className="vendor-input"
             style={{
-              width: 120,
+              
               background: '#f7f7f7',
               cursor: 'not-allowed',
               userSelect: 'none',
@@ -1242,7 +1271,7 @@ const Vendor = () => {
               <ErrorText msg={errors.ddactCityID} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Address1 <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">Location <span style={{color:'red'}}>*</span></label>
               <input
                 value={txtactAddress1}
                 name="txtactAddress1"
