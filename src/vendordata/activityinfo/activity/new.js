@@ -537,7 +537,7 @@ const Vendor = () => {
               min="1"
               max="5"
               className="admin-txt-box"
-              placeholder="Enter rating 1–10 (e.g., 8.5)"
+              placeholder="Enter rating 1 t 5  "
               value={actRating}
               onChange={(e) => setactRating(e.target.value)}
               

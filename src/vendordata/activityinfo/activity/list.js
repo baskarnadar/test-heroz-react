@@ -10,7 +10,7 @@ import {
   formatDate,
   getCurrentLoggedUserID,
   dspstatus,
-  getAuthHeaders
+  getAuthHeaders,
 } from '../../../utils/operation'
 import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
@@ -45,7 +45,9 @@ const ActivityList = () => {
     return () => {
       if (timer) clearTimeout(timer)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, navigate, toastMessage])
+
   const fetchActivity = async () => {
     setLoading(true)
     try {
@@ -57,24 +59,20 @@ const ActivityList = () => {
           body: JSON.stringify({
             page: currentPage,
             limit: ActivityPerPage,
-            VendorID : getCurrentLoggedUserID()
+            VendorID: getCurrentLoggedUserID(),
           }),
         },
       )
-      console.log("📡 API Status:", response.status);
-       console.log("Activity.priceList");
-      
+      console.log('📡 API Status:', response.status)
 
-  console.log(Activity.priceList);
       if (!response.ok) throw new Error('Failed to fetch activities')
 
       const data = await response.json()
-      console.log("📦 API Response:", data);
-      console.log('data')
-      console.log(data.data)
+      console.log('📦 API Response:', data)
       setActivity(data.data || [])
-      setTotalPages(Math.ceil(data.totalCount / ActivityPerPage))
+      setTotalPages(Math.ceil((data.totalCount || 0) / ActivityPerPage))
     } catch (error) {
+      console.error(error)
       setError('Error fetching activities')
     } finally {
       setLoading(false)
@@ -100,54 +98,57 @@ const ActivityList = () => {
 
   const pageNumbers = getPageRange()
 
-  //Delete
-
-  const handleDeleteClick = (ActivityID) => {
-    setActivityIDelete(ActivityID)
+  // Delete
+  const handleDeleteClick = (row) => {
+    setActivityIDelete(row.ActivityID)
+    setSelectedActivity(row) // 👈 store full row so we can show actName in the modal
     setShowDeleteModal(true)
   }
 
- const confirmDelete = async () => {
-  console.log(ActivityIDToDelete)
-  console.log(getCurrentLoggedUserID())
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ActivityID: ActivityIDToDelete,
-          VendorID: getCurrentLoggedUserID(),
-        }),
-      },
-    )
+  const confirmDelete = async () => {
+    console.log(ActivityIDToDelete)
+    console.log(getCurrentLoggedUserID())
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            ActivityID: ActivityIDToDelete,
+            VendorID: getCurrentLoggedUserID(),
+          }),
+        },
+      )
 
-    if (response.ok) {
-      setToastType('success')
-      setToastMessage('Activity deleted successfully!')
-      setShowDeleteModal(false)
-    } else {
-       setShowDeleteModal(false)
-      // 🔹 Try to read the JSON error response
-      let errorMsg = 'Failed to delete Activity!'
-      try {
-        const data = await response.json()
-        if (data?.message) {
-          errorMsg = data.message
+      if (response.ok) {
+        setToastType('success')
+        setToastMessage('Activity deleted successfully!')
+        setShowDeleteModal(false)
+        setSelectedActivity(null)
+        // Refresh list after successful delete
+        fetchActivity()
+      } else {
+        setShowDeleteModal(false)
+        // 🔹 Try to read the JSON error response
+        let errorMsg = 'Failed to delete Activity!'
+        try {
+          const data = await response.json()
+          if (data?.message) {
+            errorMsg = data.message
+          }
+        } catch (err) {
+          console.error('Error parsing error response:', err)
         }
-      } catch (err) {
-        console.error('Error parsing error response:', err)
-      }
 
+        setToastType('fail')
+        setToastMessage(errorMsg)
+      }
+    } catch (error) {
       setToastType('fail')
-      setToastMessage(errorMsg)
+      setToastMessage('Error deleting Activity')
     }
-  } catch (error) {
-    setToastType('fail')
-    setToastMessage('Error deleting Activity')
   }
-}
 
   return (
     <div>
@@ -183,8 +184,8 @@ const ActivityList = () => {
               </tr>
             </thead>
             <tbody>
-              {Activity.map((Activity, index) => (
-                <tr key={Activity.PrdCodeNo}>
+              {Activity.map((row, index) => (
+                <tr key={row.PrdCodeNo || `${row.ActivityID}-${index}`}>
                   <td>
                     <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
                   </td>
@@ -193,44 +194,40 @@ const ActivityList = () => {
                       <img src={logo} alt="logo" style={{ width: '75px' }} />
                     </div>
                   </td>
-                  <td> {Activity.actName} </td>
-                  <td> {Activity.actTypeID} </td>
+                  <td> {row.actName} </td>
+                  <td> {row.actTypeID} </td>
                   <td>
-                    {' '}
-                    {Activity.EnCityName} {Activity.actAddress1}
-                    {Activity.actAddress2}{' '}
+                    {row.EnCityName} {row.actAddress1}
+                    {row.actAddress2}
                   </td>
-                  <td> {Activity.actGender} </td>
-                   <td
-  style={{
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    maxWidth: '250px',
-  }}
->
-  
+                  <td> {row.actGender} </td>
+                  <td
+                    style={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '250px',
+                    }}
+                  >
+                    {row.priceList && row.priceList.length > 0 ? (
+                      row.priceList.map((price, i) => (
+                        <div key={i}>
+                          <img
+                            src={moneyv1}
+                            alt="logo"
+                            style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
+                          />{' '}
+                          {price.Price} from {price.StudentRangeFrom} to {price.StudentRangeTo}
+                        </div>
+                      ))
+                    ) : (
+                      'No prices'
+                    )}
+                  </td>
 
-  {Activity.priceList && Activity.priceList.length > 0 ? (
-  Activity.priceList.map((price, index) => (
-    <div key={index}>
-      <img
-    src={moneyv1}
-    alt="logo"
-    style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-  /> {price.Price} from {price.StudentRangeFrom} to {price.StudentRangeTo}
-    </div>
-  ))
-) : (
-  'No prices'
-)}
+                  <td>{formatDate(row.CreatedDate)}</td>
 
-</td>
-
-
-                  <td>{formatDate(Activity.CreatedDate)}</td>
-
-                  <td> {dspstatus(Activity.actStatus)} </td>
+                  <td> {dspstatus(row.actStatus)} </td>
 
                   <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
                     <div
@@ -242,28 +239,25 @@ const ActivityList = () => {
                         flexWrap: 'wrap',
                       }}
                     >
-          
-                          <button
-                            onClick={() => handleModifyClick(Activity.ActivityID)}
-                            title="Edit/حذف"
-                            className="btn btnbtn-default graybox"
-                            style={{ padding: '2px', cursor: 'pointer' }}
-                            aria-label="Edit/حذف"
-                          >
-                            <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
-                          </button>
+                      <button
+                        onClick={() => handleModifyClick(row.ActivityID)}
+                        title="Edit/حذف"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="Edit/حذف"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
+                      </button>
 
-                          <button
-                            onClick={() => handleDeleteClick(Activity.ActivityID)}
-                            title="Delete/حذف"
-                            className="btn btnbtn-default graybox"
-                            style={{ padding: '2px', cursor: 'pointer' }}
-                            aria-label="Delete/حذف"
-                          >
-                            <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
-                          </button>
-                       
-                       
+                      <button
+                        onClick={() => handleDeleteClick(row)}
+                        title="Delete/حذف"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="Delete/حذف"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -306,12 +300,23 @@ const ActivityList = () => {
         <div className="modal-overlay">
           <div className="modal-content_50">
             <h4>Confirm Delete</h4>
-            <p>Are you sure you want to delete this Activity?</p>
+            <p>
+              Are you sure you want to delete this Activity?
+              {selectedActivity?.actName && (
+                <> <span style={{ color: '#cf2037', fontWeight: 700 }}>{' '}{selectedActivity.actName}</span></>
+              )}
+            </p>
             <div className="modal-buttons">
               <button className="admin-buttonv1" onClick={confirmDelete}>
                 Yes
               </button>
-              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>
+              <button
+                className="admin-buttonv1"
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setSelectedActivity(null)
+                }}
+              >
                 No
               </button>
             </div>

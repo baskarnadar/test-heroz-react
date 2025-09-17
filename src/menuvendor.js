@@ -33,7 +33,7 @@ function ApprovedActivityName() {
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>Approved Activity</span>
+      <span>Approved Trips</span>
       <span style={{ color: 'yellow' }}>[{approved === null ? '…' : approved}]</span>
     </div>
   )
@@ -63,7 +63,7 @@ function PendingActivityName() {
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>Pending Activity</span>
+      <span>Pending Trips</span>
       <span style={{ color: 'orange' }}>[{pending === null ? '…' : pending}]</span>
     </div>
   )
@@ -93,7 +93,7 @@ function RejectedActivityName() {
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>Rejected Activity</span>
+      <span>Rejected Trips</span>
       <span style={{ color: 'red' }}>[{rejected === null ? '…' : rejected}]</span>
     </div>
   )
@@ -112,7 +112,7 @@ const vendormenu = [
   },
   {
     component: CNavItem,
-    name: 'Activity',
+    name: 'All Activity',
     to: '/vendordata/activityinfo/activity/list',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
   },
@@ -143,7 +143,7 @@ const vendormenu = [
   {
     component: CNavItem,
     name: 'Payment',
-    to: '/parents/list',
+    to: '/vendordata/Payment/list',
     icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
   },
   {
