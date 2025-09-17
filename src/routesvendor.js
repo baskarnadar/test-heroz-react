@@ -12,7 +12,7 @@ const ActivityView = React.lazy(() => import('./vendordata/activityinfo/activity
 const ViewActivityScreen = React.lazy(() => import('./vendordata/activity/ViewActivityScreen.jsx'))
 const ActivityRequestList = React.lazy(() => import('./vendordata/actrequest/ActReqList.jsx'))
 const ActivityRequestInfo = React.lazy(() => import('./vendordata/actrequest/ActReqInfo.jsx'))
- 
+ const PaymentList = React.lazy(() => import('./vendordata/payment/list.js'))
 const VendorInfoPage = React.lazy(() => import('./vendordata/info/info'))
 
 const routes = [
@@ -34,7 +34,7 @@ const routes = [
 
   // ✅ Vendor Activity Screen (both paths point to same component)
   { path: '/vendordata/activity/ViewActivityScreen', name: 'ViewActivityScreen', element: ViewActivityScreen },
- 
+   { path: '/vendordata/payment/list', name: 'ViewActivityScreen', element: PaymentList },
 ]
 
 export default routes
