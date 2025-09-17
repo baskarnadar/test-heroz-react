@@ -113,30 +113,57 @@ const SchoolList = () => {
     navigate(`/admindata/schoolmgm/schoolinfo/changepwd?SchoolID=${id}`)
   }
 
-  const confirmDelete = async () => {
+ const confirmDelete = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/schoolinfo/school/delschool`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
+      method: "POST",
+      headers: getAuthHeaders(), // ← do not change this
       body: JSON.stringify({ SchoolID: selectedSchoolID }),
     });
 
+    // Parse JSON safely (even when not ok)
+    let data = null;
+    let rawText = null;
+    try {
+      data = await response.json();
+    } catch {
+      try {
+        rawText = await response.text();
+      } catch {
+        rawText = null;
+      }
+    }
+
     console.log("Raw response:", response);
-    const data = await response.json(); // Safely parse JSON
-    console.log("Response JSON:", data);
+    console.log("Response JSON:", data || rawText);
 
     if (response.ok) {
-      setToastMessage(data.message || 'School successfully deleted');
-      setToastType('success');
-      fetchSchoolinfo(); // Refresh list
+      setToastMessage(data?.message || "School successfully deleted");
+      setToastType("success");
+      fetchSchoolinfo?.(); // refresh list
     } else {
-      setToastMessage(data.message || 'Failed to delete School');
-      setToastType('fail');
+      // Prefer server-provided message
+      let msg =
+        data?.message ||
+        data?.error?.message ||
+        rawText ||
+        "Failed to delete School";
+
+      // If trace/policy blocked delete, add helpful detail
+      if (data?.error?.IsDelete === "false") {
+        const reqTotal = data?.error?.requests?.total;
+        if (typeof reqTotal === "number") {
+          msg += ` (Event requests: ${reqTotal})`;
+        }
+      }
+
+      setToastMessage(msg);
+      setToastType("fail");
     }
   } catch (err) {
     console.error("Delete error:", err);
-    setToastMessage('Error deleting School');
-    setToastType('fail');
+    setToastMessage(err?.message || "Error deleting School");
+    setToastType("fail");
   } finally {
     setShowDeleteModal(false);
     setSelectedSchoolID(null);
