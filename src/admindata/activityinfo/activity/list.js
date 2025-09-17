@@ -114,40 +114,55 @@ const ActivityList = () => {
     setShowDeleteModal(true)
   }
 
-  const confirmDelete = async () => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/admindata/activityinfo/activity/deleteActivity`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            ActivityID: ActivityIDToDelete,
-            VendorID: VendorIDToDelete,
-            DeletedByID: getCurrentLoggedUserID(),
-          }),
-        }
-      )
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setToastType('success')
-        setToastMessage(data.message || 'Activity deleted successfully!')
-        setShowDeleteModal(false)
-        setConfirmText('')
-        setActivityIDelete(null)
-        setVendorIDToDelete(null)
-        fetchActivity()
-      } else {
-        setToastType('fail')
-        setToastMessage(data.message || 'Failed to delete Activity!')
+ const confirmDelete = async () => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/admindata/activityinfo/activity/deleteActivity`,
+      {
+        method: "POST",
+        headers:getAuthHeaders(),
+        body: JSON.stringify({
+          ActivityID: ActivityIDToDelete,
+          VendorID: VendorIDToDelete,
+          DeletedByID: getCurrentLoggedUserID(),
+        }),
       }
+    );
+
+    // Try to parse JSON (even on non-2xx)
+    let data;
+    try {
+      data = await response.json();
     } catch {
-      setToastType('fail')
-      setToastMessage('Error deleting Activity')
+      data = null;
     }
+
+    if (!response.ok || data?.success === false) {
+      // Build a helpful error message
+      let msg = data?.message || "Failed to delete Activity!";
+      if (data?.IsDelete === "false") {
+        const s = data?.activity?.normActStatus || data?.activity?.actStatus;
+        if (s) msg += ` (Current status: ${s})`;
+      }
+ setShowDeleteModal(false)
+      setToastType("fail");
+      setToastMessage(msg);
+      return; // keep modal open so user can read message / decide
+    }
+
+    // Success
+    setToastType("success");
+    setToastMessage(data?.message || "Activity deleted successfully!");
+    setShowDeleteModal(false);
+    setConfirmText("");
+    setActivityIDelete?.(null);   // keep your existing state names
+    setVendorIDToDelete?.(null);
+    fetchActivity();
+  } catch (e) {
+    setToastType("fail");
+    setToastMessage(e?.message || "Error deleting Activity");
   }
+};
 
   const isConfirmMatch = confirmText.trim() === 'Delete Activity'
 

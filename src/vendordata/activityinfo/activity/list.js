@@ -107,35 +107,48 @@ const ActivityList = () => {
     setShowDeleteModal(true)
   }
 
-  const confirmDelete = async () => {
-    console.log(ActivityIDToDelete)
-    console.log(getCurrentLoggedUserID())
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            ActivityID: ActivityIDToDelete,
-            VendorID: getCurrentLoggedUserID(),
-          }),
-        },
-      )
+ const confirmDelete = async () => {
+  console.log(ActivityIDToDelete)
+  console.log(getCurrentLoggedUserID())
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ActivityID: ActivityIDToDelete,
+          VendorID: getCurrentLoggedUserID(),
+        }),
+      },
+    )
 
-      if (response.ok) {
-        setToastType('success')
-        setToastMessage('Activity deleted successfully!')
-        setShowDeleteModal(false)
-      } else {
-        setToastType('fail')
-        setToastMessage('Failed to delete Activity!')
+    if (response.ok) {
+      setToastType('success')
+      setToastMessage('Activity deleted successfully!')
+      setShowDeleteModal(false)
+    } else {
+       setShowDeleteModal(false)
+      // 🔹 Try to read the JSON error response
+      let errorMsg = 'Failed to delete Activity!'
+      try {
+        const data = await response.json()
+        if (data?.message) {
+          errorMsg = data.message
+        }
+      } catch (err) {
+        console.error('Error parsing error response:', err)
       }
-    } catch (error) {
+
       setToastType('fail')
-      setToastMessage('Error deleting Activity')
+      setToastMessage(errorMsg)
     }
+  } catch (error) {
+    setToastType('fail')
+    setToastMessage('Error deleting Activity')
   }
+}
+
   return (
     <div>
       <div className="page-title">
