@@ -11,6 +11,10 @@ import { API_BASE_URL } from "../../config";
 import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
 import { AppColors } from "../../_shared/colors";
 
+// ⬇️ NEW: import externalized components
+import PriceListCard from "../../utils/pricelist";
+import AdditionalMeals from "../../utils/additional";
+
 // ---------- Small helpers ----------
 const ts = (fontSize, extra = {}) => ({ fontSize, ...extra });
 
@@ -212,25 +216,27 @@ const ViewActivityScreen = () => {
   }
 
   return (
- 
     <div dir={dir} style={{ padding: 16 }}>
       <CategoryBox activity={activity} activityRequest={activityRequestData} />
       <div style={{ height: 21 }} />
-      {/* These will render only if activity is loaded */}
+
+      {/* Prices (from external component) */}
       <PriceListCard prices={activity?.priceList} title="Vendor Price." />
+
       <div style={{ height: 20 }} />
+
+      {/* Meals (from external component) */}
       <AdditionalMeals
         includedMeals={(activity?.foodList || []).filter((f) => f.include === true)}
         excludedMeals={(activity?.foodList || []).filter((f) => f.include === false)}
+        header="Additional"
       />
+
       {!!activity?.actDesc && (
         <>
           <div style={{ height: 20 }} />
           <div
-            style={{
-              fontSize: "16px",
-              whiteSpace: "pre-wrap",
-            }}
+            style={{ fontSize: "16px", whiteSpace: "pre-wrap" }}
             dangerouslySetInnerHTML={{ __html: activity.actDesc }}
           />
         </>
@@ -312,12 +318,18 @@ const CategoryBox = ({ activity, activityRequest }) => {
 
             {status === "TRIP-BOOKED" && (
               <CButton
-                onClick={() => navigate(
-                  `/vendor/vdrTrip/final-list?RequestID=${encodeURIComponent(activityRequest?.RequestID)}`
-                )}
+                onClick={() =>
+                  navigate(
+                    `/vendor/vdrTrip/final-list?RequestID=${encodeURIComponent(activityRequest?.RequestID)}`
+                  )
+                }
                 style={{
-                  width: "100%", marginTop: 10, fontWeight: 700, color: "#fff",
-                  background: "linear-gradient(90deg, rgba(153,39,187,1) 0%, rgba(42,75,105,1) 100%)",
+                  width: "100%",
+                  marginTop: 10,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background:
+                    "linear-gradient(90deg, rgba(153,39,187,1) 0%, rgba(42,75,105,1) 100%)",
                   border: "none",
                 }}
               >
@@ -326,7 +338,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
             )}
 
             <div style={{ display: "flex", justifyContent: "center" }}>
-              <span style={{ fontSize: '16px', color: getStatusColorv1(status), fontWeight: 700 }}>
+              <span style={{ fontSize: "16px", color: getStatusColorv1(status), fontWeight: 700 }}>
                 {status}
               </span>
             </div>
@@ -344,7 +356,10 @@ const CategoryBox = ({ activity, activityRequest }) => {
                 <CButton
                   color="danger"
                   style={{ flex: 1, fontWeight: 700 }}
-                  onClick={() => { setRejectReason(""); setShowReject(true); }}
+                  onClick={() => {
+                    setRejectReason("");
+                    setShowReject(true);
+                  }}
                   disabled={saving}
                 >
                   Reject
@@ -361,14 +376,23 @@ const CategoryBox = ({ activity, activityRequest }) => {
         <>
           <div
             style={{
-              width: "100%", padding: 16, background: "rgba(244,67,54,0.06)",
-              border: "1px solid #ef5350", borderRadius: 14, textAlign: "center",
+              width: "100%",
+              padding: 16,
+              background: "rgba(244,67,54,0.06)",
+              border: "1px solid #ef5350",
+              borderRadius: 14,
+              textAlign: "center",
             }}
           >
             <span style={{ fontSize: "20px", color: AppColors.onTextName, fontWeight: 700 }}>
               {(() => {
                 const reason = (activityRequest?.RequestRejectReason || "").trim();
-                return reason || (document?.documentElement?.dir === "rtl" ? "تم الرفض بدون سبب مذكور." : "Rejected (no reason provided).");
+                return (
+                  reason ||
+                  (document?.documentElement?.dir === "rtl"
+                    ? "تم الرفض بدون سبب مذكور."
+                    : "Rejected (no reason provided).")
+                );
               })()}
             </span>
           </div>
@@ -381,8 +405,10 @@ const CategoryBox = ({ activity, activityRequest }) => {
       </div>
       <div
         style={{
-          padding: 20, margin: "0 4px",
-          border: `1px solid ${AppColors.onPinkBorderColor}`, borderRadius: 20,
+          padding: 20,
+          margin: "0 4px",
+          border: `1px solid ${AppColors.onPinkBorderColor}`,
+          borderRadius: 20,
         }}
       >
         <div style={{ display: "flex", alignItems: "center" }}>
@@ -396,13 +422,13 @@ const CategoryBox = ({ activity, activityRequest }) => {
 
       <div style={{ height: 20 }} />
 
-      <div style={{ fontSize: "20px", color: AppColors.onTextName, fontWeight: 700 }}>
-        Trip Info
-      </div>
+      <div style={{ fontSize: "20px", color: AppColors.onTextName, fontWeight: 700 }}>Trip Info</div>
       <div
         style={{
-          padding: 20, margin: "12px 4px 0",
-          border: `1px solid ${AppColors.onPinkBorderColor}`, borderRadius: 20,
+          padding: 20,
+          margin: "12px 4px 0",
+          border: `1px solid ${AppColors.onPinkBorderColor}`,
+          borderRadius: 20,
           direction: document?.documentElement?.dir || "ltr",
         }}
       >
@@ -418,22 +444,30 @@ const CategoryBox = ({ activity, activityRequest }) => {
         <div style={{ height: 5 }} />
         <KVRow k="Time" v={activityRequest?.actRequestTime ?? "--"} spaced screenWidth={screenWidth} />
         <div style={{ height: 8 }} />
-        <div style={{ fontSize: '16px', color: AppColors.onTextName, fontWeight: 600 }}>Message</div>
+        <div style={{ fontSize: "16px", color: AppColors.onTextName, fontWeight: 600 }}>Message</div>
         <div style={{ height: 6 }} />
-        <div style={{ fontSize: '16px', color: AppColors.onTextName, whiteSpace: "pre-wrap" }}>
+        <div style={{ fontSize: "16px", color: AppColors.onTextName, whiteSpace: "pre-wrap" }}>
           {activityRequest?.actRequestMessage || ""}
         </div>
       </div>
 
       {/* Approve modal */}
       <CModal visible={showApprove} onClose={() => setShowApprove(false)}>
-        <CModalHeader><CModalTitle>Confirm Approval</CModalTitle></CModalHeader>
+        <CModalHeader>
+          <CModalTitle>Confirm Approval</CModalTitle>
+        </CModalHeader>
         <CModalBody>
           <div style={ts(16)}>Request from Heroz</div>
           <div
             style={{
-              marginTop: 12, padding: 12, border: "1px solid #ffecb3", background: "#fff8e1",
-              borderRadius: 10, display: "flex", alignItems: "center", gap: 8,
+              marginTop: 12,
+              padding: 12,
+              border: "1px solid #ffecb3",
+              background: "#fff8e1",
+              borderRadius: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
             <i className="cil-people" />
@@ -444,14 +478,20 @@ const CategoryBox = ({ activity, activityRequest }) => {
           <div style={{ marginTop: 12, ...ts(15) }}>Are you sure you want to approve?</div>
         </CModalBody>
         <CModalFooter>
-          <CButton color="secondary" onClick={() => setShowApprove(false)} disabled={saving}>Cancel</CButton>
-          <CButton color="success" onClick={onApprove} disabled={saving}>{saving ? "Saving..." : "Confirm"}</CButton>
+          <CButton color="secondary" onClick={() => setShowApprove(false)} disabled={saving}>
+            Cancel
+          </CButton>
+          <CButton color="success" onClick={onApprove} disabled={saving}>
+            {saving ? "Saving..." : "Confirm"}
+          </CButton>
         </CModalFooter>
       </CModal>
 
       {/* Reject modal */}
       <CModal visible={showReject} onClose={() => setShowReject(false)}>
-        <CModalHeader><CModalTitle>Confirm Reject</CModalTitle></CModalHeader>
+        <CModalHeader>
+          <CModalTitle>Confirm Reject</CModalTitle>
+        </CModalHeader>
         <CModalBody>
           <div style={ts(16)}>Are you sure you want to reject?</div>
           <div style={{ height: 12 }} />
@@ -463,15 +503,28 @@ const CategoryBox = ({ activity, activityRequest }) => {
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Type the reason for rejection..."
             style={{
-              width: "100%", border: "1px solid #ced4da", borderRadius: 10,
-              padding: "10px 12px", outline: "none", resize: "vertical",
+              width: "100%",
+              border: "1px solid #ced4da",
+              borderRadius: 10,
+              padding: "10px 12px",
+              outline: "none",
+              resize: "vertical",
             }}
           />
-          {!rejectReason.trim() && <div style={{ color: "#d32f2f", marginTop: 6 }}>Reason is required</div>}
+          {!rejectReason.trim() && (
+            <div style={{ color: "#d32f2f", marginTop: 6 }}>Reason is required</div>
+          )}
         </CModalBody>
         <CModalFooter>
-          <CButton color="secondary" onClick={() => setShowReject(false)} disabled={saving}>Cancel</CButton>
-          <CButton color="danger" onClick={onReject} disabled={saving || !rejectReason.trim()} style={{ opacity: saving || !rejectReason.trim() ? 0.8 : 1 }}>
+          <CButton color="secondary" onClick={() => setShowReject(false)} disabled={saving}>
+            Cancel
+          </CButton>
+          <CButton
+            color="danger"
+            onClick={onReject}
+            disabled={saving || !rejectReason.trim()}
+            style={{ opacity: saving || !rejectReason.trim() ? 0.8 : 1 }}
+          >
             {saving ? "Saving..." : "Confirm"}
           </CButton>
         </CModalFooter>
@@ -484,81 +537,21 @@ const CategoryBox = ({ activity, activityRequest }) => {
 const KVRow = ({ k, v, spaced, screenWidth }) => {
   const dir = useDocDir();
   return (
-    <div style={{ display: "flex", justifyContent: spaced ? "space-between" : "flex-start", gap: spaced ? 0 : 6, direction: dir }}>
-      <div style={{ fontSize: '16px', color: AppColors.onTextName }}>{k}</div>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: spaced ? "space-between" : "flex-start",
+        gap: spaced ? 0 : 6,
+        direction: dir,
+      }}
+    >
+      <div style={{ fontSize: "16px", color: AppColors.onTextName }}>{k}</div>
       {spaced ? (
-        <div style={{ fontSize: '16px', color: AppColors.onTextName }}>{v}</div>
+        <div style={{ fontSize: "16px", color: AppColors.onTextName }}>{v}</div>
       ) : (
-        <div style={{ flex: 1, fontSize: '16px', color: AppColors.onTextName }}>{v}</div>
+        <div style={{ flex: 1, fontSize: "16px", color: AppColors.onTextName }}>{v}</div>
       )}
     </div>
-  );
-};
-
-// ---------- Price List ----------
-const PriceListCard = ({ prices = [], title = "Prices" }) => {
-  if (!Array.isArray(prices) || prices.length === 0) return null;
-  return (
-    <CCard style={{ borderRadius: 12 }}>
-      <CCardHeader style={{ backgroundColor: AppColors.onHeaderBarColor }}>
-        <b>{title}</b>
-      </CCardHeader>
-      <CCardBody>
-        <div style={{ display: "grid", gap: 12 }}>
-          {prices.map((p, idx) => (
-            <div
-              key={idx}
-              style={{
-                border: `1px solid ${AppColors.onPinkBorderColor}`, borderRadius: 12, padding: 12,
-                display: "grid", gridTemplateColumns: "1fr auto", gap: 8,
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700 }}>{p?.PriceTitle || "Price"}</div>
-                {p?.PriceDesc && (
-                  <div style={{ color: "#666", marginTop: 4, whiteSpace: "pre-wrap" }}>{p.PriceDesc}</div>
-                )}
-              </div>
-              <div style={{ alignSelf: "center", fontWeight: 700 }}>{p?.PriceAmount ?? "--"}</div>
-            </div>
-          ))}
-        </div>
-      </CCardBody>
-    </CCard>
-  );
-};
-
-// ---------- Meals ----------
-const AdditionalMeals = ({ includedMeals = [], excludedMeals = [] }) => {
-  if (includedMeals.length === 0 && excludedMeals.length === 0) return null;
-
-  const Box = ({ title, items, tone }) => (
-    <div style={{ border: `1px solid ${tone.border}`, background: tone.bg, borderRadius: 14, padding: 14 }}>
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>{title}</div>
-      <div style={{ display: "grid", gap: 6 }}>
-        {items.map((m, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-            <span style={{ fontWeight: 600 }}>{m?.name ?? m?.FoodName ?? "Meal"}</span>
-            {m?.desc && <span style={{ color: "#666" }}>{m.desc}</span>}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  return (
-    <CRow>
-      {includedMeals.length > 0 && (
-        <CCol xs={12} md={6} className="mb-3">
-          <Box title="Included Meals" items={includedMeals} tone={{ border: "#a5d6a7", bg: "rgba(165,214,167,0.2)" }} />
-        </CCol>
-      )}
-      {excludedMeals.length > 0 && (
-        <CCol xs={12} md={6} className="mb-3">
-          <Box title="Extra (Not Included)" items={excludedMeals} tone={{ border: "#ffcc80", bg: "rgba(255,204,128,0.2)" }} />
-        </CCol>
-      )}
-    </CRow>
   );
 };
 
