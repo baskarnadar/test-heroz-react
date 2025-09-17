@@ -327,7 +327,7 @@ const Vendor = () => {
 
       <div className="divbox">
         {/* Table Header */}
-        <CRow className="fw-bold text-center mb-2">
+        <CRow className="fw-bold  mb-2">
           <CCol sm={3}>Price</CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range From</CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range To</CCol>
@@ -338,7 +338,7 @@ const Vendor = () => {
 
         {ActivityData?.priceList?.map((priceItem, index) => (
           <CRow className="align-items-center mb-2" key={index}>
-            <CCol sm={3}>
+            <CCol sm={12}>
               <div className="admin-lbl-box pink-shadow1 ">
                 {' '}
                 <img

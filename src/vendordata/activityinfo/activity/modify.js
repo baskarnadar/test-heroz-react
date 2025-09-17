@@ -997,7 +997,7 @@ const Vendor = () => {
           <div
             className="vendor-input"
             style={{
-              width: 120,
+              
               background: '#f7f7f7',
               cursor: 'not-allowed',
               userSelect: 'none',

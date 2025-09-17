@@ -535,12 +535,12 @@ const Vendor = () => {
               inputMode="decimal"
               step="0.1"
               min="1"
-              max="10"
+              max="5"
               className="admin-txt-box"
               placeholder="Enter rating 1–10 (e.g., 8.5)"
               value={actRating}
               onChange={(e) => setactRating(e.target.value)}
-              style={{ width: 160 }}
+              
             />
             <ErrorText msg={errors.actRating} />
           </div>
@@ -716,9 +716,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Price Per Student <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">Per Student (vendor Price)<span style={{color:'red'}}>*</span></div>
       <div className="divbox">
-        <CRow className="fw-bold text-center mb-2">
+        <CRow className="fw-bold mb-2">
           <CCol sm={3}>Price <span style={{color:'red'}}>*</span></CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range From</CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range To</CCol>
@@ -727,7 +727,7 @@ const Vendor = () => {
 
         {priceRanges.map((item, index) => (
           <CRow key={index} className="align-items-center mb-2">
-            <CCol sm={3}>
+            <CCol sm={12}>
               <input
                 name={`price_${index}`}
                 type="number"
