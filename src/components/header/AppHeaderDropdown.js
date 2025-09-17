@@ -36,18 +36,19 @@ const AppHeaderDropdown = () => {
       <CDropdownMenu className="pt-0" placement="bottom-end">
         <CDropdownHeader className="bg-body-secondary fw-semibold my-2">Settings</CDropdownHeader>
         <CDropdownItem  >
-         <Link to="/note/list" className="nav-link position-relative">
+         <Link to="admindata/note/list" className="nav-link position-relative">
           <CIcon icon={cilBell} className="me-2" />
           Notifcation
           <CBadge color="success" className="ms-2"></CBadge>
           </Link>
         </CDropdownItem>
         <CDropdownItem >
-           <Link to="/profile/list" className="nav-link position-relative">
+           <Link to="/vendor/info" className="nav-link position-relative">
           <CIcon icon={cilUser} className="me-2" />
           Profile
           </Link>
         </CDropdownItem>
+        {/*
         <CDropdownItem >
           <Link to="/setting/list" className="nav-link position-relative">
           <CIcon icon={cilSettings} className="me-2" />
@@ -61,7 +62,7 @@ const AppHeaderDropdown = () => {
           <CBadge color="success" className="ms-2"></CBadge>
           </Link>
         </CDropdownItem>
-
+  */}
         
 
 <CDropdownItem>

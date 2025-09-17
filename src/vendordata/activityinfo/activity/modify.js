@@ -1242,7 +1242,7 @@ const Vendor = () => {
               <ErrorText msg={errors.ddactCityID} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Address1 <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">Location <span style={{color:'red'}}>*</span></label>
               <input
                 value={txtactAddress1}
                 name="txtactAddress1"

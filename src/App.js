@@ -52,23 +52,38 @@ function PayError() {
 }
 
 const App = () => {
-  const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
+  const { isColorModeSet, setColorMode, colorMode } =
+    useColorModes('coreui-free-react-admin-template-theme')
   const storedTheme = useSelector((state) => state.theme)
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.href.split('?')[1])
-    const theme = urlParams.get('theme') && urlParams.get('theme').match(/^[A-Za-z0-9\s]+/)[0]
-    if (theme) {
-      setColorMode(theme)
+    // 🛑 Always force LIGHT mode on first mount
+    setColorMode('light')
+
+    // If CoreUI has a stored mode and it's not light, correct it.
+    try {
+      const key = 'coreui-free-react-admin-template-theme'
+      const lsVal = localStorage.getItem(key)
+      if (lsVal && lsVal.toLowerCase() !== 'light') {
+        localStorage.setItem(key, 'light')
+        setColorMode('light')
+      }
+    } catch {
+      // ignore storage errors (Safari privacy, etc.)
     }
 
-    if (isColorModeSet()) {
-      return
-    }
+    // Ignore ?theme=... in URL and any redux-stored theme; keep LIGHT only.
+    // If someone tries to switch later, the effect below will snap it back.
 
-    setColorMode(storedTheme)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    // 🔒 Guard: if anything sets dark/auto later, snap back to light
+    if (colorMode && colorMode.toLowerCase() !== 'light') {
+      setColorMode('light')
+    }
+  }, [colorMode, setColorMode])
 
   return (
     <BrowserRouter>

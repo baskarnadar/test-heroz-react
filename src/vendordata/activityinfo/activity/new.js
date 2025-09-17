@@ -648,7 +648,7 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">Address1 <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">Location1 <span style={{color:'red'}}>*</span></label>
               <input name="txtactAddress1" className="vendor-input" value={txtactAddress1} onChange={(e) => setAddress1(e.target.value)} />
               <ErrorText msg={errors.txtactAddress1} />
             </div>

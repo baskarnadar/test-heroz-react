@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CBadge } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
@@ -6,9 +6,7 @@ import { cilFilter } from '@coreui/icons'
 
 import logo from '../../../assets/logo/default.png'
 import { API_BASE_URL } from '../../../config'
-import { checkLogin } from '../../../utils/auth'
-import { getStatusBadgeColor, formatDate,getAuthHeaders,DspToastMessage } from '../../../utils/operation'
- 
+import { getStatusBadgeColor, formatDate, getAuthHeaders, DspToastMessage } from '../../../utils/operation'
 
 const SchoolList = () => {
   const [Schoolinfo, setSchoolinfo] = useState([])
@@ -20,68 +18,74 @@ const SchoolList = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const SchoolinfoPerPage = 10
   const navigate = useNavigate()
+
+  // Toast state
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
+  const [toastKey, setToastKey] = useState(0) // forces re-mount so it always shows
+
   const [selectedSchoolID, setSelectedSchoolID] = useState(null)
+
+  // Helper: always show toast (even same text) by bumping key
+  const showToast = useCallback((type, message) => {
+    setToastType(type)
+    setToastMessage(message || '')
+    setToastKey((k) => k + 1) // <- force re-render/remount
+  }, [])
 
   const getPageRange = () => {
     const range = []
     const startPage = Math.floor((currentPage - 1) / 5) * 5 + 1
     const endPage = Math.min(startPage + 4, totalPages)
-
-    for (let i = startPage; i <= endPage; i++) {
-      range.push(i)
-    }
+    for (let i = startPage; i <= endPage; i++) range.push(i)
     return range
   }
- const fetchSchoolinfo = async () => {
-  const token = localStorage.getItem('token');
-  setLoading(true);
 
-  try {
-    if (!token) {
-      throw new Error('Missing auth token');
-    }
+  const fetchSchoolinfo = useCallback(async () => {
+    const token = localStorage.getItem('token')
+    setLoading(true)
 
-    const apiUrl = `${API_BASE_URL}/schoolinfo/school/getschoollist`;
-    const payload = {
-      page: currentPage,
-      limit: SchoolinfoPerPage,
-    };
+    try {
+      if (!token) throw new Error('Missing auth token')
 
-    // Print API URL & Payload
-    console.log("📡 API URL:", apiUrl);
-    console.log("📦 Payload:", payload);
+      const apiUrl = `${API_BASE_URL}/schoolinfo/school/getschoollist`
+      const payload = { page: currentPage, limit: SchoolinfoPerPage }
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    });
+      console.log('📡 API URL:', apiUrl)
+      console.log('📦 Payload:', payload)
 
-    if (!response.ok) {
-      console.error("❌ API Error:", response.status, response.statusText);
-      if (response.status === 401 || response.status === 403) {
-        throw new Error('Unauthorized — please log in again.');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        console.error('❌ API Error:', response.status, response.statusText)
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Unauthorized — please log in again.')
+        }
+        throw new Error('Failed to fetch school info')
       }
-      throw new Error('Failed to fetch school info');
+
+      const data = await response.json()
+      console.log('✅ API Response:', data)
+
+      const list = Array.isArray(data?.data) ? data.data : []
+      const total = Math.max(1, Math.ceil((Number(data?.totalCount) || 0) / SchoolinfoPerPage))
+
+      setSchoolinfo(list)
+      setTotalPages(total)
+      setError('')
+    } catch (err) {
+      console.error('⚠️ Fetch Error:', err)
+      const msg = err instanceof Error ? err.message : 'Error fetching school info'
+      setError(msg)
+      showToast('fail', msg)
+    } finally {
+      setLoading(false)
     }
-
-    const data = await response.json();
-
-    // Print API Response
-    console.log("✅ API Response:", data);
-
-    setSchoolinfo(Array.isArray(data?.data) ? data.data : []);
-    setTotalPages(Math.ceil((Number(data?.totalCount) || 0) / SchoolinfoPerPage));
-  } catch (err) {
-    console.error("⚠️ Fetch Error:", err);
-    setError(err instanceof Error ? err.message : 'Error fetching school info');
-  } finally {
-    setLoading(false);
-  }
-};
-
+  }, [currentPage, showToast])
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -89,86 +93,89 @@ const SchoolList = () => {
       navigate('/login')
       return
     }
-
     fetchSchoolinfo()
-  }, [currentPage, navigate])
+  }, [currentPage, navigate, fetchSchoolinfo])
 
-  const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
-
-  // Placeholder functions for actions
-  const handleModifyClick = (id) => {
-    navigate(`/admindata/schoolmgm/schoolinfo/modify?SchoolID=${id}`)
+  const handlePageClick = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return
+    setCurrentPage(pageNumber)
   }
 
+  const handleModifyClick = (id) => navigate(`/admindata/schoolmgm/schoolinfo/modify?SchoolID=${id}`)
   const handleDeleteClick = (SchoolID) => {
     setSelectedSchoolID(SchoolID)
     setShowDeleteModal(true)
   }
+  const handleViewClick = (id) => navigate(`/admindata/schoolmgm/schoolinfo/view?SchoolID=${id}`)
+  const handleCahngePwdClick = (id) => navigate(`/admindata/schoolmgm/schoolinfo/changepwd?SchoolID=${id}`)
 
-  const handleViewClick = (id) => {
-    navigate(`/admindata/schoolmgm/schoolinfo/view?SchoolID=${id}`)
-  }
-
-  const handleCahngePwdClick = (id) => {
-    navigate(`/admindata/schoolmgm/schoolinfo/changepwd?SchoolID=${id}`)
-  }
-
- const confirmDelete = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/schoolinfo/school/delschool`, {
-      method: "POST",
-      headers: getAuthHeaders(), // ← do not change this
-      body: JSON.stringify({ SchoolID: selectedSchoolID }),
-    });
-
-    // Parse JSON safely (even when not ok)
-    let data = null;
-    let rawText = null;
+  const confirmDelete = async () => {
     try {
-      data = await response.json();
-    } catch {
+      const response = await fetch(`${API_BASE_URL}/schoolinfo/school/delschool`, {
+        method: 'POST',
+        headers: getAuthHeaders(), // ← do not change this
+        body: JSON.stringify({ SchoolID: selectedSchoolID }),
+      })
+//alert(selectedSchoolID);
+      // Parse JSON safely (even when not ok)
+      let data = null
+      let rawText = null
       try {
-        rawText = await response.text();
+        data = await response.json()
       } catch {
-        rawText = null;
-      }
-    }
-
-    console.log("Raw response:", response);
-    console.log("Response JSON:", data || rawText);
-
-    if (response.ok) {
-      setToastMessage(data?.message || "School successfully deleted");
-      setToastType("success");
-      fetchSchoolinfo?.(); // refresh list
-    } else {
-      // Prefer server-provided message
-      let msg =
-        data?.message ||
-        data?.error?.message ||
-        rawText ||
-        "Failed to delete School";
-
-      // If trace/policy blocked delete, add helpful detail
-      if (data?.error?.IsDelete === "false") {
-        const reqTotal = data?.error?.requests?.total;
-        if (typeof reqTotal === "number") {
-          msg += ` (Event requests: ${reqTotal})`;
+        try {
+          rawText = await response.text()
+        } catch {
+          rawText = null
         }
       }
 
-      setToastMessage(msg);
-      setToastType("fail");
+      console.log('Raw response:', response)
+      console.log('Response JSON:', data || rawText)
+
+      if (response.ok) { 
+         setToastType("success");
+        showToast('success', data?.message || 'School successfully deleted')
+        await fetchSchoolinfo() // refresh list
+      } else {
+        // Prefer server-provided message
+        let msg =
+          data?.message ||
+          data?.error?.message ||
+          rawText ||
+          'Failed to delete School'
+
+        // If trace/policy blocked delete, add helpful detail
+        if (data?.error?.IsDelete === 'false') {
+          const reqTotal = data?.error?.requests?.total
+          if (typeof reqTotal === 'number') {
+            msg += ` (Event requests: ${reqTotal})`
+          }
+        }
+ setToastType("fail");
+        showToast('fail', msg)
+      }
+    } catch (err) {
+      alert(1);
+        showToast('fail', msg)
+      console.error('Delete error:', err)
+      showToast('fail', err?.message || 'Error deleting School')
+    } finally {
+      setShowDeleteModal(false)
+      setSelectedSchoolID(null)
     }
-  } catch (err) {
-    console.error("Delete error:", err);
-    setToastMessage(err?.message || "Error deleting School");
-    setToastType("fail");
-  } finally {
-    setShowDeleteModal(false);
-    setSelectedSchoolID(null);
   }
-};
+
+  // Optional client-side search (by school name / city / id) — non-destructive
+  const filtered = Schoolinfo.filter((s) => {
+    if (!searchTerm) return true
+    const q = searchTerm.toLowerCase()
+    return (
+      (s.schName || '').toLowerCase().includes(q) ||
+      (s.EnCityName || '').toLowerCase().includes(q) ||
+      String(s.SchoolNo || '').toLowerCase().includes(q)
+    )
+  })
 
   return (
     <div>
@@ -246,15 +253,15 @@ const SchoolList = () => {
               </tr>
             </thead>
             <tbody>
-              {Schoolinfo.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={11} style={{ textAlign: 'center', padding: '1rem' }}>
                     No records found.
                   </td>
                 </tr>
               ) : (
-                Schoolinfo.map((schooldata, index) => (
-                  <tr key={schooldata.SchoolID || index}>
+                filtered.map((schooldata, index) => (
+                  <tr key={schooldata.SchoolID || `${index}-${schooldata.SchoolNo}`}>
                     <td>{(currentPage - 1) * SchoolinfoPerPage + index + 1}</td>
                     <td>
                       <div className="product-image-circle">
@@ -278,22 +285,22 @@ const SchoolList = () => {
                         <button
                           onClick={() => handleModifyClick(schooldata.SchoolID)}
                           title="Edit"
-                          className="  graybox"
+                          className="graybox"
                         >
                           <i className="fa fa-pencil" style={{ color: '#cf2037' }} />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(schooldata.SchoolID)}
                           title="Delete"
-                          className="  graybox"
+                          className="graybox"
                         >
                           <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
                         </button>
-                        
+
                         <button
                           onClick={() => handleCahngePwdClick(schooldata.SchoolID)}
-                          title="Edit"
-                          className="  graybox"
+                          title="Change Password"
+                          className="graybox"
                         >
                           <i className="fa fa-key" style={{ color: '#cf2037' }} />
                         </button>
@@ -346,7 +353,8 @@ const SchoolList = () => {
         </div>
       )}
 
-      <DspToastMessage message={toastMessage} type={toastType} />
+      {/* Force remount on every toast show via key */}
+      <DspToastMessage key={toastKey} message={toastMessage} type={toastType} />
     </div>
   )
 }
