@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { CIcon } from '@coreui/icons-react'
@@ -10,7 +10,7 @@ import {
   formatDate,
   getCurrentLoggedUserID,
   dspstatus,
-  getAuthHeaders
+  getAuthHeaders,
 } from '../../../utils/operation'
 import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
@@ -20,66 +20,130 @@ const ActivityList = () => {
   const [ActivityIDToDelete, setActivityIDelete] = useState(null)
   const [VendorIDToDelete, setVendorIDToDelete] = useState(null)
   const [Activity, setActivity] = useState([])
+
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
-  const [selectedActivity, setSelectedActivity] = useState(null)
+
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [confirmText, setConfirmText] = useState('')
+
+  // Order editing state
+  const [orderMap, setOrderMap] = useState({})         // { [ActivityID]: number | '' }
+  const [originalOrderMap, setOriginalOrderMap] = useState({})
+  const [savingOrder, setSavingOrder] = useState(false)
 
   const ActivityPerPage = 10
   const navigate = useNavigate()
 
+  // ---------- tiny logging helpers ----------
+  const logApiRequest = (label, url, payload, headers) => {
+    console.groupCollapsed(`🔎 ${label} — Request`)
+    console.log('URL:', url)
+    if (headers) {
+      try {
+        console.log('Headers:', headers)
+      } catch {}
+    }
+    if (Array.isArray(payload)) {
+      console.table(payload)
+    } else {
+      console.log('Payload:', payload)
+    }
+    console.groupEnd()
+  }
+
+  const logApiResponse = async (label, resp) => {
+    const headers = Array.from(resp.headers?.entries?.() || [])
+    const raw = await resp.text()
+    let json = null
+    try { json = JSON.parse(raw) } catch {}
+    console.groupCollapsed(`📨 ${label} — Response`)
+    console.log('Status:', resp.status, resp.statusText, 'OK:', resp.ok)
+    console.log('URL:', resp.url)
+    console.log('Headers:', headers)
+    console.log('Raw:', raw)
+    console.log('JSON:', json)
+    console.groupEnd()
+    return { raw, json }
+  }
+  // ------------------------------------------
+
   useEffect(() => {
     fetchActivity()
     checkLogin(navigate)
+
     let timer
     if (toastMessage) {
-      timer = setTimeout(() => {
-        setToastMessage('')
-      }, 2000)
+      timer = setTimeout(() => setToastMessage(''), 2000)
     }
-    return () => {
-      if (timer) clearTimeout(timer)
-    }
+    return () => { if (timer) clearTimeout(timer) }
   }, [currentPage, navigate, toastMessage])
+
+  const safeNumFromApi = (v) => {
+    if (v === '' || v === null || v === undefined) return ''
+    const n = Number(v)
+    return Number.isFinite(n) ? n : ''
+  }
+
+  // Prefer actOrderID from API
+  const pickOrderField = (row) => (
+    row?.actOrderID ??
+    row?.OrderID ??
+    row?.orderId ??
+    row?.orderID ??
+    row?.DisplayOrder ??
+    row?.displayOrder ??
+    row?.SortOrder ??
+    row?.sortOrder ??
+    row?.OrderNo ??
+    row?.orderNo ??
+    ''
+  )
 
   const fetchActivity = async () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/admindata/activityinfo/activity/activityList`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            page: currentPage,
-            limit: ActivityPerPage,
-          }),
-        }
-      )
+      const API = `${API_BASE_URL}/admindata/activityinfo/activity/activityList`
+      const body = { page: currentPage, limit: ActivityPerPage }
+      logApiRequest('Activity List', API, body, getAuthHeaders())
 
-      if (!response.ok) {
-        let message = `Request failed with status ${response.status}`
-        try {
-          const errJson = await response.json()
-          if (errJson?.message) message = errJson.message
-        } catch {
-          // Not JSON
-        }
+      const resp = await fetch(API, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      })
+      const { json } = await logApiResponse('Activity List', resp)
+
+      if (!resp.ok) {
+        const message = json?.message || `Request failed with status ${resp.status}`
         throw new Error(message)
       }
 
-      const data = await response.json()
-      const list = Array.isArray(data?.data) ? data.data : []
-      const totalCount = Number.isFinite(data?.totalCount) ? data.totalCount : list.length
+      const list = Array.isArray(json?.data) ? json.data : []
+      const totalCount = Number.isFinite(json?.totalCount) ? json.totalCount : list.length
 
       setActivity(list)
       setTotalPages(Math.max(1, Math.ceil(totalCount / (ActivityPerPage || 1))))
+
+      // Seed order maps from API
+      const orig = {}
+      const cur = {}
+      for (const row of list) {
+        const id = row?.ActivityID || row?.id || row?._id
+        const ord = safeNumFromApi(pickOrderField(row))
+        if (id) {
+          orig[id] = ord
+          cur[id] = ord
+        }
+      }
+      setOriginalOrderMap(orig)
+      setOrderMap(cur)
     } catch (error) {
       setError(error?.message || 'Error fetching activities')
     } finally {
@@ -114,57 +178,111 @@ const ActivityList = () => {
     setShowDeleteModal(true)
   }
 
- const confirmDelete = async () => {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/admindata/activityinfo/activity/deleteActivity`,
-      {
-        method: "POST",
-        headers:getAuthHeaders(),
-        body: JSON.stringify({
-          ActivityID: ActivityIDToDelete,
-          VendorID: VendorIDToDelete,
-          DeletedByID: getCurrentLoggedUserID(),
-        }),
-      }
-    );
-
-    // Try to parse JSON (even on non-2xx)
-    let data;
+  const confirmDelete = async () => {
     try {
-      data = await response.json();
-    } catch {
-      data = null;
-    }
-
-    if (!response.ok || data?.success === false) {
-      // Build a helpful error message
-      let msg = data?.message || "Failed to delete Activity!";
-      if (data?.IsDelete === "false") {
-        const s = data?.activity?.normActStatus || data?.activity?.actStatus;
-        if (s) msg += ` (Current status: ${s})`;
+      const API = `${API_BASE_URL}/admindata/activityinfo/activity/deleteActivity`
+      const body = {
+        ActivityID: ActivityIDToDelete,
+        VendorID: VendorIDToDelete,
+        DeletedByID: getCurrentLoggedUserID(),
       }
- setShowDeleteModal(false)
-      setToastType("fail");
-      setToastMessage(msg);
-      return; // keep modal open so user can read message / decide
-    }
+      logApiRequest('Delete Activity', API, body, getAuthHeaders())
 
-    // Success
-    setToastType("success");
-    setToastMessage(data?.message || "Activity deleted successfully!");
-    setShowDeleteModal(false);
-    setConfirmText("");
-    setActivityIDelete?.(null);   // keep your existing state names
-    setVendorIDToDelete?.(null);
-    fetchActivity();
-  } catch (e) {
-    setToastType("fail");
-    setToastMessage(e?.message || "Error deleting Activity");
+      const resp = await fetch(API, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      })
+      const { json } = await logApiResponse('Delete Activity', resp)
+
+      if (!resp.ok || json?.success === false) {
+        let msg = json?.message || 'Failed to delete Activity!'
+        if (json?.IsDelete === 'false') {
+          const s = json?.activity?.normActStatus || json?.activity?.actStatus
+          if (s) msg += ` (Current status: ${s})`
+        }
+        setShowDeleteModal(false)
+        setToastType('fail')
+        setToastMessage(msg)
+        return
+      }
+
+      setToastType('success')
+      setToastMessage(json?.message || 'Activity deleted successfully!')
+      setShowDeleteModal(false)
+      setConfirmText('')
+      setActivityIDelete?.(null)
+      setVendorIDToDelete?.(null)
+      fetchActivity()
+    } catch (e) {
+      setToastType('fail')
+      setToastMessage(e?.message || 'Error deleting Activity')
+    }
   }
-};
 
   const isConfirmMatch = confirmText.trim() === 'Delete Activity'
+
+  // Order editing helpers
+  const onOrderInputChange = (activityId, value) => {
+    const v = value === '' ? '' : Number(value)
+    setOrderMap((prev) => ({ ...prev, [activityId]: v }))
+  }
+
+  const changedItems = useMemo(() => {
+    const diffs = []
+    for (const row of Activity) {
+      const id = row?.ActivityID || row?.id || row?._id
+      if (!id) continue
+      const before = originalOrderMap[id]
+      const after = orderMap[id]
+      const beforeIsNum = typeof before === 'number' && Number.isFinite(before)
+      const afterIsNum = typeof after === 'number' && Number.isFinite(after)
+      if (afterIsNum && (!beforeIsNum || before !== after)) {
+        diffs.push({ ActivityID: id, OrderID: after })
+      }
+    }
+    return diffs
+  }, [Activity, originalOrderMap, orderMap])
+
+  const hasChanges = changedItems.length > 0
+
+  const handleChangeOrder = async () => {
+    if (!hasChanges || savingOrder) return
+    setSavingOrder(true)
+    const API = `${API_BASE_URL}/admindata/activityinfo/activity/changeorder`
+    const payload = { items: changedItems.map(({ ActivityID, OrderID }) => ({ ActivityID, OrderID })) }
+
+    logApiRequest('Change Order', API, payload.items, getAuthHeaders())
+
+    try {
+      const resp = await fetch(API, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      })
+      const { json } = await logApiResponse('Change Order', resp)
+
+      if (!resp.ok || (json && json.success === false)) {
+        const msg = (json && (json.message || json.error)) || `Order update failed (HTTP ${resp.status}).`
+        setToastType('fail')
+        setToastMessage(msg)
+        return
+      }
+
+      const updated = json?.modifiedCount ?? payload.items.length
+      setToastType('success')
+      setToastMessage(`Order updated for ${updated} item(s).`)
+      fetchActivity()
+    } catch (e) {
+      console.groupCollapsed('❗ Change Order — Error')
+      console.error(e)
+      console.groupEnd()
+      setToastType('fail')
+      setToastMessage(e?.message || 'Order update error')
+    } finally {
+      setSavingOrder(false)
+    }
+  }
 
   return (
     <div>
@@ -177,7 +295,8 @@ const ActivityList = () => {
           <table className="grid-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th style={{ width: 90 }}>Order</th>
+                {/*  <th>#</th>   */}
                 <th>Image</th>
                 <th>Activity Name</th>
                 <th>Vendor Name</th>
@@ -192,94 +311,147 @@ const ActivityList = () => {
               </tr>
             </thead>
             <tbody>
-              {Activity.map((Activity, index) => (
-                <tr key={Activity.PrdCodeNo}>
-                  <td>
-                    <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
-                  </td>
-                  <td>
-                    <div className="Activity-image-circle">
-                      <img src={logo} alt="logo" style={{ width: '75px' }} />
-                    </div>
-                  </td>
-                  <td>{Activity.actName}</td>
-                  <td style={{ backgroundColor: 'rgba(158, 227, 158, 0.1)' }}>
-                    {Activity.vdrName || '-'}
-                  </td>
-                  <td>{Activity.actTypeID}</td>
-                  <td>
-                    {Activity.EnCityName} {Activity.actAddress1} {Activity.actAddress2}
-                  </td>
-                  <td>{Activity.actGender}</td>
-                  <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '250px' }}>
-                    <img
-                      src={moneyv1}
-                      alt="logo"
-                      style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-                    />
-                    {Activity.priceList && Activity.priceList.length > 0
-                      ? Activity.priceList.map((price, index) => (
-                          <span key={index}>
-                            {price.Price} from {price.StudentRangeFrom} to {price.StudentRangeTo}
-                            {index < Activity.priceList.length - 1 && ', '}
-                          </span>
-                        ))
-                      : 'No prices'}
-                  </td>
-                  <td>{formatDate(Activity.CreatedDate)}</td>
-                  <td>{dspstatus(Activity.actStatus)}</td>
-                  <td align="center">
-                    <button
-                      onClick={() => handleBookedClick(Activity.ActivityID, Activity.VendorID)}
+              {Activity.map((row, index) => {
+                const key = row?.ActivityID || row?.id || row?._id || index
+                const activityId = row?.ActivityID || row?.id || row?._id
+                const orderValue = orderMap[activityId] ?? ''
+
+                return (
+                  <tr key={key}>
+                     {/* 
+                      <td>
+                      <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
+                    </td>
+                    */}
+                    <td>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={orderValue}
+                        onChange={(e) => onOrderInputChange(activityId, e.target.value)}
+                        style={{ width: 80 }}
+                        min={1}
+                        inputMode="numeric"
+                        aria-label="Display order"
+                      />
+                    </td>
+
+                  
+                    <td>
+                      <div className="Activity-image-circle">
+                        <img src={logo} alt="logo" style={{ width: '75px' }} />
+                      </div>
+                    </td>
+                    <td>{row.actName}</td>
+                    <td style={{ backgroundColor: 'rgba(158, 227, 158, 0.1)' }}>
+                      {row.vdrName || '-'}
+                    </td>
+                    <td>{row.actTypeID}</td>
+                    <td>
+                      {row.EnCityName} {row.actAddress1} {row.actAddress2}
+                    </td>
+                    <td>{row.actGender}</td>
+                    <td
                       style={{
-                        padding: '8px 12px',
-                        borderRadius: 12,
-                        border: '1px solid #ccc',
-                        background: '#ccc',
-                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '250px',
                       }}
                     >
-                      Booked [{Activity?.['TRIP-BOOKED']?.totalProposalCreatd ?? 0}]
-                    </button>
-                  </td>
-                  <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <img
+                        src={moneyv1}
+                        alt="logo"
+                        style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
+                      />
+                      {row.priceList && row.priceList.length > 0
+                        ? row.priceList.map((price, i) => (
+                            <span key={i}>
+                              {price.Price} from {price.StudentRangeFrom} to {price.StudentRangeTo}
+                              {i < row.priceList.length - 1 && ', '}
+                            </span>
+                          ))
+                        : 'No prices'}
+                    </td>
+                    <td>{formatDate(row.CreatedDate)}</td>
+                    <td>{dspstatus(row.actStatus)}</td>
+                    <td align="center">
                       <button
-                        onClick={() => handleViewClick(Activity.ActivityID, Activity.VendorID)}
-                        title="View"
-                        className="btn btnbtn-default graybox"
+                        onClick={() => handleBookedClick(row.ActivityID, row.VendorID)}
                         style={{
-                          padding: '4px',
+                          padding: '8px 12px',
+                          borderRadius: 12,
+                          border: '1px solid #ccc',
+                          background: '#ccc',
                           cursor: 'pointer',
-                          border: '2px solid #cf2037',
-                          borderRadius: '6px',
-                          backgroundColor: 'white'
                         }}
-                        aria-label="View"
                       >
-                        <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-pencil" />
+                        Booked [{row?.['TRIP-BOOKED']?.totalProposalCreatd ?? 0}]
                       </button>
-                      <button
-                        onClick={() => handleDeleteClick(Activity.ActivityID, Activity.VendorID)}
-                        title="Delete"
-                        className="btn btnbtn-default graybox"
+                    </td>
+                    <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
+                      <div
                         style={{
-                          padding: '4px',
-                          cursor: 'pointer',
-                          border: '2px solid #cf2037',
-                          borderRadius: '6px',
-                          backgroundColor: 'white'
+                          display: 'flex',
+                          gap: '6px',
+                          justifyContent: 'center',
+                          flexWrap: 'wrap',
                         }}
-                        aria-label="Delete"
                       >
-                        <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-trash" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button
+                          onClick={() => handleViewClick(row.ActivityID, row.VendorID)}
+                          title="View"
+                          className="btn btnbtn-default graybox"
+                          style={{
+                            padding: '4px',
+                            cursor: 'pointer',
+                            
+                            backgroundColor: 'white',
+                          }}
+                          aria-label="View"
+                        >
+                          <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-pencil" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(row.ActivityID, row.VendorID)}
+                          title="Delete"
+                          className="btn btnbtn-default graybox"
+                          style={{
+                            padding: '4px',
+                            cursor: 'pointer',
+                            border: '2px solid #cf2037',
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                          }}
+                          aria-label="Delete"
+                        >
+                          <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-trash" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+            <button
+              className="admin-buttonv1"
+              onClick={handleChangeOrder}
+              disabled={!hasChanges || savingOrder}
+              style={{
+                opacity: hasChanges && !savingOrder ? 1 : 0.6,
+                cursor: hasChanges && !savingOrder ? 'pointer' : 'not-allowed',
+                backgroundColor: '#2c4696',
+                color: '#fff',
+                borderColor: '#2c4696',
+              }}
+              title={hasChanges ? 'Apply order changes' : 'No changes to save'}
+            >
+              {savingOrder ? 'Saving…' : 'Change Order'}
+            </button>
+          </div>
 
           <div className="pagination-container">
             <button
@@ -313,9 +485,7 @@ const ActivityList = () => {
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">
-            <h4 style={{ color: '#cf2037', marginBottom: 8, fontWeight: 700 }}>
-              Confirm Deletion
-            </h4>
+            <h4 style={{ color: '#cf2037', marginBottom: 8, fontWeight: 700 }}>Confirm Deletion</h4>
             <p style={{ color: '#cf2037', marginBottom: 12 }}>
               ⚠️ This will permanently delete <strong>all data related to this activity</strong>.
               <br />
@@ -341,14 +511,14 @@ const ActivityList = () => {
             <div className="modal-buttons" style={{ display: 'flex', gap: 8 }}>
               <button
                 className="admin-buttonv1"
-                onClick={confirmDelete}  // ✅ uses stored ActivityIDToDelete & VendorIDToDelete
+                onClick={confirmDelete}
                 disabled={!isConfirmMatch || !ActivityIDToDelete || !VendorIDToDelete}
                 style={{
                   opacity: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 1 : 0.6,
                   cursor: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 'pointer' : 'not-allowed',
                   backgroundColor: isConfirmMatch ? '#cf2037' : '#bbb',
                   borderColor: '#cf2037',
-                  color: '#fff'
+                  color: '#fff',
                 }}
               >
                 Confirm Delete

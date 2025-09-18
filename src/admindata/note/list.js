@@ -217,7 +217,7 @@ const SchoolList = () => {
         <div className="modal-overlay">
           <div className="modal-content_50">
             <h4>Confirm Delete</h4>
-            <p>Are you sure you want to delete this School?</p>
+            <p>Are you sure you want to delete this notification?</p>
             <div className="modal-buttons">
               <button className="admin-buttonv1" onClick={confirmDelete}>
                 Yes
