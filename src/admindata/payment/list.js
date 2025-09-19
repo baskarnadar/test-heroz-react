@@ -1,280 +1,512 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../../config'
-import { CIcon } from '@coreui/icons-react'
-import { cilTrash, cilPencil } from '@coreui/icons'
-import '../../scss/toast.css'
-import { checkLogin } from '../../utils/auth'
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation'
-import Incoming from './incomingts';  
-import Outgoing from './outgoing'; 
-import { ActionButtonsV1 } from '../../utils/btn'
+// src/vendordata/activityinfo/activity/ViewActivityScreen.jsx
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  CCard, CCardBody, CButton, CBadge, CAlert, CSpinner,
+  CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell,
+  CRow, CCol, CFormSelect, CFormInput,
+  CPagination, CPaginationItem
+} from "@coreui/react";
+import { AppColors } from "../../_shared/colors";
+import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
+import "../../style/Payment.css";
 
-const ProductListWithPagination = () => {
-  const [products, setProducts] = useState([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [active, setActive] = useState('providers') // default act
-  const [toastMessage, setToastMessage] = useState('')
-  const [toastType, setToastType] = useState('info')
-  const [selectedProduct, setSelectedProduct] = useState(null)
+import SchPaymentModal from "./schPayment";
+import VdrPaymentModal from "./vdrPayment";
+import ViewPaymentModal from "./viewPayment";
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [ProductIDToDelete, setProductIDToDelete] = useState(null)
+import { API_BASE_URL } from '../../config';
 
-  const productsPerPage = 10
-  const navigate = useNavigate()
+// simple helpers
+const toStr = (v) => (v ?? "").toString();
+const fmtNum = (v) => (Number.isFinite(Number(v)) ? Number(v).toString() : toStr(v));
 
-  useEffect(() => {
-    checkLogin(navigate)
-  }, [navigate])
+const useDocDir = () => {
+  const [dir, setDir] = React.useState(document?.documentElement?.dir || "ltr");
+  React.useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setDir(document?.documentElement?.dir || "ltr");
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"] });
+    return () => obs.disconnect();
+  }, []);
+  return dir;
+};
 
-  useEffect(() => {
-    if (toastMessage) {
-      const timer = setTimeout(() => {
-        setToastMessage('')
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [toastMessage])
+// API endpoint
+const get_pay_summary = `${API_BASE_URL}/commondata/trip/gettripPaymentSummary`;
 
-  const fetchProducts = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch(`${API_BASE_URL}/product/getAllProductsList`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          page: currentPage,
-          limit: productsPerPage,
-        }),
-      })
+// badge classes
+const statusClassName = (status = "") => {
+  const s = (status || "").toUpperCase();
+  if (s === "TRIP-BOOKED") return "status--trip-booked";
+  if (s === "APPROVED") return "status--approved";
+  if (s === "FAILED") return "status--failed";
+  if (s === "NEW") return "status--new";
+  if (s === "PRESENT") return "status--present";
+  if (s === "ABSENT" || s === "ABSET") return "status--absent";
+  return "status--default";
+};
 
-      if (!response.ok) throw new Error('Failed to fetch products')
+const Tile = ({ label, value, mono }) => (
+  <div className={`tile ${mono ? "mono" : ""}`}>
+    <div className="tile__label">{label}</div>
+    <div className="tile__value">{value}</div>
+  </div>
+);
 
-      const data = await response.json()
-      setProducts(data.data || [])
-      setTotalPages(Math.ceil(data.totalCount / productsPerPage))
-    } catch (error) {
-      setError('Error fetching products')
-    } finally {
-      setLoading(false)
-    }
-  }
+// date helper for filters
+const parseYMD = (s) => {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+};
 
-  useEffect(() => {
-    fetchProducts()
-  }, [currentPage])
+// Server → UI
+const normalizeItem = (x) => ({
+  RequestID: toStr(x.RequestID),
+  ActivityID: toStr(x.ActivityID),
+  SchoolID: toStr(x.SchoolID),
+  VendorID: toStr(x.VendorID),
+  actRequestRefNo: toStr(x.actRequestRefNo),
+  actName: toStr(x.actName),
+  vdrName: toStr(x.vdrName),
+  schName: toStr(x.schName),
+  actRequestStatus: toStr(x.actRequestStatus),
+  actRequestDate: toStr(x.actRequestDate),
+  actRequestTime: toStr(x.actRequestTime),
 
-  const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
+  // ✅ Keep payments so the modal can show TripFullAmount by KidsID
+  payments: Array.isArray(x?.payments) ? x.payments.map((p) => ({
+    KidsID: toStr(p?.KidsID),
+    PayTypeID: toStr(p?.PayTypeID),
+    tripPaymentTypeID: toStr(p?.tripPaymentTypeID),
+    TripCost: Number(p?.TripCost ?? 0),
+    TripFoodCost: Number(p?.TripFoodCost ?? 0),
+    TripTaxAmount: Number(p?.TripTaxAmount ?? 0),
+    TripFullAmount: Number(p?.TripFullAmount ?? 0),
+    TripVendorCost: Number(p?.TripVendorCost ?? 0),
+    TripHerozCost: Number(p?.TripHerozCost ?? 0),
+    TripSchoolPrice: Number(p?.TripSchoolPrice ?? 0),
+    CreatedDate: toStr(p?.CreatedDate),
+    PayDate: toStr(p?.PayDate),
+    PayStatus: toStr(p?.PayStatus),
+    MyFatrooahRefNo: toStr(p?.MyFatrooahRefNo),
+  })) : [],
 
-  const handleViewClick = (ProductID) => {
-    navigate(`/activityoversight/view?ProductID=${ProductID}`)
-  }
-  const handleClick = (type) => {
-    setActive(type)
-    console.log(type)
-    if (type == 'providers') navigate('/reportsandanalysis/providerlist')
-    if (type == 'school') navigate('/reportsandanalysis/schoollist')
-  }
-  const getPageRange = () => {
-    const range = []
-    const startPage = Math.floor((currentPage - 1) / 5) * 5 + 1
-    const endPage = Math.min(startPage + 4, totalPages)
-    for (let i = startPage; i <= endPage; i++) range.push(i)
-    return range
-  }
+  KidsSumamry: Array.isArray(x?.KidsSumamry) ? x.KidsSumamry.map((k) => ({
+    ParentsID: toStr(k?.ParentsID),
+    KidsID: toStr(k?.KidsID),
+    TripKidsSchoolNo: toStr(k?.TripKidsSchoolNo),
+    TripKidsName: toStr(k?.TripKidsName),
+    tripKidsClassName: toStr(k?.tripKidsClassName),
+    CreatedDate: toStr(k?.CreatedDate),
+    tripKidsStatus: toStr(k?.tripKidsStatus),
+  })) : [],
+  parentsInfo: Array.isArray(x?.parentsInfo) ? x.parentsInfo.map((p) => ({
+    ParentsID: toStr(p?.ParentsID),
+    tripParentsName: toStr(p?.tripParentsName),
+    tripParentsMobileNo: toStr(p?.tripParentsMobileNo),
+    tripParentsNote: toStr(p?.tripParentsNote),
+    CreatedDate: toStr(p?.CreatedDate),
+  })) : [],
+  studentSummary: {
+    totalStudentPaid: Number(x?.studentSummary?.totalStudentPaid ?? 0),
+    totalStudentApproved: Number(x?.studentSummary?.totalStudentApproved ?? 0),
+    totalStudentFailed: Number(x?.studentSummary?.totalStudentFailed ?? 0),
+    totalStudentNew: Number(x?.studentSummary?.totalStudentNew ?? 0),
+  },
+  tripPayment: {
+    totalTripVendorCost: Number(x?.tripPayment?.totalTripVendorCost ?? 0),
+  },
+  foodExtrasSummary: {
+    totalFoodVendorPrice: Number(x?.foodExtrasSummary?.totalFoodVendorPrice ?? 0),
+  },
+  totalPaymentSummary: {
+    totalVendorTripProfit: Number(x?.totalPaymentSummary?.totalVendorTripProfit ?? 0),
+  },
+});
 
-  const pageNumbers = getPageRange()
-  const handleModifyClick = () => {
-    navigate(`/membership/modify`)
-  }
+const ViewActivityScreen = () => {
+  const navigate = useNavigate();
+  const dir = useDocDir();
+  const vendorID = getCurrentLoggedUserID?.() || "";
 
-  const handleDeleteClick = () => {
-    setProductIDToDelete()
-    setShowDeleteModal(true)
-  }
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+  const [items, setItems] = React.useState([]);
+  const [selected, setSelected] = React.useState(null);
+  const [showModal, setShowModal] = React.useState(false);
 
-  const confirmDelete = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/product/delproductByID`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ ProductID: ProductIDToDelete }),
-      })
+  // payment modals
+  const [showSchPay, setShowSchPay] = React.useState(false);
+  const [showVdrPay, setShowVdrPay] = React.useState(false);
 
-      if (response.ok) {
-        setToastType('success')
-        setToastMessage('Product deleted successfully!')
-        setShowDeleteModal(false)
-        fetchProducts()
-      } else {
-        setToastType('fail')
-        setToastMessage('Failed to delete product!')
+  // filters
+  const [filterVendor, setFilterVendor] = React.useState("");
+  const [filterStatus, setFilterStatus] = React.useState("");
+  const [filterFromDate, setFilterFromDate] = React.useState("");
+  const [filterToDate, setFilterToDate] = React.useState("");
+
+  // pagination
+  const [pageSize, setPageSize] = React.useState(10);
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const run = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await fetch(get_pay_summary, {
+          method: "POST",
+          headers: {
+            ...(getAuthHeaders ? getAuthHeaders() : {}),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        });
+
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.message || `Request failed: ${res.status}`);
+
+        const arr = Array.isArray(json?.data) ? json.data : (json?.data ? [json.data] : []);
+        const normalized = arr.map(normalizeItem);
+        if (!normalized.length) throw new Error("No data returned.");
+
+        if (isMounted) {
+          setItems(normalized);
+          setSelected(normalized[0]);
+        }
+      } catch (e) {
+        if (isMounted) setError(e.message || "Failed to load data.");
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    } catch (error) {
-      setToastType('fail')
-      setToastMessage('Error deleting product')
+    };
+
+    run();
+    return () => { isMounted = false; };
+  }, [vendorID]);
+
+  const openModalFor = (row) => {
+    setSelected(row);
+    setShowModal(true);
+  };
+
+  // dropdown options
+  const vendorOptions = React.useMemo(() => {
+    const set = new Set();
+    items.forEach(it => {
+      const v = (it?.vdrName || "").trim();
+      if (v) set.add(v);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const statusOptions = React.useMemo(() => {
+    const set = new Set();
+    items.forEach(it => {
+      const s = (it?.actRequestStatus || "").trim();
+      if (s) set.add(s);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  // filter
+  const filteredItems = React.useMemo(() => {
+    const from = parseYMD(filterFromDate);
+    const to = parseYMD(filterToDate);
+    return items.filter((it) => {
+      if (filterVendor && (it.vdrName || "") !== filterVendor) return false;
+      if (filterStatus && (it.actRequestStatus || "") !== filterStatus) return false;
+      if (filterFromDate || filterToDate) {
+        const d = parseYMD(it.actRequestDate);
+        if (!d) return false;
+        if (from && d < from) return false;
+        if (to) {
+          const toEnd = new Date(to);
+          toEnd.setHours(23, 59, 59, 999);
+          if (d > toEnd) return false;
+        }
+      }
+      return true;
+    });
+  }, [items, filterVendor, filterStatus, filterFromDate, filterToDate]);
+
+  // totals
+  const totalProfitAll = React.useMemo(() => {
+    try {
+      return filteredItems.reduce(
+        (sum, it) => sum + (Number(it?.totalPaymentSummary?.totalVendorTripProfit) || 0),
+        0
+      );
+    } catch {
+      return 0;
     }
-  }
+  }, [filteredItems]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const resetFilters = () => {
+    setFilterVendor("");
+    setFilterStatus("");
+    setFilterFromDate("");
+    setFilterToDate("");
+  };
 
-  const openModal = () => setIsModalOpen(true)
-  const closeModal = () => setIsModalOpen(false)
-   const [activeTab, setActiveTab] = useState('income');
-   const incomeData = 'No Data';
-    const outgoingData = 'No Data';
+  // pagination derived
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filterVendor, filterStatus, filterFromDate, filterToDate, pageSize]);
+
+  const totalItems = filteredItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const pageItems = React.useMemo(
+    () => filteredItems.slice(startIndex, endIndex),
+    [filteredItems, startIndex, endIndex]
+  );
+
+  const goToPage = (p) => {
+    if (p < 1 || p > totalPages) return;
+    setCurrentPage(p);
+  };
+
+  const pageSizeOptions = [10, 25, 50, 100];
+
   return (
-    <div>
-      <div className="txtsubtitle">
-        <h4 style={{ margin: 0 }}>Payment Overview </h4>
-      </div>
-      <div className="divbox">
-        <div className="dashboard-row">
-          <div className="dashboard-col">
-            <div className="txtv2">
-              <b>Total Revenue From Parents</b>
+    <div dir={dir} className="vas-container">
+      <CCard className="vas-card" style={{ borderColor: AppColors?.onPinkBorderColor || undefined }}>
+        <CCardBody className="vas-card-body">
+          {/* Header */}
+          <div className="vas-header">
+            <div className="vas-header-left">
+              <div className="title-main">Payment Information</div>
             </div>
-            <div className="row-right">
-              <div className="txtv3">500 SAR</div>
-              <div
-                className="view-details"
-                onClick={openModal}
-                style={{ cursor: 'pointer', color: 'blue' }}
-              >
-                View Details
+
+            {/* Right-side total profit box with rounded corners */}
+            <div className="vas-header-right">
+              <div className="vas-total-tile tile--xl">
+                <Tile label="Total Profit" value={fmtNum(totalProfitAll)} mono />
               </div>
+              <CButton color="secondary" className="add-product-button" variant="outline" onClick={() => navigate(-1)}>
+                ← Back
+              </CButton>
             </div>
           </div>
 
-          <div className="dashboard-col">
-            <div className="txtv2">
-              <b>Total Tax Collected</b>
-            </div>
-            <div className="row-right">
-              <div className="txtv3">500 SAR</div>
-              <div
-                className="view-details"
-                onClick={openModal}
-                style={{ cursor: 'pointer', color: 'blue' }}
+          {/* Filters row (single line, scroll if narrow) */}
+          <div className="d-flex align-items-end gap-2 flex-nowrap overflow-auto mb-3" style={{ paddingBottom: 4 }}>
+            <div style={{ minWidth: 180 }}>
+              <CFormSelect
+                value={filterVendor}
+                onChange={(e) => setFilterVendor(e.target.value)}
               >
-                View Details
+                <option value="">All Vendors</option>
+                {vendorOptions.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </CFormSelect>
+            </div>
+
+            <div style={{ minWidth: 150 }}>
+              <CFormInput
+                type="date"
+                value={filterFromDate}
+                onChange={(e) => setFilterFromDate(e.target.value)}
+                placeholder="From date"
+              />
+            </div>
+
+            <div style={{ minWidth: 150 }}>
+              <CFormInput
+                type="date"
+                value={filterToDate}
+                onChange={(e) => setFilterToDate(e.target.value)}
+                placeholder="To date"
+              />
+            </div>
+
+            <div style={{ minWidth: 170 }}>
+              <CFormSelect
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                {statusOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </CFormSelect>
+            </div>
+
+            <CButton color="secondary" variant="outline" onClick={resetFilters}>
+              Reset
+            </CButton>
+
+            <div className="ms-auto d-flex align-items-center gap-2">
+              <CFormSelect
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value) || 10)}
+                style={{ width: 110 }}
+                title="Records per page"
+              >
+                {pageSizeOptions.map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </CFormSelect>
+              <small className="text-muted text-nowrap">
+                Showing {totalItems === 0 ? 0 : startIndex + 1}–{Math.min(endIndex, totalItems)} of {totalItems}
+              </small>
+            </div>
+          </div>
+
+          {loading && (
+            <div className="center-text">
+              <CSpinner size="sm" /> <span style={{ marginLeft: 6 }}>Loading…</span>
+            </div>
+          )}
+
+          {!!error && <CAlert color="danger" className="mb-16">{error}</CAlert>}
+
+          {/* Table */}
+          {!loading && !error && !!pageItems.length && (
+            <div className="mb-3">
+              <CTable small hover responsive>
+                <CTableHead>
+                  <CTableRow>
+                    <CTableHeaderCell>#</CTableHeaderCell>
+                    <CTableHeaderCell>Ref No.</CTableHeaderCell>
+                    <CTableHeaderCell>Trip Name</CTableHeaderCell>
+                    <CTableHeaderCell>School Name</CTableHeaderCell>
+                    <CTableHeaderCell>vendor Name</CTableHeaderCell>
+                    <CTableHeaderCell>Trip Date</CTableHeaderCell>
+                    <CTableHeaderCell>Time</CTableHeaderCell>
+                    <CTableHeaderCell>Status</CTableHeaderCell>
+                    <CTableHeaderCell>Tot Student</CTableHeaderCell>
+                    <CTableHeaderCell>Tot Profit</CTableHeaderCell>
+                    <CTableHeaderCell></CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {pageItems.map((row, idx) => (
+                    <CTableRow
+                      key={row.RequestID || (startIndex + idx)}
+                      onClick={() => openModalFor(row)}
+                      className="row-clickable"
+                    >
+                      <CTableDataCell>{startIndex + idx + 1}</CTableDataCell>
+                      <CTableDataCell className="mono">{row.actRequestRefNo || "-"}</CTableDataCell>
+                      <CTableDataCell>{row.actName || "-"}</CTableDataCell>
+                      <CTableDataCell>{row.schName || "-"}</CTableDataCell>
+                      <CTableDataCell>{row.vdrName || "-"}</CTableDataCell>
+                      <CTableDataCell className="mono">{row.actRequestDate || "-"}</CTableDataCell>
+                      <CTableDataCell className="mono">{row.actRequestTime || "-"}</CTableDataCell>
+                      <CTableDataCell>
+                        <CBadge className={`status-badge ${statusClassName(row.actRequestStatus)}`}>
+                          {row.actRequestStatus}
+                        </CBadge>
+                      </CTableDataCell>
+                      <CTableDataCell className="mono">
+                        {fmtNum(row.studentSummary.totalStudentApproved)}
+                      </CTableDataCell>
+                      <CTableDataCell className="mono">
+                        {fmtNum(row.totalPaymentSummary.totalVendorTripProfit)}
+                      </CTableDataCell>
+                      <CTableDataCell onClick={(e) => e.stopPropagation()}>
+                        <div className="d-flex gap-1 flex-wrap">
+                          <CButton
+                            size="sm"
+                            color="success"
+                            variant="outline"
+                            onClick={() => { setSelected(row); setShowSchPay(true); }}
+                          >
+                            Pay To School
+                          </CButton>
+                          <CButton
+                            size="sm"
+                            color="primary"
+                            variant="outline"
+                            onClick={() => { setSelected(row); setShowVdrPay(true); }}
+                          >
+                            Pay To Vendor
+                          </CButton>
+                          <CButton
+                            size="sm"
+                            color="secondary"
+                            variant="outline"
+                            onClick={() => openModalFor(row)}
+                          >
+                            View
+                          </CButton>
+                        </div>
+                      </CTableDataCell>
+                    </CTableRow>
+                  ))}
+                </CTableBody>
+              </CTable>
+
+              {/* Pagination */}
+              <div className="d-flex justify-content-between align-items-center mt-2">
+                <small className="text-muted">Page {safePage} of {totalPages}</small>
+                <CPagination align="end" className="mb-0">
+                  <CPaginationItem disabled={safePage === 1} onClick={() => goToPage(1)}>« First</CPaginationItem>
+                  <CPaginationItem disabled={safePage === 1} onClick={() => goToPage(safePage - 1)}>‹ Prev</CPaginationItem>
+                  {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                    const half = 2;
+                    let start = Math.max(1, safePage - half);
+                    let end = Math.min(totalPages, start + 4);
+                    start = Math.max(1, end - 4);
+                    const page = start + i;
+                    if (page > totalPages) return null;
+                    return (
+                      <CPaginationItem key={page} active={page === safePage} onClick={() => goToPage(page)}>
+                        {page}
+                      </CPaginationItem>
+                    );
+                  })}
+                  <CPaginationItem disabled={safePage === totalPages} onClick={() => goToPage(safePage + 1)}>Next ›</CPaginationItem>
+                  <CPaginationItem disabled={safePage === totalPages} onClick={() => goToPage(totalPages)}>Last »</CPaginationItem>
+                </CPagination>
               </div>
             </div>
-          </div>
-          <div className="dashboard-col">
-            <div className="txtv2">
-              <b>Vender payment</b>
-            </div>
-            <div className="row-right">
-              <div className="txtv3">500 SAR</div>
-              <div
-                className="view-details"
-                onClick={openModal}
-                style={{ cursor: 'pointer', color: 'blue' }}
-              >
-                View Details
-              </div>
-            </div>
-          </div>
-          <div className="dashboard-col">
-            <div className="txtv2">
-              <b>School payment</b>
-            </div>
-            <div className="row-right">
-              <div className="txtv3">500 SAR</div>
-              <div
-                className="view-details"
-                onClick={openModal}
-                style={{ cursor: 'pointer', color: 'blue' }}
-              >
-                View Details
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      {isModalOpen && (
-        <div className="modal-overlay-v1" onClick={closeModal}>
-          <div className="modal-content-v1" onClick={(e) => e.stopPropagation()}>
-            <h4>Revenue Breakdown</h4>
-            <div className="divbox1 div-mt-2">
-              <div>Total Subscription</div>
-              <div>5,000 SAR</div>
-            </div>
-            <div className="divbox1 div-mt-2">
-              <div>Total Star Purchase</div>
-              <div>7,000 SAR</div>
-            </div>
-            <div className="divbox1 div-mt-2">
-              <div>Total Trips</div>
-              <div>25,000 SAR</div>
-            </div>
-            <button onClick={closeModal} className="div-mt-2 admin-buttonv1">
-              Close
-            </button>
-          </div>
-        </div>
+          )}
+
+          {!loading && !error && !filteredItems.length && (
+            <div className="center-text muted">No data found for the selected filters.</div>
+          )}
+        </CCardBody>
+      </CCard>
+
+      {/* View Details (separate component) */}
+      <ViewPaymentModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        item={selected}
+        allRequests={items}  // ✅ give modal the full list as a fallback source
+      />
+
+      {/* Payment Modals */}
+      {selected && (
+        <>
+          <SchPaymentModal
+            visible={showSchPay}
+            onClose={() => setShowSchPay(false)}
+            item={selected}
+            totalProfit={Number(selected?.totalPaymentSummary?.totalVendorTripProfit) || 0}
+          />
+          <VdrPaymentModal
+            visible={showVdrPay}
+            onClose={() => setShowVdrPay(false)}
+            item={selected}
+            totalProfit={Number(selected?.totalPaymentSummary?.totalVendorTripProfit) || 0}
+          />
+        </>
       )}
-
-      <div className="txtsubtitle">
-        <h4 style={{ margin: 0 }}>Transaction History </h4>
-      </div>
-
-     {/* tab */}
-     <div>
-      {/* Tab headers */}
-      <div style={{ display: 'flex', cursor: 'pointer', marginBottom: '10px' }}>
-        <div
-          onClick={() => setActiveTab('income')}
-          style={{
-            padding: '10px 20px',
-            borderBottom: activeTab === 'income' ? '2px solid blue' : '2px solid transparent',
-            fontWeight: activeTab === 'income' ? 'bold' : 'normal',
-          }}
-        >
-          Income Transaction
-        </div>
-        <div
-          onClick={() => setActiveTab('outgoing')}
-          style={{
-            padding: '10px 20px',
-            borderBottom: activeTab === 'outgoing' ? '2px solid blue' : '2px solid transparent',
-            fontWeight: activeTab === 'outgoing' ? 'bold' : 'normal',
-          }}
-        >
-          Outgoing Transaction
-        </div>
-      </div>
-
-      {/* Tab content */}
-      <div>
-        {activeTab === 'income' && (
-          <div>
-            <div className="divbox"> 
-              <Incoming data={incomeData} />
-            </div>
-            
-          </div>
-        )}
-
-        {activeTab === 'outgoing' && (
-          <div>
-            
-            <div className="divbox"> 
-              <Outgoing data={outgoingData} />
-            </div>
-          </div>
-        )}
-      </div>
     </div>
+  );
+};
 
-      <DspToastMessage message={toastMessage} type={toastType} />
-    </div>
-  )
-}
-
-export default ProductListWithPagination
+export default ViewActivityScreen;

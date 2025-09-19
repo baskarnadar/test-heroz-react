@@ -65,3 +65,15 @@
   padding: 6px 12px; border-radius: 999px; border: 1px solid var(--vas-border);
   background: var(--vas-bg-tile); font-size: 12px;
 }
+/* Attendance badges */
+.status-badge.status--present {
+  background-color: #e7f5ec !important; /* light green bg */
+  color: #0f5132 !important;            /* dark green text */
+  border: 1px solid #0f5132 !important;
+}
+
+.status-badge.status--absent {
+  background-color: #fdecec !important; /* light red bg */
+  color: #842029 !important;            /* dark red text */
+  border: 1px solid #842029 !important;
+}

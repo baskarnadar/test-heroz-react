@@ -8,7 +8,7 @@ import {
 } from "@coreui/react";
 import { AppColors } from "../../_shared/colors";
 import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
-import "../style/payment.css";
+import "../../style/payment.css";
 
 import { API_BASE_URL } from '../../config'
 const ts = (fontSize, extra = {}) => ({ fontSize, ...extra }); // kept
@@ -28,7 +28,7 @@ const useDocDir = () => {
 };
 
 // API endpoint
-const GET_PAYMENT_SUMMARY =`${API_BASE_URL}/commondata/trip/gettripPaymentSummary`;
+const get_pay_summary =`${API_BASE_URL}/commondata/trip/gettripPaymentSummary`;
 
 const statusColor = (status) => { // kept
   switch ((status || "").toUpperCase()) {
@@ -109,12 +109,12 @@ const ViewActivityScreen = () => {
       setError("");
 
       try {
-        console.log("API:", GET_PAYMENT_SUMMARY);
+        console.log("API:", get_pay_summary);
 
-        const payload = { VendorID: vendorID }; // only VendorID
+        const payload = { VendorID: vendorID };  
         console.log("API Payload:", payload);
 
-        const res = await fetch(GET_PAYMENT_SUMMARY, {
+        const res = await fetch(get_pay_summary, {
           method: "POST",
           headers: {
             ...(getAuthHeaders ? getAuthHeaders() : {}),
@@ -340,7 +340,7 @@ const ViewActivityScreen = () => {
                 <Tile label="Total Paid" value={fmtNum(selected.studentSummary.totalStudentPaid)} />
                 <Tile label="Approved" value={fmtNum(selected.studentSummary.totalStudentApproved)} />
                 <Tile label="Failed" value={fmtNum(selected.studentSummary.totalStudentFailed)} />
-                <Tile label="New" value={fmtNum(selected.studentSummary.totalStudentNew)} />
+                <Tile label="Trying Paying" value={fmtNum(selected.studentSummary.totalStudentNew)} />
               </Grid>
 
               <SectionTitle>Payments Summary</SectionTitle>
