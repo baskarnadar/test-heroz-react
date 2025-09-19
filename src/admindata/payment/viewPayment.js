@@ -308,7 +308,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
 
       <CModalFooter>
         <CButton color="secondary" className="add-product-button" variant="outline" onClick={onClose}>
-          Close
+          Close1
         </CButton>
       </CModalFooter>
     </CModal>
