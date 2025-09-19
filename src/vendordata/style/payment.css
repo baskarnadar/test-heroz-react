@@ -1,0 +1,67 @@
+:root {
+  --vas-border: #e5e7eb;
+  --vas-muted: #6b7280;
+  --vas-text: #111827;
+  --vas-bg-tile: #f9fafb;
+}
+
+/* Layout */
+.vas-container { padding: 16px; }
+.vas-card { border-radius: 20px; border: 1px solid var(--vas-border); overflow: hidden; }
+.vas-card-body { padding: 16px; }
+
+.vas-header {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px;
+}
+.title-main { font-size: 22px; font-weight: 900; color: var(--vas-text); }
+
+.vas-header-right { display: flex; align-items: center; gap: 12px; }
+.vas-total-tile { width: 260px; }
+
+/* Grid + Tile */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+
+.tile {
+  border: 1px solid var(--vas-border);
+  background: var(--vas-bg-tile);
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.tile__label { color: var(--vas-muted); font-size: 12px; font-weight: 600; }
+.tile__value { font-size: 16px; font-weight: 800; color: var(--vas-text); letter-spacing: 0; }
+.tile--xl .tile__value { font-size: 28px; letter-spacing: 0.5px; }
+
+/* Typography helpers */
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+.center-text { text-align: center; }
+.muted { color: var(--vas-muted); }
+.mb-16 { margin-bottom: 16px; }
+
+/* Clickable rows */
+.row-clickable { cursor: pointer; }
+
+/* Status badges */
+.status-badge {
+  font-weight: 800; padding: 4px 8px; border-radius: 999px; font-size: 11px;
+  letter-spacing: 0.5px; color: #fff;
+}
+.status--trip-booked { background: #067f3c; }
+.status--approved { background: #2c4696; }
+.status--failed { background: #b91c1c; }
+.status--new { background: #6b7280; }
+.status--default { background: #374151; }
+
+/* ID pills in modal */
+.id-pills { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+.pill {
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--vas-border);
+  background: var(--vas-bg-tile); font-size: 12px;
+}
