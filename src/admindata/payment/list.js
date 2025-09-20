@@ -9,7 +9,7 @@ import {
 } from "@coreui/react";
 import { AppColors } from "../../_shared/colors";
 import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
-import "../../style/Payment.css";
+import "../../style/payment.css";
 
 import SchPaymentModal from "./schPayment";
 import VdrPaymentModal from "./vdrPayment";
