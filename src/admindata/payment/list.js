@@ -17,9 +17,34 @@ import ViewPaymentModal from "./viewPayment";
 
 import { API_BASE_URL } from '../../config';
 
+// ---------- tiny inline SVG icons (no dependencies) ----------
+const IconCard = ({ size = 16, title = "Pay" }) => (
+  <svg
+    width={size} height={size} viewBox="0 0 24 24" role="img"
+    aria-label={title} focusable="false"
+  >
+    <title>{title}</title>
+    <rect x="2" y="5" width="20" height="14" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/>
+    <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" strokeWidth="2"/>
+    <rect x="6" y="14" width="6" height="2" fill="currentColor"/>
+  </svg>
+);
+
+const IconEye = ({ size = 16, title = "View" }) => (
+  <svg
+    width={size} height={size} viewBox="0 0 24 24" role="img"
+    aria-label={title} focusable="false"
+  >
+    <title>{title}</title>
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" fill="none" stroke="currentColor" strokeWidth="2"/>
+    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/>
+  </svg>
+);
+
 // simple helpers
 const toStr = (v) => (v ?? "").toString();
 const fmtNum = (v) => (Number.isFinite(Number(v)) ? Number(v).toString() : toStr(v));
+const fold = (s) => toStr(s).toLowerCase().trim();
 
 const useDocDir = () => {
   const [dir, setDir] = React.useState(document?.documentElement?.dir || "ltr");
@@ -32,6 +57,22 @@ const useDocDir = () => {
   }, []);
   return dir;
 };
+
+// Small helper to keep text on one line with ellipsis + tooltip
+const Ellipsis = ({ text, width = '22ch', className = '' }) => (
+  <div
+    className={`text-truncate ${className}`}
+    title={text || ''}
+    style={{
+      maxWidth: width,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    }}
+  >
+    {text || '-'}
+  </div>
+);
 
 // API endpoint
 const get_pay_summary = `${API_BASE_URL}/commondata/trip/gettripPaymentSummary`;
@@ -147,6 +188,7 @@ const ViewActivityScreen = () => {
   const [filterStatus, setFilterStatus] = React.useState("");
   const [filterFromDate, setFilterFromDate] = React.useState("");
   const [filterToDate, setFilterToDate] = React.useState("");
+  const [filterQuery, setFilterQuery] = React.useState(""); // 🔎 new free-text search
 
   // pagination
   const [pageSize, setPageSize] = React.useState(10);
@@ -219,9 +261,12 @@ const ViewActivityScreen = () => {
   const filteredItems = React.useMemo(() => {
     const from = parseYMD(filterFromDate);
     const to = parseYMD(filterToDate);
+    const q = fold(filterQuery);
+
     return items.filter((it) => {
       if (filterVendor && (it.vdrName || "") !== filterVendor) return false;
       if (filterStatus && (it.actRequestStatus || "") !== filterStatus) return false;
+
       if (filterFromDate || filterToDate) {
         const d = parseYMD(it.actRequestDate);
         if (!d) return false;
@@ -232,9 +277,15 @@ const ViewActivityScreen = () => {
           if (d > toEnd) return false;
         }
       }
+
+      if (q) {
+        const hay = `${it.actName} ${it.schName} ${it.vdrName} ${it.actRequestRefNo}`;
+        if (!fold(hay).includes(q)) return false;
+      }
+
       return true;
     });
-  }, [items, filterVendor, filterStatus, filterFromDate, filterToDate]);
+  }, [items, filterVendor, filterStatus, filterFromDate, filterToDate, filterQuery]);
 
   // totals
   const totalProfitAll = React.useMemo(() => {
@@ -253,12 +304,13 @@ const ViewActivityScreen = () => {
     setFilterStatus("");
     setFilterFromDate("");
     setFilterToDate("");
+    setFilterQuery("");
   };
 
   // pagination derived
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [filterVendor, filterStatus, filterFromDate, filterToDate, pageSize]);
+  }, [filterVendor, filterStatus, filterFromDate, filterToDate, filterQuery, pageSize]);
 
   const totalItems = filteredItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -300,6 +352,16 @@ const ViewActivityScreen = () => {
 
           {/* Filters row (single line, scroll if narrow) */}
           <div className="d-flex align-items-end gap-2 flex-nowrap overflow-auto mb-3" style={{ paddingBottom: 4 }}>
+            {/* Free-text search */}
+            <div style={{ minWidth: 100 }}>
+              <CFormInput
+                type="text"
+                value={filterQuery}
+                onChange={(e) => setFilterQuery(e.target.value)}
+                placeholder="Search activity, school, vendor, or Ref#"
+              />
+            </div>
+
             <div style={{ minWidth: 180 }}>
               <CFormSelect
                 value={filterVendor}
@@ -378,16 +440,16 @@ const ViewActivityScreen = () => {
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell>#</CTableHeaderCell>
-                    <CTableHeaderCell>Ref No.</CTableHeaderCell>
-                    <CTableHeaderCell>Trip Name</CTableHeaderCell>
-                    <CTableHeaderCell>School Name</CTableHeaderCell>
-                    <CTableHeaderCell>vendor Name</CTableHeaderCell>
-                    <CTableHeaderCell>Trip Date</CTableHeaderCell>
-                    <CTableHeaderCell>Time</CTableHeaderCell>
+                    <CTableHeaderCell>Ref#</CTableHeaderCell>
+                    <CTableHeaderCell className="text-nowrap">Trip Name</CTableHeaderCell>
+                    <CTableHeaderCell className="text-nowrap">School</CTableHeaderCell>
+                    <CTableHeaderCell className="text-nowrap">vendor</CTableHeaderCell>
+                    <CTableHeaderCell className="text-nowrap">Trip Date</CTableHeaderCell>
+                    <CTableHeaderCell className="text-nowrap">Time</CTableHeaderCell>
                     <CTableHeaderCell>Status</CTableHeaderCell>
-                    <CTableHeaderCell>Tot Student</CTableHeaderCell>
-                    <CTableHeaderCell>Tot Profit</CTableHeaderCell>
-                    <CTableHeaderCell></CTableHeaderCell>
+                    <CTableHeaderCell>Student</CTableHeaderCell>
+                    <CTableHeaderCell>Profit</CTableHeaderCell>
+                    <CTableHeaderCell className="text-nowrap">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
@@ -399,11 +461,26 @@ const ViewActivityScreen = () => {
                     >
                       <CTableDataCell>{startIndex + idx + 1}</CTableDataCell>
                       <CTableDataCell className="mono">{row.actRequestRefNo || "-"}</CTableDataCell>
-                      <CTableDataCell>{row.actName || "-"}</CTableDataCell>
-                      <CTableDataCell>{row.schName || "-"}</CTableDataCell>
-                      <CTableDataCell>{row.vdrName || "-"}</CTableDataCell>
-                      <CTableDataCell className="mono">{row.actRequestDate || "-"}</CTableDataCell>
-                      <CTableDataCell className="mono">{row.actRequestTime || "-"}</CTableDataCell>
+
+                      {/* Trip Name (no wrap + ellipsis + tooltip) */}
+                      <CTableDataCell>
+                        <Ellipsis text={row.actName} width="26ch" />
+                      </CTableDataCell>
+
+                      {/* School (no wrap + ellipsis + tooltip) */}
+                      <CTableDataCell>
+                        <Ellipsis text={row.schName} width="24ch" />
+                      </CTableDataCell>
+
+                      {/* vendor (no wrap + ellipsis + tooltip) */}
+                      <CTableDataCell>
+                        <Ellipsis text={row.vdrName} width="20ch" />
+                      </CTableDataCell>
+
+                      {/* NO WRAP for date/time */}
+                      <CTableDataCell className="mono text-nowrap">{row.actRequestDate || "-"}</CTableDataCell>
+                      <CTableDataCell className="mono text-nowrap">{row.actRequestTime || "-"}</CTableDataCell>
+
                       <CTableDataCell>
                         <CBadge className={`status-badge ${statusClassName(row.actRequestStatus)}`}>
                           {row.actRequestStatus}
@@ -415,31 +492,39 @@ const ViewActivityScreen = () => {
                       <CTableDataCell className="mono">
                         {fmtNum(row.totalPaymentSummary.totalVendorTripProfit)}
                       </CTableDataCell>
-                      <CTableDataCell onClick={(e) => e.stopPropagation()}>
-                        <div className="d-flex gap-1 flex-wrap">
+
+                      {/* ACTIONS: force single line, allow horizontal scroll if needed */}
+                      <CTableDataCell className="text-nowrap">
+                        <div className="d-flex gap-1 flex-nowrap overflow-auto" style={{ maxWidth: '220px' }}>
                           <CButton
                             size="sm"
                             color="success"
                             variant="outline"
-                            onClick={() => { setSelected(row); setShowSchPay(true); }}
+                            title="Pay School"
+                            aria-label="Pay School"
+                            onClick={(e) => { e.stopPropagation(); setSelected(row); setShowSchPay(true); }}
                           >
-                            Pay To School
+                            <IconCard title="Pay School" />
                           </CButton>
                           <CButton
                             size="sm"
                             color="primary"
                             variant="outline"
-                            onClick={() => { setSelected(row); setShowVdrPay(true); }}
+                            title="Pay Vendor"
+                            aria-label="Pay Vendor"
+                            onClick={(e) => { e.stopPropagation(); setSelected(row); setShowVdrPay(true); }}
                           >
-                            Pay To Vendor
+                            <IconCard title="Pay Vendor" />
                           </CButton>
                           <CButton
                             size="sm"
                             color="secondary"
                             variant="outline"
-                            onClick={() => openModalFor(row)}
+                            title="View"
+                            aria-label="View"
+                            onClick={(e) => { e.stopPropagation(); openModalFor(row); }}
                           >
-                            View
+                            <IconEye title="View" />
                           </CButton>
                         </div>
                       </CTableDataCell>
