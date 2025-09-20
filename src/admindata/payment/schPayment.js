@@ -350,10 +350,11 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                   <CTableHead color="light">
                     <CTableRow>
                       <CTableHeaderCell className="text-center" style={{ width: 60 }}>#</CTableHeaderCell>
-                      <CTableHeaderCell className="text-end pe-3" style={{ width: 180 }}>Amount</CTableHeaderCell>
+                     
                       <CTableHeaderCell style={{ width: 160 }}>Date</CTableHeaderCell>
                       <CTableHeaderCell style={{ width: 170 }}>Type</CTableHeaderCell>
                       <CTableHeaderCell>Note</CTableHeaderCell>
+                       <CTableHeaderCell className="text-end pe-3" style={{ width: 180 }}>Amount</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
@@ -361,7 +362,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                       <CTableRow key={idx} className={idx % 2 ? "bg-body-tertiary" : ""}>
                         <CTableDataCell className="text-center">{idx + 1}</CTableDataCell>
                         {/* RIGHT aligned + padding on the right */}
-                        <CTableDataCell className="text-end pe-3 mono">{fmt(r?.schPaidAmount)}</CTableDataCell>
+                      
                         <CTableDataCell>{r?.schPaidDate || "-"}</CTableDataCell>
                         <CTableDataCell>
                           <CBadge color="light" textColor="dark">
@@ -369,6 +370,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                           </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>{r?.schPaidNote || "-"}</CTableDataCell>
+                          <CTableDataCell className="text-end pe-3 mono">{fmt(r?.schPaidAmount)}</CTableDataCell>
                       </CTableRow>
                     ))}
                   </CTableBody>
