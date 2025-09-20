@@ -377,7 +377,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                 </CTable>
               </div>
             ) : (
-              <div className="text-muted">No previous payments found.</div>
+              <div className="text-muted">No previous payments found</div>
             )
           )}
         </div>
