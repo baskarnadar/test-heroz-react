@@ -336,7 +336,7 @@ const ViewActivityScreen = () => {
           {/* Header */}
           <div className="vas-header">
             <div className="vas-header-left">
-              <div className="title-main">Payment Information New Updated</div>
+              <div className="title-main">Payment Information New</div>
             </div>
 
             {/* Right-side total profit box with rounded corners */}
