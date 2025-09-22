@@ -17,7 +17,7 @@ import "../scss/arabic-font.css";
  */
 const PrgSchHeader = ({
   schImageNameUrl,
-  schName = "School",
+  schName = "المدرسة",
   schAddress1 = "",
   schAddress2 = "",
   activityName = "",
@@ -25,19 +25,19 @@ const PrgSchHeader = ({
   carouselInterval = 5000,
 }) => {
   return (
-    /* ✅ This wrapper enables the Arabic font automatically when dir="rtl" on <html> or a parent */
-    <div className="use-arabic-font">
+    /* ✅ Arabic defaults + RTL direction */
+    <div className="use-arabic-font" dir="rtl">
       {/* Hero */}
       <div className="hero-frame">
         <header className="hero">
           <img
             src={schImageNameUrl || logo}
-            alt={schName || "School"}
+            alt={schName || "المدرسة"}
             className="hero-img"
           />
           <div className="hero-overlay" />
           <div className="hero-content">
-            <h1 className="hero-title">{schName || "School"}</h1>
+            <h1 className="hero-title">{schName || "المدرسة"}</h1>
             <p className="hero-sub">
               {schAddress1 || ""} {schAddress2 || ""}
             </p>
@@ -58,11 +58,11 @@ const PrgSchHeader = ({
           }}
         >
           <span role="img" aria-label="party">🎉</span>
-          <span className="trip-gradient-title">Here your child is going for a trip</span>
+          <span className="trip-gradient-title">هنا سيذهب طفلك في رحلة</span>
           <span role="img" aria-label="party">🎉</span>
         </h2>
         <p className="intro-sub">
-          Review and book {activityName || "this"} school trip
+          {`راجع واحجز ${activityName || "هذه"} الرحلة المدرسية`}
         </p>
       </section>
 
@@ -75,14 +75,14 @@ const PrgSchHeader = ({
                 <img
                   className="activity-img"
                   src={src}
-                  alt={`Activity ${idx + 1}`}
+                  alt={`صورة النشاط ${idx + 1}`}
                   loading="lazy"
                 />
               </CCarouselItem>
             ))}
           </CCarousel>
         ) : (
-          <div className="empty-media">No images</div>
+          <div className="empty-media">لا توجد صور</div>
         )}
       </section>
     </div>

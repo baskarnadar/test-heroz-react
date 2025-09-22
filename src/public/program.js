@@ -53,16 +53,24 @@ const tripPaymentTypeIdFromId = (id) => {
 };
 
 const ProposalPage = () => {
-  // 🌐 language state (persist to localStorage)
+  // 🌐 language state (persist to localStorage) — DEFAULT ARABIC
   const initialLang = (() => {
     const stored = localStorage.getItem("heroz_lang");
     if (stored === "ar" || stored === "en") return stored;
-    // default EN
-    return "en";
+    localStorage.setItem("heroz_lang", "ar"); // persist default
+    return "ar";
   })();
   const [lang, setLang] = useState(initialLang);
   const dict = lang === "ar" ? arPack : enPack;
   const dir = lang === "ar" ? "rtl" : "ltr";
+
+  // Enforce <html> lang/dir (belt & suspenders)
+  useEffect(() => {
+    const html = document.documentElement;
+    html.setAttribute("dir", dir);
+    html.setAttribute("lang", lang === "ar" ? "ar" : "en");
+    document.body.setAttribute("dir", dir);
+  }, [dir, lang]);
 
   // UI state (existing)
   const [error, setError] = useState("");
@@ -102,8 +110,11 @@ const ProposalPage = () => {
     const next = lang === "ar" ? "en" : "ar";
     setLang(next);
     localStorage.setItem("heroz_lang", next);
-    // Optional: flip document direction
-    document.documentElement.setAttribute("dir", next === "ar" ? "rtl" : "ltr");
+    // Flip document direction immediately
+    const html = document.documentElement;
+    html.setAttribute("dir", next === "ar" ? "rtl" : "ltr");
+    html.setAttribute("lang", next === "ar" ? "ar" : "en");
+    document.body.setAttribute("dir", next === "ar" ? "rtl" : "ltr");
   };
 
   const showError = (msg, title = dict.errorTitle) => {
@@ -381,7 +392,7 @@ const ProposalPage = () => {
       .filter((f) => f.Include === true)
       .find((f) => checkedFoodItems[f.FoodID])?.FoodID;
 
-       const includedName = (ActivityData?.foodList ?? []).find(
+    const includedName = (ActivityData?.foodList ?? []).find(
       (f) => f.FoodID === includedId
     )?.FoodName;
 
@@ -615,7 +626,8 @@ const ProposalPage = () => {
 
   return (
     <>
-      <Helmet>
+      {/* Also set <html> attributes via Helmet for SSR correctness */}
+      <Helmet htmlAttributes={{ lang: lang === "ar" ? "ar" : "en", dir }}>
         <title>{program.title}</title>
         <meta property="og:title" content={program.title} />
         <meta property="og:description" content={program.description} />
@@ -631,8 +643,6 @@ const ProposalPage = () => {
 
       <div className="bodyimg" dir={dir}>
         <PrgHeader lang={lang} onToggleLang={toggleLang} />
-
-        {/* (Removed the in-page language switcher; header toggle remains) */}
 
         <main className="proposal">
           {error && <div className="alert-error">{error}</div>}
