@@ -16,6 +16,9 @@ import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
 import { ActionButtonsV1 } from '../../../utils/btn'
 
+// ⭐ NEW: Modal component for image uploads
+import ImageUploadModal from './imageupload'
+
 const ActivityList = () => {
   const [ActivityIDToDelete, setActivityIDelete] = useState(null)
   const [Activity, setActivity] = useState([])
@@ -29,6 +32,9 @@ const ActivityList = () => {
   const [selectedActivity, setSelectedActivity] = useState(null)
 
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+
+  // ⭐ NEW: state for gallery modal
+  const [showGalleryModal, setShowGalleryModal] = useState(false)
 
   const ActivityPerPage = 10
   const navigate = useNavigate()
@@ -150,6 +156,26 @@ const ActivityList = () => {
     }
   }
 
+  // ⭐ NEW: OPEN gallery modal (button already exists in your code)
+  const handleImageGalleryClick = (row) => {
+    setSelectedActivity(row)
+    setShowGalleryModal(true)
+  }
+
+  // ⭐ NEW: after successful upload, close modal & optionally refresh
+  const handleGallerySaved = (uploadedKeys = []) => {
+    setShowGalleryModal(false)
+    if (uploadedKeys.length) {
+      setToastType('success')
+      setToastMessage('Image(s) uploaded successfully!')
+    } else {
+      setToastType('info')
+      setToastMessage('No images uploaded.')
+    }
+    // If your list shows an image count/thumbnail, you can refresh:
+    // fetchActivity()
+  }
+
   return (
     <div>
       <div className="page-title">
@@ -239,6 +265,19 @@ const ActivityList = () => {
                         flexWrap: 'wrap',
                       }}
                     >
+                         <button
+  onClick={() => handleImageGalleryClick(row)}
+  title="Image Gallery / معرض الصور"
+  className="btn btn-default graybox"
+  style={{ padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+  aria-label="Image Gallery / معرض الصور"
+>
+  {/* Either alias works in FA4 */}
+  <i className="fa fa-picture-o" style={{ color: '#cf2037' }} aria-hidden="true" />
+  {/* <i className="fa fa-image" style={{ color: '#cf2037' }} aria-hidden="true" /> */}
+ 
+</button>
+
                       <button
                         onClick={() => handleModifyClick(row.ActivityID)}
                         title="Edit/حذف"
@@ -258,6 +297,9 @@ const ActivityList = () => {
                       >
                         <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
                       </button>
+
+                      {/* ⭐ NEW: your existing button now opens modal */}
+                    
                     </div>
                   </td>
                 </tr>
@@ -322,6 +364,16 @@ const ActivityList = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ⭐ NEW: Image upload modal */}
+      {showGalleryModal && selectedActivity && (
+        <ImageUploadModal
+          isOpen={showGalleryModal}
+          onClose={() => setShowGalleryModal(false)}
+          onSaved={handleGallerySaved}
+          activity={selectedActivity}
+        />
       )}
 
       <DspToastMessage message={toastMessage} type={toastType} />
