@@ -2,6 +2,9 @@ import React from "react";
 import { CCarousel, CCarouselItem } from "@coreui/react";
 import logo from "../assets/logo/default.png"; // adjust path if needed
 
+/* ✅ Import the custom CSS here */
+import "../scss/arabic-font.css";
+
 /**
  * Props:
  * - schImageNameUrl: string | null
@@ -22,7 +25,8 @@ const PrgSchHeader = ({
   carouselInterval = 5000,
 }) => {
   return (
-    <>
+    /* ✅ This wrapper enables the Arabic font automatically when dir="rtl" on <html> or a parent */
+    <div className="use-arabic-font">
       {/* Hero */}
       <div className="hero-frame">
         <header className="hero">
@@ -43,7 +47,16 @@ const PrgSchHeader = ({
 
       {/* Intro */}
       <section className="intro container">
-        <h2 className="intro-title" style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+        <h2
+          className="intro-title"
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
           <span role="img" aria-label="party">🎉</span>
           <span className="trip-gradient-title">Here your child is going for a trip</span>
           <span role="img" aria-label="party">🎉</span>
@@ -72,7 +85,7 @@ const PrgSchHeader = ({
           <div className="empty-media">No images</div>
         )}
       </section>
-    </>
+    </div>
   );
 };
 

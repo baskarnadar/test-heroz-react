@@ -1,6 +1,12 @@
 body {
   background-color: var(--cui-tertiary-bg);
 }
+@font-face {
+  font-family: 'Bahij_TheSansArabic';
+  src: url('../assets/fonts/Bahij_TheSansArabic-Light.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 
 .wrapper {
   width: 100%;

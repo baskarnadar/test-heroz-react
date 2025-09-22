@@ -23,7 +23,12 @@ import "../scss/payment.css";
 import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
 import FoodInfo from "./foodinfo";
 
+// 🔤 i18n packs
+import enPack from "../i18n/enlangpack.json";
+import arPack from "../i18n/arlangpack.json";
+
 const MOBILE_RE = /^05\d{8}$/; // starts with 05 and total 10 digits
+const PAYERROR_URL = "https://school.heroz.sa/public/payerror";
 
 // Map PaymentMethodId -> UI label
 const paymentLabelFromId = (id) => {
@@ -48,6 +53,18 @@ const tripPaymentTypeIdFromId = (id) => {
 };
 
 const ProposalPage = () => {
+  // 🌐 language state (persist to localStorage)
+  const initialLang = (() => {
+    const stored = localStorage.getItem("heroz_lang");
+    if (stored === "ar" || stored === "en") return stored;
+    // default EN
+    return "en";
+  })();
+  const [lang, setLang] = useState(initialLang);
+  const dict = lang === "ar" ? arPack : enPack;
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
+  // UI state (existing)
   const [error, setError] = useState("");
   const [checkedFoodItems, setCheckedFoodItems] = useState({});
   const [TripData, setTripData] = useState([]);
@@ -57,7 +74,8 @@ const ProposalPage = () => {
   const [ActivityData, setActivity] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const [childRows, setChildRows] = useState([{ schoolID: "", name: "", className: "" }]);
+  // ➕ added gender to each row (kept your original fields)
+  const [childRows, setChildRows] = useState([{ schoolID: "", name: "", className: "", gender: "" }]);
 
   // Removed old selectedMethod radio; we rely only on PaymentMethodPicker
   const [selectedMethodId, setSelectedMethodId] = useState(null);
@@ -79,14 +97,23 @@ const ProposalPage = () => {
   const [pendingPayload, setPendingPayload] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const showError = (msg, title = "Error") => {
+  // 🌐 toggle language
+  const toggleLang = () => {
+    const next = lang === "ar" ? "en" : "ar";
+    setLang(next);
+    localStorage.setItem("heroz_lang", next);
+    // Optional: flip document direction
+    document.documentElement.setAttribute("dir", next === "ar" ? "rtl" : "ltr");
+  };
+
+  const showError = (msg, title = dict.errorTitle) => {
     setErrModalTitle(title);
     setErrModalMsg(msg);
     setErrModalOpen(true);
   };
 
   const handleAddRow = () =>
-    setChildRows([...childRows, { schoolID: "", name: "", className: "" }]);
+    setChildRows([...childRows, { schoolID: "", name: "", className: "", gender: "" }]);
 
   const handleRemoveRow = (idx) =>
     setChildRows((prev) => prev.filter((_, i) => i !== idx));
@@ -99,8 +126,9 @@ const ProposalPage = () => {
 
   useEffect(() => {
     document.body.classList.add("hide-chrome");
+    document.documentElement.setAttribute("dir", dir);
     return () => document.body.classList.remove("hide-chrome");
-  }, []);
+  }, [dir]);
 
   const fetchActivity = async (ActivityIDVal, VendorIDVal, RequestIDVal) => {
     setLoading(true);
@@ -119,7 +147,7 @@ const ProposalPage = () => {
     } catch (err) {
       setError("Error fetching activities");
       console.error(err);
-      showError("Could not load activity details. Please try again.");
+      showError(dict.errCouldNotLoadActivity);
     } finally {
       setLoading(false);
     }
@@ -181,7 +209,7 @@ const ProposalPage = () => {
     } catch (err) {
       console.error("Error fetching trip data:", err);
       setError(err.message || "Error fetching trip data");
-      showError("Could not load trip data. Please refresh and try again.");
+      showError(dict.errCouldNotLoadTrip);
     } finally {
       setLoading(false);
     }
@@ -236,7 +264,7 @@ const ProposalPage = () => {
       fetchTripData(id);
     } else {
       setError("RequestID is missing in URL");
-      showError("RequestID is missing in the URL.");
+      showError(dict.errRequestIdMissing);
     }
 
     try {
@@ -248,7 +276,7 @@ const ProposalPage = () => {
 
     const canonical = `${window.location.origin}${window.location.pathname}#/public/program/${id}`;
     setShareUrl(id ? canonical : window.location.href);
-  }, [routeId]);
+  }, [routeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!ActivityData) return;
@@ -283,7 +311,6 @@ const ProposalPage = () => {
   }, [TripData]);
 
   // Trip price total (per student)
-  // --- UPDATED FILTER: keep the row if ANY of the three components parses as a number (>= 0) ---
   const filteredPriceList = (ActivityData?.priceList ?? []).filter((p) => {
     const vendor = parseFloat(p?.Price);
     const heroz = parseFloat(p?.HerozStudentPrice);
@@ -335,6 +362,16 @@ const ProposalPage = () => {
     return Number((grandTotalWithTax * count).toFixed(2));
   }, [grandTotalWithTax, validKidsCount]);
 
+  // ======= AUTO-REDIRECT if trip cost is zero =======
+  useEffect(() => {
+    if (!loading && ActivityData) {
+      const perStudent = Number(grandTotalWithTax) || 0;
+      if (perStudent <= 0 || paymentAmount <= 0) {
+        window.location.href = PAYERROR_URL;
+      }
+    }
+  }, [loading, ActivityData, grandTotalWithTax, paymentAmount]);
+
   // ---------- Build selection summary & payload ----------
   const buildSelectionSummaryAndPayload = () => {
     const RequestID = TripData?.RequestID;
@@ -344,7 +381,7 @@ const ProposalPage = () => {
       .filter((f) => f.Include === true)
       .find((f) => checkedFoodItems[f.FoodID])?.FoodID;
 
-    const includedName = (ActivityData?.foodList ?? []).find(
+       const includedName = (ActivityData?.foodList ?? []).find(
       (f) => f.FoodID === includedId
     )?.FoodName;
 
@@ -369,16 +406,17 @@ const ProposalPage = () => {
     });
 
     // Local Storage 
-    const PayRefNoVal=generatePayRefNo();
+    const PayRefNoVal = generatePayRefNo();
     localStorage.setItem('PayRefNo', PayRefNoVal);
 
     const kidsInfo = validKids.map((row) => ({
       RequestID,
       ParentsID,
       KidsID: "",
-      TripKidsSchoolNo: (row.schoolID || "").trim(), // optional
+      TripKidsSchoolNo: (row.schoolID || "").trim(),
       TripKidsName: row.name.trim(),
       tripKidsClassName: row.className.trim(),
+      TripKidsGender: (row.gender || "").trim(),
       TripCost: priceTotal.toFixed(2),
       TripFoodCost: foodTotal.toFixed(2),
       TripTaxAmount: taxAmount.toFixed(2),
@@ -399,6 +437,7 @@ const ProposalPage = () => {
         name: k.name.trim(),
         className: k.className.trim(),
         schoolID: (k.schoolID || "").trim(),
+        gender: (k.gender || "").trim(),
       })),
       paymentLabel,
       totals: {
@@ -437,14 +476,13 @@ const ProposalPage = () => {
 
   // ---------- Validation ----------
   const validateBeforeSubmit = () => {
-    // Only require included food selection if there are included options
     const hasMeals = Array.isArray(ActivityData?.foodList) && ActivityData.foodList.length > 0;
     const hasIncludedOptions = hasMeals && ActivityData.foodList.some((f) => f.Include === true);
 
     if (hasIncludedOptions) {
       const includedFoodRadio = document.querySelector('input[name="foodSelect"]:checked');
       if (!includedFoodRadio) {
-        showError("Please select one Included food option.");
+        showError(dict.errSelectIncludedFood);
         return false;
       }
     }
@@ -455,21 +493,21 @@ const ProposalPage = () => {
       document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
 
     if (!parentName) {
-      showError("Please enter parent name.");
+      showError(dict.errEnterParentName);
       return false;
     }
     if (!MOBILE_RE.test(parentMobile)) {
-      showError("Parent phone must start with 05 and be exactly 10 digits.");
+      showError(dict.errParentPhoneFormat);
       return false;
     }
 
     if (validKids.length === 0) {
-      showError("Please enter Child Information: Name and Class for at least one child.");
+      showError(dict.errEnterChildInfo);
       return false;
     }
 
     if (!selectedMethodId) {
-      showError("Please choose a payment method from the list above.");
+      showError(dict.errChoosePaymentMethod);
       return false;
     }
 
@@ -480,7 +518,13 @@ const ProposalPage = () => {
   const handleSubmit = () => {
     if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
       setIsExpired(true);
-      showError("We are sorry, the payment due date has finished. You cannot pay.");
+      showError(dict.errDueDateFinished);
+      return;
+    }
+
+    const perStudent = Number(grandTotalWithTax) || 0;
+    if (perStudent <= 0 || paymentAmount <= 0) {
+      window.location.href = PAYERROR_URL;
       return;
     }
 
@@ -496,7 +540,7 @@ const ProposalPage = () => {
   const submitConfirmed = async () => {
     if (!pendingPayload) {
       setConfirmOpen(false);
-      showError("Nothing to submit. Please try again.");
+      showError(dict.errNothingToSubmit);
       return;
     }
     setSubmitting(true);
@@ -505,7 +549,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
         {
           method: "POST",
-         headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(pendingPayload),
         }
       );
@@ -520,7 +564,7 @@ const ProposalPage = () => {
         document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
 
       if (!selectedMethodId) {
-        showError("Please choose a payment method from the list above.");
+        showError(dict.errChoosePaymentMethod);
         setSubmitting(false);
         return;
       }
@@ -534,13 +578,13 @@ const ProposalPage = () => {
             email: "no-reply@heroz.sa",
             mobile: parentMobile,
           },
-          language: "EN",
+          language: lang === "ar" ? "AR" : "EN",
           displayCurrency: "SAR",
           redirect: true,
         });
         console.log(result);
         if (!result.ok) {
-          showError(result.error || "Payment could not be started.");
+          showError(result.error || dict.errPaymentCouldNotStart);
         }
       } catch (e) {
         showError(String(e));
@@ -548,26 +592,26 @@ const ProposalPage = () => {
     } catch (err) {
       console.error("Submit error:", err);
       setConfirmOpen(false);
-      showError("Submission failed. Please try again.");
+      showError(dict.errSubmissionFailed);
     } finally {
       setSubmitting(false);
     }
   };
 
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(
-    `Heroz – Check your trip details: ${shareUrl}`
+    `${dict.brandName} – ${dict.shareTripText}: ${shareUrl}`
   )}`;
 
   // ---------- SEO / Social (Helmet) ----------
   const canonicalUrl = shareUrl || `${window.location.origin}${window.location.pathname}`;
   const program = useMemo(() => {
     const title = ActivityData?.actName
-      ? `Heroz Trip — ${ActivityData.actName}`
-      : "Heroz Trip — Proposal";
-    const description = "Check your trip details with Heroz";
+      ? `${dict.seoTripPrefix} — ${ActivityData.actName}`
+      : `${dict.seoTripPrefix} — ${dict.seoProposal}`;
+    const description = dict.seoDescription;
     const imageUrl = absoluteLogoUrl || "";
     return { title, description, imageUrl };
-  }, [ActivityData, absoluteLogoUrl]);
+  }, [ActivityData, absoluteLogoUrl, dict]);
 
   return (
     <>
@@ -585,8 +629,10 @@ const ProposalPage = () => {
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
-      <div className="bodyimg">
-        <PrgHeader />
+      <div className="bodyimg" dir={dir}>
+        <PrgHeader lang={lang} onToggleLang={toggleLang} />
+
+        {/* (Removed the in-page language switcher; header toggle remains) */}
 
         <main className="proposal">
           {error && <div className="alert-error">{error}</div>}
@@ -606,18 +652,17 @@ const ProposalPage = () => {
             <div className="card about-details">
               <div className="about-left">
                 <h2 className="section-title trip-gradient-color fontsize40">
-                  Trip Information
+                  {dict.tripInformation}
                 </h2>
-                <h3 className="card-title">About This Trip</h3>
+                <h3 className="card-title">{dict.aboutThisTrip}</h3>
                 <p className="card-text">
-  {ActivityData?.actDesc?.split('\n').map((line, index) => (
-    <React.Fragment key={index}>
-      {line}
-      <br />
-    </React.Fragment>
-  ))}
-</p>
-
+                  {ActivityData?.actDesc?.split('\n').map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
+                </p>
               </div>
 
               <div className="about-right">
@@ -626,7 +671,7 @@ const ProposalPage = () => {
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
                         <img src={icon5} alt="HEROZ" className="icon-tint-pink" />
-                        <span> Trip Cost</span>
+                        <span> {dict.tripCost}</span>
                       </div>
                     </div>
                     <div className="detail-value ">
@@ -642,7 +687,7 @@ const ProposalPage = () => {
                         <span>
                           <div className="row-inline">
                             <img src={icon1} alt="HEROZ" />
-                            <span>Date</span>
+                            <span>{dict.date}</span>
                           </div>
                         </span>
                       </div>
@@ -658,7 +703,7 @@ const ProposalPage = () => {
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
                         <img src={icon2} alt="HEROZ" />
-                        <span>Time</span>
+                        <span>{dict.time}</span>
                       </div>
                     </div>
                     <div className="detail-value">
@@ -672,7 +717,7 @@ const ProposalPage = () => {
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
                         <img src={icon3} alt="HEROZ" />
-                        <span>Location</span>
+                        <span>{dict.location}</span>
                       </div>
                     </div>
                     <div className="detail-value">
@@ -689,6 +734,8 @@ const ProposalPage = () => {
                         href={ActivityData?.actGoogleMap}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={dict.viewOnMap}
+                        title={dict.viewOnMap}
                       >
                         <img src={viewonmap} alt="HEROZ" className="footer-logo" />
                       </a>
@@ -703,17 +750,17 @@ const ProposalPage = () => {
           <section className="container twocol">
             {/* Pricing */}
             <div className="card pricing">
-              <h3 className="card-title trip-gradient-color fontsize40">Trips Pricing</h3>
+              <h3 className="card-title trip-gradient-color fontsize40">{dict.tripsPricing}</h3>
 
               <div className="price-row">
-                <span className="price-label fontsize20">Base Trip Cost</span>
+                <span className="price-label fontsize20">{dict.baseTripCost}</span>
                 <span className="price-value fontsize20">
                   {priceTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
 
               <div className="divider" />
-              <div className="price-subtitle">Included </div>
+              <div className="price-subtitle">{dict.included}</div>
               <div className="divider" />
               <div className="food-wrap">
                 <FoodInfo
@@ -727,7 +774,7 @@ const ProposalPage = () => {
               <div className="divider" />
               <div className="summary">
                 <div className="summary-row">
-                  <span>Subtotal</span>
+                  <span>{dict.subtotal}</span>
                   <span>
                     {grandTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
                   </span>
@@ -736,7 +783,8 @@ const ProposalPage = () => {
 
               <div className="summary-row total trip-gradient-color">
                 <span>
-                  <div>Total Payable </div> <div>(per student)</div></span>
+                  <div>{dict.totalPayable}</div> <div>({dict.perStudent})</div>
+                </span>
                 <span>
                   {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
                 </span>
@@ -744,7 +792,7 @@ const ProposalPage = () => {
 
               {validKidsCount > 1 && (
                 <div className="summary-row total net-payable trip-gradient-color">
-                  <span>Net Payable Amount ({validKidsCount} kids)</span>
+                  <span>{dict.netPayableAmount.replace("{count}", validKidsCount)}</span>
                   <span>
                     {(grandTotalWithTax * validKidsCount).toFixed(2)}{" "}
                     <img src={icon5} alt="HEROZ" />
@@ -761,8 +809,6 @@ const ProposalPage = () => {
                   onSelect={(id, method) => setSelectedMethodId(id)}
                   autoFetch
                 />
-
-                
               </div>
 
               <div className="divider" />
@@ -770,7 +816,7 @@ const ProposalPage = () => {
               {/* Removed hardcoded radios. Only the picker remains. */}
               <div className="payment-group">
                 <button className="btn-primary" onClick={handleSubmit}>
-                  Continue to payment
+                  {dict.continueToPayment}
                 </button>
               </div>
             </div>
@@ -778,16 +824,16 @@ const ProposalPage = () => {
             {/* Booking form */}
             <div className="card booking">
               <h3 className="card-title trip-gradient-color fontsize40">
-                Child Information & Booking
+                {dict.childInfoBooking}
               </h3>
 
               <div className="form-grid">
                 <div className="form-group">
-                  <label>Parent Name*</label>
+                  <label>{dict.parentNameReq}</label>
                   <input name="txtParentName" className="input" />
                 </div>
                 <div className="form-group">
-                  <label>Parent Phone* (format: 05XXXXXXXX)</label>
+                  <label>{dict.parentPhoneReq}</label>
                   <input
                     name="tripParentsMobileNo"
                     className="input"
@@ -806,7 +852,7 @@ const ProposalPage = () => {
                 <div className="kid-card" key={index}>
                   <div className="form-grid">
                     <div className="form-group">
-                      <label>Child Name*</label>
+                      <label>{dict.childNameReq}</label>
                       <input
                         name="txtKidsName"
                         className="input"
@@ -815,7 +861,7 @@ const ProposalPage = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Grade/Class*</label>
+                      <label>{dict.gradeClassReq}</label>
                       <input
                         name="txtKidsClassName"
                         className="input"
@@ -825,14 +871,29 @@ const ProposalPage = () => {
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label>Child School ID (optional)</label>
-                    <input
-                      name="txtKidsSchoolID"
-                      className="input"
-                      value={row.schoolID}
-                      onChange={(e) => handleInputChange(index, "schoolID", e.target.value)}
-                    />
+                  {/* ➕ Gender select */}
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>{dict.gender}</label>
+                      <select
+                        className="input"
+                        value={row.gender}
+                        onChange={(e) => handleInputChange(index, "gender", e.target.value)}
+                      >
+                        <option value="">{dict.select}</option>
+                        <option value="Male">{dict.male}</option>
+                        <option value="Female">{dict.female}</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>{dict.childSchoolIdOptional}</label>
+                      <input
+                        name="txtKidsSchoolID"
+                        className="input"
+                        value={row.schoolID}
+                        onChange={(e) => handleInputChange(index, "schoolID", e.target.value)}
+                      />
+                    </div>
                   </div>
 
                   {childRows.length > 1 && (
@@ -841,7 +902,7 @@ const ProposalPage = () => {
                       className="btn-remove"
                       onClick={() => handleRemoveRow(index)}
                     >
-                      Remove
+                      {dict.remove}
                     </button>
                   )}
                 </div>
@@ -852,57 +913,55 @@ const ProposalPage = () => {
                   <span className="trip-gradient-color">
                     <div className="row-inline">
                       <img src={icon6} alt="HEROZ" className="icon-tint-pink" />
-                      <span> + Add more child</span>
+                      <span> {dict.addMoreChild}</span>
                     </div>
                   </span>
                 </button>
               </div>
 
               <div className="form-group">
-                <label>Parents Note</label>
+                <label>{dict.parentsNote}</label>
                 <textarea
                   name="txtParentsNote"
                   className="input"
                   rows={4}
-                  placeholder="Please include any medical conditions, allergies, or special requirements"
+                  placeholder={dict.parentsNotePlaceholder}
                 />
               </div>
 
               <div className="terms">
-                <h4>Proposal Message</h4>
-                <div className="terms-text"> 
-  {TripData?.ProposalMessage?.split('\n').map((line, index) => (
-    <React.Fragment key={index}>
-      {line}
-      <br />
-    </React.Fragment>
-  ))}
-</div>
+                <h4>{dict.proposalMessage}</h4>
+                <div className="terms-text">
+                  {TripData?.ProposalMessage?.split('\n').map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
 
-
-             
-
-
-
               <div className="terms">
-                <h4>Vendor Terms & Condition</h4>
-                <div className="terms-text"> {ActivityData?.actAdminNotes?.split('\n').map((line, index) => (
-    <React.Fragment key={index}>
-      {line}
-      <br />
-    </React.Fragment>
-  ))}</div>
+                <h4>{dict.vendorTerms}</h4>
+                <div className="terms-text">
+                  {ActivityData?.actAdminNotes?.split('\n').map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
               <div className="terms">
-                <h4>School Terms & Condition</h4>
-                <div className="terms-text"> {TripData?.SchoolTerms?.split('\n').map((line, index) => (
-    <React.Fragment key={index}>
-      {line}
-      <br />
-    </React.Fragment>
-  ))}
-</div>
+                <h4>{dict.schoolTerms}</h4>
+                <div className="terms-text">
+                  {TripData?.SchoolTerms?.split('\n').map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
             </div>
           </section>
@@ -910,58 +969,41 @@ const ProposalPage = () => {
           {/* Confirm Modal */}
           <CModal visible={confirmOpen} onClose={() => setConfirmOpen(false)} alignment="center">
             <CModalHeader onClose={() => setConfirmOpen(false)}>
-              <CModalTitle>Confirm your selections</CModalTitle>
+              <CModalTitle>{dict.confirmSelections}</CModalTitle>
             </CModalHeader>
             <CModalBody>
               {confirmSummary ? (
                 <div className="confirm-summary">
                   <div style={{ marginBottom: 12 }}>
-                    <strong>Included Food:</strong> {confirmSummary.included}
+                    <strong>{dict.includedFood}</strong> {confirmSummary.included}
                   </div>
 
-                  {/* <div style={{ marginBottom: 12 }}>
-                    <strong>Extra Food:</strong>
-                    {confirmSummary.extras.length === 0 ? (
-                      <div>None</div>
-                    ) : (
-                      <ul style={{ marginTop: 6 }}>
-                        {confirmSummary.extras.map((e) => (
-                          <li key={e.FoodID}>
-                            {e.FoodName} — School {e.FoodSchoolPrice.toFixed(2)}, Vendor{" "}
-                            {e.FoodVendorPrice.toFixed(2)}, Heroz {e.FoodHerozPrice.toFixed(2)} (Total{" "}
-                            {e.Total.toFixed(2)})
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div> */}
-
                   <div style={{ marginBottom: 12 }}>
-                    <strong>Payment Method:</strong> {confirmSummary.paymentLabel}
+                    <strong>{dict.paymentMethod}</strong> {confirmSummary.paymentLabel}
                   </div>
 
                   <div>
-                    <strong>Totals:</strong>
+                    <strong>{dict.totals}</strong>
                     <ul style={{ marginTop: 6 }}>
-                      <li>Base Trip (per student): {confirmSummary.totals.baseTripPerStudent}</li>
-                      <li>Food (per student): {confirmSummary.totals.foodPerStudent}</li>
-                      <li>Grand (per student): {confirmSummary.totals.grandPerStudent}</li>
+                      <li>{dict.baseTripPerStudent}: {confirmSummary.totals.baseTripPerStudent}</li>
+                      <li>{dict.foodPerStudent}: {confirmSummary.totals.foodPerStudent}</li>
+                      <li>{dict.grandPerStudent}: {confirmSummary.totals.grandPerStudent}</li>
                       <li>
-                        Students: {confirmSummary.totals.students} — Net Amount:{" "}
+                        {dict.studentsLabel}: {confirmSummary.totals.students} — {dict.netAmountLabel}:{" "}
                         {confirmSummary.totals.netAmount}
                       </li>
                     </ul>
                   </div>
 
-                  <div style={{ marginTop: 6 }}>Are you sure you want to submit?</div>
+                  <div style={{ marginTop: 6 }}>{dict.areYouSureSubmit}</div>
                 </div>
               ) : (
-                <div>Loading summary…</div>
+                <div>{dict.loadingSummary}</div>
               )}
             </CModalBody>
             <CModalFooter>
               <CButton color="secondary" onClick={() => setConfirmOpen(false)}>
-                Cancel
+                {dict.cancel}
               </CButton>
               <CButton
                 color="primary"
@@ -969,7 +1011,7 @@ const ProposalPage = () => {
                 onClick={submitConfirmed}
                 style={{ backgroundColor: "green" }}
               >
-                {submitting ? "Submitting..." : "Yes, Submit"}
+                {submitting ? dict.submitting : dict.yesSubmit}
               </CButton>
             </CModalFooter>
           </CModal>
@@ -984,13 +1026,13 @@ const ProposalPage = () => {
             </CModalBody>
             <CModalFooter>
               <CButton color="secondary" onClick={() => setErrModalOpen(false)}>
-                Close
+                {dict.close}
               </CButton>
             </CModalFooter>
           </CModal>
         </main>
 
-        <ProgramFooter />
+        <ProgramFooter lang={lang} />
       </div>
     </>
   );
