@@ -5,8 +5,8 @@ import {
   CButton
 } from "@coreui/react";
 
-// ===== Toggle this off after you finish debugging =====
-const DEBUG_MODE = true;
+// ===== Debug disabled per your request =====
+const DEBUG_MODE = false;
 
 // API base + auth headers
 import { API_BASE_URL } from "../../config";
@@ -53,6 +53,50 @@ const Grid = ({ children }) => <div className="grid">{children}</div>;
 
 // ---------- id + map helpers ----------
 const norm = (v) => (v == null ? "" : String(v).trim().toLowerCase());
+
+// ---------- tolerant numeric readers ----------
+const parseNum = (v) => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
+  if (typeof v === "string") {
+    const cleaned = v.replace(/,/g, ".").trim();
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  return NaN;
+};
+
+const numField = (obj, ...keys) => {
+  for (const k of keys) {
+    const v = obj?.[k];
+    const n = parseNum(v);
+    if (Number.isFinite(n)) return n;
+  }
+  if (obj && typeof obj === "object") {
+    const lowerMap = {};
+    for (const ok of Object.keys(obj)) lowerMap[ok.toLowerCase()] = obj[ok];
+    for (const k of keys) {
+      const lk = String(k).toLowerCase();
+      if (lk in lowerMap) {
+        const n = parseNum(lowerMap[lk]);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+  }
+  return 0;
+};
+
+const looseNumberByKey = (obj, ...needleParts) => {
+  if (!obj || typeof obj !== "object") return 0;
+  const parts = needleParts.map(p => String(p).toLowerCase());
+  for (const [rawK, v] of Object.entries(obj)) {
+    const k = String(rawK).replace(/[\s_\-]/g, "").toLowerCase();
+    const hit = parts.every(p => k.includes(p));
+    if (!hit) continue;
+    const n = parseNum(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+};
 
 /**
  * Choose the payments array with this priority:
@@ -128,17 +172,8 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
 
         if (!aborted && Array.isArray(match?.payments) && match.payments.length) {
           setFallbackPayments(match.payments);
-          if (DEBUG_MODE) {
-            // eslint-disable-next-line no-console
-            console.debug("[ViewPaymentModal] fetched fallback payments:", match.payments.length);
-          }
         }
-      } catch (err) {
-        if (DEBUG_MODE) {
-          // eslint-disable-next-line no-console
-          console.debug("[ViewPaymentModal] fallback fetch error:", err?.message || err);
-        }
-      }
+      } catch {}
     }
 
     fetchIfNeeded();
@@ -168,13 +203,59 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
 
   // Food extras list
   const foodExtras = React.useMemo(() => {
-    // support various naming just in case
     return Array.isArray(item?.foodExtras)
       ? item.foodExtras
       : Array.isArray(item?.FoodExtras)
         ? item.FoodExtras
         : [];
   }, [item]);
+
+  // ---------- JSON helpers ----------
+  const prettyJSON = (obj) => {
+    try { return JSON.stringify(obj, null, 2); } catch { return String(obj); }
+  };
+
+  // Compact JSON (for readability in UI)
+  const selectedRecordJSON = React.useMemo(() => {
+    const trimmedFoodExtras = (Array.isArray(item?.foodExtras) ? item.foodExtras
+      : Array.isArray(item?.FoodExtras) ? item.FoodExtras : [])
+      .map(f => ({
+        FoodID: f?.FoodID,
+        FoodName: f?.FoodName,
+        FoodSchoolPrice: f?.FoodSchoolPrice ?? f?.foodSchoolPrice,
+        FoodVendorPrice: f?.FoodVendorPrice ?? f?.foodVendorPrice,
+        FoodHerozPrice: f?.FoodHerozPrice ?? f?.foodHerozPrice,
+      }));
+
+    const trimmedPayments = (Array.isArray(effectivePayments) ? effectivePayments : []).map(p => ({
+      KidsID: p?.KidsID,
+      TripSchoolPrice: p?.TripSchoolPrice ?? p?.tripSchoolPrice,
+      TripVendorCost: p?.TripVendorCost ?? p?.tripVendorCost,
+      TripHerozCost: p?.TripHerozCost ?? p?.tripHerozCost,
+      TripFullAmount: p?.TripFullAmount ?? p?.tripFullAmount,
+      PayStatus: p?.PayStatus ?? p?.payStatus,
+      PayDate: p?.PayDate ?? p?.payDate,
+    }));
+
+    const trimmedKids = (Array.isArray(item?.KidsSumamry) ? item.KidsSumamry : []).map(k => ({
+      KidsID: k?.KidsID,
+      TripKidsName: k?.TripKidsName,
+      tripKidsStatus: k?.tripKidsStatus,
+      CreatedDate: k?.CreatedDate,
+    }));
+
+    return {
+      actRequestRefNo: item?.actRequestRefNo,
+      actName: item?.actName,
+      vdrName: item?.vdrName,
+      actRequestStatus: item?.actRequestStatus,
+      studentSummary: item?.studentSummary ?? null,
+      foodExtras: trimmedFoodExtras,
+      foodExtrasSummary: item?.foodExtrasSummary ?? item?.FoodExtrasSummary ?? null,
+      payments: trimmedPayments,
+      kids: trimmedKids,
+    };
+  }, [item, effectivePayments]);
 
   // ---------- Aggregate profits & totals (All records) ----------
   const aggregates = React.useMemo(() => {
@@ -190,12 +271,12 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
 
     for (const p of effectivePayments) {
       trip.count += 1;
-      trip.fullAmount += Number(p?.TripFullAmount ?? 0);
-      trip.school += Number(p?.TripSchoolPrice ?? 0);
-      trip.vendor += Number(p?.TripVendorCost ?? 0);
-      trip.heroz  += Number(p?.TripHerozCost ?? 0);
-      trip.foodCostOnPayments += Number(p?.TripFoodCost ?? 0);
-      trip.tax += Number(p?.TripTaxAmount ?? 0);
+      trip.fullAmount += numField(p, "TripFullAmount", "tripFullAmount");
+      trip.school += numField(p, "TripSchoolPrice", "tripSchoolPrice");
+      trip.vendor += numField(p, "TripVendorCost", "tripVendorCost");
+      trip.heroz  += numField(p, "TripHerozCost", "tripHerozCost");
+      trip.foodCostOnPayments += numField(p, "TripFoodCost", "tripFoodCost");
+      trip.tax += numField(p, "TripTaxAmount", "tripTaxAmount");
     }
 
     const food = {
@@ -207,9 +288,32 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
 
     for (const f of foodExtras) {
       food.count += 1;
-      food.school += Number(f?.FoodSchoolPrice ?? 0);
-      food.vendor += Number(f?.FoodVendorPrice ?? 0);
-      food.heroz  += Number(f?.FoodHerozPrice ?? 0);
+
+      let s = numField(f, "FoodSchoolPrice", "foodSchoolPrice", "SchoolPrice");
+      let v = numField(f, "FoodVendorPrice", "foodVendorPrice", "VendorPrice");
+      let h = numField(f, "FoodHerozPrice",  "foodHerozPrice",  "HerozPrice");
+
+      if (s === 0) s = looseNumberByKey(f, "food", "school") || looseNumberByKey(f, "school");
+      if (v === 0) v = looseNumberByKey(f, "food", "vendor") || looseNumberByKey(f, "vendor");
+      if (h === 0) h = looseNumberByKey(f, "food", "heroz")  || looseNumberByKey(f, "heroz");
+
+      food.school += s;
+      food.vendor += v;
+      food.heroz  += h;
+    }
+
+    // Fallback to summary totals if we had no rows
+    if (food.count === 0) {
+      const sum = item?.foodExtrasSummary || item?.FoodExtrasSummary;
+      if (sum) {
+        food.count  = numField(sum, "count");
+        food.school += numField(sum, "totalFoodSchoolPrice", "FoodSchoolPrice", "school")
+                    || looseNumberByKey(sum, "food", "school") || looseNumberByKey(sum, "school");
+        food.vendor += numField(sum, "totalFoodVendorPrice", "FoodVendorPrice", "vendor")
+                    || looseNumberByKey(sum, "food", "vendor") || looseNumberByKey(sum, "vendor");
+        food.heroz  += numField(sum, "totalFoodHerozPrice",  "FoodHerozPrice",  "heroz")
+                    || looseNumberByKey(sum, "food", "heroz")  || looseNumberByKey(sum, "heroz");
+      }
     }
 
     const grand = {
@@ -219,7 +323,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
     };
 
     return { trip, food, grand };
-  }, [effectivePayments, foodExtras]);
+  }, [effectivePayments, foodExtras, item]);
 
   // Totals for footer under kids table (e.g., TripFullAmount sum)
   const kidsTotals = React.useMemo(() => {
@@ -232,27 +336,14 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
       const key = norm(k?.KidsID);
       const pay = paymentMap[key];
       if (pay) {
-        totalFull += Number(pay?.TripFullAmount ?? 0);
-        totalSchool += Number(pay?.TripSchoolPrice ?? 0);
-        totalVendor += Number(pay?.TripVendorCost ?? 0);
-        totalHeroz += Number(pay?.TripHerozCost ?? 0);
+        totalFull += numField(pay, "TripFullAmount", "tripFullAmount");
+        totalSchool += numField(pay, "TripSchoolPrice", "tripSchoolPrice");
+        totalVendor += numField(pay, "TripVendorCost", "tripVendorCost");
+        totalHeroz += numField(pay, "TripHerozCost", "tripHerozCost");
       }
     }
     return { totalFull, totalSchool, totalVendor, totalHeroz };
   }, [item, paymentMap]);
-
-  // Debug values
-  if (DEBUG_MODE) {
-    try {
-      console.debug("[ViewPaymentModal] item", { RequestID: item?.RequestID, actRequestRefNo: item?.actRequestRefNo });
-      console.debug("[ViewPaymentModal] paymentsSourceName:", paymentsSourceName);
-      console.debug("[ViewPaymentModal] paymentsSourceRaw.length:", (paymentsSourceRaw || []).length);
-      console.debug("[ViewPaymentModal] fallbackPayments.length:", (fallbackPayments || []).length);
-      console.debug("[ViewPaymentModal] effectivePayments.length:", effectivePayments.length);
-      console.debug("[ViewPaymentModal] paymentMap keys:", Object.keys(paymentMap));
-      console.debug("[ViewPaymentModal] aggregates:", aggregates);
-    } catch {}
-  }
 
   return (
     <CModal visible={visible} onClose={onClose} alignment="center" backdrop="static" className="custom-modal">
@@ -265,6 +356,8 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
           <div className="muted">No record selected.</div>
         ) : (
           <>
+            
+
             {/* ===== Basic Info ===== */}
             <SectionTitle>Basic Info</SectionTitle>
             <Grid>
@@ -295,9 +388,11 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
             {/* ===== Payments Summary ===== */}
             <SectionTitle>Payments Summary</SectionTitle>
             <Grid>
-              <Tile label="Trip profit (Vendor)" value={fmtNum(item?.tripPayment?.totalTripVendorCost)} mono />
-              <Tile label="Food profit (Vendor)" value={fmtNum(item?.foodExtrasSummary?.totalFoodVendorPrice)} mono />
-              <Tile label="Total Trip Profit (Vendor)" value={fmtNum(item?.totalPaymentSummary?.totalVendorTripProfit)} mono />
+              <Tile label="Trip profit (Vendor)" value={fmtMoney(aggregates.trip.vendor)} mono />
+              <Tile label="Food profit (Vendor)" value={fmtMoney(aggregates.food.vendor)} mono />
+              <Tile label="Food profit (School)" value={fmtMoney(aggregates.food.school)} mono />
+              <Tile label="Food profit (Heroz)" value={fmtMoney(aggregates.food.heroz)} mono />
+              <Tile label="Total Trip Profit (Vendor)" value={fmtMoney(aggregates.grand.vendor)} mono />
             </Grid>
 
             {/* ===== Profit Breakdown (All Records) ===== */}
@@ -351,7 +446,6 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                     <CTableHeaderCell>Created</CTableHeaderCell>
                     <CTableHeaderCell>Parent Name</CTableHeaderCell>
                     <CTableHeaderCell>Mobile</CTableHeaderCell>
-                    {DEBUG_MODE && <CTableHeaderCell>DBG</CTableHeaderCell>}
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
@@ -360,19 +454,13 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                     const key = norm(k?.KidsID);
                     const pay = paymentMap[key];
 
-                    if (DEBUG_MODE) {
-                      try {
-                        console.debug(`[ViewPaymentModal] row ${i + 1}`, {
-                          rawKidsID: k?.KidsID, normKey: key, found: !!pay, pay
-                        });
-                      } catch {}
-                    }
-
                     return (
                       <CTableRow key={`${k.KidsID || i}`}>
                         <CTableDataCell>{i + 1}</CTableDataCell>
                         <CTableDataCell className="mono">
-                          {pay?.TripFullAmount !== undefined ? fmtMoney(pay.TripFullAmount) : "-"}
+                          {pay?.TripFullAmount !== undefined || pay?.tripFullAmount !== undefined
+                            ? fmtMoney(numField(pay, "TripFullAmount", "tripFullAmount"))
+                            : "-"}
                         </CTableDataCell>
                         <CTableDataCell className="mono">{k?.TripKidsSchoolNo || "-"}</CTableDataCell>
                         <CTableDataCell>{k?.TripKidsName || "-"}</CTableDataCell>
@@ -384,11 +472,6 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                         <CTableDataCell className="mono">{fmtDateTime(k?.CreatedDate)}</CTableDataCell>
                         <CTableDataCell>{parent?.tripParentsName || "-"}</CTableDataCell>
                         <CTableDataCell className="mono">{parent?.tripParentsMobileNo || "-"}</CTableDataCell>
-                        {DEBUG_MODE && (
-                          <CTableDataCell className="mono">
-                            {pay ? `OK • ${pay.PayStatus || "?"}` : "NO MATCH / NO PAYMENTS"}
-                          </CTableDataCell>
-                        )}
                       </CTableRow>
                     );
                   })}
@@ -406,7 +489,6 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                     <CTableDataCell className="mono">
                       <span className="me-2">Heroz:</span><b>{fmtMoney(kidsTotals.totalHeroz)}</b>
                     </CTableDataCell>
-                    {DEBUG_MODE && <CTableDataCell />}
                   </CTableRow>
                 </CTableBody>
               </CTable>
@@ -433,9 +515,9 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                       <CTableRow key={`${f?.FoodID || i}`}>
                         <CTableDataCell>{i + 1}</CTableDataCell>
                         <CTableDataCell>{f?.FoodName || "-"}</CTableDataCell>
-                        <CTableDataCell className="mono">{fmtMoney(f?.FoodSchoolPrice)}</CTableDataCell>
-                        <CTableDataCell className="mono">{fmtMoney(f?.FoodVendorPrice)}</CTableDataCell>
-                        <CTableDataCell className="mono">{fmtMoney(f?.FoodHerozPrice)}</CTableDataCell>
+                        <CTableDataCell className="mono">{fmtMoney(numField(f, "FoodSchoolPrice", "foodSchoolPrice", "SchoolPrice") || looseNumberByKey(f, "food", "school") || looseNumberByKey(f, "school"))}</CTableDataCell>
+                        <CTableDataCell className="mono">{fmtMoney(numField(f, "FoodVendorPrice", "foodVendorPrice", "VendorPrice") || looseNumberByKey(f, "food", "vendor") || looseNumberByKey(f, "vendor"))}</CTableDataCell>
+                        <CTableDataCell className="mono">{fmtMoney(numField(f, "FoodHerozPrice",  "foodHerozPrice",  "HerozPrice")  || looseNumberByKey(f, "food", "heroz")  || looseNumberByKey(f, "heroz"))}</CTableDataCell>
                       </CTableRow>
                     ))}
                     <CTableRow>

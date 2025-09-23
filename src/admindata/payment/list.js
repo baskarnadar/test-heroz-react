@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   CCard, CCardBody, CButton, CBadge, CAlert, CSpinner,
   CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell,
-  CRow, CCol, CFormSelect, CFormInput,
+  CFormSelect, CFormInput,
   CPagination, CPaginationItem
 } from "@coreui/react";
 import { AppColors } from "../../_shared/colors";
@@ -17,12 +17,9 @@ import ViewPaymentModal from "./viewPayment";
 
 import { API_BASE_URL } from '../../config';
 
-// ---------- tiny inline SVG icons (no dependencies) ----------
+// ---------- tiny inline SVG icons ----------
 const IconCard = ({ size = 16, title = "Pay" }) => (
-  <svg
-    width={size} height={size} viewBox="0 0 24 24" role="img"
-    aria-label={title} focusable="false"
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title} focusable="false">
     <title>{title}</title>
     <rect x="2" y="5" width="20" height="14" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/>
     <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" strokeWidth="2"/>
@@ -31,17 +28,14 @@ const IconCard = ({ size = 16, title = "Pay" }) => (
 );
 
 const IconEye = ({ size = 16, title = "View" }) => (
-  <svg
-    width={size} height={size} viewBox="0 0 24 24" role="img"
-    aria-label={title} focusable="false"
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title} focusable="false">
     <title>{title}</title>
     <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" fill="none" stroke="currentColor" strokeWidth="2"/>
     <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/>
   </svg>
 );
 
-// simple helpers
+// helpers
 const toStr = (v) => (v ?? "").toString();
 const fmtNum = (v) => (Number.isFinite(Number(v)) ? Number(v).toString() : toStr(v));
 const fold = (s) => toStr(s).toLowerCase().trim();
@@ -58,17 +52,11 @@ const useDocDir = () => {
   return dir;
 };
 
-// Small helper to keep text on one line with ellipsis + tooltip
 const Ellipsis = ({ text, width = '22ch', className = '' }) => (
   <div
     className={`text-truncate ${className}`}
     title={text || ''}
-    style={{
-      maxWidth: width,
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-    }}
+    style={{ maxWidth: width, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
   >
     {text || '-'}
   </div>
@@ -96,14 +84,14 @@ const Tile = ({ label, value, mono }) => (
   </div>
 );
 
-// date helper for filters
+// date helper
 const parseYMD = (s) => {
   if (!s) return null;
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 };
 
-// Server → UI
+// Server → UI (normalized for table), PLUS keep the full raw record
 const normalizeItem = (x) => ({
   RequestID: toStr(x.RequestID),
   ActivityID: toStr(x.ActivityID),
@@ -117,40 +105,7 @@ const normalizeItem = (x) => ({
   actRequestDate: toStr(x.actRequestDate),
   actRequestTime: toStr(x.actRequestTime),
 
-  // ✅ Keep payments so the modal can show TripFullAmount by KidsID
-  payments: Array.isArray(x?.payments) ? x.payments.map((p) => ({
-    KidsID: toStr(p?.KidsID),
-    PayTypeID: toStr(p?.PayTypeID),
-    tripPaymentTypeID: toStr(p?.tripPaymentTypeID),
-    TripCost: Number(p?.TripCost ?? 0),
-    TripFoodCost: Number(p?.TripFoodCost ?? 0),
-    TripTaxAmount: Number(p?.TripTaxAmount ?? 0),
-    TripFullAmount: Number(p?.TripFullAmount ?? 0),
-    TripVendorCost: Number(p?.TripVendorCost ?? 0),
-    TripHerozCost: Number(p?.TripHerozCost ?? 0),
-    TripSchoolPrice: Number(p?.TripSchoolPrice ?? 0),
-    CreatedDate: toStr(p?.CreatedDate),
-    PayDate: toStr(p?.PayDate),
-    PayStatus: toStr(p?.PayStatus),
-    MyFatrooahRefNo: toStr(p?.MyFatrooahRefNo),
-  })) : [],
-
-  KidsSumamry: Array.isArray(x?.KidsSumamry) ? x.KidsSumamry.map((k) => ({
-    ParentsID: toStr(k?.ParentsID),
-    KidsID: toStr(k?.KidsID),
-    TripKidsSchoolNo: toStr(k?.TripKidsSchoolNo),
-    TripKidsName: toStr(k?.TripKidsName),
-    tripKidsClassName: toStr(k?.tripKidsClassName),
-    CreatedDate: toStr(k?.CreatedDate),
-    tripKidsStatus: toStr(k?.tripKidsStatus),
-  })) : [],
-  parentsInfo: Array.isArray(x?.parentsInfo) ? x.parentsInfo.map((p) => ({
-    ParentsID: toStr(p?.ParentsID),
-    tripParentsName: toStr(p?.tripParentsName),
-    tripParentsMobileNo: toStr(p?.tripParentsMobileNo),
-    tripParentsNote: toStr(p?.tripParentsNote),
-    CreatedDate: toStr(p?.CreatedDate),
-  })) : [],
+  // minimal numbers for table
   studentSummary: {
     totalStudentPaid: Number(x?.studentSummary?.totalStudentPaid ?? 0),
     totalStudentApproved: Number(x?.studentSummary?.totalStudentApproved ?? 0),
@@ -166,6 +121,9 @@ const normalizeItem = (x) => ({
   totalPaymentSummary: {
     totalVendorTripProfit: Number(x?.totalPaymentSummary?.totalVendorTripProfit ?? 0),
   },
+
+  // 🔴 keep the untouched complete server object
+  __full: x,
 });
 
 const ViewActivityScreen = () => {
@@ -188,7 +146,7 @@ const ViewActivityScreen = () => {
   const [filterStatus, setFilterStatus] = React.useState("");
   const [filterFromDate, setFilterFromDate] = React.useState("");
   const [filterToDate, setFilterToDate] = React.useState("");
-  const [filterQuery, setFilterQuery] = React.useState(""); // 🔎 new free-text search
+  const [filterQuery, setFilterQuery] = React.useState("");
 
   // pagination
   const [pageSize, setPageSize] = React.useState(10);
@@ -329,6 +287,12 @@ const ViewActivityScreen = () => {
 
   const pageSizeOptions = [10, 25, 50, 100];
 
+  // ✅ Build a raw list (complete JSON per record) for the modal
+  const rawAllRequests = React.useMemo(
+    () => items.map(it => it?.__full || it),
+    [items]
+  );
+
   return (
     <div dir={dir} className="vas-container">
       <CCard className="vas-card" style={{ borderColor: AppColors?.onPinkBorderColor || undefined }}>
@@ -339,7 +303,6 @@ const ViewActivityScreen = () => {
               <div className="title-main">Payment Information </div>
             </div>
 
-            {/* Right-side total profit box with rounded corners */}
             <div className="vas-header-right">
               <div className="vas-total-tile tile--xl">
                 <Tile label="Total Profit" value={fmtNum(totalProfitAll)} mono />
@@ -350,9 +313,8 @@ const ViewActivityScreen = () => {
             </div>
           </div>
 
-          {/* Filters row (single line, scroll if narrow) */}
+          {/* Filters row */}
           <div className="d-flex align-items-end gap-2 flex-nowrap overflow-auto mb-3" style={{ paddingBottom: 4 }}>
-            {/* Free-text search */}
             <div style={{ minWidth: 100 }}>
               <CFormInput
                 type="text"
@@ -363,10 +325,7 @@ const ViewActivityScreen = () => {
             </div>
 
             <div style={{ minWidth: 180 }}>
-              <CFormSelect
-                value={filterVendor}
-                onChange={(e) => setFilterVendor(e.target.value)}
-              >
+              <CFormSelect value={filterVendor} onChange={(e) => setFilterVendor(e.target.value)}>
                 <option value="">All Vendors</option>
                 {vendorOptions.map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -393,10 +352,7 @@ const ViewActivityScreen = () => {
             </div>
 
             <div style={{ minWidth: 170 }}>
-              <CFormSelect
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
+              <CFormSelect value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                 <option value="">All Statuses</option>
                 {statusOptions.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -443,7 +399,7 @@ const ViewActivityScreen = () => {
                     <CTableHeaderCell>Ref#</CTableHeaderCell>
                     <CTableHeaderCell className="text-nowrap">Trip Name</CTableHeaderCell>
                     <CTableHeaderCell className="text-nowrap">School</CTableHeaderCell>
-                    <CTableHeaderCell className="text-nowrap">vendor</CTableHeaderCell>
+                    <CTableHeaderCell className="text-nowrap">Vendor</CTableHeaderCell>
                     <CTableHeaderCell className="text-nowrap">Trip Date</CTableHeaderCell>
                     <CTableHeaderCell className="text-nowrap">Time</CTableHeaderCell>
                     <CTableHeaderCell>Status</CTableHeaderCell>
@@ -461,67 +417,35 @@ const ViewActivityScreen = () => {
                     >
                       <CTableDataCell>{startIndex + idx + 1}</CTableDataCell>
                       <CTableDataCell className="mono">{row.actRequestRefNo || "-"}</CTableDataCell>
-
-                      {/* Trip Name (no wrap + ellipsis + tooltip) */}
-                      <CTableDataCell>
-                        <Ellipsis text={row.actName} width="26ch" />
-                      </CTableDataCell>
-
-                      {/* School (no wrap + ellipsis + tooltip) */}
-                      <CTableDataCell>
-                        <Ellipsis text={row.schName} width="24ch" />
-                      </CTableDataCell>
-
-                      {/* vendor (no wrap + ellipsis + tooltip) */}
-                      <CTableDataCell>
-                        <Ellipsis text={row.vdrName} width="20ch" />
-                      </CTableDataCell>
-
-                      {/* NO WRAP for date/time */}
+                      <CTableDataCell><Ellipsis text={row.actName} width="26ch" /></CTableDataCell>
+                      <CTableDataCell><Ellipsis text={row.schName} width="24ch" /></CTableDataCell>
+                      <CTableDataCell><Ellipsis text={row.vdrName} width="20ch" /></CTableDataCell>
                       <CTableDataCell className="mono text-nowrap">{row.actRequestDate || "-"}</CTableDataCell>
                       <CTableDataCell className="mono text-nowrap">{row.actRequestTime || "-"}</CTableDataCell>
-
                       <CTableDataCell>
                         <CBadge className={`status-badge ${statusClassName(row.actRequestStatus)}`}>
                           {row.actRequestStatus}
                         </CBadge>
                       </CTableDataCell>
-                      <CTableDataCell className="mono">
-                        {fmtNum(row.studentSummary.totalStudentApproved)}
-                      </CTableDataCell>
-                      <CTableDataCell className="mono">
-                        {fmtNum(row.totalPaymentSummary.totalVendorTripProfit)}
-                      </CTableDataCell>
+                      <CTableDataCell className="mono">{fmtNum(row.studentSummary.totalStudentApproved)}</CTableDataCell>
+                      <CTableDataCell className="mono">{fmtNum(row.totalPaymentSummary.totalVendorTripProfit)}</CTableDataCell>
 
-                      {/* ACTIONS: force single line, allow horizontal scroll if needed */}
                       <CTableDataCell className="text-nowrap">
                         <div className="d-flex gap-1 flex-nowrap overflow-auto" style={{ maxWidth: '220px' }}>
                           <CButton
-                            size="sm"
-                            color="success"
-                            variant="outline"
-                            title="Pay School"
-                            aria-label="Pay School"
+                            size="sm" color="success" variant="outline" title="Pay School"
                             onClick={(e) => { e.stopPropagation(); setSelected(row); setShowSchPay(true); }}
                           >
                             <IconCard title="Pay School" />
                           </CButton>
                           <CButton
-                            size="sm"
-                            color="primary"
-                            variant="outline"
-                            title="Pay Vendor"
-                            aria-label="Pay Vendor"
+                            size="sm" color="primary" variant="outline" title="Pay Vendor"
                             onClick={(e) => { e.stopPropagation(); setSelected(row); setShowVdrPay(true); }}
                           >
                             <IconCard title="Pay Vendor" />
                           </CButton>
                           <CButton
-                            size="sm"
-                            color="secondary"
-                            variant="outline"
-                            title="View"
-                            aria-label="View"
+                            size="sm" color="secondary" variant="outline" title="View"
                             onClick={(e) => { e.stopPropagation(); openModalFor(row); }}
                           >
                             <IconEye title="View" />
@@ -569,8 +493,10 @@ const ViewActivityScreen = () => {
       <ViewPaymentModal
         visible={showModal}
         onClose={() => setShowModal(false)}
-        item={selected}
-        allRequests={items}  // ✅ give modal the full list as a fallback source
+        // ✅ pass the COMPLETE JSON for the clicked record
+        item={selected?.__full || selected}
+        // ✅ pass the COMPLETE JSON array so the modal can also cross-reference if it needs
+        allRequests={rawAllRequests}
       />
 
       {/* Payment Modals */}
