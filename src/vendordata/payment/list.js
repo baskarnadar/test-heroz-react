@@ -1,4 +1,4 @@
-// src/vendordata/activityinfo/activity/ViewActivityScreen.jsx
+// src/vendordata/activityinfo/activity/ViewActivityScreen.js
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {

@@ -1,4 +1,4 @@
-// src/pages/dashboard/Dashboard.jsx
+// src/pages/dashboard/Dashboard.js
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IsUserAccessPage } from '../../utils/auth'

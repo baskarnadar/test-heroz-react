@@ -1,4 +1,4 @@
-// src/pages/vendor/ActivityRequestList.jsx
+// src/pages/vendor/ActivityRequestList.js
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {

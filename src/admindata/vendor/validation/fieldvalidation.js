@@ -1,7 +1,7 @@
 // src/admindata/vendor/validation/fieldvalidation.js
 
 // === Keep your other helpers (regex/time validators) if you already have them ===
-// The key functions referenced by VendorEdit.jsx are findIncompleteRange, hasOverlap, buildOpeningHoursPayload.
+// The key functions referenced by VendorEdit.js  are findIncompleteRange, hasOverlap, buildOpeningHoursPayload.
 
 // Example minimal stubs (replace with your existing real ones if you have them):
 export const findIncompleteRange = (days) => {

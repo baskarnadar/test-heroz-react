@@ -1,4 +1,4 @@
-// src/pages/admin/VendorEdit.jsx
+// src/pages/admin/VendorEdit.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';

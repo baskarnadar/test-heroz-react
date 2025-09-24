@@ -1,4 +1,4 @@
-// src/vendordata/activityinfo/activity/SchVdrPayment.jsx
+// src/vendordata/activityinfo/activity/SchVdrPayment.js
 // VENDOR-ONLY modal (uses PaySection='VENDOR')
 
 import { API_BASE_URL } from '../../config'

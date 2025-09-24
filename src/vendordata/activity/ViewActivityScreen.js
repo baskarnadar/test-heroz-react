@@ -1,4 +1,4 @@
-// src/vendordata/activityinfo/activity/ViewActivityScreen.jsx
+// src/vendordata/activityinfo/activity/ViewActivityScreen.js
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {

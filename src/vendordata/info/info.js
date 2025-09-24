@@ -1,4 +1,4 @@
-// src/pages/vendor/VendorInfoPage.jsx
+// src/pages/vendor/VendorInfoPage.js
 import React, { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../../config'
 import { getAuthHeaders, getCurrentLoggedUserID } from '../../utils/operation'

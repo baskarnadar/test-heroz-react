@@ -1,4 +1,4 @@
-// src/pages/admin/AgreementForm.jsx
+// src/pages/admin/AgreementForm.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkLogin } from '../../utils/auth';

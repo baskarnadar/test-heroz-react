@@ -1,4 +1,4 @@
-// src/pages/admin/Vendor.jsx
+// src/pages/admin/Vendor.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 // import Select from 'react-select'
