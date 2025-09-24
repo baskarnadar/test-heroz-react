@@ -4,10 +4,30 @@ import PrgHeader from "../public/Prgheader";
 import "../scss/payment.css";
 import { API_BASE_URL } from "../config";
 
+// 🔤 i18n packs
+import enPack from "../i18n/enlangpack.json";
+import arPack from "../i18n/arlangpack.json";
+
 const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPayFail`;
 const DEBUG = false; // keep UI clean
 
 const PayFailPage = () => {
+  // Resolve language from localStorage (default Arabic, matching the rest of the app)
+  const lang = useMemo(() => {
+    const v = localStorage.getItem("heroz_lang");
+    if (v === "ar" || v === "en") return v;
+    localStorage.setItem("heroz_lang", "ar");
+    return "ar";
+  }, []);
+  const dict = lang === "ar" ? arPack : enPack;
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
+  // Keep <html> in sync
+  useEffect(() => {
+    document.documentElement.setAttribute("dir", dir);
+    document.documentElement.setAttribute("lang", lang);
+  }, [dir, lang]);
+
   // Read URL params (exact casing): ?paymentId=...&id=...
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const urlPaymentId = useMemo(() => params.get("paymentId") || "", [params]);
@@ -44,7 +64,7 @@ const PayFailPage = () => {
 
         const resp = await fetch(API_URL, {
           method: "POST",
-        headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(reqBody),
         });
 
@@ -65,7 +85,7 @@ const PayFailPage = () => {
   }, [payload, urlId]);
 
   return (
-    <div className="bodyimg">
+    <div className="bodyimg" dir={dir}>
       <PrgHeader />
 
       <section className="trip-info" style={{ paddingTop: 50, textAlign: "center" }}>
@@ -89,7 +109,9 @@ const PayFailPage = () => {
               textAlign: "center",
             }}
           >
-          <h1 style={{ margin: 0, color: "#b91c1c" }}>We are sorry.</h1>
+            <h1 style={{ margin: 0, color: "#b91c1c" }}>
+              {dict.payFailSorryTitle || "We are sorry."}
+            </h1>
 
             {/* 🔴 Failure message */}
             <h2
@@ -100,14 +122,14 @@ const PayFailPage = () => {
                 fontWeight: "bold",
               }}
             >
-              Your payment could not be completed
+              {dict.payFailMainTitle || "Your payment could not be completed"}
             </h2>
 
             {/* 🔹 Reference Number (shown only if available) */}
             {payload.PayRefNo && (
               <div
                 role="group"
-                aria-label="Reference number"
+                aria-label={dict.payFailRefGroupAria || "Reference number"}
                 style={{
                   marginTop: 10,
                   display: "inline-flex",
@@ -122,7 +144,9 @@ const PayFailPage = () => {
                     "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
                 }}
               >
-                <span style={{ opacity: 0.85 }}>Reference No:</span>
+                <span style={{ opacity: 0.85 }}>
+                  {dict.payFailRefLabel || "Reference No:"}
+                </span>
                 <strong>{payload.PayRefNo}</strong>
               </div>
             )}

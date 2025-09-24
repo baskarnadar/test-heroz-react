@@ -1071,3 +1071,17 @@ label {
 
 }
 }
+
+.ltr-phone-number {
+  direction: ltr !important;
+}
+.phone-label {
+  direction: rtl;
+  display: inline-block;
+  margin-right: 6px; /* space between label and number */
+}
+
+.phone-number {
+  direction: ltr !important;
+  display: inline-block;
+}

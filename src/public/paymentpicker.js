@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { API_BASE_URL } from "../config";
+import enPack from "../i18n/enlangpack.json";
+import arPack from "../i18n/arlangpack.json";
 /**
  * Props:
  * - amount:          number|string (required) — comes from parent
@@ -9,6 +11,7 @@ import { API_BASE_URL } from "../config";
  * - currency:        string (default "SAR")
  * - onSelect:        function(PaymentMethodId, methodObj) => void
  * - autoFetch:       boolean — auto fetch on mount & when inputs change (default true)
+ * - lang:            "ar" | "en"  (optional)
  */
 
 const ALLOWED_METHOD_IDS = [11, 2, 14, 6]; // Apple Pay, VISA/MASTER, STC Pay, MADA — in this order
@@ -19,7 +22,11 @@ export default function PaymentMethodPicker({
   currency = "SAR",
   onSelect,
   autoFetch = true,
+  lang = "en",
 }) {
+  const dict = lang === "ar" ? arPack : enPack;
+  const isArabic = lang === "ar";
+
   const [methods, setMethods] = useState([]);
   const [selected, setSelected] = useState(null);
   const [err, setErr] = useState("");
@@ -59,7 +66,7 @@ export default function PaymentMethodPicker({
     try {
       const r = await fetch(`${API_BASE_URL}/myfatrooahdata/pay/initiate-payment`, {
         method: "POST",
-     headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: Number(amount) || 0,
           currency,
@@ -82,7 +89,7 @@ export default function PaymentMethodPicker({
       const filtered = filterAndOrder(all);
 
       if (!filtered.length) {
-        setErr("No allowed payment methods (Apple Pay, VISA/MASTER, STC Pay, MADA) were returned for this amount/currency.");
+        setErr(dict.noMethods || "No allowed payment methods (Apple Pay, VISA/MASTER, STC Pay, MADA) were returned for this amount/currency.");
         setMethods([]);
         return;
       }
@@ -106,7 +113,7 @@ export default function PaymentMethodPicker({
 
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt < 0) {
-      setErr("Amount is invalid.");
+      setErr(dict.errInvalidAmount || "Amount is invalid.");
       setMethods([]);
       setSelected(null);
       return;
@@ -127,45 +134,49 @@ export default function PaymentMethodPicker({
       {/* Status */}
       {loading && (
         <div style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}>
-          Loading payment methods…
+          {dict.loadingPaymentMethods || dict.loadingSummary || "Loading payment methods…"}
         </div>
       )}
 
       {/* List & choose */}
       <div>
-        <strong>Choose method:</strong>
+        <strong>{dict.ar_choose_method || "Choose method:"}</strong>
         <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-          {methods.map((m) => (
-            <label
-              key={m.PaymentMethodId}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: 10,
-                borderRadius: 8,
-                border: selected === m.PaymentMethodId ? "2px solid #1976d2" : "1px solid #ccc",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="radio"
-                name="mf-method"
-                checked={selected === m.PaymentMethodId}
-                onChange={() => choose(m)}
-              />
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span>{m.PaymentMethodEn} ({m.PaymentMethodId})</span>
-                {m.PaymentMethodAr && (
-                  <small style={{ color: "#555" }}>{m.PaymentMethodAr}</small>
-                )}
-              </div>
-            </label>
-          ))}
+          {methods.map((m) => {
+            const primaryName = isArabic ? (m.PaymentMethodAr || m.PaymentMethodEn) : (m.PaymentMethodEn || m.PaymentMethodAr);
+            const secondaryName = isArabic ? m.PaymentMethodEn : m.PaymentMethodAr;
+            return (
+              <label
+                key={m.PaymentMethodId}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: 10,
+                  borderRadius: 8,
+                  border: selected === m.PaymentMethodId ? "2px solid #1976d2" : "1px solid #ccc",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="mf-method"
+                  checked={selected === m.PaymentMethodId}
+                  onChange={() => choose(m)}
+                />
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span>{primaryName} ({m.PaymentMethodId})</span>
+                  {secondaryName && (
+                    <small style={{ color: "#555" }}>{secondaryName}</small>
+                  )}
+                </div>
+              </label>
+            );
+          })}
 
           {!loading && !methods.length && !err && (
             <div style={{ color: "#666" }}>
-              No methods available.
+              {dict.noMethods || "No methods available."}
             </div>
           )}
         </div>
@@ -179,7 +190,7 @@ export default function PaymentMethodPicker({
           padding: 10,
           borderRadius: 8
         }}>
-          <strong>Error:</strong> {err}
+          <strong>{(dict.errorTitle || "Error")}:</strong> {err}
         </div>
       )}
     </div>
@@ -192,4 +203,5 @@ PaymentMethodPicker.propTypes = {
   currency: PropTypes.string,
   onSelect: PropTypes.func,
   autoFetch: PropTypes.bool,
+  lang: PropTypes.string, // optional: "ar" | "en"
 };

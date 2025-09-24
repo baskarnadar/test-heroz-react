@@ -96,26 +96,7 @@ const PrgSchHeader = ({
             )}
           </div>
 
-          {/* (Optional) tiny lang toggle for demo/testing */}
-          <button
-            type="button"
-            className="btn-join"
-            onClick={handleToggleLang}
-            style={{
-              position: "absolute",
-              top: 12,
-              [isArabic ? "left" : "right"]: 12,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              paddingInline: 12,
-            }}
-            aria-label={isArabic ? dict.langToggleLabelEn : dict.langToggleLabelAr}
-            title={isArabic ? dict.langToggleLabelEn : dict.langToggleLabelAr}
-          >
-            <span role="img" aria-hidden>🌐</span>
-            <span>{isArabic ? dict.langShortEN : dict.langShortAR}</span>
-          </button>
+            
         </header>
       </div>
 

@@ -4,8 +4,18 @@ import PrgHeader from "../public/Prgheader";
 import "../scss/payment.css";
 import { API_BASE_URL } from "../config";
 
+// 🔤 i18n packs
+import enPack from "../i18n/enlangpack.json";
+import arPack from "../i18n/arlangpack.json";
+
 const API_URL = `${API_BASE_URL}/commondata/payment/UpdateParentsPaySuccess`;
 const DEBUG = true; // only used to log the API response
+
+// Small helper to read current dict anywhere in this file (incl. non-React functions)
+const getI18nDict = () => {
+  const v = localStorage.getItem("heroz_lang");
+  return v === "ar" ? arPack : enPack;
+};
 
 // ✅ Success icon
 const SuccessIcon = ({
@@ -13,10 +23,24 @@ const SuccessIcon = ({
   stroke = "#22c55e",
   fill = "rgba(34,197,94,0.08)",
   strokeWidth = 2,
+  ariaLabel, // i18n from caller
 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Payment successful">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    role="img"
+    aria-label={ariaLabel || "Payment successful"}
+  >
     <circle cx="12" cy="12" r="10" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-    <path d="M7 12.5l3 3 7-7" fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M7 12.5l3 3 7-7"
+      fill="none"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -35,11 +59,13 @@ const Spinner = () => (
 );
 const spinnerStyle = `@keyframes spin { to { transform: rotate(360deg); } }`;
 
-// ✅ Copy helper
+// ✅ Copy helper (i18n inside; keeps your function shape)
 async function copyText(txt) {
+  const dict = getI18nDict();
+  const copiedMsg = dict.commonCopied || "Copied!";
   try {
     await navigator.clipboard.writeText(txt);
-    alert("Copied!");
+    alert(copiedMsg);
   } catch {
     const ta = document.createElement("textarea");
     ta.value = txt;
@@ -47,12 +73,12 @@ async function copyText(txt) {
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
-    alert("Copied!");
+    alert(copiedMsg);
   }
 }
 
 // ✅ PayRefNo badge
-const RefBadge = ({ label = "PayRefNo", value }) => {
+const RefBadge = ({ label = "PayRefNo", value, copyLabel = "Copy." }) => {
   if (!value) return null;
   return (
     <div
@@ -85,13 +111,29 @@ const RefBadge = ({ label = "PayRefNo", value }) => {
           cursor: "pointer",
         }}
       >
-        Copy.
+        {copyLabel}
       </button>
     </div>
   );
 };
 
 const PaySuccessPage = () => {
+  // Resolve language (default to Arabic, matching the rest of the app’s default)
+  const lang = useMemo(() => {
+    const v = localStorage.getItem("heroz_lang");
+    if (v === "ar" || v === "en") return v;
+    localStorage.setItem("heroz_lang", "ar");
+    return "ar";
+  }, []);
+  const dict = lang === "ar" ? arPack : enPack;
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
+  // Keep <html> in sync
+  useEffect(() => {
+    document.documentElement.setAttribute("dir", dir);
+    document.documentElement.setAttribute("lang", lang);
+  }, [dir, lang]);
+
   // Read URL params (exact casing): ?paymentId=...&id=...
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const urlPaymentId = useMemo(() => params.get("paymentId") || "", [params]);
@@ -121,7 +163,10 @@ const PaySuccessPage = () => {
   const callApi = async () => {
     if (!payload.PaymentID || !payload.PayRefNo) {
       setStatus("error");
-      setMessage("Missing paymentId or id in the URL (and no PayRefNo in localStorage).");
+      setMessage(
+        dict.paySuccessMissingParams ||
+          "Missing paymentId or id in the URL (and no PayRefNo in localStorage)."
+      );
       return;
     }
 
@@ -137,9 +182,9 @@ const PaySuccessPage = () => {
 
       const resp = await fetch(API_URL, {
         method: "POST",
-       headers: {
-    "Content-Type": "application/json",
-  },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(reqBody),
       });
 
@@ -163,19 +208,25 @@ const PaySuccessPage = () => {
 
       if (!resp.ok || data?.error) {
         setStatus("error");
-        setMessage(data?.message || "Failed to update payment status.");
+        setMessage(
+          data?.message || dict.paySuccessFailedUpdate || "Failed to update payment status."
+        );
         return;
       }
 
       // ✅ Success
       setStatus("success");
-      setMessage(data?.message || "Payment marked as APPROVED.");
+      setMessage(
+        data?.message || dict.paySuccessApprovedFallback || "Payment marked as APPROVED."
+      );
 
       // Optional: clear PayRefNo after confirmed success
       // if (data?.statusCode === 200) localStorage.removeItem("PayRefNo");
     } catch {
       setStatus("error");
-      setMessage("Network or server error while updating payment status.");
+      setMessage(
+        dict.paySuccessNetworkError || "Network or server error while updating payment status."
+      );
     }
   };
 
@@ -188,7 +239,7 @@ const PaySuccessPage = () => {
   return (
     <>
       <style>{spinnerStyle}</style>
-      <div className="bodyimg">
+      <div className="bodyimg" dir={dir}>
         <PrgHeader />
 
         <section className="trip-info" style={{ paddingTop: 50, textAlign: "center" }}>
@@ -218,21 +269,26 @@ const PaySuccessPage = () => {
                 maxWidth: 720,
               }}
             >
-              <h1 style={{ margin: 0 }}>Thank you.</h1>
+              <h1 style={{ margin: 0 }}>
+                {dict.paySuccessThanksTitle || "Thank you."}
+              </h1>
 
               {/* PayRefNo badge */}
               <div style={{ marginTop: 10 }}>
-                <RefBadge label="Payment Ref No" value={payload.PayRefNo} />
+                <RefBadge
+                  label={dict.paySuccessRefLabel || "Payment Ref No"}
+                  value={payload.PayRefNo}
+                  copyLabel={dict.commonCopyButtonLabel || "Copy."}
+                />
               </div>
 
-              {/* Values panel (keeping for clarity; not a console debug) */}
+              {/* Values panel (kept; just hidden text) */}
               <div
                 style={{
                   fontSize: 13,
                   opacity: 0.9,
                   marginTop: 20,
                   padding: "10px 14px",
-                  
                   borderRadius: 8,
                   background: "#f9f9f9",
                   width: "100%",
@@ -240,22 +296,18 @@ const PaySuccessPage = () => {
                   textAlign: "left",
                 }}
               >
-                {/* <h4 style={{ marginTop: 0 }}>🔍 Detected Values</h4>
-                <div><strong>Query Param - paymentId:</strong> {urlPaymentId || "-"}</div>
-                <div><strong>Query Param - id:</strong> {urlId || "-"}</div>
-                <div><strong>LocalStorage PayRefNo:</strong> {lsPayRefNo || "-"}</div>
-                <div><strong>Payload.PayRefNo (final):</strong> {payload.PayRefNo || "-"}</div>
-                <div><strong>Payload.PaymentID (final):</strong> {payload.PaymentID || "-"}</div> */}
+                {/* (intentionally blank to keep your structure) */}
               </div>
 
               {status === "loading" && (
                 <>
                   <h2 className="trip-gradient-title" style={{ margin: 0 }}>
-                    Confirming your payment…
+                    {dict.paySuccessConfirmingTitle || "Confirming your payment…"}
                   </h2>
                   <Spinner />
                   <p style={{ opacity: 0.8, marginTop: 8 }}>
-                    Please wait while we update your payment status.
+                    {dict.paySuccessConfirmingSub ||
+                      "Please wait while we update your payment status."}
                   </p>
                 </>
               )}
@@ -263,15 +315,15 @@ const PaySuccessPage = () => {
               {status === "success" && (
                 <>
                   <h2
-  className="trip-gradient-title"
-  style={{ margin: 0, color: "#22c55e" }} // ✅ Tailwind's green-500 hex
->
-  Your payment has been successfully completed
-</h2>
+                    className="trip-gradient-title"
+                    style={{ margin: 0, color: "#22c55e" }} // ✅ Tailwind's green-500 hex
+                  >
+                    {dict.paySuccessMainTitle || "Your payment has been successfully completed"}
+                  </h2>
 
-                  <SuccessIcon size={64} />
+                  <SuccessIcon size={64} ariaLabel={dict.paySuccessIconAria || "Payment successful"} />
                   <p style={{ opacity: 0.9 }}>
-                    {message || "Payment marked as APPROVED."}
+                    {message || dict.paySuccessApprovedFallback || "Payment marked as APPROVED."}
                   </p>
                 </>
               )}
@@ -279,7 +331,7 @@ const PaySuccessPage = () => {
               {status === "error" && (
                 <>
                   <h2 className="trip-gradient-title" style={{ margin: 0 }}>
-                    We couldn’t confirm the payment
+                    {dict.paySuccessCouldNotConfirmTitle || "We couldn’t confirm the payment"}
                   </h2>
                   <p style={{ color: "#b91c1c", marginTop: 6 }}>{message}</p>
                   <button
@@ -293,39 +345,15 @@ const PaySuccessPage = () => {
                       cursor: "pointer",
                     }}
                   >
-                    Retry
+                    {dict.paySuccessRetryBtn || "Retry"}
                   </button>
                 </>
               )}
 
-           {/*
-  API summary
-  {apiResponse && (
-    <div
-      style={{
-        fontSize: 13,
-        opacity: 0.7,
-        marginTop: 12,
-        lineHeight: 1.4,
-        wordBreak: "break-word",
-      }}
-    >
-      <div>
-        <strong>API statusCode:</strong> {apiResponse.statusCode}
-      </div>
-      <div>
-        <strong>API message:</strong> {apiResponse.message}
-      </div>
-      {apiResponse?.data?.requestPayload && (
-        <div style={{ marginTop: 6 }}>
-          <strong>Echoed requestPayload:</strong>{" "}
-          <code>{JSON.stringify(apiResponse.data.requestPayload)}</code>
-        </div>
-      )}
-    </div>
-  )}
-*/}
-
+              {/*
+                API summary (kept commented out)
+                {apiResponse && (...)}
+              */}
             </main>
           </div>
         </section>

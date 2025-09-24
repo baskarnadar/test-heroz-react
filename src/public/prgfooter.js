@@ -50,9 +50,13 @@ const ProgramFooter = ({ className = "", lang = "en" }) => {
               <strong>{dict.customerSupport}</strong>{" "}
               <a href="mailto:Herozapp1@gmail.com">Herozapp1@gmail.com</a>
             </li>
-            <li>
-              <strong>{dict.phoneNumber}</strong> +966 548066660
-            </li>
+          <li >
+  
+   <span className="phone-label"> {dict.phoneNumber}   </span>
+ 
+<span className="phone-number">+966548066660</span>
+ 
+</li>
             <li>
               <strong>{dict.headquarters}</strong> {dict.headquartersAddress}
             </li>

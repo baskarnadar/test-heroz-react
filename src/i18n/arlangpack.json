@@ -40,7 +40,7 @@
   "parentPhoneReq": "هاتف ولي الأمر* (الصيغة: 05XXXXXXXX)",
   "childNameReq": "اسم الطفل*",
   "gradeClassReq": "الصف/الفصل*",
-  "gender": "الجنس",
+  "gender": "النوع",
   "select": "اختر",
   "male": "ذكر",
   "female": "أنثى",
@@ -102,5 +102,28 @@
   "heroTripTitle": "أبناءكم مدعون لرحلة مدرسية ليست فقط للترفيه، بل لبناء مهارات ، توسيع مدارك و صنع ذكريات",
   "introReviewAndBook": " امنح أبناءك فرصة المشاركة في رحلة {name} المدرسية",
   "noImages": "لا توجد صور",
-  "activityImageAlt": "صورة الفعالية"
+  "activityImageAlt": "صورة الفعالية",
+  "loadingPaymentMethods": "جارٍ تحميل طرق الدفع…", 
+  "ar_choose_method": "اختر الطريقة:",
+  "payFailSorryTitle": "نأسف",
+  "payFailMainTitle": "تعذّر إتمام عملية الدفع",
+  "payFailRefGroupAria": "رقم المرجع",
+  "payFailRefLabel": "رقم المرجع:",
+
+  "paySuccessThanksTitle": "شكرًا لك.",
+  "paySuccessRefLabel": "رقم مرجع الدفع",
+  "commonCopyButtonLabel": "نسخ.",
+  "commonCopied": "تم النسخ!",
+  "paySuccessConfirmingTitle": "جارٍ تأكيد عملية الدفع…",
+  "paySuccessConfirmingSub": "الرجاء الانتظار بينما نقوم بتحديث حالة الدفع.",
+  "paySuccessMainTitle": "تم إتمام عملية الدفع بنجاح",
+  "paySuccessIconAria": "تم الدفع بنجاح",
+  "paySuccessApprovedFallback": "تم تأكيد الدفع (APPROVED).",
+  "paySuccessCouldNotConfirmTitle": "تعذر تأكيد عملية الدفع",
+  "paySuccessRetryBtn": "إعادة المحاولة",
+  "paySuccessMissingParams": "المعامل paymentId أو id مفقود في الرابط (ولا يوجد PayRefNo في التخزين المحلي).",
+  "paySuccessFailedUpdate": "فشل في تحديث حالة الدفع.",
+  "paySuccessNetworkError": "حدث خطأ في الشبكة أو الخادم أثناء تحديث حالة الدفع."
+ 
+   
 }

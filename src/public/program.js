@@ -18,6 +18,7 @@ import PrgHeader from "/src/public/Prgheader";
 import PrgSchHeader from "/src/public/prgschheader";
 import PaymentMethodPicker from "./paymentpicker";
 import { executeMyFatoorahPayment } from "./payexcute";
+import TripCostZero from "./tripcostzero";
 
 import "../scss/payment.css";
 import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
@@ -104,6 +105,9 @@ const ProposalPage = () => {
   const [confirmSummary, setConfirmSummary] = useState(null);
   const [pendingPayload, setPendingPayload] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Zero-cost modal
+  const [showZeroCostModal, setShowZeroCostModal] = useState(false);
 
   // 🌐 toggle language
   const toggleLang = () => {
@@ -373,15 +377,25 @@ const ProposalPage = () => {
     return Number((grandTotalWithTax * count).toFixed(2));
   }, [grandTotalWithTax, validKidsCount]);
 
-  // ======= AUTO-REDIRECT if trip cost is zero =======
+  // ======= AUTO-MODAL if trip cost is zero or less (no immediate redirect) =======
   useEffect(() => {
     if (!loading && ActivityData) {
       const perStudent = Number(grandTotalWithTax) || 0;
       if (perStudent <= 0 || paymentAmount <= 0) {
-        window.location.href = PAYERROR_URL;
+        setShowZeroCostModal(true); // ✅ open modal automatically
       }
     }
   }, [loading, ActivityData, grandTotalWithTax, paymentAmount]);
+
+  // ✅ EXTRA: also open automatically if *base* trip cost itself is zero/less
+  useEffect(() => {
+    if (!loading && ActivityData) {
+      const baseTrip = Number(priceTotal) || 0;
+      if (baseTrip <= 0) {
+        setShowZeroCostModal(true);
+      }
+    }
+  }, [loading, ActivityData, priceTotal]);
 
   // ---------- Build selection summary & payload ----------
   const buildSelectionSummaryAndPayload = () => {
@@ -533,9 +547,15 @@ const ProposalPage = () => {
       return;
     }
 
+    // ✅ EXTRA: block & open modal when base trip cost is zero/less
+    if ((Number(priceTotal) || 0) <= 0) {
+      setShowZeroCostModal(true);
+      return;
+    }
+
     const perStudent = Number(grandTotalWithTax) || 0;
     if (perStudent <= 0 || paymentAmount <= 0) {
-      window.location.href = PAYERROR_URL;
+      setShowZeroCostModal(true); // ✅ show modal instead of redirecting immediately
       return;
     }
 
@@ -818,6 +838,7 @@ const ProposalPage = () => {
                   currency="SAR"
                   onSelect={(id, method) => setSelectedMethodId(id)}
                   autoFetch
+                  lang={lang}
                 />
               </div>
 
@@ -1040,6 +1061,18 @@ const ProposalPage = () => {
               </CButton>
             </CModalFooter>
           </CModal>
+
+          {/* Zero/negative trip cost modal (auto-redirects after Xs) */}
+          <TripCostZero
+            visible={showZeroCostModal}
+            seconds={30}
+            url={PAYERROR_URL}
+            lang={lang}
+            onClose={() => {
+              setShowZeroCostModal(false);
+              window.location.href = PAYERROR_URL;
+            }}
+          />
         </main>
 
         <ProgramFooter lang={lang} />
