@@ -9,9 +9,9 @@ const ActivityModify = React.lazy(() => import('./vendordata/activityinfo/activi
 const ActivityView = React.lazy(() => import('./vendordata/activityinfo/activity/view'))
 
 // ✅ Vendor Activity screen
-const ViewActivityScreen = React.lazy(() => import('./vendordata/activity/ViewActivityScreen.jsx'))
-const ActivityRequestList = React.lazy(() => import('./vendordata/actrequest/ActReqList.jsx'))
-const ActivityRequestInfo = React.lazy(() => import('./vendordata/actrequest/ActReqInfo.jsx'))
+const ViewActivityScreen = React.lazy(() => import('./vendordata/activity/ViewActivityScreen.js'))
+const ActivityRequestList = React.lazy(() => import('./vendordata/actrequest/ActReqList.js'))
+const ActivityRequestInfo = React.lazy(() => import('./vendordata/actrequest/ActReqInfo.js'))
  const PaymentList = React.lazy(() => import('./vendordata/payment/list.js'))
 const VendorInfoPage = React.lazy(() => import('./vendordata/info/info'))
 const VendordataNoteList = React.lazy(() => import('./vendordata/note/list'))
