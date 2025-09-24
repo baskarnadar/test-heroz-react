@@ -68,6 +68,7 @@
   "yesSubmit": "Yes, Submit",
   "submitting": "Submitting....",
   "close": "Close",
+
   "brandHomeAria": "Heroz Home",
   "ariaToggleNav": "Toggle navigation",
   "navAbout": "About",
@@ -81,6 +82,7 @@
   "english": "English",
   "arabic": "Arabic",
   "brandName": "Heroz",
+
   "footerTagline": "Discover the hero in every student",
   "contactInfo": "Contact Information",
   "customerSupport": "Customer Support:",
@@ -95,5 +97,11 @@
   "support": "Support",
   "privacy": "Privacy",
   "terms": "Terms Of Service",
-  "copyright": "Copyright © Heroz {year}"
+  "copyright": "Copyright © Heroz {year}",
+
+ 
+  "heroTripTitle": "Here’s where your child will go",
+  "introReviewAndBook": "Review and book {name} school trip",
+  "noImages": "No images",
+  "activityImageAlt": "Activity image"
 }

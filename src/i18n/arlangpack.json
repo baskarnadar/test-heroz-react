@@ -68,10 +68,11 @@
   "yesSubmit": "نعم، إرسال",
   "submitting": "جارٍ الإرسال...",
   "close": "إغلاق",
+
   "brandHomeAria": "الصفحة الرئيسية لهيروز",
   "ariaToggleNav": "تبديل القائمة",
   "navAbout": "من نحن",
-  "navProviders": "مقدمو خدماتنا",
+  "navProviders": "مقدموا خدماتنا",
   "navSchools": "هيروز للمدارس",
   "navJoinProvider": "انضم كمقدم خدمة",
   "langToggleLabelEn": "التبديل إلى الإنجليزية",
@@ -81,7 +82,7 @@
   "english": "الإنجليزية",
   "arabic": "العربية",
   "brandName": "هيروز",
- 
+
   "footerTagline": "اكتشف البطل داخل طفلك",
   "contactInfo": "معلومات الاتصال",
   "customerSupport": "دعم العملاء:",
@@ -92,11 +93,14 @@
   "taxId": "الرقم الضريبي:",
   "company": "الشركة",
   "aboutUs": "من نحن",
-  "contactUs": "اتصل بنا",
+  "contactUs": "تواصل معنا",
   "support": "الدعم",
   "privacy": "الخصوصية",
   "terms": "شروط الخدمة",
-  "copyright": "حقوق الطبع والنشر © هيروز {year}"
-
-
+  "copyright": "حقوق الطبع والنشر © هيروز {year}",
+ 
+  "heroTripTitle": "أبناءكم مدعون لرحلة مدرسية ليست فقط للترفيه، بل لبناء مهارات ، توسيع مدارك و صنع ذكريات",
+  "introReviewAndBook": " امنح أبناءك فرصة المشاركة في رحلة {name} المدرسية",
+  "noImages": "لا توجد صور",
+  "activityImageAlt": "صورة الفعالية"
 }
