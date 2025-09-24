@@ -2,9 +2,6 @@ import React from "react";
 import { CCarousel, CCarouselItem } from "@coreui/react";
 import logo from "../assets/logo/default.png"; // adjust path if needed
 
-/* ✅ Import the custom CSS here */
-import "../scss/arabic-font.css";
-
 /**
  * Props:
  * - schImageNameUrl: string | null
@@ -17,7 +14,7 @@ import "../scss/arabic-font.css";
  */
 const PrgSchHeader = ({
   schImageNameUrl,
-  schName = "المدرسة",
+  schName = "School",
   schAddress1 = "",
   schAddress2 = "",
   activityName = "",
@@ -25,19 +22,18 @@ const PrgSchHeader = ({
   carouselInterval = 5000,
 }) => {
   return (
-    /* ✅ Arabic defaults + RTL direction */
-    <div className="use-arabic-font" dir="rtl">
+    <>
       {/* Hero */}
       <div className="hero-frame">
         <header className="hero">
           <img
             src={schImageNameUrl || logo}
-            alt={schName || "المدرسة"}
+            alt={schName || "School"}
             className="hero-img"
           />
           <div className="hero-overlay" />
           <div className="hero-content">
-            <h1 className="hero-title">{schName || "المدرسة"}</h1>
+            <h1 className="hero-title">{schName || "School"}</h1>
             <p className="hero-sub">
               {schAddress1 || ""} {schAddress2 || ""}
             </p>
@@ -47,22 +43,13 @@ const PrgSchHeader = ({
 
       {/* Intro */}
       <section className="intro container">
-        <h2
-          className="intro-title"
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
+        <h2 className="intro-title" style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
           <span role="img" aria-label="party">🎉</span>
-          <span className="trip-gradient-title">هنا سيذهب طفلك في رحلة</span>
+          <span className="trip-gradient-title">Here your child is going for a trip</span>
           <span role="img" aria-label="party">🎉</span>
         </h2>
         <p className="intro-sub">
-          {`راجع واحجز ${activityName || "هذه"} الرحلة المدرسية`}
+          Review and book {activityName || "this"} school trip
         </p>
       </section>
 
@@ -75,17 +62,17 @@ const PrgSchHeader = ({
                 <img
                   className="activity-img"
                   src={src}
-                  alt={`صورة النشاط ${idx + 1}`}
+                  alt={`Activity ${idx + 1}`}
                   loading="lazy"
                 />
               </CCarouselItem>
             ))}
           </CCarousel>
         ) : (
-          <div className="empty-media">لا توجد صور</div>
+          <div className="empty-media">No images</div>
         )}
       </section>
-    </div>
+    </>
   );
 };
 

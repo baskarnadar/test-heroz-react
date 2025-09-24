@@ -2,19 +2,13 @@ import React from "react";
 import { FaInstagram, FaFacebookF, FaTwitter } from "react-icons/fa";
 import herozlogo from "../assets/logo/herozlogo.png"; // adjust path if needed
 
-// 🔤 i18n packs
-import enPack from "../i18n/enlangpack.json";
-import arPack from "../i18n/arlangpack.json";
-
-const ProgramFooter = ({ className = "", lang = "en" }) => {
-  const dict = lang === "ar" ? arPack : enPack;
-
+const ProgramFooter = ({ className = "" }) => {
   return (
     <footer className={`site-footer ${className}`}>
       <div className="footer-top container ">
         <div className="footer-brand">
           <img src={herozlogo} alt="HEROZ" className="footer-logo" />
-          <p className="footer-tag">{dict.footerTagline}</p>
+          <p className="footer-tag">Discover the hero in every student</p>
           <div className="footer-social">
             <a
               href="https://www.instagram.com/herozapp.sa/"
@@ -44,54 +38,57 @@ const ProgramFooter = ({ className = "", lang = "en" }) => {
         </div>
 
         <div className="footer-contact">
-          <h4>{dict.contactInfo}</h4>
+          <h4>Contact Information</h4>
           <ul>
             <li>
-              <strong>{dict.customerSupport}</strong>{" "}
+              <strong>Customer Support:</strong>{" "}
               <a href="mailto:Herozapp1@gmail.com">Herozapp1@gmail.com</a>
             </li>
             <li>
-              <strong>{dict.phoneNumber}</strong> +966 548066660
+              <strong>Phone Number:</strong> +966 548066660
             </li>
             <li>
-              <strong>{dict.headquarters}</strong> {dict.headquartersAddress}
+              <strong>Headquarters:</strong> 8408 Dhu Al Yaminayn - As Safa
+Unit No. 1
+Jeddah 23454 - 4108
+Kingdom Of Saudi Arabia
             </li>
             <li>
-              <strong>{dict.cr}</strong> 4030580386
+              <strong>CR:</strong> 4030580386
             </li>
             <li>
-              <strong>{dict.taxId}</strong> 3125655750900003
-            </li>
-          </ul>
-        </div>
-
-        <div className="footer-links">
-          <h4>{dict.company}</h4>
-          <ul>
-            <li>
-              <a>{dict.aboutUs}</a>
-            </li>
-            <li>
-              <a>{dict.contactUs}</a>
+              <strong>TAX ID:</strong> 3125655750900003
             </li>
           </ul>
         </div>
 
         <div className="footer-links">
-          <h4>{dict.support}</h4>
+          <h4>Company</h4>
           <ul>
             <li>
-              <a>{dict.privacy}</a>
+              <a>About Us</a>
             </li>
             <li>
-              <a>{dict.terms}</a>
+              <a>Contact Us</a>
+            </li>
+          </ul>
+        </div>
+
+        <div className="footer-links">
+          <h4>Support</h4>
+          <ul>
+            <li>
+              <a>Privacy</a>
+            </li>
+            <li>
+              <a>Terms Of Service</a>
             </li>
           </ul>
         </div>
       </div>
 
       <div className="footer-bottom container">
-        <span>{dict.copyright.replace("{year}", new Date().getFullYear())}</span>
+        <span>Copyright © Heroz {new Date().getFullYear()}</span>
       </div>
     </footer>
   );
