@@ -14,7 +14,7 @@ import {
   generatePayRefNo,
   getAuthHeaders } from "../../../utils/operation";
 
-import FoodInfo from "../../../public/foodinfo";
+//import FoodInfo from "../../../public/foodinfo";
 import moneyv1 from "../../../assets/images/moneyv1.png";
  import TripPaidList from "./trippaidlist";
 const ProposalPage = () => {
@@ -447,12 +447,13 @@ const ProposalPage = () => {
 
             {/* Price per student */}
 
-            {/* Food */}
+            {/* 
             <FoodInfo
               ActivityData={ActivityData}
               checkedFoodItems={checkedFoodItems}
               handleCheckboxChange={handleCheckboxChange}
             />
+            Food */}
 
             <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
               Child Information & Booking
