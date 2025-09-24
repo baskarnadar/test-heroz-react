@@ -100,8 +100,8 @@
   "copyright": "Copyright © Heroz {year}",
 
  
-  "heroTripTitle": "Here’s where your child will go",
-  "introReviewAndBook": "Review and book {name} school trip",
-  "noImages": "No images",
-  "activityImageAlt": "Activity image"
+ "heroTripTitle": "Your children are invited to a school trip not only for entertainment, but to build skills, and create memories",
+"introReviewAndBook": "Give your children the opportunity to join the {name} school trip",
+"noImages": "No images available",
+"activityImageAlt": "Activity image"
 }
