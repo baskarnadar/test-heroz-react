@@ -358,7 +358,7 @@ const PaySuccessPage = () => {
           </div>
         </section>
 
-        <ProgramFooter />
+      <ProgramFooter lang={lang} />
       </div>
     </>
   );

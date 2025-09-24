@@ -154,7 +154,8 @@ const PayFailPage = () => {
         </div>
       </section>
 
-      <ProgramFooter />
+      {/* 🔁 Pass lang so footer localizes correctly */}
+      <ProgramFooter lang={lang} />
     </div>
   );
 };
