@@ -424,7 +424,12 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
       </CModalHeader>
       <CModalBody>
 
-      
+        {/* ===== ALWAYS-VISIBLE DEBUG BLOCK (can hide) ===== */}
+        
+    
+
+        {!!error && <CAlert color="danger" className="mb-3">{error}</CAlert>}
+        {!!success && <CAlert color="success" className="mb-3">{success}</CAlert>}
 
         {/* ===== FOCUSED SUMMARY STRIP ===== */}
         <div className="d-flex flex-wrap gap-3 align-items-center mb-3">
@@ -437,7 +442,17 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
         </div>
 
         {/* ===== THREE TILES ===== */}
-        
+        <CRow className="g-3 mb-3">
+          <CCol xs={12} md={4}>
+            <Tile title="Trip Profit" value={tripSchool} tone="info" subtitle='10% of APPROVED "TripSchoolPrice"' />
+          </CCol>
+          <CCol xs={12} md={4}>
+            <Tile title="Food Profit" value={foodSchool} tone="success" subtitle='10% of APPROVED kids-only "FoodSchoolPrice"' />
+          </CCol>
+          <CCol xs={12} md={4}>
+            <Tile title="Total Profit" value={schoolTotal} tone="warning" subtitle="Trip Profit + Trip Profit" />
+          </CCol>
+        </CRow>
 
         {/* Quick hint */}
         <div className="text-muted small mb-2">
