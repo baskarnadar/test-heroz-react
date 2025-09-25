@@ -121,7 +121,7 @@
   "paySuccessConfirmingSub": "Please wait while we update your payment status.",
   "paySuccessMainTitle": "Your payment has been successfully completed",
   "paySuccessIconAria": "Payment successful",
-  "paySuccessApprovedFallback": "Payment marked as APPROVED.",
+  "paySuccessApprovedFallback": "",
   "paySuccessCouldNotConfirmTitle": "We couldn’t confirm the payment",
   "paySuccessRetryBtn": "Retry",
   "paySuccessMissingParams": "Missing paymentId or id in the URL (and no PayRefNo in localStorage).",

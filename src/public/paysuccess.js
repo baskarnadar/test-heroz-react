@@ -217,7 +217,7 @@ const PaySuccessPage = () => {
       // ✅ Success
       setStatus("success");
       setMessage(
-        data?.message || dict.paySuccessApprovedFallback || "Payment marked as APPROVED."
+        data?.message || dict.paySuccessApprovedFallback || ""
       );
 
       // Optional: clear PayRefNo after confirmed success
@@ -323,7 +323,7 @@ const PaySuccessPage = () => {
 
                   <SuccessIcon size={64} ariaLabel={dict.paySuccessIconAria || "Payment successful"} />
                   <p style={{ opacity: 0.9 }}>
-                    {message || dict.paySuccessApprovedFallback || "Payment marked as APPROVED."}
+                    {message || dict.paySuccessApprovedFallback || ""}
                   </p>
                 </>
               )}

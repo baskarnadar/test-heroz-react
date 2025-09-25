@@ -19,18 +19,128 @@ const fmt = (v) => {
   return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : (v ?? "-");
 };
 
-// array-first versions:
-const sumTripSchoolPrice = (it) =>
-  sumBy(it?.payments, "TripSchoolPrice") ||
-  toNum(it?.tripPayment?.totalTripSchoolPrice);
+// safer stringify (handles circular refs, BigInt, undefined)
+const safeStringify = (obj, space = 2) => {
+  const seen = new WeakSet();
+  return JSON.stringify(
+    obj,
+    (key, value) => {
+      if (typeof value === "bigint") return value.toString();
+      if (typeof value === "undefined") return null;
+      if (typeof value === "object" && value !== null) {
+        if (seen.has(value)) return "[Circular]";
+        seen.add(value);
+      }
+      return value;
+    },
+    space
+  );
+};
 
-const sumFoodSchoolPrice = (it) =>
-  sumBy(it?.foodExtras, "FoodSchoolPrice") ||
-  toNum(it?.foodExtrasSummary?.totalFoodSchoolPrice);
+/* ---------- robust pickers that read from top-level or __full ---------- */
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o || {}, k);
 
-const sumSchoolTotal = (it) =>
-  sumTripSchoolPrice(it) + sumFoodSchoolPrice(it);
+// returns array from item[key] or item.__full[key]
+const pickArr = (item, key) => {
+  const top = (has(item, key) && Array.isArray(item[key])) ? item[key] : null;
+  const full = (has(item || {}, "__full") && has(item.__full, key) && Array.isArray(item.__full[key])) ? item.__full[key] : null;
+  return top || full || [];
+};
 
+// returns number from a dotted path, searching top-level then __full
+const pickNum = (item, dottedPath) => {
+  const read = (obj) => dottedPath.split('.').reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), obj);
+  const topVal = read(item);
+  if (Number.isFinite(Number(topVal))) return Number(topVal);
+  const fullVal = item && item.__full ? read(item.__full) : undefined;
+  if (Number.isFinite(Number(fullVal))) return Number(fullVal);
+  return 0;
+};
+
+// ---------- calculation rules (per your request) ----------
+// Detect "APPROVED" status across possible field casings/aliases.
+const isApproved = (row) => {
+  const v = (row?.PayStatus ?? row?.payStatus ?? row?.status ?? "").toString().toUpperCase();
+  return v === "APPROVED";
+};
+
+// Heuristic "kids only" detector.
+const isKid = (row) => {
+  if (row?.isKid === true || row?.IsKid === true || row?.Kids === true || row?.ForKids === true) return true;
+  const txt =
+    (row?.StuType ??
+     row?.StudentType ??
+     row?.Type ??
+     row?.PersonType ??
+     row?.Category ??
+     row?.For ??
+     row?.Role ??
+     row?.ageGroup ??
+     row?.AgeGroup ??
+     row?.target ??
+     "").toString().toUpperCase();
+  if (txt.includes("KID") || txt.includes("CHILD")) return true;
+  if (txt === "STUDENT" || txt.includes("STUDENT")) return true;
+  if (row?.IsAdult === true || row?.isAdult === true) return false;
+  return false;
+};
+
+// Trip Profit = sum(TripSchoolPrice) * 0.1 for APPROVED payments
+const computeTripProfit = (item) => {
+  const payments = pickArr(item, "payments");
+  const approvedSum = payments
+    .filter(isApproved)
+    .reduce((s, r) => s + toNum(r?.TripSchoolPrice ?? r?.tripSchoolPrice), 0);
+
+  if (approvedSum > 0) return approvedSum * 0.1;
+
+  // Fallback: use summary if present (either level)
+  const summary = pickNum(item, "tripPayment.totalTripSchoolPrice");
+  return summary > 0 ? summary * 0.1 : 0;
+};
+
+// Food Profit = sum(FoodSchoolPrice) * 0.1 for APPROVED + kids only
+const computeFoodProfit = (item) => {
+  const foodExtras = pickArr(item, "foodExtras");
+
+  const hasRowStatus = foodExtras.some((r) => r?.PayStatus || r?.payStatus || r?.status);
+  const hasKidHint  = foodExtras.some((r) => isKid(r));
+
+  let approvedKidsSum = 0;
+
+  if (hasRowStatus || hasKidHint) {
+    // strict per-row filtering
+    approvedKidsSum = foodExtras
+      .filter((r) => (!hasRowStatus || isApproved(r)) && (!hasKidHint || isKid(r)))
+      .reduce((s, r) => s + toNum(r?.FoodSchoolPrice ?? r?.foodSchoolPrice), 0);
+  } else {
+    // No row-level flags; correlate with approved payments count conservatively
+    const payments = pickArr(item, "payments");
+    const approvedCount = payments.filter(isApproved).length;
+    const n = Math.min(approvedCount, foodExtras.length);
+    if (n > 0) {
+      const totalFoodSchool = foodExtras.reduce((s, r) => s + toNum(r?.FoodSchoolPrice ?? r?.foodSchoolPrice), 0);
+      const avg = totalFoodSchool / foodExtras.length;
+      approvedKidsSum = avg * n;
+    }
+  }
+
+  if (approvedKidsSum > 0) return approvedKidsSum * 0.1;
+
+  // Fallback: use summary if present
+  const summary = pickNum(item, "foodExtrasSummary.totalFoodSchoolPrice");
+  return summary > 0 ? summary * 0.1 : 0;
+};
+
+// Route to rule-based functions
+const sumTripSchoolPrice = (it) => computeTripProfit(it);
+const sumFoodSchoolPrice = (it) => computeFoodProfit(it);
+
+// NOTE: As requested: Total Profit = Trip Profit + Trip Profit
+const sumSchoolTotal = (tripProfitOnly /* number */) =>
+  toNum(tripProfitOnly) + toNum(tripProfitOnly);
+
+// ---------- UI tiles ----------
 const Tile = ({ title, value, tone = "neutral", subtitle }) => {
   const tones = {
     neutral: {
@@ -74,10 +184,10 @@ const Tile = ({ title, value, tone = "neutral", subtitle }) => {
 };
 
 const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
-  // derive directly from arrays; fall back to prop if absolutely needed
-  const tripSchool = sumTripSchoolPrice(item);
-  const foodSchool = sumFoodSchoolPrice(item);
-  const schoolTotal = sumSchoolTotal(item) || toNum(totalProfit); // "Total Profit"
+  // === derived values following your conditions ===
+  const tripSchool = sumTripSchoolPrice(item); // 10% of APPROVED TripSchoolPrice
+  const foodSchool = sumFoodSchoolPrice(item); // 10% of APPROVED FoodSchoolPrice (kids only)
+  const schoolTotal = sumSchoolTotal(tripSchool); // Trip + Trip (as requested)
 
   // --- form state ---
   const [amount, setAmount] = React.useState(schoolTotal || 0);
@@ -103,6 +213,79 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
     [schoolTotal, totalPaid]
   );
 
+  // ===== DEBUG: always show by default =====
+  const [showDebug, setShowDebug] = React.useState(
+    () => (typeof window !== "undefined" && typeof window.__SCH_DEBUG__ === "boolean")
+      ? window.__SCH_DEBUG__
+      : true
+  );
+
+  // Build a single object that shows what we got from parent + our derived values
+  const debugBundle = React.useMemo(() => {
+    const idPart = {
+      RequestID: item?.RequestID ?? null,
+      ActivityID: item?.ActivityID ?? null,
+      SchoolID: item?.SchoolID ?? null,
+    };
+
+    const paymentsArr = pickArr(item, "payments");
+    const foodArr = pickArr(item, "foodExtras");
+    const tripApprovedCount = paymentsArr.filter(isApproved).length;
+
+    // Detect where totals came from
+    const topTrip = (item?.tripPayment?.totalTripSchoolPrice ?? undefined);
+    const fullTrip = (item?.__full?.tripPayment?.totalTripSchoolPrice ?? undefined);
+    const topFood = (item?.foodExtrasSummary?.totalFoodSchoolPrice ?? undefined);
+    const fullFood = (item?.__full?.foodExtrasSummary?.totalFoodSchoolPrice ?? undefined);
+
+    // Whether food rows carried status/kid hints
+    const hasRowStatus = foodArr.some((r) => r?.PayStatus || r?.payStatus || r?.status);
+    const hasKidHint  = foodArr.some((r) => isKid(r));
+
+    return {
+      props: {
+        visible: !!visible,
+        totalProfitProp: totalProfit ?? null,
+      },
+      identifiers: idPart,
+      item,
+      derived: {
+        tripSchool_10pct_APPROVED: tripSchool,
+        foodSchool_10pct_APPROVED_kidsOnly: foodSchool,
+        totalProfit_tripPlusTrip: schoolTotal,
+        totalPaidHistory: totalPaid,
+        balancePayable: balancePayable,
+        amountField: amount,
+        counters: {
+          payments_total: paymentsArr.length,
+          payments_approved: tripApprovedCount,
+          foodExtras_total: foodArr.length,
+          foodExtras_hasRowStatus: hasRowStatus, // ✅ fixed reference
+          foodExtras_hasKidHint: hasKidHint,     // ✅ fixed reference
+        },
+        sources: {
+          usedPaymentsFrom: Array.isArray(item?.payments) ? "item.payments" : Array.isArray(item?.__full?.payments) ? "item.__full.payments" : "none",
+          usedFoodExtrasFrom: Array.isArray(item?.foodExtras) ? "item.foodExtras" : Array.isArray(item?.__full?.foodExtras) ? "item.__full.foodExtras" : "none",
+          tripSummaryTopLevel: topTrip,
+          tripSummaryFull: fullTrip,
+          foodSummaryTopLevel: topFood,
+          foodSummaryFull: fullFood,
+        }
+      },
+      form: { amount, date, type, note },
+    };
+  }, [item, visible, totalProfit, tripSchool, foodSchool, schoolTotal, totalPaid, balancePayable, amount, date, type, note]);
+
+  // Console logs whenever inputs change — helpful during development
+  React.useEffect(() => {
+    if (!visible) return;
+    console.debug("[SchPaymentModal] Parent payload (item):", item);
+    console.debug("[SchPaymentModal] totalProfit prop:", totalProfit);
+    console.debug("[SchPaymentModal] derived:", {
+      tripSchool, foodSchool, schoolTotal, totalPaid, balancePayable
+    });
+  }, [visible, item, totalProfit, tripSchool, foodSchool, schoolTotal, totalPaid, balancePayable]);
+
   // fetch list
   const fetchPayments = React.useCallback(async () => {
     if (!item?.RequestID || !item?.ActivityID) return;
@@ -114,8 +297,9 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
         ActivityID: item.ActivityID,
         PaySection: "SCHOOL",
       };
-      // SchoolID is optional; include only if present
       if (item?.SchoolID) body.SchoolID = item.SchoolID;
+
+      console.debug("[SchPaymentModal] fetchPayments body:", body);
 
       const res = await fetch(GET_SCH_VDR_URL, {
         method: "POST",
@@ -130,15 +314,16 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
         throw new Error(json?.message || `Request failed: ${res.status}`);
       }
       const recs = Array.isArray(json?.data?.records) ? json.data.records : [];
-      // sort newest first by schPaidDate then CreatedDate
       recs.sort((a, b) => {
         const ad = new Date(a?.schPaidDate || a?.CreatedDate || 0).getTime();
         const bd = new Date(b?.schPaidDate || b?.CreatedDate || 0).getTime();
         return bd - ad;
       });
       setRecords(recs);
+      console.debug("[SchPaymentModal] Payments list response:", recs);
     } catch (e) {
       setListError(e.message || "Failed to load payments.");
+      console.debug("[SchPaymentModal] fetchPayments error:", e);
     } finally {
       setLoadingList(false);
     }
@@ -147,20 +332,18 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
   // reset on open + fetch list
   React.useEffect(() => {
     if (visible) {
-      const fresh = sumSchoolTotal(item) || toNum(totalProfit);
-      setAmount(fresh || 0); // will be overwritten by balance after list loads
       setDate(new Date().toISOString().slice(0,10));
       setType("CASH");
       setNote("");
       setSubmitting(false);
       setError("");
       setSuccess("");
-      setUserEditedAmount(false); // allow auto-fill with balance
+      setUserEditedAmount(false);
       fetchPayments();
     }
   }, [visible, item, totalProfit, fetchPayments]);
 
-  // keep amount synced to balance only if user hasn't edited it yet
+  // when any derived changes and user hasn't edited, sync default amount to balance
   React.useEffect(() => {
     if (visible && !userEditedAmount) {
       setAmount(balancePayable);
@@ -171,7 +354,6 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
   const validate = () => {
     if (!item?.RequestID) return "Missing RequestID.";
     if (!item?.ActivityID) return "Missing ActivityID.";
-    // SchoolID is OPTIONAL now; no blocking validation
     if (!date) return "Payment Date is required.";
     if (!type) return "Payment Type is required.";
     if (!note || !note.trim()) return "Payment Note is required.";
@@ -208,6 +390,8 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
     };
     if (item?.SchoolID) payload.SchoolID = item.SchoolID; // optional
 
+    console.debug("[SchPaymentModal] Submit payload:", payload);
+
     try {
       setSubmitting(true);
       const res = await fetch(PAY_SCHOOL_URL, {
@@ -222,13 +406,12 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
       if (!res.ok || json?.success === false) throw new Error(json?.message || `Request failed: ${res.status}`);
 
       setSuccess("Payment saved successfully.");
-      // refresh list
       await fetchPayments();
-      // allow amount to auto-adjust to new balance after refresh
       setUserEditedAmount(false);
       setNote("");
     } catch (err) {
       setError(err?.message || "Failed to submit payment.");
+      console.debug("[SchPaymentModal] Submit error:", err);
     } finally {
       setSubmitting(false);
     }
@@ -240,8 +423,8 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
         <CModalTitle>Pay To School</CModalTitle>
       </CModalHeader>
       <CModalBody>
-        {!!error && <CAlert color="danger" className="mb-3">{error}</CAlert>}
-        {!!success && <CAlert color="success" className="mb-3">{success}</CAlert>}
+
+      
 
         {/* ===== FOCUSED SUMMARY STRIP ===== */}
         <div className="d-flex flex-wrap gap-3 align-items-center mb-3">
@@ -254,17 +437,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
         </div>
 
         {/* ===== THREE TILES ===== */}
-        <CRow className="g-3 mb-3">
-          <CCol xs={12} md={4}>
-            <Tile title="Trip Profit" value={tripSchool} tone="info" subtitle="From trip payments" />
-          </CCol>
-          <CCol xs={12} md={4}>
-            <Tile title="Food Profit" value={foodSchool} tone="success" subtitle="From food add-ons" />
-          </CCol>
-          <CCol xs={12} md={4}>
-            <Tile title="Total Profit" value={schoolTotal} tone="warning" subtitle="Trip + Food" />
-          </CCol>
-        </CRow>
+        
 
         {/* Quick hint */}
         <div className="text-muted small mb-2">
@@ -350,19 +523,16 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                   <CTableHead color="light">
                     <CTableRow>
                       <CTableHeaderCell className="text-center" style={{ width: 60 }}>#</CTableHeaderCell>
-                     
                       <CTableHeaderCell style={{ width: 160 }}>Date</CTableHeaderCell>
                       <CTableHeaderCell style={{ width: 170 }}>Type</CTableHeaderCell>
                       <CTableHeaderCell>Note</CTableHeaderCell>
-                       <CTableHeaderCell className="text-end pe-3" style={{ width: 180 }}>Amount</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end pe-3" style={{ width: 180 }}>Amount</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
                     {records.map((r, idx) => (
                       <CTableRow key={idx} className={idx % 2 ? "bg-body-tertiary" : ""}>
                         <CTableDataCell className="text-center">{idx + 1}</CTableDataCell>
-                        {/* RIGHT aligned + padding on the right */}
-                      
                         <CTableDataCell>{r?.schPaidDate || "-"}</CTableDataCell>
                         <CTableDataCell>
                           <CBadge color="light" textColor="dark">
@@ -370,7 +540,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                           </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>{r?.schPaidNote || "-"}</CTableDataCell>
-                          <CTableDataCell className="text-end pe-3 mono">{fmt(r?.schPaidAmount)}</CTableDataCell>
+                        <CTableDataCell className="text-end pe-3 mono">{fmt(r?.schPaidAmount)}</CTableDataCell>
                       </CTableRow>
                     ))}
                   </CTableBody>
