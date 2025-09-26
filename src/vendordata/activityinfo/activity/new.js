@@ -1,3 +1,4 @@
+// apply response2 i18n logic without removing your code
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
@@ -9,6 +10,10 @@ import { CRow, CCol } from '@coreui/react'
 
 // ✅ Validator (returns { ok, errors, message })
 import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
+
+// 🔤 i18n packs (default Arabic if not set)
+import enPack from '../../../i18n/enloc100.json'
+import arPack from '../../../i18n/arloc100.json'
 
 const ErrorText = ({ msg }) =>
   msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
@@ -80,6 +85,25 @@ const Vendor = () => {
 
   // price
   const [priceRanges, setPriceRanges] = useState([{ price: '', rangeFrom: '', rangeTo: '' }])
+
+  // ---- i18n helpers ----
+  const getStoredLang = () => {
+    try {
+      const v = localStorage.getItem('heroz_lang')
+      return v === 'ar' || v === 'en' ? v : 'ar'
+    } catch {
+      return 'ar'
+    }
+  }
+  const [lang, setLang] = useState(getStoredLang())
+  const dict = lang === 'ar' ? arPack : enPack
+  const tr = (key, fallback) => (dict && dict[key]) || fallback
+  useEffect(() => {
+    const onChange = () => setLang(getStoredLang())
+    window.addEventListener('heroz_lang_changed', onChange)
+    return () => window.removeEventListener('heroz_lang_changed', onChange)
+  }, [])
+  // ----------------------
 
   // utils
   const timeStringToMinutes = (timeStr) => {
@@ -361,7 +385,7 @@ const Vendor = () => {
 
     if (!validation.ok) {
       setErrors(validation.errors || {})
-      setToastMessage(validation.message || 'Please fix the highlighted fields.')
+      setToastMessage(validation.message || tr('fixHighlighted', 'Please fix the highlighted fields.'))
       setToastType('fail')
 
       const firstField = Object.keys(validation.errors || {})[0]
@@ -379,9 +403,17 @@ const Vendor = () => {
 
     const overlap = hasOverlap(days)
     if (overlap) {
-      setToastMessage(
-        `Time range overlap on ${overlap.day}: ${overlap.range1.start}–${overlap.range1.end} overlaps with ${overlap.range2.start}–${overlap.range2.end}`,
+      const overlapMsg = tr(
+        'timeOverlap',
+        'Time range overlap on {day}: {s1}–{e1} overlaps with {s2}–{e2}'
       )
+        .replace('{day}', overlap.day)
+        .replace('{s1}', overlap.range1.start)
+        .replace('{e1}', overlap.range1.end)
+        .replace('{s2}', overlap.range2.start)
+        .replace('{e2}', overlap.range2.end)
+
+      setToastMessage(overlapMsg)
       setToastType('fail')
       setLoading(false)
       return
@@ -471,11 +503,11 @@ const Vendor = () => {
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
       await response.json()
-      setToastMessage('Activity added successfully!')
+      setToastMessage(tr('toastActivityAdded', 'Activity added successfully!'))
       setToastType('success')
       setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
     } catch {
-      setToastMessage('Failed to add Activity.')
+      setToastMessage(tr('toastActivityAddFailed', 'Failed to add Activity.'))
       setToastType('fail')
     } finally {
       setLoading(false)
@@ -483,22 +515,35 @@ const Vendor = () => {
   }
 
   // UI
+  const dayLabel = (d) => tr(`day_${d}`, d)
   return (
     <div>
       <div className="divhbg">
-        <div className="txtheadertitle">Add New Activity</div>
+        <div className="txtheadertitle">{tr('actAddTitle', 'Add New Activity')}</div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="admin-buttonv1" onClick={() => setShowModal(true)}>Send To Admin Approval</button>
-          <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>Save</button>
-          <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>Return</button>
+          <button className="admin-buttonv1" onClick={() => setShowModal(true)}>
+            {tr('btnSendToAdmin', 'Send To Admin Approval')}
+          </button>
+          <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
+            {tr('btnSave', 'Save')}
+          </button>
+          <button
+            type="button"
+            className="admin-buttonv1"
+            onClick={() => navigate('/vendordata/activityinfo/activity/list')}
+          >
+            {tr('btnReturn', 'Return')}
+          </button>
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Information</div>
+      <div className="txtsubtitle">{tr('sectionActivityInfo', 'Activity Information')}</div>
 
       <div className="divbox">
         <div className="form-group">
-          <label>Activity Name <span style={{color:'red'}}>*</span></label>
+          <label>
+            {tr('labelActivityName', 'Activity Name')} <span style={{color:'red'}}>*</span>
+          </label>
           <input name="txtactName" className="admin-txt-box" type="text" value={txtactName} onChange={(e) => setactName(e.target.value)} />
           <ErrorText msg={errors.txtactName} />
         </div>
@@ -506,11 +551,11 @@ const Vendor = () => {
         {/* 🔒 Activity Type fixed to School (only) */}
         <div className="form-group">
           <label style={{ marginBottom: 10, marginTop: 20 }}>
-            Activity Type <span style={{color:'red'}}>*</span>
+            {tr('labelActivityType', 'Activity Type')} <span style={{color:'red'}}>*</span>
           </label>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <div className="pink-shadow4" style={{ fontWeight: 700, padding: '6px 12px', borderRadius: 8 }}>
-              School
+              {tr('typeSchool', 'School')}
             </div>
             {/* keep a hidden input so validators / form refs see the value */}
             <input type="hidden" name="selectedType" value="SCHOOL" />
@@ -521,7 +566,7 @@ const Vendor = () => {
         {!HIDE_ACTIVITY_RATING_UI && (
           <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
             <label className="vendor-label" htmlFor="actRating" style={{ margin: 0 }}>
-              Activity Rating <span style={{color:'red'}}>*</span>
+              {tr('labelActivityRating', 'Activity Rating')} <span style={{color:'red'}}>*</span>
             </label>
             <input
               id="actRating"
@@ -532,7 +577,7 @@ const Vendor = () => {
               min="1"
               max="5"
               className="admin-txt-box"
-              placeholder="Enter rating 1 to 5"
+              placeholder={tr('phEnterRating', 'Enter rating 1 to 5')}
               value={actRating}
               onChange={(e) => setactRating(e.target.value)}
             />
@@ -542,7 +587,7 @@ const Vendor = () => {
 
         <div style={{ marginBottom: 10, marginTop: 20 }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories <span style={{color:'red'}}>*</span>
+            {tr('labelCategories', 'Activity Categories')} <span style={{color:'red'}}>*</span>
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
             {fetchcategories.map((item) => (
@@ -565,27 +610,31 @@ const Vendor = () => {
         </div>
 
         <div className="form-group">
-          <label>Activity Description <span style={{color:'red'}}>*</span></label>
+          <label>
+            {tr('labelActivityDesc', 'Activity Description')} <span style={{color:'red'}}>*</span>
+          </label>
           <textarea name="txtactDesc" className="vendor-input" rows={4} value={txtactDesc} onChange={(e) => setactDesc(e.target.value)} />
           <ErrorText msg={errors.txtactDesc} />
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Images <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        {tr('sectionActivityImages', 'Activity Images')} <span style={{color:'red'}}>*</span>
+      </div>
       <div className="divbox">
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 20, marginBottom: 8 }}>
           <div className="form-group" style={{ flex: 1 }}>
-            <label>Activity Image 1</label>
+            <label>{tr('labelImage1', 'Activity Image 1')}</label>
             <input name="txtactImageName1" className="admin-txt-box" type="file" onChange={handleFileUpload(setactImageName1)} style={{ height: 50, width: '100%' }} />
             <FilePreview file={txtactImageName1} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
-            <label>Activity Image 2</label>
+            <label>{tr('labelImage2', 'Activity Image 2')}</label>
             <input name="txtactImageName2" className="admin-txt-box" type="file" onChange={handleFileUpload(setactImageName2)} style={{ height: 50, width: '100%' }} />
             <FilePreview file={txtactImageName2} />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
-            <label>Activity Image 3</label>
+            <label>{tr('labelImage3', 'Activity Image 3')}</label>
             <input name="txtactImageName3" className="admin-txt-box" type="file" onChange={handleFileUpload(setactImageName3)} style={{ height: 50, width: '100%' }} />
             <FilePreview file={txtactImageName3} />
           </div>
@@ -593,22 +642,30 @@ const Vendor = () => {
         <ErrorText msg={errors.images} />
       </div>
 
-      <div className="txtsubtitle">Activity Location <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        {tr('sectionLocation', 'Activity Location')} <span style={{color:'red'}}>*</span>
+      </div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Google Map Location <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelGoogleMap', 'Google Map Location')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactGoogleMap" className="vendor-input" value={txtactGoogleMap} onChange={(e) => setactGoogleMap(e.target.value)} />
               <ErrorText msg={errors.txtactGoogleMap} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Google Latitude <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelLatitude', 'Google Latitude')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactGlat" className="vendor-input" value={txtactGlat} onChange={(e) => setGlat(e.target.value)} />
               <ErrorText msg={errors.txtactGlat} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Google Longitude <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelLongitude', 'Google Longitude')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactGlan" className="vendor-input" value={txtactGlan} onChange={(e) => setGlan(e.target.value)} />
               <ErrorText msg={errors.txtactGlan} />
             </div>
@@ -620,9 +677,11 @@ const Vendor = () => {
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Country <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelCountry', 'Country')} <span style={{color:'red'}}>*</span>
+              </label>
               <select name="ddactCountryID" value={ddactCountryID} onChange={(e) => setCountryID(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 4, border: '1px solid #ccc' }}>
-                <option value="">Select a country</option>
+                <option value="">{tr('optSelectCountry', 'Select a country')}</option>
                 {countries.map((country) => (
                   <option key={country.CountryID} value={country.CountryID}>{country.EnCountryName}</option>
                 ))}
@@ -631,9 +690,11 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">City <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelCity', 'City')} <span style={{color:'red'}}>*</span>
+              </label>
               <select name="ddactCityID" className="admin-txt-box" value={ddactCityID} onChange={(e) => setSelectedCityID(e.target.value)}>
-                <option value="">Select City</option>
+                <option value="">{tr('optSelectCity', 'Select City')}</option>
                 {cityList.map((city) => (
                   <option key={city.CityID} value={city.CityID}>{city.EnCityName}</option>
                 ))}
@@ -642,30 +703,38 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">Location1 <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelLocation1', 'Location1')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactAddress1" className="vendor-input" value={txtactAddress1} onChange={(e) => setAddress1(e.target.value)} />
               <ErrorText msg={errors.txtactAddress1} />
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">Address2</label>
+              <label className="vendor-label">{tr('labelAddress2', 'Address2')}</label>
               <input name="txtactAddress2" className="vendor-input" value={txtactAddress2} onChange={(e) => setAddress2(e.target.value)} />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">Age Range <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        {tr('sectionAgeRange', 'Age Range')} <span style={{color:'red'}}>*</span>
+      </div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
             <div className="vendor-column" style={{ flex: 1 }}>
-              <label className="vendor-label">Minimum Age <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelMinAge', 'Minimum Age')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactMinAge" type="number" min="0" className="vendor-input" value={txtactMinAge} onChange={(e) => setMinAge(e.target.value)} />
               <ErrorText msg={errors.txtactMinAge} />
             </div>
             <div className="vendor-column" style={{ flex: 1 }}>
-              <label className="vendor-label">Maximum Age <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelMaxAge', 'Maximum Age')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactMaxAge" type="number" min="0" className="vendor-input" value={txtactMaxAge} onChange={(e) => setMaxAge(e.target.value)} />
               <ErrorText msg={errors.txtactMaxAge} />
             </div>
@@ -674,35 +743,43 @@ const Vendor = () => {
 
         <div className="vendor-container" style={{ marginTop: 10 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <label className="vendor-label">Gender <span style={{color:'red'}}>*</span></label>
+            <label className="vendor-label">
+              {tr('labelGender', 'Gender')} <span style={{color:'red'}}>*</span>
+            </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <input type="radio" name="rdoactGender" value="BOYS" checked={rdoactGender === 'BOYS'} onChange={(e) => setGenderService(e.target.value)} style={{ width: 24, height: 24 }} />
-              <div className="pink-shadow4">Boys</div>
+              <div className="pink-shadow4">{tr('genderBoys', 'Boys')}</div>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <input type="radio" name="rdoactGender" value="GIRLS" checked={rdoactGender === 'GIRLS'} onChange={(e) => setGenderService(e.target.value)} style={{ width: 24, height: 24 }} />
-              <div className="pink-shadow4">Girls</div>
+              <div className="pink-shadow4">{tr('genderGirls', 'Girls')}</div>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <input type="radio" name="rdoactGender" value="BOTH" checked={rdoactGender === 'BOTH'} onChange={(e) => setGenderService(e.target.value)} style={{ width: 24, height: 24 }} />
-              <div className="pink-shadow4">Both</div>
+              <div className="pink-shadow4">{tr('genderBoth', 'Both')}</div>
             </label>
           </div>
           <ErrorText msg={errors.rdoactGender} />
         </div>
       </div>
 
-      <div className="txtsubtitle">Capacity Information <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        {tr('sectionCapacity', 'Capacity Information')} <span style={{color:'red'}}>*</span>
+      </div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: 20 }}>
             <div className="vendor-column" style={{ flex: 1 }}>
-              <label className="vendor-label">Minimum Students <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelMinStudents', 'Minimum Students')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactMinStudent" type="number" min="1" className="vendor-input" value={txtactMinStudent} onChange={(e) => setMinStudent(e.target.value)} />
               <ErrorText msg={errors.txtactMinStudent} />
             </div>
             <div className="vendor-column" style={{ flex: 1 }}>
-              <label className="vendor-label">Maximum Students <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                {tr('labelMaxStudents', 'Maximum Students')} <span style={{color:'red'}}>*</span>
+              </label>
               <input name="txtactMaxStudent" type="number" min="1" className="vendor-input" value={txtactMaxStudent} onChange={(e) => setMaxStudent(e.target.value)} />
               <ErrorText msg={errors.txtactMaxStudent} />
             </div>
@@ -710,12 +787,14 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Per Student (vendor Price)<span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        {tr('sectionPerStudent', 'Per Student (vendor Price)')}<span style={{color:'red'}}>*</span>
+      </div>
       <div className="divbox">
         <CRow className="fw-bold mb-2">
-          <CCol sm={3}>Price <span style={{color:'red'}}>*</span></CCol>
-          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range From</CCol>
-          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range To</CCol>
+          <CCol sm={3}>{tr('labelPrice', 'Price')} <span style={{color:'red'}}>*</span></CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>{tr('labelStudentRangeFrom', 'Student Range From')}</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>{tr('labelStudentRangeTo', 'Student Range To')}</CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}></CCol>
         </CRow>
 
@@ -726,7 +805,7 @@ const Vendor = () => {
                 name={`price_${index}`}
                 type="number"
                 className="vendor-input w-100"
-                placeholder="Price"
+                placeholder={tr('phPrice', 'Price')}
                 value={item.price}
                 onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
                 min="0"
@@ -741,7 +820,9 @@ const Vendor = () => {
             </CCol>
             <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
               {priceRanges.length > 1 && (
-                <button type="button" className="btn btn-danger" onClick={() => handleRemoveRange(index)}>Remove</button>
+                <button type="button" className="btn btn-danger" onClick={() => handleRemoveRange(index)}>
+                  {tr('btnRemove', 'Remove')}
+                </button>
               )}
             </CCol>
           </CRow>
@@ -749,12 +830,16 @@ const Vendor = () => {
 
         <CRow className="mt-3" style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
           <CCol>
-            <button type="button" className="admin-buttonv1" onClick={handleAddRange}>Add More</button>
+            <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
+              {tr('btnAddMore', 'Add More')}
+            </button>
           </CCol>
         </CRow>
       </div>
 
-      <div className="txtsubtitle">Set Availability <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        {tr('sectionSetAvailability', 'Set Availability')} <span style={{color:'red'}}>*</span>
+      </div>
       <div className="divbox">
         <ErrorText msg={errors.availability} />
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
@@ -763,8 +848,12 @@ const Vendor = () => {
               <div style={{ flexGrow: 1 }}>
                 <div style={{ fontWeight: 'bold', textTransform: 'capitalize', marginBottom: 8 }}>
                   <label>
-                    {day}{' '}
-                    <input type="checkbox" checked={!days[day].closed} onChange={(e) => handleClosedChange(day, !e.target.checked)} /> Available
+                    {dayLabel(day)}{' '}
+                    <input
+                      type="checkbox"
+                      checked={!days[day].closed}
+                      onChange={(e) => handleClosedChange(day, !e.target.checked)}
+                    /> {tr('labelAvailable', 'Available')}
                   </label>
                 </div>
 
@@ -773,21 +862,29 @@ const Vendor = () => {
                     {days[day].times.map((range, index) => (
                       <div key={index} style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
                         <label>
-                          Start Time <span style={{color:'red'}}>*</span>{' '}
+                          {tr('labelStartTime', 'Start Time')} <span style={{color:'red'}}>*</span>{' '}
                           <input className="admin-txt-box" type="time" name={`start_${day}_${index}`} value={range.start} onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)} />
                         </label>
 
                         <label>
-                          End Time <span style={{color:'red'}}>*</span>{' '}
+                          {tr('labelEndTime', 'End Time')} <span style={{color:'red'}}>*</span>{' '}
                           <input className="admin-txt-box" type="time" name={`end_${day}_${index}`} value={range.end} onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)} />
                         </label>
 
                         <label>
-                          Notes:{' '}
-                          <input type="text" className="admin-txt-box" value={range.note || ''} placeholder="Optional notes" onChange={(e) => handleRangeNoteChange(day, index, e.target.value)} />
+                          {tr('labelNotes', 'Notes')}: {' '}
+                          <input
+                            type="text"
+                            className="admin-txt-box"
+                            value={range.note || ''}
+                            placeholder={tr('phOptionalNotes', 'Optional notes')}
+                            onChange={(e) => handleRangeNoteChange(day, index, e.target.value)}
+                          />
                         </label>
 
-                        <div>Range Hours: <strong>{range.total || '0.00'}</strong></div>
+                        <div>
+                          {tr('labelRangeHours', 'Range Hours')}: <strong>{range.total || '0.00'}</strong>
+                        </div>
 
                         {days[day].times.length > 1 && (
                           <button
@@ -795,13 +892,15 @@ const Vendor = () => {
                             style={{ background: 'tomato', color: 'white', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
                             onClick={() => handleRemoveTimeRange(day, index)}
                           >
-                            Remove
+                            {tr('btnRemove', 'Remove')}
                           </button>
                         )}
                       </div>
                     ))}
                     <div style={{ marginTop: 10 }}>
-                      <button type="button" className="admin-buttonv1" onClick={() => handleAddMore(day)}>Add More</button>
+                      <button type="button" className="admin-buttonv1" onClick={() => handleAddMore(day)}>
+                        {tr('btnAddMore', 'Add More')}
+                      </button>
                     </div>
                   </div>
                 )}
@@ -811,29 +910,35 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Food Information</div>
+      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Food Information')}</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>Food Name</CCol>
-            <CCol sm={2}>Price</CCol>
-            <CCol sm={3}>Notes</CCol>
-            {!HIDE_FOOD_IMAGE && <CCol sm={2}>Food Image</CCol>}
-            <CCol sm={1}>Include</CCol>
+            <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
+            <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
+            <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
+            {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>}
+            <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
             <CCol sm={1}></CCol>
           </CRow>
 
           {foods.map((item, index) => (
             <CRow key={index} className="mb-3 align-items-center">
               <CCol sm={3}>
-                <input type="text" className="admin-txt-box w-100" placeholder="Enter name" value={item.name} onChange={(e) => handleFoodChange(index, 'name', e.target.value)} />
+                <input
+                  type="text"
+                  className="admin-txt-box w-100"
+                  placeholder={tr('phEnterName', 'Enter name')}
+                  value={item.name}
+                  onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
+                />
               </CCol>
 
               <CCol sm={2}>
                 <input
                   type="number"
                   className="admin-txt-box w-100"
-                  placeholder={item.include ? 'Included (0)' : 'Enter price'}
+                  placeholder={item.include ? tr('phIncludedZero', 'Included (0)') : tr('phEnterPrice', 'Enter price')}
                   value={item.include ? 0 : (item.price ?? '')}
                   onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                   min="0"
@@ -843,7 +948,13 @@ const Vendor = () => {
               </CCol>
 
               <CCol sm={3}>
-                <input type="text" className="admin-txt-box w-100" placeholder="Enter notes" value={item.notes || ''} onChange={(e) => handleFoodChange(index, 'notes', e.target.value)} />
+                <input
+                  type="text"
+                  className="admin-txt-box w-100"
+                  placeholder={tr('phEnterNotes', 'Enter notes')}
+                  value={item.notes || ''}
+                  onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
+                />
               </CCol>
 
               {/* Food Image column (hidden when HIDE_FOOD_IMAGE) */}
@@ -859,14 +970,14 @@ const Vendor = () => {
                   checked={item.include}
                   onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
                   style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }}
-                  title="If checked, price becomes 0"
+                  title={tr('titleIncludePriceZero', 'If checked, price becomes 0')}
                 />
               </CCol>
 
               <CCol sm={1}>
                 {foods.length > 1 && (
                   <button type="button" onClick={() => handleFoodRemoveFood(index)} className="btn btn-danger btn-sm">
-                    Remove
+                    {tr('btnRemove', 'Remove')}
                   </button>
                 )}
               </CCol>
@@ -876,37 +987,63 @@ const Vendor = () => {
           <CRow className="mt-3">
             <CCol>
               <button type="button" className="admin-buttonv1" onClick={handleFoodAddMore}>
-                Add More
+                {tr('btnAddMore', 'Add More')}
               </button>
             </CCol>
           </CRow>
         </div>
       </div>
 
-      <div className="txtsubtitle">Terms And Conditions <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        {tr('sectionTerms', 'Terms And Conditions')} <span style={{color:'red'}}>*</span>
+      </div>
       <div className="divbox">
         <div className="vendor-container">
-          <textarea name="txtactAdminNotes" className="vendor-input" rows={5} value={txtactAdminNotes} onChange={(e) => setAdminNotes(e.target.value)} />
+          <textarea
+            name="txtactAdminNotes"
+            className="vendor-input"
+            rows={5}
+            value={txtactAdminNotes}
+            onChange={(e) => setAdminNotes(e.target.value)}
+          />
           <ErrorText msg={errors.txtactAdminNotes} />
         </div>
       </div>
 
       <div className="button-container">
-        <button className="admin-buttonv1" onClick={() => setShowModal(true)}>Send To Admin Approval</button>
-        <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>Save</button>
-        <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
-          Cancel
+        <button className="admin-buttonv1" onClick={() => setShowModal(true)}>
+          {tr('btnSendToAdmin', 'Send To Admin Approval')}
+        </button>
+        <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
+          {tr('btnSave', 'Save')}
+        </button>
+        <button
+          type="button"
+          className="admin-buttonv1"
+          onClick={() => navigate('/vendordata/activityinfo/activity/list')}
+        >
+          {tr('btnCancel', 'Cancel')}
         </button>
       </div>
 
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">
-            <h4>Send To Admin Approval</h4>
-            <p>Are you sure you want to send this for admin approval?</p>
+            <h4>{tr('modalSendApprovalTitle', 'Send To Admin Approval')}</h4>
+            <p>{tr('modalSendApprovalText', 'Are you sure you want to send this for admin approval?')}</p>
             <div className="modal-buttons">
-              <button className="admin-buttonv1" onClick={(e) => { setShowModal(false); handleSubmit('WAITING-FOR-APPROVAL', e); }}>Yes</button>
-              <button className="admin-buttonv1" onClick={() => setShowModal(false)}>No</button>
+              <button
+                className="admin-buttonv1"
+                onClick={(e) => {
+                  setShowModal(false)
+                  handleSubmit('WAITING-FOR-APPROVAL', e)
+                }}
+              >
+                {tr('yes', 'Yes')}
+              </button>
+              <button className="admin-buttonv1" onClick={() => setShowModal(false)}>
+                {tr('no', 'No')}
+              </button>
             </div>
           </div>
         </div>

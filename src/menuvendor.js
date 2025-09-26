@@ -7,7 +7,30 @@ import { CNavItem, CNavTitle } from '@coreui/react'
 import { API_BASE_URL } from './config'
 import { getAuthHeaders, getCurrentLoggedUserID } from './utils/operation'
 
+// 🔤 i18n packs (default Arabic if not set)
+import enPack from './i18n/enloc100.json'
+import arPack from './i18n/arloc100.json'
+
 const GET_VDR_SUMMARY = `${API_BASE_URL}/vendordata/dashboard/getvdrsummary`
+
+// ---- tiny i18n helpers (local, no provider) ----
+const getLang = () => {
+  try {
+    const v = localStorage.getItem('heroz_lang')
+    return v === 'ar' || v === 'en' ? v : 'ar' // default AR
+  } catch {
+    return 'ar'
+  }
+}
+const getDict = () => (getLang() === 'ar' ? arPack : enPack)
+const t = (key, fb) => {
+  const d = getDict()
+  return (d && d[key]) || fb
+}
+
+// React node that renders a translated label
+const Txt = ({ k, fb }) => <span>{t(k, fb)}</span>
+// -------------------------------------------------
 
 function ApprovedActivityName() {
   const [approved, setApproved] = useState(null)
@@ -29,11 +52,13 @@ function ApprovedActivityName() {
         if (alive) setApproved(0)
       }
     })()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>Approved Trips</span>
+      <span><Txt k="navApprovedTrips" fb="Approved Trips" /></span>
       <span style={{ color: 'yellow' }}>[{approved === null ? '…' : approved}]</span>
     </div>
   )
@@ -59,11 +84,13 @@ function PendingActivityName() {
         if (alive) setPending(0)
       }
     })()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>Pending Trips</span>
+      <span><Txt k="navPendingTrips" fb="Pending Trips" /></span>
       <span style={{ color: 'orange' }}>[{pending === null ? '…' : pending}]</span>
     </div>
   )
@@ -89,11 +116,13 @@ function RejectedActivityName() {
         if (alive) setRejected(0)
       }
     })()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>Rejected Trips</span>
+      <span><Txt k="navRejectedTrips" fb="Rejected Trips" /></span>
       <span style={{ color: 'red' }}>[{rejected === null ? '…' : rejected}]</span>
     </div>
   )
@@ -102,17 +131,17 @@ function RejectedActivityName() {
 const vendormenu = [
   {
     component: CNavItem,
-    name: 'Dashboard',
+    name: <Txt k="navDashboard" fb="Dashboard" />,
     to: '/vendor/dashboard',
     icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
   },
   {
     component: CNavTitle,
-    name: 'Activity Management',
+    name: <Txt k="navActivityManagement" fb="Activity Management" />,
   },
   {
     component: CNavItem,
-    name: 'All Activity',
+    name: <Txt k="navAllActivity" fb="All Activity" />,
     to: '/vendordata/activityinfo/activity/list',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
   },
@@ -137,28 +166,27 @@ const vendormenu = [
   },
   {
     component: CNavTitle,
-    name: 'Field Trip',
+    name: <Txt k="navFieldTrip" fb="Field Trip" />,
   },
   // You can apply same query logic for trips too later
   {
     component: CNavItem,
-    name: 'Payment',
+    name: <Txt k="navPayment" fb="Payment" />,
     to: '/vendordata/Payment/list',
     icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
-    name: 'Profile Setting',
+    name: <Txt k="navProfileSetting" fb="Profile Setting" />,
     to: '/vendor/info',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
-    name: 'Notification',
+    name: <Txt k="navNotification" fb="Notification" />,
     to: 'vendordata/note/list',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
   },
- 
 ]
 
 export default vendormenu

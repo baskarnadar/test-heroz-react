@@ -1,5 +1,5 @@
 // src/vendordata/activityinfo/activity/ViewActivityScreen.js
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CCard, CCardBody, CRow, CCol,
@@ -76,7 +76,33 @@ const useDocDir = () => {
   return dir;
 };
 
-// --- Normalize data into the exact shape UI expects ---
+/* =========================
+   🔤 Light i18n glue (no libs)
+   - Reads current lang from <html lang> or localStorage('heroz_lang')
+   - Loads /public/locales/{lang}loc100.json at runtime
+   - Re-renders on custom event 'heroz_lang_changed' and <html lang> changes
+========================= */
+const getLangNow = () =>
+  (document?.documentElement?.lang || localStorage.getItem("heroz_lang") || "ar")
+    .toLowerCase().startsWith("en") ? "en" : "ar";
+
+const useLang = () => {
+  const [lang, setLang] = useState(getLangNow());
+  useEffect(() => {
+    const onEvt = (e) => setLang((e?.detail?.lang || getLangNow()).startsWith("en") ? "en" : "ar");
+    window.addEventListener("heroz_lang_changed", onEvt);
+    const obs = new MutationObserver(() => setLang(getLangNow()));
+    if (document?.documentElement) {
+      obs.observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+    }
+    return () => {
+      window.removeEventListener("heroz_lang_changed", onEvt);
+      obs.disconnect();
+    };
+  }, []);
+  return lang;
+};
+// =========================
 
 function toBoolLoose(v) {
   if (typeof v === "boolean") return v;
@@ -256,6 +282,26 @@ const ViewActivityScreen = () => {
   const [activityRequestData, setActivityRequestData] = useState(null);
   const [error, setError] = useState("");
 
+  // 🌐 language state + loader
+  const lang = useLang();
+  const [i18n, setI18n] = useState({});
+  const t = useCallback((k) => (i18n && Object.prototype.hasOwnProperty.call(i18n, k) ? i18n[k] : k), [i18n]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        // these json files live in /public/locales/
+        const res = await fetch(`/locales/${lang}loc100.json`, { cache: "no-store" });
+        const json = await res.json();
+        if (alive) setI18n(json || {});
+      } catch {
+        if (alive) setI18n({});
+      }
+    })();
+    return () => { alive = false; };
+  }, [lang]);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -324,11 +370,11 @@ const ViewActivityScreen = () => {
 
   return (
     <div dir={dir} style={{ padding: 16 }}>
-      <CategoryBox activity={activity} activityRequest={activityRequestData} />
+      <CategoryBox activity={activity} activityRequest={activityRequestData} t={t} i18n={i18n} />
       <div style={{ height: 21 }} />
 
       {/* Prices (from external component) — now fed normalized data */}
-      <PriceListCard prices={pricesForCard} title="Vendor Price." />
+      <PriceListCard prices={pricesForCard} title={t("vendor_price_title")} />{/* Vendor Price. */}
 
       <div style={{ height: 20 }} />
 
@@ -336,7 +382,7 @@ const ViewActivityScreen = () => {
       <AdditionalMeals
         includedMeals={mealsForCard.includedMeals}
         excludedMeals={mealsForCard.excludedMeals}
-        header="Additional"
+        header={t("additional_header")} // Additional
       />
 
       {!!activity?.actDesc && (
@@ -353,7 +399,7 @@ const ViewActivityScreen = () => {
 };
 
 // ---------- CategoryBox ----------
-const CategoryBox = ({ activity, activityRequest }) => {
+const CategoryBox = ({ activity, activityRequest, t, i18n }) => {
   const navigate = useNavigate();
   const dir = useDocDir();
 
@@ -412,6 +458,8 @@ const CategoryBox = ({ activity, activityRequest }) => {
     }
   };
 
+  const statusText = i18n?.[`status.${status}`] || status;
+
   return (
     <>
       {status !== "NEW" && (
@@ -419,7 +467,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
           <CCardBody>
             <div style={{ textAlign: "center", marginBottom: 10 }}>
               <div style={{ fontSize: "20px", color: AppColors.onTextName, fontWeight: 700 }}>
-                Activity Request Status
+                {t("activity_request_status")}{/* Activity Request Status */}
               </div>
             </div>
 
@@ -440,13 +488,13 @@ const CategoryBox = ({ activity, activityRequest }) => {
                   border: "none",
                 }}
               >
-                View Final Student List
+                {t("view_final_student_list")}{/* View Final Student List */}
               </CButton>
             )}
 
             <div style={{ display: "flex", justifyContent: "center" }}>
               <span style={{ fontSize: "16px", color: getStatusColorv1(status), fontWeight: 700 }}>
-                {status}
+                {statusText}
               </span>
             </div>
 
@@ -458,7 +506,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
                   onClick={() => setShowApprove(true)}
                   disabled={saving}
                 >
-                  Approve
+                  {t("approve")}{/* Approve */}
                 </CButton>
                 <CButton
                   color="danger"
@@ -469,7 +517,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
                   }}
                   disabled={saving}
                 >
-                  Reject
+                  {t("reject")}{/* Reject */}
                 </CButton>
               </div>
             )}
@@ -494,12 +542,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
             <span style={{ fontSize: "20px", color: AppColors.onTextName, fontWeight: 700 }}>
               {(() => {
                 const reason = (activityRequest?.RequestRejectReason || "").trim();
-                return (
-                  reason ||
-                  (document?.documentElement?.dir === "rtl"
-                    ? "تم الرفض بدون سبب مذكور."
-                    : "Rejected (no reason provided).")
-                );
+                return reason || t("rejected_no_reason"); // Rejected (no reason provided).
               })()}
             </span>
           </div>
@@ -508,7 +551,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
       )}
 
       <div style={{ fontSize: "18px", color: AppColors.onTextName, fontWeight: 700 }}>
-        Total expected students
+        {t("total_expected_students")}{/* Total expected students */}
       </div>
       <div
         style={{
@@ -529,7 +572,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
 
       <div style={{ height: 20 }} />
 
-      <div style={{ fontSize: "20px", color: AppColors.onTextName, fontWeight: 700 }}>Trip Info</div>
+      <div style={{ fontSize: "20px", color: AppColors.onTextName, fontWeight: 700 }}>{t("trip_info")}</div>
       <div
         style={{
           padding: 20,
@@ -541,17 +584,17 @@ const CategoryBox = ({ activity, activityRequest }) => {
       >
         <KVRow k={activity?.actName || ""} v="" spaced screenWidth={screenWidth} />
         <div style={{ height: 12 }} />
-        <KVRow k="Min Students" v={activity?.actMinStudent ?? "--"} spaced screenWidth={screenWidth} />
+        <KVRow k={t("kv.min_students")} v={activity?.actMinStudent ?? "--"} spaced screenWidth={screenWidth} />
         <div style={{ height: 12 }} />
-        <KVRow k="Max Students" v={activity?.actMaxStudent ?? "--"} spaced screenWidth={screenWidth} />
+        <KVRow k={t("kv.max_students")} v={activity?.actMaxStudent ?? "--"} spaced screenWidth={screenWidth} />
         <div style={{ height: 12 }} />
-        <KVRow k="Ref No" v={activityRequest?.actRequestRefNo ?? "--"} spaced screenWidth={screenWidth} />
+        <KVRow k={t("kv.ref_no")} v={activityRequest?.actRequestRefNo ?? "--"} spaced screenWidth={screenWidth} />
         <div style={{ height: 5 }} />
-        <KVRow k="Date" v={activityRequest?.actRequestDate ?? "--"} spaced screenWidth={screenWidth} />
+        <KVRow k={t("kv.date")} v={activityRequest?.actRequestDate ?? "--"} spaced screenWidth={screenWidth} />
         <div style={{ height: 5 }} />
-        <KVRow k="Time" v={activityRequest?.actRequestTime ?? "--"} spaced screenWidth={screenWidth} />
+        <KVRow k={t("kv.time")} v={activityRequest?.actRequestTime ?? "--"} spaced screenWidth={screenWidth} />
         <div style={{ height: 8 }} />
-        <div style={{ fontSize: "16px", color: AppColors.onTextName, fontWeight: 600 }}>Message</div>
+        <div style={{ fontSize: "16px", color: AppColors.onTextName, fontWeight: 600 }}>{t("kv.message")}</div>
         <div style={{ height: 6 }} />
         <div style={{ fontSize: "16px", color: AppColors.onTextName, whiteSpace: "pre-wrap" }}>
           {activityRequest?.actRequestMessage || ""}
@@ -561,10 +604,10 @@ const CategoryBox = ({ activity, activityRequest }) => {
       {/* Approve modal */}
       <CModal visible={showApprove} onClose={() => setShowApprove(false)}>
         <CModalHeader>
-          <CModalTitle>Confirm Approval</CModalTitle>
+          <CModalTitle>{t("confirm_approval_title")}{/* Confirm Approval */}</CModalTitle>
         </CModalHeader>
         <CModalBody>
-          <div style={ts(16)}>Request from Heroz</div>
+          <div style={ts(16)}>{t("request_from_heroz")}</div>
           <div
             style={{
               marginTop: 12,
@@ -579,17 +622,17 @@ const CategoryBox = ({ activity, activityRequest }) => {
           >
             <i className="cil-people" />
             <div style={ts(16)}>
-              Total students: <b style={{ color: "red" }}>{activityRequest?.actTotalNoStudents}</b>
+              {t("total_students_label")}: <b style={{ color: "red" }}>{activityRequest?.actTotalNoStudents}</b>
             </div>
           </div>
-          <div style={{ marginTop: 12, ...ts(15) }}>Are you sure you want to approve?</div>
+          <div style={{ marginTop: 12, ...ts(15) }}>{t("approve_question")}</div>
         </CModalBody>
         <CModalFooter>
           <CButton color="secondary" onClick={() => setShowApprove(false)} disabled={saving}>
-            Cancel
+            {t("cancel")}
           </CButton>
           <CButton color="success" onClick={onApprove} disabled={saving}>
-            {saving ? "Saving..." : "Confirm"}
+            {saving ? "Saving..." : t("confirm")}
           </CButton>
         </CModalFooter>
       </CModal>
@@ -597,18 +640,18 @@ const CategoryBox = ({ activity, activityRequest }) => {
       {/* Reject modal */}
       <CModal visible={showReject} onClose={() => setShowReject(false)}>
         <CModalHeader>
-          <CModalTitle>Confirm Reject</CModalTitle>
+          <CModalTitle>{t("confirm_reject_title")}{/* Confirm Reject */}</CModalTitle>
         </CModalHeader>
         <CModalBody>
-          <div style={ts(16)}>Are you sure you want to reject?</div>
+          <div style={ts(16)}>{t("reject_question")}</div>
           <div style={{ height: 12 }} />
-          <div style={ts(14, { fontWeight: 600 })}>Reject reason</div>
+          <div style={ts(14, { fontWeight: 600 })}>{t("reject_reason_label")}</div>
           <div style={{ height: 6 }} />
           <textarea
             rows={3}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Type the reason for rejection..."
+            placeholder={t("reject_reason_placeholder")}
             style={{
               width: "100%",
               border: "1px solid #ced4da",
@@ -619,12 +662,12 @@ const CategoryBox = ({ activity, activityRequest }) => {
             }}
           />
           {!rejectReason.trim() && (
-            <div style={{ color: "#d32f2f", marginTop: 6 }}>Reason is required</div>
+            <div style={{ color: "#d32f2f", marginTop: 6 }}>{t("reject_reason_required")}</div>
           )}
         </CModalBody>
         <CModalFooter>
           <CButton color="secondary" onClick={() => setShowReject(false)} disabled={saving}>
-            Cancel
+            {t("cancel")}
           </CButton>
           <CButton
             color="danger"
@@ -632,7 +675,7 @@ const CategoryBox = ({ activity, activityRequest }) => {
             disabled={saving || !rejectReason.trim()}
             style={{ opacity: saving || !rejectReason.trim() ? 0.8 : 1 }}
           >
-            {saving ? "Saving..." : "Confirm"}
+            {saving ? "Saving..." : t("confirm")}
           </CButton>
         </CModalFooter>
       </CModal>

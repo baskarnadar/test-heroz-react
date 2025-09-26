@@ -1085,3 +1085,30 @@ label {
   direction: ltr !important;
   display: inline-block;
 }
+/* src/styles/rtl-fixes.css */
+html[dir="rtl"] body.sidebar-fixed .wrapper,
+html[dir="rtl"] body.sidebar-overlaid .wrapper,
+html[dir="rtl"] .sidebar-fixed .wrapper,
+html[dir="rtl"] .sidebar-overlaid .wrapper {
+  --cui-sidebar-occupy-start: 0 !important;
+}
+
+html[dir="rtl"] .sidebar {
+  left: auto;
+  right: 0;
+}
+
+html[dir="rtl"] .wrapper {
+    width: 100%;
+    padding-left: 1%   !important;
+    padding-right:17%  !important;
+    will-change: auto;
+    transition: padding 0.15s;
+}
+html[dir="ltr"] .wrapper {
+    width: 100%;
+    padding-left: 17%   !important;
+    padding-right:1%  !important;
+    will-change: auto;
+    transition: padding 0.15s;
+}

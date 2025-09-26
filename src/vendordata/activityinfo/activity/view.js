@@ -14,9 +14,33 @@ import { CRow, CCol } from '@coreui/react'
 import moneyv1 from '../../../assets/images/moneyv1.png'
 import ReactPlayer from 'react-player'
 
+// 🔤 i18n packs (keeps English as fallback for any missing keys)
+import enPack from '../../../i18n/enloc100.json'
+import arPack from '../../../i18n/arloc100.json'
+
 const Vendor = () => {
   // ✅ Toggle to hide "Student Range From" and "Student Range To"
   const HIDE_PRICE_RANGE_UI = true
+
+  // ---- i18n helpers (non-destructive) ----
+  const getStoredLang = () => {
+    try {
+      const v = localStorage.getItem('heroz_lang')
+      return v === 'ar' || v === 'en' ? v : 'ar'
+    } catch {
+      return 'ar'
+    }
+  }
+  const [lang, setLang] = useState(getStoredLang())
+  const dict = lang === 'ar' ? arPack : enPack
+  const tr = (key, fallback) => (dict && dict[key]) || fallback
+  const dayLabel = (d) => tr(`day_${d}`, d)
+  useEffect(() => {
+    const onChange = () => setLang(getStoredLang())
+    window.addEventListener('heroz_lang_changed', onChange)
+    return () => window.removeEventListener('heroz_lang_changed', onChange)
+  }, [])
+  // ----------------------------------------
 
   const [error, setError] = useState('')
   const [txtactImageName1, setactImageName1] = useState(null)
@@ -46,7 +70,7 @@ const Vendor = () => {
       setActivity(data.data || [])
       setTotalPages(Math.ceil(data.totalCount / ActivityPerPage))
     } catch (error) {
-      setError('Error fetching activities')
+      setError(tr('errFetchActivities', 'Error fetching activities'))
     } finally {
       setLoading(false)
     }
@@ -75,7 +99,7 @@ const Vendor = () => {
     if (ActivityIDVal) {
       fetchActivity(ActivityIDVal)
     } else {
-      setError('ActivityID is missing in URL')
+      setError(tr('errActivityIdMissing', 'ActivityID is missing in URL'))
     }
   }, [])
 
@@ -83,12 +107,12 @@ const Vendor = () => {
     <div>
       <div className="msgbox" style={{ marginBottom: '20px', marginTop: '20px' }}>
         <div className="form-group text-center"> 
-          <div style={{ padding: '20px'  }}> <b>ACTIVITY STATUS : </b> {dspstatusv1(ActivityData?.actStatus)} </div>
+          <div style={{ padding: '20px'  }}> <b>{tr('labelActivityStatus', 'ACTIVITY STATUS :')}</b> {dspstatusv1(ActivityData?.actStatus)} </div>
         </div>
       </div>
       <div className="divhbg">
         {/* Left side: Title */}
-        <div className="txtheadertitle">View Activity</div>
+        <div className="txtheadertitle">{tr('viewActivityTitle', 'View Activity')}</div>
 
         {/* Right side: Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -97,21 +121,21 @@ const Vendor = () => {
             className="admin-buttonv1"
             onClick={() => navigate('/vendordata/activityinfo/activity/list?')}
           >
-            Return
+            {tr('btnReturn', 'Return')}
           </button>
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Information</div>
+      <div className="txtsubtitle">{tr('sectionActivityInfo', 'Activity Information')}</div>
 
       <div className="divbox">
         <div className="form-group">
-          <label style={{ marginBottom: '10px', marginTop: '20px' }}>Activity Name</label>
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>{tr('labelActivityName', 'Activity Name')}</label>
           <div className="admin-lbl-box"> {ActivityData?.actName} </div>
         </div>
 
         <div className="form-group">
-          <label style={{ marginBottom: '10px', marginTop: '20px' }}>Activity Type</label>
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>{tr('labelActivityType', 'Activity Type')}</label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div className="admin-lbl-box"> {ActivityData?.actTypeID} </div>
           </div>
@@ -119,7 +143,7 @@ const Vendor = () => {
 
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories
+            {tr('labelCategories', 'Activity Categories')}
           </label>
 
           <div>
@@ -132,12 +156,12 @@ const Vendor = () => {
         </div>
 
         <div className="form-group">
-          <label>Activity Description</label>
+          <label>{tr('labelActivityDesc', 'Activity Description')}</label>
           <div className="admin-lbl-boxv1"> {ActivityData?.actDesc} </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Images </div>
+      <div className="txtsubtitle">{tr('sectionActivityImages', 'Activity Images')} </div>
       <div className="divbox">
         <div
           style={{
@@ -150,25 +174,25 @@ const Vendor = () => {
         >
           {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Activity Image 1</label>
+            <label>{tr('labelImage1', 'Activity Image 1')}</label>
             <FilePreview file={txtactImageName1} />
           </div>
 
           {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Activity Image 2</label>
+            <label>{tr('labelImage2', 'Activity Image 2')}</label>
             <FilePreview file={txtactImageName2} />
           </div>
 
           {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Activity Image 3</label>
+            <label>{tr('labelImage3', 'Activity Image 3')}</label>
             <FilePreview file={txtactImageName3} />
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Youtube Videos </div>
+      <div className="txtsubtitle">{tr('sectionYouTube', 'Activity Youtube Videos')} </div>
       <div className="divbox">
         <div
           style={{
@@ -181,7 +205,7 @@ const Vendor = () => {
         >
           {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 1</label>
+            <label>{tr('labelYouTube1', 'Youtube Video Link 1')}</label>
             <YouTubeEmbed videoId={ActivityData?.actYouTubeID1} />
 
             <div></div>
@@ -189,7 +213,7 @@ const Vendor = () => {
 
           {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 2</label>
+            <label>{tr('labelYouTube2', 'Youtube Video Link 2')}</label>
             <div>
               <YouTubeEmbed videoId={ActivityData?.actYouTubeID2} />
             </div>
@@ -197,20 +221,20 @@ const Vendor = () => {
 
           {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 3</label>
+            <label>{tr('labelYouTube3', 'Youtube Video Link 3')}</label>
             <div>
               <YouTubeEmbed videoId={ActivityData?.actYouTubeID3} />
             </div>
           </div>
         </div>
       </div>
-      <div className="txtsubtitle">Activity Location </div>
+      <div className="txtsubtitle">{tr('sectionLocation', 'Activity Location')} </div>
 
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Google Map Location</label>
+              <label className="vendor-label">{tr('labelGoogleMap', 'Google Map Location')}</label>
 
              <iframe
   width="100%"
@@ -227,11 +251,11 @@ const Vendor = () => {
 
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Google Latitude</label>
+              <label className="vendor-label">{tr('labelLatitude', 'Google Latitude')}</label>
               <div className="admin-lbl-box"> {ActivityData?.actGlat} </div>
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Google Longitude</label>
+              <label className="vendor-label">{tr('labelLongitude', 'Google Longitude')}</label>
               <div className="admin-lbl-box"> {ActivityData?.actGlan} </div>
             </div>
           </div>
@@ -241,26 +265,26 @@ const Vendor = () => {
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Country</label>
+              <label className="vendor-label">{tr('labelCountry', 'Country')}</label>
               <div className="admin-lbl-box"> {ActivityData?.EnCountryName} </div>
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">City</label>
+              <label className="vendor-label">{tr('labelCity', 'City')}</label>
               <div className="admin-lbl-box"> {ActivityData?.EnCityName} </div>
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Address1</label>
+              <label className="vendor-label">{tr('labelLocation1', 'Address1')}</label>
               <div className="admin-lbl-box"> {ActivityData?.actAddress1} </div>
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Address2</label>
+              <label className="vendor-label">{tr('labelAddress2', 'Address2')}</label>
               <div className="admin-lbl-box"> {ActivityData?.actAddress2} </div>
             </div>
           </div>
         </div>
       </div>
-      <div className="txtsubtitle"> Age Range </div>
+      <div className="txtsubtitle">{tr('sectionAgeRange', ' Age Range ')}</div>
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">
@@ -269,7 +293,7 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">Minimum Age</label>
+              <label className="vendor-label">{tr('labelMinAge', 'Minimum Age')}</label>
 
               <div className="admin-lbl-box"> {ActivityData?.actMinAge} </div>
             </div>
@@ -278,7 +302,7 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">Maximum Age</label>
+              <label className="vendor-label">{tr('labelMaxAge', 'Maximum Age')}</label>
               <div className="admin-lbl-box"> {ActivityData?.actMaxAge} </div>
             </div>
           </div>
@@ -288,7 +312,7 @@ const Vendor = () => {
         {/* // row start */}
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label className="vendor-label">Gender</label>
+            <label className="vendor-label">{tr('labelGender', 'Gender')}</label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <div className="admin-lbl-box pink-badge"> {ActivityData?.actGender} </div>
             </label>
@@ -298,7 +322,7 @@ const Vendor = () => {
       </div>
       {/* // row end */}
 
-      <div className="txtsubtitle">Capacity Information </div>
+      <div className="txtsubtitle">{tr('sectionCapacityInfo', 'Capacity Information ')} </div>
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">
@@ -307,7 +331,7 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">Minimum Students</label>
+              <label className="vendor-label">{tr('labelMinStudents', 'Minimum Students')}</label>
               <div className="admin-lbl-box"> {ActivityData?.actMinStudent} </div>
             </div>
 
@@ -315,7 +339,7 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">Maximum Students</label>
+              <label className="vendor-label">{tr('labelMaxStudents', 'Maximum Students')}</label>
               <div className="admin-lbl-box"> {ActivityData?.actMaxStudent} </div>
             </div>
           </div>
@@ -323,14 +347,14 @@ const Vendor = () => {
         {/* // row end */}
       </div>
 
-      <div className="txtsubtitle">Price Per Student</div>
+      <div className="txtsubtitle">{tr('sectionPricePerStudent', 'Price Per Student')}</div>
 
       <div className="divbox">
         {/* Table Header */}
         <CRow className="fw-bold  mb-2">
-          <CCol sm={3}>Price</CCol>
-          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range From</CCol>
-          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>Student Range To</CCol>
+          <CCol sm={3}>{tr('labelPrice', 'Price')}</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>{tr('labelStudentRangeFrom', 'Student Range From')}</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>{tr('labelStudentRangeTo', 'Student Range To')}</CCol>
           <CCol sm={3}></CCol> {/* Remove column */}
         </CRow>
 
@@ -363,7 +387,7 @@ const Vendor = () => {
         ))}
       </div>
 
-      <div className="txtsubtitle">Set Availability</div>
+      <div className="txtsubtitle">{tr('sectionSetAvailability', 'Set Availability')}</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -387,7 +411,7 @@ const Vendor = () => {
                       className="admin-lbl-box pink-shadow1"
                       style={{ fontWeight: 'bold', textTransform: 'capitalize' }}
                     >
-                      {day} <input type="checkbox" checked readOnly /> Available
+                      {dayLabel(day)} <input type="checkbox" checked readOnly /> {tr('labelAvailable', 'Available')}
                     </div>
                   </label>
 
@@ -403,9 +427,9 @@ const Vendor = () => {
                         marginBottom: '8px',
                       }}
                     >
-                      <div style={{ width: '200px', textAlign: 'center' }}>Start Time</div>
-                      <div style={{ width: '200px', textAlign: 'center' }}>End Time</div>
-                      <div style={{ width: '200px', textAlign: 'center' }}>Note</div>
+                      <div style={{ width: '200px', textAlign: 'center' }}>{tr('labelStartTime', 'Start Time')}</div>
+                      <div style={{ width: '200px', textAlign: 'center' }}>{tr('labelEndTime', 'End Time')}</div>
+                      <div style={{ width: '200px', textAlign: 'center' }}>{tr('labelNotes', 'Note')}</div>
                     </div>
 
                     {/* Data rows */}
@@ -447,16 +471,16 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Food Information</div>
+      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Food Information')}</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>Food Name</CCol>
-            <CCol sm={2}>Price</CCol>
-            <CCol sm={3}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
-            <CCol sm={1}>Include</CCol>
+            <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
+            <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
+            <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
+            <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>
+            <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
             <CCol sm={1}></CCol> {/* For remove button */}
           </CRow>
 
@@ -482,20 +506,20 @@ const Vendor = () => {
                 {foodItem.FoodImage ? (
                   <FilePreview file={foodItem.FoodImage} />
                 ) : (
-                  <div className="admin-lbl-box text-center">No Image</div>
+                  <div className="admin-lbl-box text-center">{tr('noImage', 'No Image')}</div>
                 )}
               </CCol>
 
               {/* Include (displayed as Yes/No or Boolean) */}
               <CCol sm={1} className="text-center">
-                <div className="admin-lbl-box text-center">{foodItem.Include ? 'Yes' : 'No'}</div>
+                <div className="admin-lbl-box text-center">{foodItem.Include ? tr('yes', 'Yes') : tr('no', 'No')}</div>
               </CCol>
             </CRow>
           ))}
         </div>
       </div>
 
-      <div className="txtsubtitle">Terms And Conditions</div>
+      <div className="txtsubtitle">{tr('sectionTerms', 'Terms And Conditions')}</div>
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">
@@ -505,7 +529,7 @@ const Vendor = () => {
       </div>
       <div className="button-container">
         <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
-          Return
+          {tr('btnReturn', 'Return')}
         </button>
       </div>
       <DspToastMessage message={toastMessage} type={toastType} />

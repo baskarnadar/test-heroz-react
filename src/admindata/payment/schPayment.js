@@ -13,10 +13,16 @@ const GET_SCH_VDR_URL = `${API_BASE_URL}/admindata/payment/getSchVdr`;
 
 // === helpers ===
 const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const sumBy = (arr, key) => (Array.isArray(arr) ? arr.reduce((s, x) => s + toNum(x?.[key]), 0) : 0);
+const round2 = (n) => Math.round((toNum(n) + Number.EPSILON) * 100) / 100;
+const sumBy = (arr, key) =>
+  Array.isArray(arr) ? arr.reduce((s, x) => s + toNum(x?.[key]), 0) : 0;
+
+// always render TWO decimals
 const fmt = (v) => {
   const n = toNum(v);
-  return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : (v ?? "-");
+  return Number.isFinite(n)
+    ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : (v ?? "-");
 };
 
 // safer stringify (handles circular refs, BigInt, undefined)
@@ -57,7 +63,7 @@ const pickNum = (item, dottedPath) => {
   return 0;
 };
 
-// ---------- calculation rules (per your request) ----------
+// ---------- calculation rules ----------
 // Detect "APPROVED" status across possible field casings/aliases.
 const isApproved = (row) => {
   const v = (row?.PayStatus ?? row?.payStatus ?? row?.status ?? "").toString().toUpperCase();
@@ -85,21 +91,21 @@ const isKid = (row) => {
   return false;
 };
 
-// Trip Profit = sum(TripSchoolPrice) * 0.1 for APPROVED payments
+// Trip Profit = sum(TripSchoolPrice) for APPROVED payments  ✅ (100%)
 const computeTripProfit = (item) => {
   const payments = pickArr(item, "payments");
   const approvedSum = payments
     .filter(isApproved)
     .reduce((s, r) => s + toNum(r?.TripSchoolPrice ?? r?.tripSchoolPrice), 0);
 
-  if (approvedSum > 0) return approvedSum * 0.1;
+  if (approvedSum > 0) return round2(approvedSum);
 
   // Fallback: use summary if present (either level)
   const summary = pickNum(item, "tripPayment.totalTripSchoolPrice");
-  return summary > 0 ? summary * 0.1 : 0;
+  return summary > 0 ? round2(summary) : 0;
 };
 
-// Food Profit = sum(FoodSchoolPrice) * 0.1 for APPROVED + kids only
+// Food Profit = sum(FoodSchoolPrice) for APPROVED + kids only  ✅ CHANGED from 10% to 100%
 const computeFoodProfit = (item) => {
   const foodExtras = pickArr(item, "foodExtras");
 
@@ -125,20 +131,19 @@ const computeFoodProfit = (item) => {
     }
   }
 
-  if (approvedKidsSum > 0) return approvedKidsSum * 0.1;
+  if (approvedKidsSum > 0) return round2(approvedKidsSum);
 
   // Fallback: use summary if present
   const summary = pickNum(item, "foodExtrasSummary.totalFoodSchoolPrice");
-  return summary > 0 ? summary * 0.1 : 0;
+  return summary > 0 ? round2(summary) : 0;
 };
 
 // Route to rule-based functions
 const sumTripSchoolPrice = (it) => computeTripProfit(it);
 const sumFoodSchoolPrice = (it) => computeFoodProfit(it);
 
-// NOTE: As requested: Total Profit = Trip Profit + Trip Profit
-const sumSchoolTotal = (tripProfitOnly /* number */) =>
-  toNum(tripProfitOnly) + toNum(tripProfitOnly);
+// Total = Trip Profit + Trip Profit (per your rule)
+const sumSchoolTotal = (tripProfitOnly /* number */) => round2(toNum(tripProfitOnly) + toNum(tripProfitOnly));
 
 // ---------- UI tiles ----------
 const Tile = ({ title, value, tone = "neutral", subtitle }) => {
@@ -185,9 +190,9 @@ const Tile = ({ title, value, tone = "neutral", subtitle }) => {
 
 const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
   // === derived values following your conditions ===
-  const tripSchool = sumTripSchoolPrice(item); // 10% of APPROVED TripSchoolPrice
-  const foodSchool = sumFoodSchoolPrice(item); // 10% of APPROVED FoodSchoolPrice (kids only)
-  const schoolTotal = sumSchoolTotal(tripSchool); // Trip + Trip (as requested)
+  const tripSchool = sumTripSchoolPrice(item); // ✅ 100% of APPROVED TripSchoolPrice
+  const foodSchool = sumFoodSchoolPrice(item); // ✅ 100% of APPROVED kids-only FoodSchoolPrice
+  const schoolTotal = sumSchoolTotal(tripSchool); // Trip + Trip
 
   // --- form state ---
   const [amount, setAmount] = React.useState(schoolTotal || 0);
@@ -205,11 +210,11 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
   const [loadingList, setLoadingList] = React.useState(false);
   const [listError, setListError] = React.useState("");
   const [records, setRecords] = React.useState([]); // [{schPaidAmount, schPaidDate, schPaidNote, schPaidPaymentType, ...}]
-  const totalPaid = React.useMemo(() => sumBy(records, "schPaidAmount"), [records]);
+  const totalPaid = React.useMemo(() => round2(sumBy(records, "schPaidAmount")), [records]);
 
-  // Balance = Total Profit - Previous Payments
+  // Balance = Total Profit - Previous Payments (rounded to 2dp)
   const balancePayable = React.useMemo(
-    () => Math.max(0, toNum(schoolTotal) - toNum(totalPaid)),
+    () => round2(toNum(schoolTotal) - toNum(totalPaid)),
     [schoolTotal, totalPaid]
   );
 
@@ -250,18 +255,18 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
       identifiers: idPart,
       item,
       derived: {
-        tripSchool_10pct_APPROVED: tripSchool,
-        foodSchool_10pct_APPROVED_kidsOnly: foodSchool,
-        totalProfit_tripPlusTrip: schoolTotal,
+        tripSchool_APPROVED_100pct: tripSchool,
+        foodSchool_APPROVED_kidsOnly_100pct: foodSchool,
+        totalProfit_tripTimes2: schoolTotal,
         totalPaidHistory: totalPaid,
         balancePayable: balancePayable,
-        amountField: amount,
+        amountField: round2(amount),
         counters: {
           payments_total: paymentsArr.length,
           payments_approved: tripApprovedCount,
           foodExtras_total: foodArr.length,
-          foodExtras_hasRowStatus: hasRowStatus, // ✅ fixed reference
-          foodExtras_hasKidHint: hasKidHint,     // ✅ fixed reference
+          foodExtras_hasRowStatus: hasRowStatus,
+          foodExtras_hasKidHint: hasKidHint,
         },
         sources: {
           usedPaymentsFrom: Array.isArray(item?.payments) ? "item.payments" : Array.isArray(item?.__full?.payments) ? "item.__full.payments" : "none",
@@ -272,7 +277,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
           foodSummaryFull: fullFood,
         }
       },
-      form: { amount, date, type, note },
+      form: { amount: round2(amount), date, type, note },
     };
   }, [item, visible, totalProfit, tripSchool, foodSchool, schoolTotal, totalPaid, balancePayable, amount, date, type, note]);
 
@@ -343,10 +348,10 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
     }
   }, [visible, item, totalProfit, fetchPayments]);
 
-  // when any derived changes and user hasn't edited, sync default amount to balance
+  // when any derived changes and user hasn't edited, sync default amount to balance (rounded)
   React.useEffect(() => {
     if (visible && !userEditedAmount) {
-      setAmount(balancePayable);
+      setAmount(round2(balancePayable));
     }
   }, [balancePayable, visible, userEditedAmount]);
 
@@ -378,7 +383,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
     const payload = {
       RequestID: item?.RequestID || "",
       ActivityID: item?.ActivityID || "",
-      schPaidAmount: Number(amount),
+      schPaidAmount: round2(amount),
       schPaidDate: date,
       schPaidNote: note || "",
       schPaidPaymentType: type,
@@ -425,8 +430,40 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
       <CModalBody>
 
         {/* ===== ALWAYS-VISIBLE DEBUG BLOCK (can hide) ===== */}
-        
-    
+        <div className="mb-3">
+          <div className="d-flex align-items-center justify-content-between">
+            <div className="fw-semibold">Debug data</div>
+            <CButton size="sm" color="light" variant="outline" onClick={() => setShowDebug((v) => !v)}>
+              {showDebug ? "Hide" : "Show"}
+            </CButton>
+          </div>
+
+          {showDebug && (
+            <div className="mt-2 rounded-4 border" style={{ borderColor: "#e9ecef", background: "#fff" }}>
+              <div className="p-2 border-bottom" style={{ borderColor: "#e9ecef" }}>
+                {/* <CBadge color="secondary" className="me-2">Parent item (as received)</CBadge>*/}
+               {/*  <span className="text-muted small">Raw payload from parent</span>*/}
+              </div>
+            {/*    <div style={{ maxHeight: 260, overflow: "auto" }} className="p-2">
+                <pre className="mb-0" style={{ fontSize: 12, lineHeight: 1.35, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {safeStringify(item, 2)}
+                </pre>
+              </div>
+
+              */}
+
+              <div className="p-2 border-top" style={{ borderColor: "#e9ecef" }}>
+             {/*    <CBadge color="info" className="me-2">Derived bundle</CBadge>  */}
+               {/*     <span className="text-muted small">Computed fields & counters</span>*/}
+              </div>
+              <div style={{ maxHeight: 300, overflow: "auto" }} className="p-2">
+               {/*   <pre className="mb-0" style={{ fontSize: 12, lineHeight: 1.35, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {safeStringify(debugBundle, 2)}
+                </pre>*/}
+              </div>
+            </div>
+          )}
+        </div>
 
         {!!error && <CAlert color="danger" className="mb-3">{error}</CAlert>}
         {!!success && <CAlert color="success" className="mb-3">{success}</CAlert>}
@@ -444,13 +481,13 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
         {/* ===== THREE TILES ===== */}
         <CRow className="g-3 mb-3">
           <CCol xs={12} md={4}>
-            <Tile title="Trip Profit" value={tripSchool} tone="info" subtitle='10% of APPROVED "TripSchoolPrice"' />
+            <Tile title="Trip Profit" value={tripSchool} tone="info"  />
           </CCol>
           <CCol xs={12} md={4}>
-            <Tile title="Food Profit" value={foodSchool} tone="success" subtitle='10% of APPROVED kids-only "FoodSchoolPrice"' />
+            <Tile title="Food Profit" value={foodSchool} tone="success"   />
           </CCol>
           <CCol xs={12} md={4}>
-            <Tile title="Total Profit" value={schoolTotal} tone="warning" subtitle="Trip Profit + Trip Profit" />
+            <Tile title="Total Profit" value={schoolTotal} tone="warning"   />
           </CCol>
         </CRow>
 
@@ -467,8 +504,8 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                 type="number"
                 step="0.01"
                 label="Payment Amount *"
-                value={amount}
-                onChange={(e) => { setAmount(e.target.value); setUserEditedAmount(true); }}
+                value={Number(amount ?? 0).toFixed(2)}  // show as 0.60, not 0.06000000000000001
+                onChange={(e) => { setAmount(toNum(e.target.value)); setUserEditedAmount(true); }}
                 required
                 min="0.01"
                 title="Defaults to (Total Profit - Previous Payments), but you can adjust manually"

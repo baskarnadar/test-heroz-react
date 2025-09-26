@@ -10,6 +10,10 @@ import { CRow, CCol } from '@coreui/react'
 // ✅ Import the shared validator (returns { ok, errors, message? })
 import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
 
+// 🔤 i18n packs (default Arabic if not set)
+import enPack from '../../../i18n/enloc100.json'
+import arPack from '../../../i18n/arloc100.json'
+
 // ✅ Tiny helper to show a message right under each field
 const ErrorText = ({ msg }) =>
   msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
@@ -18,6 +22,26 @@ const Vendor = () => {
   // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_FOOD_IMAGE = true // ⬅️ Hide Food Image everywhere (UI + payload)
+
+  // ---- i18n helpers (non-destructive) ----
+  const getStoredLang = () => {
+    try {
+      const v = localStorage.getItem('heroz_lang')
+      return v === 'ar' || v === 'en' ? v : 'ar'
+    } catch {
+      return 'ar'
+    }
+  }
+  const [lang, setLang] = useState(getStoredLang())
+  const dict = lang === 'ar' ? arPack : enPack
+  const tr = (key, fallback) => (dict && dict[key]) || fallback
+  useEffect(() => {
+    const onChange = () => setLang(getStoredLang())
+    window.addEventListener('heroz_lang_changed', onChange)
+    return () => window.removeEventListener('heroz_lang_changed', onChange)
+  }, [])
+  const dayLabel = (d) => tr(`day_${d}`, d)
+  // ----------------------------------------
 
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({}) // ✅ field-level errors
@@ -336,9 +360,9 @@ const Vendor = () => {
     if (!isValidActRating(actRating)) {
       setErrors((prev) => ({
         ...prev,
-        actRating: 'Activity Rating must be between 1 and 5 (decimals allowed).',
+        actRating: tr('errRatingRange', 'Activity Rating must be between 1 and 5 (decimals allowed).'),
       }))
-      setToastMessage('Please correct Activity Rating.')
+      setToastMessage(tr('fixRating', 'Please correct Activity Rating.'))
       setToastType('fail')
       return
     }
@@ -372,7 +396,7 @@ const Vendor = () => {
 
     if (!validation.ok) {
       setErrors(validation.errors || {}) // ✅ show under fields
-      setToastMessage(validation.message || 'Please correct the highlighted fields.')
+      setToastMessage(validation.message || tr('fixHighlighted', 'Please correct the highlighted fields.'))
       setToastType('fail')
       return
     }
@@ -385,9 +409,12 @@ const Vendor = () => {
     const overlap = hasOverlap(days)
     if (overlap) {
       setToastMessage(
-        `Time range overlap on ${overlap.day}: ` +
-          `${overlap.range1.start} - ${overlap.range1.end} overlaps with ` +
-          `${overlap.range2.start} - ${overlap.range2.end}`,
+        tr('timeOverlap', 'Time range overlap on {day}: {s1}–{e1} overlaps with {s2}–{e2}')
+          .replace('{day}', overlap.day)
+          .replace('{s1}', overlap.range1.start)
+          .replace('{e1}', overlap.range1.end)
+          .replace('{s2}', overlap.range2.start)
+          .replace('{e2}', overlap.range2.end)
       )
       setToastType('fail')
       setLoading(false)
@@ -413,7 +440,7 @@ const Vendor = () => {
         txtactImageName1Val = getFileNameFromUrl(uploadedImageKey1)
       }
     } catch (error) {
-      setToastMessage('Failed to upload image 1.')
+      setToastMessage(tr('toastImg1Failed', 'Failed to upload image 1.'))
       setToastType('fail')
     }
 
@@ -436,7 +463,7 @@ const Vendor = () => {
         txtactImageName2Val = getFileNameFromUrl(uploadedImageKey2)
       }
     } catch (error) {
-      setToastMessage('Failed to upload image 2.')
+      setToastMessage(tr('toastImg2Failed', 'Failed to upload image 2.'))
       setToastType('fail')
     }
 
@@ -460,7 +487,7 @@ const Vendor = () => {
         txtactImageName3Val = getFileNameFromUrl(uploadedImageKey3)
       }
     } catch (error) {
-      setToastMessage('Failed to upload image 3.')
+      setToastMessage(tr('toastImg3Failed', 'Failed to upload image 3.'))
       setToastType('fail')
     }
 
@@ -520,12 +547,12 @@ const Vendor = () => {
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
       await response.json()
-      setToastMessage('Activity updated successfully!')
+      setToastMessage(tr('toastActivityUpdated', 'Activity updated successfully!'))
       setToastType('success')
 
       setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
     } catch (err) {
-      setToastMessage('Failed to update Activity.')
+      setToastMessage(tr('toastActivityUpdateFailed', 'Failed to update Activity.'))
       setToastType('fail')
     } finally {
       setLoading(false)
@@ -616,10 +643,10 @@ const Vendor = () => {
         if (ActivityIDVal) {
           fetchActivity(ActivityIDVal)
         } else {
-          setError('ActivityID is missing in URL')
+          setError(tr('errActivityIdMissing', 'ActivityID is missing in URL'))
         }
       } catch (error) {
-        setError('Failed to load initial data.')
+        setError(tr('errLoadInitial', 'Failed to load initial data.'))
       }
     }
 
@@ -755,7 +782,7 @@ const Vendor = () => {
       fetchActivity(ActivityIDVal)
       setActivity(ActivityIDVal)
     } else {
-      setError('ActivityID is missing in URL')
+      setError(tr('errActivityIdMissing', 'ActivityID is missing in URL'))
     }
   }, [])
 
@@ -778,7 +805,7 @@ const Vendor = () => {
 
       setActivity(data.data || [])
     } catch (error) {
-      setError('Error fetching activities')
+      setError(tr('errFetchActivities', 'Error fetching activities'))
     } finally {
       setLoading(false)
     }
@@ -920,30 +947,30 @@ const Vendor = () => {
   return (
     <div>
       <div className="divhbg">
-        <div className="txtheadertitle">Modify Activity</div>
+        <div className="txtheadertitle">{tr('modifyTitle', 'Modify Activity')}</div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="admin-buttonv1" onClick={handlebtnSendToApprovalClick}>
-            Send To Admin Approval
+            {tr('btnSendToAdmin', 'Send To Admin Approval')}
           </button>
           <button className="admin-buttonv1" onClick={handleSave}>
-            Save
+            {tr('btnSave', 'Save')}
           </button>
           <button
             type="button"
             className="admin-buttonv1"
             onClick={() => navigate('/vendordata/activityinfo/activity/list')}
           >
-            Return
+            {tr('btnReturn', 'Return')}
           </button>
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Information</div>
+      <div className="txtsubtitle">{tr('sectionActivityInfo', 'Activity Information')}</div>
 
       <div className="divbox">
         <div className="form-group">
-          <label>Activity Name <span style={{color:'red'}}>*</span></label>
+          <label>{tr('labelActivityName', 'Activity Name')} <span style={{color:'red'}}>*</span></label>
           <input
             name="txtactName"
             className="admin-txt-box"
@@ -957,7 +984,7 @@ const Vendor = () => {
 
         <div className="form-group">
           <label style={{ marginBottom: '10px', marginTop: '20px' }}>
-            Activity Type <span style={{color:'red'}}>*</span>
+            {tr('labelActivityType', 'Activity Type')} <span style={{color:'red'}}>*</span>
           </label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -966,10 +993,10 @@ const Vendor = () => {
                 name="rdoactTyper"
                 value="SCHOOL"
                 checked={selectedType === 'SCHOOL'}
-                onChange={() => setactType('SCHOOL')}    
+                onChange={() => setactType('SCHOOL')}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4"> School</div>
+              <div className="pink-shadow4"> {tr('typeSchool', 'School')}</div>
             </label>
 
             {/* Keep your original options but hide + disable them */}
@@ -987,11 +1014,11 @@ const Vendor = () => {
                 name="rdoactTyper"
                 value="INDIVIDUAL"
                 checked={selectedType === 'INDIVIDUAL'}
-                onChange={() => setactType('SCHOOL')}        
+                onChange={() => setactType('SCHOOL')}
                 style={{ width: '24px', height: '24px' }}
                 disabled
               />
-              <div className="pink-shadow4"> Individual</div>
+              <div className="pink-shadow4"> {tr('typeIndividual', 'Individual')}</div>
             </label>
 
             <label
@@ -1008,11 +1035,11 @@ const Vendor = () => {
                 name="rdoactTyper"
                 value="MEMBER"
                 checked={selectedType === 'MEMBER'}
-                onChange={() => setactType('SCHOOL')}       
+                onChange={() => setactType('SCHOOL')}
                 style={{ width: '24px', height: '24px' }}
                 disabled
               />
-              <div className="pink-shadow4"> Member</div>
+              <div className="pink-shadow4"> {tr('typeMember', 'Member')}</div>
             </label>
           </div>
           <ErrorText msg={errors.selectedType} />
@@ -1021,17 +1048,16 @@ const Vendor = () => {
         {/* ⭐ Activity Rating – read-only display, validated 1..5 (decimals allowed) */}
         <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
           <label className="vendor-label" style={{ margin: 0 }}>
-            Activity Rating <span style={{color:'red'}}>*</span>
+            {tr('labelActivityRating', 'Activity Rating')} <span style={{color:'red'}}>*</span>
           </label>
           <div
             className="vendor-input"
             style={{
-              
               background: '#f7f7f7',
               cursor: 'not-allowed',
               userSelect: 'none',
             }}
-            title="This value is read-only"
+            title={tr('titleReadOnly', 'This value is read-only')}
           >
             {actRating === '' ? '—' : actRating}
           </div>
@@ -1041,7 +1067,7 @@ const Vendor = () => {
 
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories <span style={{color:'red'}}>*</span>
+            {tr('labelCategories', 'Activity Categories')} <span style={{color:'red'}}>*</span>
           </label>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
@@ -1071,7 +1097,7 @@ const Vendor = () => {
         </div>
 
         <div className="form-group">
-          <label>Activity Description <span style={{color:'red'}}>*</span></label>
+          <label>{tr('labelActivityDesc', 'Activity Description')} <span style={{color:'red'}}>*</span></label>
           <textarea
             name="txtactDesc"
             className="vendor-input"
@@ -1084,7 +1110,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Images <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">{tr('sectionActivityImages', 'Activity Images')} <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div
           style={{
@@ -1097,11 +1123,11 @@ const Vendor = () => {
         >
           {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Activity Image 1</label>
+            <label>{tr('labelImage1', 'Activity Image 1')}</label>
             <input
               name="txtactImageName1"
               className="admin-txt-box"
-              placeholder="Upload Vendor Image"
+              placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
               type="file"
               onChange={handleFileUpload(setactImageName1)}
               style={{ height: 50, width: '100%' }}
@@ -1111,11 +1137,11 @@ const Vendor = () => {
 
           {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Activity Image 2</label>
+            <label>{tr('labelImage2', 'Activity Image 2')}</label>
             <input
               name="txtactImageName2"
               className="admin-txt-box"
-              placeholder="Upload Vendor Image"
+              placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
               type="file"
               onChange={handleFileUpload(setactImageName2)}
               style={{ height: 50, width: '100%' }}
@@ -1125,11 +1151,11 @@ const Vendor = () => {
 
           {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Activity Image 3</label>
+            <label>{tr('labelImage3', 'Activity Image 3')}</label>
             <input
               name="txtactImageName3"
               className="admin-txt-box"
-              placeholder="Upload Vendor Image"
+              placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
               type="file"
               onChange={handleFileUpload(setactImageName3)}
               style={{ height: 50, width: '100%' }}
@@ -1140,7 +1166,7 @@ const Vendor = () => {
         <ErrorText msg={errors.images} />
       </div>
 
-      <div className="txtsubtitle">Activity Youtube Videos</div>
+      <div className="txtsubtitle">{tr('sectionYouTube', 'Activity Youtube Videos')}</div>
       <div className="divbox">
         <div
           style={{
@@ -1152,7 +1178,7 @@ const Vendor = () => {
           }}
         >
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 1</label>
+            <label>{tr('labelYouTube1', 'Youtube Video Link 1')}</label>
             <input
               name="txtactYouTubeID1"
               className="vendor-input"
@@ -1162,7 +1188,7 @@ const Vendor = () => {
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 2</label>
+            <label>{tr('labelYouTube2', 'Youtube Video Link 2')}</label>
             <input
               name="txtactYouTubeID2"
               value={txtactYouTubeID2}
@@ -1172,7 +1198,7 @@ const Vendor = () => {
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
-            <label>Youtube Video Link 3</label>
+            <label>{tr('labelYouTube3', 'Youtube Video Link 3')}</label>
             <input
               name="txtactYouTubeID3"
               className="vendor-input"
@@ -1183,13 +1209,13 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Location <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">{tr('sectionLocation', 'Activity Location')} <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Google Map Location <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelGoogleMap', 'Google Map Location')} <span style={{color:'red'}}>*</span></label>
               <input
                 name="txtactGoogleMap"
                 className="vendor-input"
@@ -1201,7 +1227,7 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">Google Latitude <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelLatitude', 'Google Latitude')} <span style={{color:'red'}}>*</span></label>
               <input
                 name="txtactGlat"
                 className="vendor-input"
@@ -1212,7 +1238,7 @@ const Vendor = () => {
               <ErrorText msg={errors.txtactGlat} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Google Longitude <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelLongitude', 'Google Longitude')} <span style={{color:'red'}}>*</span></label>
               <input
                 name="txtactGlan"
                 value={txtactGlan}
@@ -1229,7 +1255,7 @@ const Vendor = () => {
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">Country <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelCountry', 'Country')} <span style={{color:'red'}}>*</span></label>
               <select
                 onChange={(e) => setCountryID(e.target.value)}
                 name="txtactCountryID"
@@ -1242,7 +1268,7 @@ const Vendor = () => {
                 }}
                 required
               >
-                <option value="">Select a country</option>
+                <option value="">{tr('optSelectCountry', 'Select a country')}</option>
                 {countries.map((country) => (
                   <option key={country.CountryID} value={country.CountryID}>
                     {country.EnCountryName}
@@ -1253,7 +1279,7 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column">
-              <label className="vendor-label">City <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelCity', 'City')} <span style={{color:'red'}}>*</span></label>
               <select
                 value={ddactCityID}
                 name="txtactCityID"
@@ -1261,7 +1287,7 @@ const Vendor = () => {
                 onChange={(e) => setSelectedCityID(e.target.value)}
                 required
               >
-                <option value="">Select City</option>
+                <option value="">{tr('optSelectCity', 'Select City')}</option>
                 {cityList.map((city) => (
                   <option key={city.CityID} value={city.CityID}>
                     {city.EnCityName}
@@ -1271,7 +1297,7 @@ const Vendor = () => {
               <ErrorText msg={errors.ddactCityID} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Location <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelLocation1', 'Location')}</label>
               <input
                 value={txtactAddress1}
                 name="txtactAddress1"
@@ -1282,7 +1308,7 @@ const Vendor = () => {
               <ErrorText msg={errors.txtactAddress1} />
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">Address2</label>
+              <label className="vendor-label">{tr('labelAddress2', 'Address2')}</label>
               <input
                 value={txtactAddress2}
                 name="txtactAddress2"
@@ -1294,7 +1320,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle"> Age Range </div>
+      <div className="txtsubtitle">{tr('sectionAgeRange', ' Age Range ')}</div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
@@ -1302,7 +1328,7 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">Minimum Age <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelMinAge', 'Minimum Age')} <span style={{color:'red'}}>*</span></label>
               <input
                 value={txtactMinAge}
                 onChange={(e) => setMinAge(e.target.value)}
@@ -1318,7 +1344,7 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">Maximum Age <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">{tr('labelMaxAge', 'Maximum Age')} <span style={{color:'red'}}>*</span></label>
               <input
                 value={txtactMaxAge}
                 onChange={(e) => setMaxAge(e.target.value)}
@@ -1334,7 +1360,7 @@ const Vendor = () => {
 
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label className="vendor-label">Gender <span style={{color:'red'}}>*</span></label>
+            <label className="vendor-label">{tr('labelGender', 'Gender')} <span style={{color:'red'}}>*</span></label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
@@ -1344,7 +1370,7 @@ const Vendor = () => {
                 onChange={(e) => setGenderService(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4"> Boys</div>
+              <div className="pink-shadow4"> {tr('genderBoys', 'Boys')}</div>
             </label>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1356,7 +1382,7 @@ const Vendor = () => {
                 onChange={(e) => setGenderService(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4"> Girls</div>
+              <div className="pink-shadow4"> {tr('genderGirls', 'Girls')}</div>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
@@ -1367,26 +1393,27 @@ const Vendor = () => {
                 onChange={(e) => setGenderService(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4"> Both</div>
+              <div className="pink-shadow4"> {tr('genderBoth', 'Both')}</div>
             </label>
-          </div>
+          </div
+          >
           <ErrorText msg={errors.rdoactGender} />
         </div>
       </div>
 
-      <div className="txtsubtitle">Price Per Student <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">{tr('sectionPricePerStudent', 'Price Per Student')} <span style={{color:'red'}}>*</span></div>
 
       <div className="divbox">
         <CRow className="fw-bold   mb-2">
-          <CCol sm={3}>Price <span style={{color:'red'}}>*</span></CCol>
+          <CCol sm={3}>{tr('labelPrice', 'Price')} <span style={{color:'red'}}>*</span></CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
-            Student Range From
+            {tr('labelStudentRangeFrom', 'Student Range From')}
           </CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
-            Student Range To
+            {tr('labelStudentRangeTo', 'Student Range To')}
           </CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
-            Delete
+            {tr('colDelete', 'Delete')}
           </CCol>
         </CRow>
 
@@ -1397,7 +1424,7 @@ const Vendor = () => {
                 name="txtPricePerStudent"
                 type="number"
                 className="vendor-input w-100"
-                placeholder="Price"
+                placeholder={tr('phPrice', 'Price')}
                 value={item.price}
                 onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
                 min="0"
@@ -1450,7 +1477,7 @@ const Vendor = () => {
                     className="btn btn-danger"
                     onClick={() => handleRemoveRange(index)}
                   >
-                    Remove
+                    {tr('btnRemove', 'Remove')}
                   </button>
                 )
               )}
@@ -1461,13 +1488,13 @@ const Vendor = () => {
         <CRow className="mt-3" style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
           <CCol>
             <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
-              Add More
+              {tr('btnAddMore', 'Add More')}
             </button>
           </CCol>
         </CRow>
       </div>
 
-      <div className="txtsubtitle">Set Availability</div>
+      <div className="txtsubtitle">{tr('sectionSetAvailability', 'Set Availability')}</div>
       {/* Section-level availability error */}
       <ErrorText msg={errors.availability} />
 
@@ -1487,13 +1514,13 @@ const Vendor = () => {
                 <div style={{ flexGrow: 1 }}>
                   <div style={{ fontWeight: 'bold', textTransform: 'capitalize', marginBottom: 8 }}>
                     <label>
-                      {day}{' '}
+                      {dayLabel(day)}{' '}
                       <input
                         type="checkbox"
                         checked={!days[day].closed}
                         onChange={(e) => handleClosedChange(day, !e.target.checked)}
                       />{' '}
-                      Available
+                      {tr('labelAvailable', 'Available')}
                     </label>
                   </div>
 
@@ -1505,7 +1532,7 @@ const Vendor = () => {
                           style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}
                         >
                           <label>
-                            Start Time:{' '}
+                            {tr('labelStartTime', 'Start Time')}: {' '}
                             <input
                               className="admin-txt-box"
                               type="time"
@@ -1515,7 +1542,7 @@ const Vendor = () => {
                           </label>
 
                           <label>
-                            End Time:{' '}
+                            {tr('labelEndTime', 'End Time')}: {' '}
                             <input
                               className="admin-txt-box"
                               type="time"
@@ -1525,18 +1552,18 @@ const Vendor = () => {
                           </label>
 
                           <label>
-                            Notes:{' '}
+                            {tr('labelNotes', 'Notes')}: {' '}
                             <input
                               type="text"
                               className="admin-txt-box"
-                              placeholder="Optional notes"
+                              placeholder={tr('phOptionalNotes', 'Optional notes')}
                               value={range.note || ''}
                               onChange={(e) => handleRangeNoteChange(day, index, e.target.value)}
                             />
                           </label>
 
                           <div>
-                            Range Hours: <strong>{range.total || '0.00'}</strong>
+                            {tr('labelRangeHours', 'Range Hours')}: <strong>{range.total || '0.00'}</strong>
                           </div>
 
                           {days[day].times.length > 1 &&
@@ -1575,7 +1602,7 @@ const Vendor = () => {
                                 }}
                                 onClick={() => handleRemoveTimeRange(day, index)}
                               >
-                                Remove
+                                {tr('btnRemove', 'Remove')}
                               </button>
                             ))}
                         </div>
@@ -1587,7 +1614,7 @@ const Vendor = () => {
                           className="admin-buttonv1"
                           onClick={() => handleAddMore(day)}
                         >
-                          Add More
+                          {tr('btnAddMore', 'Add More')}
                         </button>
                       </div>
                     </div>
@@ -1599,16 +1626,16 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Food Information</div>
+      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Food Information')}</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>Food Name</CCol>
-            <CCol sm={2}>Price</CCol>
-            <CCol sm={3}>Notes</CCol>
-            {!HIDE_FOOD_IMAGE && <CCol sm={2}>Food Image</CCol>}
-            <CCol sm={1}>Include</CCol>
-            <CCol sm={1}>Delete</CCol>
+            <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
+            <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
+            <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
+            {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>}
+            <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
+            <CCol sm={1}>{tr('colDelete', 'Delete')}</CCol>
           </CRow>
 
           {foods.map((item, index) => (
@@ -1617,7 +1644,7 @@ const Vendor = () => {
                 <input
                   type="text"
                   className="admin-txt-box w-100"
-                  placeholder="Enter name"
+                  placeholder={tr('phEnterName', 'Enter name')}
                   value={item.name}
                   onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
                 />
@@ -1627,7 +1654,7 @@ const Vendor = () => {
                 <input
                   type="number"
                   className="admin-txt-box w-100"
-                  placeholder={item.include ? 'Included (0)' : 'Enter price'}
+                  placeholder={item.include ? tr('phIncludedZero', 'Included (0)') : tr('phEnterPrice', 'Enter price')}
                   value={item.include ? 0 : (item.price ?? '')}
                   onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                   min="0"
@@ -1640,7 +1667,7 @@ const Vendor = () => {
                 <input
                   type="text"
                   className="admin-txt-box w-100"
-                  placeholder="Enter notes"
+                  placeholder={tr('phEnterNotes', 'Enter notes')}
                   value={item.notes}
                   onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
                 />
@@ -1664,7 +1691,7 @@ const Vendor = () => {
                   checked={item.include}
                   onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
                   style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }}
-                  title="If checked, price becomes 0"
+                  title={tr('titleIncludePriceZero', 'If checked, price becomes 0')}
                 />
               </CCol>
 
@@ -1692,7 +1719,7 @@ const Vendor = () => {
                       onClick={() => handleFoodRemoveFood(index)}
                       className="btn btn-danger btn-sm"
                     >
-                      Remove
+                      {tr('btnRemove', 'Remove')}
                     </button>
                   )
                 )}
@@ -1703,14 +1730,14 @@ const Vendor = () => {
           <CRow className="mt-3">
             <CCol>
               <button type="button" className="admin-buttonv1" onClick={handleFoodAddMore}>
-                Add More
+                {tr('btnAddMore', 'Add More')}
               </button>
             </CCol>
           </CRow>
         </div>
       </div>
 
-      <div className="txtsubtitle">Terms And Conditions <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">{tr('sectionTerms', 'Terms And Conditions')} <span style={{color:'red'}}>*</span></div>
       <div className="divbox">
         <div className="vendor-container">
           <textarea
@@ -1726,31 +1753,31 @@ const Vendor = () => {
 
       <div className="button-container">
         <button className="admin-buttonv1" onClick={handlebtnSendToApprovalClick}>
-          Send To Admin Approval
+          {tr('btnSendToAdmin', 'Send To Admin Approval')}
         </button>
         <button className="admin-buttonv1" onClick={handleSave} disabled={loading}>
-          {loading ? 'Saving...' : 'Save'}
+          {loading ? tr('saving', 'Saving...') : tr('btnSave', 'Save')}
         </button>
         <button
           type="button"
           className="admin-buttonv1"
           onClick={() => navigate('/vendordata/activityinfo/activity/list')}
         >
-          Return
+          {tr('btnReturn', 'Return')}
         </button>
       </div>
 
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">
-            <h4> Send To Admin Approval</h4>
-            <p>Are you sure you want to send this for admin approval?</p>
+            <h4> {tr('modalSendApprovalTitle', 'Send To Admin Approval')}</h4>
+            <p>{tr('modalSendApprovalText', 'Are you sure you want to send this for admin approval?')}</p>
             <div className="modal-buttons">
               <button className="admin-buttonv1" onClick={handleConfirm}>
-                Yes
+                {tr('yes', 'Yes')}
               </button>
               <button className="admin-buttonv1" onClick={handleCancel}>
-                No
+                {tr('no', 'No')}
               </button>
             </div>
           </div>

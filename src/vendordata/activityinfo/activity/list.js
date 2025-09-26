@@ -1,3 +1,4 @@
+// (keep same path as your project) e.g. src/pages/vendordata/activityinfo/activity/ActivityList.jsx
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
@@ -19,6 +20,10 @@ import { ActionButtonsV1 } from '../../../utils/btn'
 // ⭐ NEW: Modal component for image uploads
 import ImageUploadModal from './imageupload'
 
+// 🔤 i18n packs (default Arabic if not set)
+import enPack from '../../../i18n/enloc100.json'
+import arPack from '../../../i18n/arloc100.json'
+
 const ActivityList = () => {
   const [ActivityIDToDelete, setActivityIDelete] = useState(null)
   const [Activity, setActivity] = useState([])
@@ -38,6 +43,25 @@ const ActivityList = () => {
 
   const ActivityPerPage = 10
   const navigate = useNavigate()
+
+  // ---- i18n (local, no provider) ----
+  const getStoredLang = () => {
+    try {
+      const v = localStorage.getItem('heroz_lang')
+      return v === 'ar' || v === 'en' ? v : 'ar' // default AR
+    } catch {
+      return 'ar'
+    }
+  }
+  const [lang, setLang] = useState(getStoredLang())
+  const dict = lang === 'ar' ? arPack : enPack
+  const tr = (key, fallback) => (dict && dict[key]) || fallback
+  useEffect(() => {
+    const onChange = () => setLang(getStoredLang())
+    window.addEventListener('heroz_lang_changed', onChange)
+    return () => window.removeEventListener('heroz_lang_changed', onChange)
+  }, [])
+  // ------------------------------------
 
   useEffect(() => {
     fetchActivity()
@@ -79,7 +103,7 @@ const ActivityList = () => {
       setTotalPages(Math.ceil((data.totalCount || 0) / ActivityPerPage))
     } catch (error) {
       console.error(error)
-      setError('Error fetching activities')
+      setError(tr('errFetchActivities', 'Error fetching activities'))
     } finally {
       setLoading(false)
     }
@@ -129,7 +153,7 @@ const ActivityList = () => {
 
       if (response.ok) {
         setToastType('success')
-        setToastMessage('Activity deleted successfully!')
+        setToastMessage(tr('toastActivityDeleted', 'Activity deleted successfully!'))
         setShowDeleteModal(false)
         setSelectedActivity(null)
         // Refresh list after successful delete
@@ -137,7 +161,7 @@ const ActivityList = () => {
       } else {
         setShowDeleteModal(false)
         // 🔹 Try to read the JSON error response
-        let errorMsg = 'Failed to delete Activity!'
+        let errorMsg = tr('toastDeleteFailed', 'Failed to delete Activity!')
         try {
           const data = await response.json()
           if (data?.message) {
@@ -152,7 +176,7 @@ const ActivityList = () => {
       }
     } catch (error) {
       setToastType('fail')
-      setToastMessage('Error deleting Activity')
+      setToastMessage(tr('toastErrorDeleting', 'Error deleting Activity'))
     }
   }
 
@@ -167,29 +191,28 @@ const ActivityList = () => {
     setShowGalleryModal(false)
     if (uploadedKeys.length) {
       setToastType('success')
-      setToastMessage('Image(s) uploaded successfully!')
+      setToastMessage(tr('toastImagesUploaded', 'Image(s) uploaded successfully!'))
     } else {
       setToastType('info')
-      setToastMessage('No images uploaded.')
+      setToastMessage(tr('toastNoImagesUploaded', 'No images uploaded.'))
     }
-    // If your list shows an image count/thumbnail, you can refresh:
-    // fetchActivity()
+    // fetchActivity() // if needed
   }
 
   return (
     <div>
       <div className="page-title">
-        <h3 style={{ margin: 0 }}>Activity </h3>
+        <h3 style={{ margin: 0 }}>{tr('actListTitle', 'Activity')}</h3>
         <button
           onClick={() => navigate('/vendordata/activityinfo/activity/new')}
           className="add-product-button"
         >
-          New Activity
+          {tr('actNewBtn', 'New Activity')}
         </button>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <p>{tr('commonLoading', 'Loading...')}</p>
       ) : error ? (
         <p style={{ color: 'red' }}>{error}</p>
       ) : (
@@ -198,15 +221,15 @@ const ActivityList = () => {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Image</th>
-                <th>Activity Name</th>
-                <th>Type</th>
-                <th>Location</th>
-                <th>Gender</th>
-                <th>Price Per Student </th>
-                <th>Created Date</th>
-                <th>Status </th>
-                <th>Actions</th>
+                <th>{tr('tblImage', 'Image')}</th>
+                <th>{tr('tblActivityName', 'Activity Name')}</th>
+                <th>{tr('tblType', 'Type')}</th>
+                <th>{tr('tblLocation', 'Location')}</th>
+                <th>{tr('tblGender', 'Gender')}</th>
+                <th>{tr('tblPricePerStudent', 'Price Per Student')}</th>
+                <th>{tr('tblCreatedDate', 'Created Date')}</th>
+                <th>{tr('tblStatus', 'Status')}</th>
+                <th>{tr('tblActions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -243,11 +266,14 @@ const ActivityList = () => {
                             alt="logo"
                             style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
                           />{' '}
-                          {price.Price} from {price.StudentRangeFrom} to {price.StudentRangeTo}
+                          {price.Price}{' '}
+                          {tr('rangeFromTo', 'from {from} to {to}')
+                            .replace('{from}', price.StudentRangeFrom)
+                            .replace('{to}', price.StudentRangeTo)}
                         </div>
                       ))
                     ) : (
-                      'No prices'
+                      tr('noPrices', 'No prices')
                     )}
                   </td>
 
@@ -265,41 +291,37 @@ const ActivityList = () => {
                         flexWrap: 'wrap',
                       }}
                     >
-                         <button
-  onClick={() => handleImageGalleryClick(row)}
-  title="Image Gallery / معرض الصور"
-  className="btn btn-default graybox"
-  style={{ padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-  aria-label="Image Gallery / معرض الصور"
->
-  {/* Either alias works in FA4 */}
-  <i className="fa fa-picture-o" style={{ color: '#cf2037' }} aria-hidden="true" />
-  {/* <i className="fa fa-image" style={{ color: '#cf2037' }} aria-hidden="true" /> */}
- 
-</button>
+                      <button
+                        onClick={() => handleImageGalleryClick(row)}
+                        title={tr('btnImageGallery', 'Image Gallery')}
+                        className="btn btn-default graybox"
+                        style={{ padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        aria-label={tr('btnImageGallery', 'Image Gallery')}
+                      >
+                        <i className="fa fa-picture-o" style={{ color: '#cf2037' }} aria-hidden="true" />
+                      </button>
 
                       <button
                         onClick={() => handleModifyClick(row.ActivityID)}
-                        title="Edit/حذف"
+                        title={tr('btnEdit', 'Edit')}
                         className="btn btnbtn-default graybox"
                         style={{ padding: '2px', cursor: 'pointer' }}
-                        aria-label="Edit/حذف"
+                        aria-label={tr('btnEdit', 'Edit')}
                       >
                         <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
                       </button>
 
                       <button
                         onClick={() => handleDeleteClick(row)}
-                        title="Delete/حذف"
+                        title={tr('btnDelete', 'Delete')}
                         className="btn btnbtn-default graybox"
                         style={{ padding: '2px', cursor: 'pointer' }}
-                        aria-label="Delete/حذف"
+                        aria-label={tr('btnDelete', 'Delete')}
                       >
                         <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
                       </button>
 
                       {/* ⭐ NEW: your existing button now opens modal */}
-                    
                     </div>
                   </td>
                 </tr>
@@ -341,16 +363,16 @@ const ActivityList = () => {
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">
-            <h4>Confirm Delete</h4>
+            <h4>{tr('confirmDeleteTitle', 'Confirm Delete')}</h4>
             <p>
-              Are you sure you want to delete this Activity?
+              {tr('confirmDeleteMsg', 'Are you sure you want to delete this Activity?')}
               {selectedActivity?.actName && (
                 <> <span style={{ color: '#cf2037', fontWeight: 700 }}>{' '}{selectedActivity.actName}</span></>
               )}
             </p>
             <div className="modal-buttons">
               <button className="admin-buttonv1" onClick={confirmDelete}>
-                Yes
+                {tr('yes', 'Yes')}
               </button>
               <button
                 className="admin-buttonv1"
@@ -359,7 +381,7 @@ const ActivityList = () => {
                   setSelectedActivity(null)
                 }}
               >
-                No
+                {tr('no', 'No')}
               </button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+// src/_nav/AppHeader.jsx
 import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -11,6 +12,7 @@ import {
   CHeaderNav,
   CHeaderToggler,
   CNavItem,
+  CButton,
   useColorModes,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
@@ -46,7 +48,47 @@ const AppHeader = () => {
   const dispatch = useDispatch()
   const sidebarShow = useSelector((state) => state.sidebarShow)
 
-  // Derive user type and destination for notifications
+  // Language (default AR), persisted and applies dir/lang on <html>
+  const getStoredLang = () => {
+    try {
+      const v = localStorage.getItem('heroz_lang')
+      return v === 'ar' || v === 'en' ? v : 'ar'
+    } catch {
+      return 'ar'
+    }
+  }
+  const [lang, setLang] = useState(getStoredLang())
+  useEffect(() => {
+    try { localStorage.setItem('heroz_lang', lang) } catch {}
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
+      document.documentElement.setAttribute('lang', lang)
+    }
+    // 🔔 notify app (if any listeners exist)
+    try { window.dispatchEvent(new CustomEvent('heroz_lang_changed', { detail: { lang } })) } catch {}
+  }, [lang])
+
+  // ⬇️ keep your function name; just enhance it
+  const toggleLang = () =>
+    setLang((p) => {
+      const next = p === 'ar' ? 'en' : 'ar'
+      // write immediately so a reload picks it up
+      try { localStorage.setItem('heroz_lang', next) } catch {}
+      // flip html attrs instantly for visual direction
+      try {
+        if (typeof document !== 'undefined') {
+          document.documentElement.setAttribute('dir', next === 'ar' ? 'rtl' : 'ltr')
+          document.documentElement.setAttribute('lang', next)
+        }
+      } catch {}
+      // notify any live listeners (optional)
+      try { window.dispatchEvent(new CustomEvent('heroz_lang_changed', { detail: { lang: next } })) } catch {}
+      // ✅ hard refresh so screens that read lang at mount re-render in the new language
+      setTimeout(() => { try { window.location.reload() } catch {} }, 10)
+      return next
+    })
+
+  // Notifications link
   const userType = localStorage.getItem('usertype') || getCurrentLoggedUserType()
   const noteLink =
     userType === 'VENDOR-SUBADMIN'
@@ -56,7 +98,6 @@ const AppHeader = () => {
       : null
 
   useEffect(() => {
-    // Scroll shadow logic
     const handleScroll = () => {
       if (headerRef.current) {
         headerRef.current.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0)
@@ -64,7 +105,6 @@ const AppHeader = () => {
     }
     document.addEventListener('scroll', handleScroll)
 
-    // Fetch notifications when component mounts
     const fetchNotification = async () => {
       setLoading(true)
       try {
@@ -91,10 +131,7 @@ const AppHeader = () => {
     }
 
     fetchNotification()
-
-    return () => {
-      document.removeEventListener('scroll', handleScroll)
-    }
+    return () => document.removeEventListener('scroll', handleScroll)
   }, [])
 
   return (
@@ -115,16 +152,12 @@ const AppHeader = () => {
 
         <CHeaderNav className="ms-auto">
           <CNavItem>
-            {/* Render one bell link based on user type */}
             {noteLink && (
               <Link to={noteLink} className="nav-link position-relative">
                 <CIcon icon={cilBell} size="lg" />
                 <span
                   className="position-absolute top-0 start-100 badge rounded-pill bg-danger"
-                  style={{
-                    transform: 'translate(-50%, 10%)',
-                    fontSize: '0.7rem',
-                  }}
+                  style={{ transform: 'translate(-50%, 10%)', fontSize: '0.7rem' }}
                 >
                   {totalCountVal}
                 </span>
@@ -134,6 +167,25 @@ const AppHeader = () => {
         </CHeaderNav>
 
         <CHeaderNav>
+          <li className="nav-item py-1">
+            <div className="vr h-100 mx-2 text-body text-opacity-75"></div>
+          </li>
+
+          {/* Language toggle (shows opposite label) */}
+          <CNavItem className="d-flex align-items-center">
+            <CButton
+              size="sm"
+              color="light"
+              className="d-inline-flex align-items-center gap-1"
+              type="button"
+              onClick={toggleLang}
+              title={lang === 'ar' ? 'English' : 'العربية'}
+              aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
+            >
+              <span role="img" aria-hidden>🌐</span> {lang === 'ar' ? 'EN' : 'AR'}
+            </CButton>
+          </CNavItem>
+
           <li className="nav-item py-1">
             <div className="vr h-100 mx-2 text-body text-opacity-75"></div>
           </li>

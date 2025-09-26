@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CButton,
@@ -19,16 +19,43 @@ import { Link } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import logo from '../../../assets/logo/default.png'
 
+// 🔤 use these exact imports (as you asked)
+import enPack from '../../../i18n/enloc100.json'
+import arPack from '../../../i18n/arloc100.json'
+
 const Login = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
+  // ---- i18n (local, no provider) ----
+  const getStoredLang = () => {
+    try {
+      const v = localStorage.getItem('heroz_lang')
+      // ✅ default Arabic
+      return v === 'ar' || v === 'en' ? v : 'ar'
+    } catch {
+      return 'ar'
+    }
+  }
+  const [lang, setLang] = useState(getStoredLang())
+  const dict = lang === 'ar' ? arPack : enPack
+  const tr = (key, fallback) => (dict && dict[key]) || fallback
+
+  // keep <html dir/lang> + persist choice
+  useEffect(() => {
+    try { localStorage.setItem('heroz_lang', lang) } catch {}
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
+      document.documentElement.setAttribute('lang', lang)
+    }
+  }, [lang])
+
   const handleLogin = async () => {
 
     console.log("username")
-console.log(password)
+    console.log(password)
 
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
@@ -42,7 +69,6 @@ console.log(password)
         }),
       })
       
-
       const data = await response.json()
       console.log('API Response:', data)
       console.log('data.data.token', data.data.token)
@@ -58,22 +84,20 @@ console.log(password)
         localStorage.setItem('usertype', data.data.usertype)
         localStorage.setItem('loggedusername', data.data.loggedusername)
         
-
         if (data.data.usertype == 'ADMIN')  
           navigate('/admin/dashboard') 
  
-         if (data.data.usertype == 'VENDOR-SUBADMIN')  
+        if (data.data.usertype == 'VENDOR-SUBADMIN')  
           navigate('/vendor/dashboard')
-
 
       } else {
         handleLogout()
-        setError(data.message || 'Invalid credentials')
+        setError(data.message || tr('errInvalidCredentials', 'Invalid credentials'))
       }
     } catch (err) {
       console.error('Login error:', err)
       handleLogout()
-      setError('Login failed. Please try again.')
+      setError(tr('loginFailedTryAgain', 'Login failed. Please try again.'))
     }
   }
 
@@ -89,6 +113,41 @@ console.log(password)
 
   return (
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
+      {/* 🌐 Top-right language switch (default AR) */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 12,
+          insetInlineEnd: 12, // RTL/LTR aware
+          display: 'flex',
+          gap: 8,
+          zIndex: 1050,
+        }}
+      >
+        <CButton
+          size="sm"
+          color={lang === 'ar' ? 'primary' : 'light'}
+          className="d-inline-flex align-items-center gap-1"
+          type="button"
+          onClick={() => setLang('ar')}
+          title="العربية"
+          aria-label="العربية"
+        >
+          <span role="img" aria-hidden>🌐</span> AR
+        </CButton>
+        <CButton
+          size="sm"
+          color={lang === 'en' ? 'primary' : 'light'}
+          className="d-inline-flex align-items-center gap-1"
+          type="button"
+          onClick={() => setLang('en')}
+          title="English"
+          aria-label="English"
+        >
+          <span role="img" aria-hidden>🌐</span> EN
+        </CButton>
+      </div>
+
       <CContainer>
         <CRow className="justify-content-center">
           <CCol md={8}>
@@ -101,8 +160,10 @@ console.log(password)
                       handleLogin()
                     }}
                   >
-                    <h1>Login</h1>
-                    <p className="text-body-secondary">Sign In to your account--</p>
+                    <h1>{tr('loginTitle', 'Login')}</h1>
+                    <p className="text-body-secondary">
+                      {tr('loginSubtitle', 'Sign in to your account')}
+                    </p>
 
                     {error && <p style={{ color: 'red', marginBottom: '10px' }}>{error}</p>}
 
@@ -111,7 +172,7 @@ console.log(password)
                         <CIcon icon={cilUser} />
                       </CInputGroupText>
                       <CFormInput
-                        placeholder="Username"
+                        placeholder={tr('usernamePlaceholder', 'Username')}
                         autoComplete="username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -124,7 +185,7 @@ console.log(password)
                       </CInputGroupText>
                       <CFormInput
                         type="password"
-                        placeholder="Password"
+                        placeholder={tr('passwordPlaceholder', 'Password')}
                         autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -134,12 +195,12 @@ console.log(password)
                     <CRow>
                       <CCol xs={6}>
                         <CButton color="primary" className="px-4" type="submit">
-                          Login
+                          {tr('loginBtn', 'Login')}
                         </CButton>
                       </CCol>
                       <CCol xs={6} className="text-right">
                         <CButton color="link" className="px-0">
-                          Forgot password?
+                          {tr('forgotPassword', 'Forgot password?')}
                         </CButton>
                       </CCol>
                     </CRow>

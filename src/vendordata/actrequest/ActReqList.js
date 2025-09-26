@@ -1,5 +1,5 @@
 // src/pages/vendor/ActivityRequestList.js
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CCard, CCardBody, CCardHeader, CRow, CCol,
@@ -74,19 +74,48 @@ function InfoRow({ label, value, bold = false, color, trailing }) {
   )
 }
 
-function TrailingByStatus({ status, onViewPaid, onApprove, onWaiting }) {
+// 🆕 accept optional t() to localize button labels (fallback to identity)
+function TrailingByStatus({ status, onViewPaid, onApprove, onWaiting, t = (x) => x }) {
   const s = (status || '').toUpperCase()
   if (s === 'TRIP-BOOKED') {
-    return <CButton color="success" size="sm" onClick={onViewPaid}>View Paid Students</CButton>
+    return <CButton color="success" size="sm" onClick={onViewPaid}>{t('list.view_paid_students')}</CButton>
   }
   if (s === 'WAITING-FOR-APPROVAL') {
-    return <CButton color="warning" size="sm" onClick={onWaiting}>Waiting for Approval</CButton>
+    return <CButton color="warning" size="sm" onClick={onWaiting}>{t('list.waiting_for_approval_button')}</CButton>
   }
   if (s === 'APPROVED') {
-    return <CButton color="primary" size="sm" onClick={onApprove}>Approved Request</CButton>
+    return <CButton color="primary" size="sm" onClick={onApprove}>{t('list.approved_request_button')}</CButton>
   }
   return null
 }
+
+/* =========================
+   🔤 Light i18n glue (no libs)
+   - Reads current lang from <html lang> or localStorage('heroz_lang')
+   - Loads /public/locales/{lang}loc100.json at runtime
+   - Re-renders on custom event 'heroz_lang_changed' and <html lang> changes
+========================= */
+const getLangNow = () =>
+  (document?.documentElement?.lang || localStorage.getItem('heroz_lang') || 'ar')
+    .toLowerCase().startsWith('en') ? 'en' : 'ar'
+
+const useLang = () => {
+  const [lang, setLang] = useState(getLangNow())
+  useEffect(() => {
+    const onEvt = (e) => setLang((e?.detail?.lang || getLangNow()).startsWith('en') ? 'en' : 'ar')
+    window.addEventListener('heroz_lang_changed', onEvt)
+    const obs = new MutationObserver(() => setLang(getLangNow()))
+    if (document?.documentElement) {
+      obs.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] })
+    }
+    return () => {
+      window.removeEventListener('heroz_lang_changed', onEvt)
+      obs.disconnect()
+    }
+  }, [])
+  return lang
+}
+// =========================
 
 const ActivityRequestList = () => {
   const navigate = useNavigate()
@@ -97,15 +126,37 @@ const ActivityRequestList = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // 🌐 language state + loader
+  const lang = useLang()
+  const [i18n, setI18n] = useState({})
+  const t = useCallback(
+    (k) => (i18n && Object.prototype.hasOwnProperty.call(i18n, k) ? i18n[k] : k),
+    [i18n]
+  )
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const res = await fetch(`/locales/${lang}loc100.json`, { cache: 'no-store' })
+        const json = await res.json()
+        if (alive) setI18n(json || {})
+      } catch {
+        if (alive) setI18n({})
+      }
+    })()
+    return () => { alive = false }
+  }, [lang])
+
   const pageTitle = useMemo(() => {
     const s = (actRequestStatus || '').toUpperCase()
-    if (s === 'TRIP-BOOKED') return 'Trip Booked'
-    if (s === 'WAITING-FOR-APPROVAL') return 'Waiting for Approval'
-    if (s === 'APPROVED') return 'Approved Requests'
-    if (s === 'REJECTED') return 'Rejected Requests'
-    if (s === 'COMPLETED') return 'Completed Trip'
-    return 'All Activity Requests'
-  }, [actRequestStatus])
+    if (s === 'TRIP-BOOKED') return t('list.page_title_trip_booked')        // 'Trip Booked'
+    if (s === 'WAITING-FOR-APPROVAL') return t('list.page_title_waiting_for_approval') // 'Waiting for Approval'
+    if (s === 'APPROVED') return t('list.page_title_approved')              // 'Approved Requests'
+    if (s === 'REJECTED') return t('list.page_title_rejected')              // 'Rejected Requests'
+    if (s === 'COMPLETED') return t('list.page_title_completed')            // 'Completed Trip'
+    return t('list.page_title_all')                                         // 'All Activity Requests'
+  }, [actRequestStatus, t])
 
   useEffect(() => {
     let alive = true
@@ -171,7 +222,7 @@ const ActivityRequestList = () => {
 
               {!loading && !error && items.length === 0 && (
                 <div className="text-center text-muted py-4 fw-bold">
-                  No activity found
+                  {t('list.no_activity_found')} {/* No activity found */}
                 </div>
               )}
 
@@ -199,14 +250,14 @@ const ActivityRequestList = () => {
                         {req.actName || '-'}
                       </div>
 
-                      <InfoRow label="Ref No" value={req.actRequestRefNo || '-'} bold color="#444" />
+                      <InfoRow label={t('kv.ref_no')} value={req.actRequestRefNo || '-'} bold color="#444" />
 
                       <div className="rounded p-2" style={{ background: 'rgba(228,237,226,0.2)' }}>
-                        <InfoRow label="Trip Date" value={req.actRequestDate || '-'} color="#444" />
+                        <InfoRow label={t('kv.trip_date')} value={req.actRequestDate || '-'} color="#444" />
                       </div>
 
                       <div className="rounded p-2 mt-2" style={{ background: 'rgba(228,237,226,0.2)' }}>
-                        <InfoRow label="Trip Time" value={req.actRequestTime || '-'} color="#444" />
+                        <InfoRow label={t('kv.trip_time')} value={req.actRequestTime || '-'} color="#444" />
                       </div>
 
                       {/* ✅ NEW: Reject reason (shown if present). Yellow rgba 0.5 with rounded border */}
@@ -223,7 +274,7 @@ const ActivityRequestList = () => {
                           }}
                           onClick={(e) => e.stopPropagation()} // don't trigger card navigation
                         >
-                          <div className="fw-bold mb-1">Reject Reason</div>
+                          <div className="fw-bold mb-1">{t('list.reject_reason')}</div>
                           {req.RequestRejectReason}
                         </div>
                       )}
@@ -236,12 +287,13 @@ const ActivityRequestList = () => {
                       /> */}
 
                       <InfoRow
-                        label="Total Expected"
+                        label={t('list.total_expected')}
                         value={String(req.actTotalNoStudents || 0)}
                         color="#444"
                         trailing={
                           <TrailingByStatus
                             status={req.actRequestStatus}
+                            t={t}
                           />
                         }
                       />
