@@ -1118,3 +1118,15 @@ html[dir="ltr"] .wrapper {
     padding-right: 0 !important;
   }
 }
+@media (max-width: 932px) {
+  .wrapper {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+@media (max-width: 1024px) {
+    .wrapper {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
