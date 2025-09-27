@@ -1097,36 +1097,20 @@ html[dir="rtl"] .sidebar {
   left: auto;
   right: 0;
 }
+ /* Mobile first */
+html[dir] .wrapper {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
 
-html[dir="rtl"] .wrapper {
-    width: 100%;
-    padding-left: 1%   !important;
-    padding-right:17%  !important;
-    will-change: auto;
-    transition: padding 0.15s;
-}
-html[dir="ltr"] .wrapper {
-    width: 100%;
-    padding-left: 17%   !important;
-    padding-right:1%  !important;
-    will-change: auto;
-    transition: padding 0.15s;
-}
-@media (max-width: 768px) {
-  .wrapper {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+/* Desktop and up */
+@media (min-width: 1025px) {
+  html[dir="ltr"] .wrapper {
+    padding-left: 17% !important;
+    padding-right: 1% !important;
   }
-}
-@media (max-width: 932px) {
-  .wrapper {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-}
-@media (max-width: 1024px) {
-    .wrapper {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+  html[dir="rtl"] .wrapper {
+    padding-left: 1% !important;
+    padding-right: 17% !important;
   }
 }
