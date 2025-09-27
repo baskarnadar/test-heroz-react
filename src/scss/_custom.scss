@@ -1112,3 +1112,9 @@ html[dir="ltr"] .wrapper {
     will-change: auto;
     transition: padding 0.15s;
 }
+@media (max-width: 768px) {
+  .wrapper {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
