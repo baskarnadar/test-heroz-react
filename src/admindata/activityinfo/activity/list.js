@@ -37,7 +37,15 @@ const ActivityList = () => {
   const [originalOrderMap, setOriginalOrderMap] = useState({})
   const [savingOrder, setSavingOrder] = useState(false)
 
-  const ActivityPerPage = 10
+  // Page size control (defaults to 10)
+  const [pageSize, setPageSize] = useState(10)
+
+  // Filters
+  const [searchText, setSearchText] = useState('')
+  const [filterVendor, setFilterVendor] = useState('')
+  const [filterGender, setFilterGender] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+
   const navigate = useNavigate()
 
   // ---------- tiny logging helpers ----------
@@ -82,7 +90,8 @@ const ActivityList = () => {
       timer = setTimeout(() => setToastMessage(''), 2000)
     }
     return () => { if (timer) clearTimeout(timer) }
-  }, [currentPage, navigate, toastMessage])
+  // (no dependency on currentPage here anymore for fetching)
+  }, [pageSize, navigate, toastMessage])
 
   const safeNumFromApi = (v) => {
     if (v === '' || v === null || v === undefined) return ''
@@ -110,7 +119,7 @@ const ActivityList = () => {
     setError(null)
     try {
       const API = `${API_BASE_URL}/admindata/activityinfo/activity/activityList`
-      const body = { page: currentPage, limit: ActivityPerPage }
+      const body = {} // ✅ clear pageNo & limit: fetch all, paginate on client
       logApiRequest('Activity List', API, body, getAuthHeaders())
 
       const resp = await fetch(API, {
@@ -126,10 +135,11 @@ const ActivityList = () => {
       }
 
       const list = Array.isArray(json?.data) ? json.data : []
-      const totalCount = Number.isFinite(json?.totalCount) ? json.totalCount : list.length
 
       setActivity(list)
-      setTotalPages(Math.max(1, Math.ceil(totalCount / (ActivityPerPage || 1))))
+
+      // initial total pages from full list (will resync to filters below)
+      setTotalPages(Math.max(1, Math.ceil(list.length / (pageSize || 1))))
 
       // Seed order maps from API
       const orig = {}
@@ -161,6 +171,71 @@ const ActivityList = () => {
     navigate(`/admindata/activityinfo/trip/list?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
 
+  // =========================
+  // Filters (client-side)
+  // =========================
+  const norm = (v) => (v ?? '').toString().toLowerCase().trim()
+
+  // Unique lists from CURRENT JSON page
+  const uniqueVendors = useMemo(() => {
+    const set = new Set()
+    Activity.forEach((r) => {
+      const v = (r?.vdrName ?? '').toString().trim()
+      if (v) set.add(v)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [Activity])
+
+  const uniqueGenders = useMemo(() => {
+    const set = new Set()
+    Activity.forEach((r) => {
+      const v = (r?.actGender ?? '').toString().trim()
+      if (v) set.add(v)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [Activity])
+
+  const uniqueStatuses = useMemo(() => {
+    const set = new Set()
+    Activity.forEach((r) => {
+      const v = (r?.actStatus ?? '').toString().trim()
+      if (v) set.add(v)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [Activity])
+
+  const filteredActivity = useMemo(() => {
+    const s = norm(searchText)
+    return Activity.filter((row) => {
+      const matchText =
+        !s ||
+        norm(row?.actName).includes(s) ||
+        norm(row?.vdrName).includes(s) ||
+        norm(row?.EnCityName).includes(s) ||
+        norm(row?.actAddress1).includes(s) ||
+        norm(row?.actAddress2).includes(s)
+
+      const matchVendor = !filterVendor || (row?.vdrName ?? '') === filterVendor
+      const matchGender = !filterGender || (row?.actGender ?? '') === filterGender
+      const matchStatus = !filterStatus || (row?.actStatus ?? '') === filterStatus
+
+      return matchText && matchVendor && matchGender && matchStatus
+    })
+  }, [Activity, searchText, filterVendor, filterGender, filterStatus])
+
+  // 🔁 Keep UX snappy: reset to page 1 when filters/pageSize change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchText, filterVendor, filterGender, filterStatus, pageSize])
+
+  // ✅ Client-side total pages based on FILTERED rows
+  useEffect(() => {
+    const pages = Math.max(1, Math.ceil((filteredActivity.length || 0) / (pageSize || 1)))
+    setTotalPages(pages)
+    if (currentPage > pages) setCurrentPage(pages) // clamp if filters shrink pages
+  }, [filteredActivity.length, pageSize]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Page range (uses state totalPages)
   const getPageRange = () => {
     const range = []
     const startPage = Math.floor((currentPage - 1) / 5) * 5 + 1
@@ -168,8 +243,14 @@ const ActivityList = () => {
     for (let i = startPage; i <= endPage; i++) range.push(i)
     return range
   }
-
   const pageNumbers = getPageRange()
+
+  // ✅ Slice rows for the current page (client-side pagination)
+  const pageRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    const end = start + pageSize
+    return filteredActivity.slice(start, end)
+  }, [filteredActivity, currentPage, pageSize])
 
   const handleDeleteClick = (ActivityID, VendorID) => {
     setActivityIDelete(ActivityID)
@@ -286,6 +367,71 @@ const ActivityList = () => {
 
   return (
     <div>
+      {/* Filters Row */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1.5fr 1fr 1fr 1fr auto',
+          gap: 8,
+          marginBottom: 12,
+          alignItems: 'end',
+        }}
+      >
+        <div>
+          <label style={{ fontSize: 12, color: '#666' }}>Search</label>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Search activity, vendor, location..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        </div>
+
+        <VendorFilter
+          value={filterVendor}
+          onChange={setFilterVendor}
+          options={uniqueVendors}
+        />
+
+        <SimpleSelect
+          label="Gender"
+          value={filterGender}
+          onChange={setFilterGender}
+          options={uniqueGenders}
+          allLabel="All Genders"
+        />
+
+        <SimpleSelect
+          label="Status"
+          value={filterStatus}
+          onChange={setFilterStatus}
+          options={uniqueStatuses}
+          allLabel="All Statuses"
+        />
+
+        <div style={{ justifySelf: 'end', minWidth: 150 }}>
+          <label style={{ fontSize: 12, color: '#666' }}>Records / page</label>
+          <select
+            className="form-control"
+            value={pageSize}
+            onChange={(e) => {
+              const v = Number(e.target.value) || 10
+              setPageSize(v)
+            }}
+          >
+            {[10, 25, 50, 100].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Quick stats for filtered results */}
+      <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>
+        Showing {pageRows.length} of {filteredActivity.length} filtered record(s) • Total loaded: {Activity.length}
+      </div>
+
       {loading ? (
         <p>Loading...</p>
       ) : error ? (
@@ -295,6 +441,7 @@ const ActivityList = () => {
           <table className="grid-table">
             <thead>
               <tr>
+                <th style={{ width: 70, textAlign: 'right' }}>#</th>
                 <th style={{ width: 90 }}>Order</th>
                 {/*  <th>#</th>   */}
                 <th>Image</th>
@@ -311,18 +458,16 @@ const ActivityList = () => {
               </tr>
             </thead>
             <tbody>
-              {Activity.map((row, index) => {
+              {/* ✅ Use pageRows (client-side pagination) */}
+              {pageRows.map((row, index) => {
                 const key = row?.ActivityID || row?.id || row?._id || index
                 const activityId = row?.ActivityID || row?.id || row?._id
                 const orderValue = orderMap[activityId] ?? ''
+                const serial = (currentPage - 1) * pageSize + index + 1
 
                 return (
                   <tr key={key}>
-                     {/* 
-                      <td>
-                      <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
-                    </td>
-                    */}
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{serial}</td>
                     <td>
                       <input
                         type="number"
@@ -336,7 +481,6 @@ const ActivityList = () => {
                       />
                     </td>
 
-                  
                     <td>
                       <div className="Activity-image-circle">
                         <img src={logo} alt="logo" style={{ width: '75px' }} />
@@ -419,8 +563,8 @@ const ActivityList = () => {
                           style={{
                             padding: '4px',
                             cursor: 'pointer',
-                            border: '2px solid #cf2037',
-                            borderRadius: '6px',
+                             
+                           
                             backgroundColor: 'white',
                           }}
                           aria-label="Delete"
@@ -461,7 +605,7 @@ const ActivityList = () => {
             >
               {'<<'}
             </button>
-            {pageNumbers.map((pageNumber) => (
+            {getPageRange().map((pageNumber) => (
               <button
                 key={pageNumber}
                 className={`pagination-button ${currentPage === pageNumber ? 'active' : ''}`}
@@ -543,5 +687,30 @@ const ActivityList = () => {
     </div>
   )
 }
+
+// Small helpers to keep JSX tidy (no logic removed)
+const SimpleSelect = ({ label, value, onChange, options, allLabel }) => (
+  <div>
+    <label style={{ fontSize: 12, color: '#666' }}>{label}</label>
+    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{allLabel}</option>
+      {options.map((opt) => (
+        <option key={opt} value={opt}>{opt}</option>
+      ))}
+    </select>
+  </div>
+)
+
+const VendorFilter = ({ value, onChange, options }) => (
+  <div>
+    <label style={{ fontSize: 12, color: '#666' }}>Vendor</label>
+    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">All Vendors</option>
+      {options.map((v) => (
+        <option key={v} value={v}>{v}</option>
+      ))}
+    </select>
+  </div>
+)
 
 export default ActivityList
