@@ -84,8 +84,7 @@ export const kVendorLabels = {
   vdrAdminNotes: 'Admin Notes',
 }
 
-/** If you have a specific endpoint like ApiBaseUrl.vdrInfo, map it here */
-const VDR_INFO = `${API_BASE_URL}/vendordata/vendor/getvendor` // <-- adjust to your real path
+ const VDR_INFO = `${API_BASE_URL}/vendordata/vendor/getvendor` // <-- adjust to your real path
 
 /** ===================== Utilities ===================== */
 const formatIsoDate = (value) => {

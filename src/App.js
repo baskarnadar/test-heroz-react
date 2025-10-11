@@ -95,10 +95,7 @@ const App = () => {
         }
       >
         <Routes>
-          {/* Public result pages */}
-          <Route path="/public/paysuccessv1" element={<PaySuccess />} />
-          <Route path="/public/payerrorv1" element={<PayError />} />
-
+       
           {/* Auth pages */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

@@ -126,5 +126,14 @@
   "paySuccessRetryBtn": "Retry",
   "paySuccessMissingParams": "Missing paymentId or id in the URL (and no PayRefNo in localStorage).",
   "paySuccessFailedUpdate": "Failed to update payment status.",
-  "paySuccessNetworkError": "Network or server error while updating payment status."
+  "paySuccessNetworkError": "Network or server error while updating payment status.",
+  "food_name": "Name",
+  "food_school_price": "School",
+  "food_vendor_price": "Vendor",
+  "food_heroz_price": "Heroz",
+  "food_total": "Total",
+  "food_extra": "Extra",
+  "food_included_option": "Included option",
+  "food_extra_option": "Extra option",
+  "ar_terms_agree" : " Paying through the platform is considered a form of consent for your child’s participation in the trip "
 }

@@ -11,9 +11,7 @@ const ViewPainter = React.lazy(() => import('./views/painter/painterinfo/view'))
 // Base
 
 const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
-
-const PublicProposal = React.lazy(() => import('./public/proposal.js'))
-
+ 
 
 const OfferList = React.lazy(() => import('./views/offers/offerlist'))
 const OfferNew = React.lazy(() => import('./views/offers/new'))
@@ -217,7 +215,7 @@ const routes = [
 
  
    { path: '/login', name: 'Login ', element: LoginPage },
-      { path: '/public/proposal', name: 'Proposal ', element: PublicProposal },
+     
    
 
 

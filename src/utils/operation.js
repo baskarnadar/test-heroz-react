@@ -280,7 +280,7 @@ export function getAuthHeaders() {
 
 export function getAuthHeadersV1() {
   const token = localStorage.getItem('token');
-//alert(BaseURL);
+ 
   console.log("token:", token); 
 
   return { 

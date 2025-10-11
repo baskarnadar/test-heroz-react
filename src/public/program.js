@@ -1,4 +1,4 @@
-// ProposalPage.jsx
+// program.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
@@ -429,10 +429,16 @@ const ProposalPage = () => {
         Total: school + vendor + heroz,
       };
     });
+ // By Default
+    var  userDefinedFieldVal ="SCH-"+ActivityData.actRequestRefNo+"-"+ActivityData.actName+"-"+getFormattedDateTime();
 
+    if (ActivityData.actRequestStatus=="TRIP-BOOKED")
+      userDefinedFieldVal="SCH-"+ActivityData.actRequestRefNo+"-"+ActivityData.actName+getFormattedDateTime();;
     // Local Storage 
     const PayRefNoVal = generatePayRefNo();
     localStorage.setItem('PayRefNo', PayRefNoVal);
+    localStorage.setItem('customerReference', RequestID);
+    localStorage.setItem('userDefinedField', userDefinedFieldVal);
 
     const kidsInfo = validKids.map((row) => ({
       RequestID,
@@ -452,6 +458,17 @@ const ProposalPage = () => {
       PayRefNo: PayRefNoVal,
       PayTypeID: "ONLINE",
     }));
+
+    const getFormattedDateTime = () => {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = now.getFullYear();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  return `${dd}-${mm}-${yyyy} : ${hh}:${min}:${ss}`;
+};
 
     const paymentLabel = paymentLabelFromId(selectedMethodId);
 
@@ -535,6 +552,12 @@ const ProposalPage = () => {
       showError(dict.errChoosePaymentMethod);
       return false;
     }
+
+       const termsCheckbox = document.getElementById("termsAgree");
+  if (!termsCheckbox || !termsCheckbox.checked) {
+    showError(dict.errAgreeTerms || "Please agree to the terms and conditions.");
+    return false;
+  }
 
     return true;
   };

@@ -153,7 +153,7 @@ const ProposalPage = () => {
         };
 
   useEffect(() => {
-    // Extract RequestID from hash URL (#/public/proposal?RequestID=...)
+    
     const urlParams = getSearchParams();
     const RequestID = urlParams.get("RequestID");
     if (RequestID) {
@@ -396,20 +396,20 @@ const ProposalPage = () => {
             <div className="admin-lbl-box text-center">No images</div>
           )}
           <div className="trip">
-            <div className="proposalsubtitlefirst">Trip Information</div>
+            <div className="tripsubtitlefirst">Trip Information</div>
 
             <section className=" " aria-labelledby="request-details-title">
               <div className="details-grid">
-                <div className="proposalsubtitlev3">
+                <div className="tripsubtitlev3">
                   📅 Date
                   <div>{TripData?.actRequestDate} </div>
                 </div>
-                <div className="proposalsubtitlev3">
+                <div className="tripsubtitlev3">
                   {" "}
                   ⏰ Time
                   <div>{TripData?.actRequestTime}</div>
                 </div>
-                <div className="proposalsubtitlev3">
+                <div className="tripsubtitlev3">
                   {" "}
                   ⏰ Localtion
                   <div>{ActivityData?.actAddress1}</div>
@@ -443,7 +443,7 @@ const ProposalPage = () => {
               {/* Value row */}
             </section>
 
-            <div className="proposalsubtitlev1"> {ActivityData?.actDesc} </div>
+            <div className="tripsubtitlev1"> {ActivityData?.actDesc} </div>
 
             {/* Price per student */}
 
@@ -455,7 +455,7 @@ const ProposalPage = () => {
             />
             Food */}
 
-            <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
+            <div className="tripsubtitle" style={{ marginTop: "10px" }}>
               Child Information & Booking
             </div>
 
@@ -532,7 +532,7 @@ const ProposalPage = () => {
 
             <div className="payment-method-container">
               <div className="col1">
-                <div className="proposalsubtitlev2">
+                <div className="tripsubtitlev2">
                   <div>
                     <b>Price Total:</b> {priceTotal.toFixed(2)}
                   </div>
@@ -608,11 +608,11 @@ const ProposalPage = () => {
               </div>
             </div>
 
-            <div className="proposalsubtitle" style={{ marginTop: "10px" }}>
+            <div className="tripsubtitle" style={{ marginTop: "10px" }}>
               Terms And Conditions
             </div>
             <div className="">
-              <div className="proposalsubtitlev4">
+              <div className="tripsubtitlev4">
                 {ActivityData?.actAdminNotes}
               </div>
             </div>

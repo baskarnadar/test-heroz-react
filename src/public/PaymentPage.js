@@ -93,9 +93,13 @@ export default function PaymentPage() {
   };
 
   const pay = async () => {
+
+    const customerReferenceVal= localStorage.getItem("customerReference") || "";
+    const userDefinedFieldVal= localStorage.getItem("userDefinedField") || "";
     const v = validate();
     if (v) { setErr(v); return; }
 
+    
     setLoading(true);
     setErr("");
     try {
@@ -109,7 +113,9 @@ export default function PaymentPage() {
           customer: {
             name: custName.trim(),
             email: custEmail.trim(),
-            mobile: normalizedMobile, // pass normalized local mobile
+            mobile: normalizedMobile, 
+            customerReference : customerReferenceVal, 
+            userDefinedField : userDefinedFieldVal// pass normalized local mobile
           },
           language: "EN",
           displayCurrency: "SAR",

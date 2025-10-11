@@ -105,7 +105,7 @@ const computeTripProfit = (item) => {
   return summary > 0 ? round2(summary) : 0;
 };
 
-// Food Profit = sum(FoodSchoolPrice) for APPROVED + kids only  ✅ CHANGED from 10% to 100%
+// Food Profit = sum(FoodSchoolPrice) for APPROVED + kids only  ✅ 100%
 const computeFoodProfit = (item) => {
   const foodExtras = pickArr(item, "foodExtras");
 
@@ -142,8 +142,9 @@ const computeFoodProfit = (item) => {
 const sumTripSchoolPrice = (it) => computeTripProfit(it);
 const sumFoodSchoolPrice = (it) => computeFoodProfit(it);
 
-// Total = Trip Profit + Trip Profit (per your rule)
-const sumSchoolTotal = (tripProfitOnly /* number */) => round2(toNum(tripProfitOnly) + toNum(tripProfitOnly));
+// ✅ Total = Trip Profit + Food Profit (not trip twice)
+const sumSchoolTotal = (trip /* number */, food /* number */) =>
+  round2(toNum(trip) + toNum(food));
 
 // ---------- UI tiles ----------
 const Tile = ({ title, value, tone = "neutral", subtitle }) => {
@@ -192,7 +193,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
   // === derived values following your conditions ===
   const tripSchool = sumTripSchoolPrice(item); // ✅ 100% of APPROVED TripSchoolPrice
   const foodSchool = sumFoodSchoolPrice(item); // ✅ 100% of APPROVED kids-only FoodSchoolPrice
-  const schoolTotal = sumSchoolTotal(tripSchool); // Trip + Trip
+  const schoolTotal = sumSchoolTotal(tripSchool, foodSchool); // ✅ Trip + Food
 
   // --- form state ---
   const [amount, setAmount] = React.useState(schoolTotal || 0);
@@ -257,7 +258,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
       derived: {
         tripSchool_APPROVED_100pct: tripSchool,
         foodSchool_APPROVED_kidsOnly_100pct: foodSchool,
-        totalProfit_tripTimes2: schoolTotal,
+        totalProfit_tripPlusFood: schoolTotal,
         totalPaidHistory: totalPaid,
         balancePayable: balancePayable,
         amountField: round2(amount),
@@ -440,27 +441,9 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
 
           {showDebug && (
             <div className="mt-2 rounded-4 border" style={{ borderColor: "#e9ecef", background: "#fff" }}>
-              <div className="p-2 border-bottom" style={{ borderColor: "#e9ecef" }}>
-                {/* <CBadge color="secondary" className="me-2">Parent item (as received)</CBadge>*/}
-               {/*  <span className="text-muted small">Raw payload from parent</span>*/}
-              </div>
-            {/*    <div style={{ maxHeight: 260, overflow: "auto" }} className="p-2">
-                <pre className="mb-0" style={{ fontSize: 12, lineHeight: 1.35, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                  {safeStringify(item, 2)}
-                </pre>
-              </div>
-
-              */}
-
-              <div className="p-2 border-top" style={{ borderColor: "#e9ecef" }}>
-             {/*    <CBadge color="info" className="me-2">Derived bundle</CBadge>  */}
-               {/*     <span className="text-muted small">Computed fields & counters</span>*/}
-              </div>
-              <div style={{ maxHeight: 300, overflow: "auto" }} className="p-2">
-               {/*   <pre className="mb-0" style={{ fontSize: 12, lineHeight: 1.35, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                  {safeStringify(debugBundle, 2)}
-                </pre>*/}
-              </div>
+              <div className="p-2 border-bottom" style={{ borderColor: "#e9ecef" }} />
+              <div className="p-2 border-top" style={{ borderColor: "#e9ecef" }} />
+              <div style={{ maxHeight: 300, overflow: "auto" }} className="p-2" />
             </div>
           )}
         </div>
@@ -504,7 +487,7 @@ const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                 type="number"
                 step="0.01"
                 label="Payment Amount *"
-                value={Number(amount ?? 0).toFixed(2)}  // show as 0.60, not 0.06000000000000001
+                value={Number(amount ?? 0).toFixed(2)}
                 onChange={(e) => { setAmount(toNum(e.target.value)); setUserEditedAmount(true); }}
                 required
                 min="0.01"

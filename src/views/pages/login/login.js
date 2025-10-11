@@ -24,6 +24,7 @@ import enPack from '../../../i18n/enloc100.json'
 import arPack from '../../../i18n/arloc100.json'
 
 const Login = () => {
+   console.log(`${API_BASE_URL}/subadmin/signin`);
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -49,14 +50,15 @@ const Login = () => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
       document.documentElement.setAttribute('lang', lang)
+        console.log(`${API_BASE_URL}/subadmin/signin`)
     }
   }, [lang])
 
   const handleLogin = async () => {
-
+ 
     console.log("username")
     console.log(password)
-
+  console.log(`${API_BASE_URL}/subadmin/signin`)
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
         method: 'POST',
@@ -70,6 +72,7 @@ const Login = () => {
       })
       
       const data = await response.json()
+      console.log(`${API_BASE_URL}/subadmin/signin`)
       console.log('API Response:', data)
       console.log('data.data.token', data.data.token)
 

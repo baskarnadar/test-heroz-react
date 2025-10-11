@@ -38,6 +38,11 @@ const IconEye = ({ size = 16, title = "View" }) => (
 // helpers
 const toStr = (v) => (v ?? "").toString();
 const fmtNum = (v) => (Number.isFinite(Number(v)) ? Number(v).toString() : toStr(v));
+// ✅ NEW: strict 2-decimal money formatter (non-destructive addition)
+const fmtMoney = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(2) : "-";
+};
 const fold = (s) => toStr(s).toLowerCase().trim();
 
 const useDocDir = () => {
@@ -305,7 +310,8 @@ const ViewActivityScreen = () => {
 
             <div className="vas-header-right">
               <div className="vas-total-tile tile--xl">
-                <Tile label="Total Profit" value={fmtNum(totalProfitAll)} mono />
+                {/* ✨ Only change: force 2 decimals */}
+                <Tile label="Total Profit" value={fmtMoney(totalProfitAll)} mono />
               </div>
               <CButton color="secondary" className="add-product-button" variant="outline" onClick={() => navigate(-1)}>
                 ← Back
@@ -428,7 +434,8 @@ const ViewActivityScreen = () => {
                         </CBadge>
                       </CTableDataCell>
                       <CTableDataCell className="mono">{fmtNum(row.studentSummary.totalStudentApproved)}</CTableDataCell>
-                      <CTableDataCell className="mono">{fmtNum(row.totalPaymentSummary.totalVendorTripProfit)}</CTableDataCell>
+                      {/* ✨ Only change: force 2 decimals for per-row profit */}
+                      <CTableDataCell className="mono">{fmtMoney(row.totalPaymentSummary.totalVendorTripProfit)}</CTableDataCell>
 
                       <CTableDataCell className="text-nowrap">
                         <div className="d-flex gap-1 flex-nowrap overflow-auto" style={{ maxWidth: '220px' }}>

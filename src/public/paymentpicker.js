@@ -182,6 +182,32 @@ export default function PaymentMethodPicker({
         </div>
       </div>
 
+<div
+  style={{
+    padding: 10,
+    borderRadius: 8,
+    border: "1px solid rgba(255, 221, 87, 0.8)", // light yellow border
+    backgroundColor: "rgba(255, 249, 196, 0.5)", // soft yellow bg with 0.5 opacity
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  }}
+>
+  <input
+    type="checkbox"
+    id="termsAgree"
+    style={{ width: 18, height: 18 }}
+  />
+  <label
+    htmlFor="termsAgree"
+    style={{ margin: 0, cursor: "pointer" }}
+  >
+    {dict.ar_terms_agree}
+  </label>
+</div>
+
+
+
       {!!err && (
         <div style={{
           background: "#ffe6e6",

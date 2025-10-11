@@ -32,20 +32,20 @@
   "subtotal": "الإجمالي الفرعي",
   "totalPayable": "الإجمالي المستحق",
   "perStudent": "لكل طالب",
-  "netPayableAmount": "الإجمالي المستحق ({count} أطفال)",
+  "netPayableAmount": "الإجمالي المستحق ({count} طالب)",
   "continueToPayment": "متابعة للدفع",
 
-  "childInfoBooking": "بيانات الطفل والحجز",
+  "childInfoBooking": "بيانات الطالب والحجز",
   "parentNameReq": "اسم ولي الأمر*",
   "parentPhoneReq": "هاتف ولي الأمر* (الصيغة: 05XXXXXXXX)",
-  "childNameReq": "اسم الطفل*",
+  "childNameReq": "اسم الطالب*",
   "gradeClassReq": "الصف/الفصل*",
   "gender": "النوع",
   "select": "اختر",
   "male": "ذكر",
   "female": "أنثى",
   "childSchoolIdOptional": "الرقم المدرسي للطالب(اختياري)",
-  "addMoreChild": "+ إضافة طفل آخر",
+  "addMoreChild": "+ إضافة طالب آخر",
   "remove": "حذف",
   "parentsNote": "ملاحظات ولي الأمر",
   "parentsNotePlaceholder": "هنا مساحتك لمشاركة أي شي يتعلق بهذه الرحلة: مثلاً ملاحظات شخصيةاو طبية تحب مشاركتها مع المدرسة. ",
@@ -99,7 +99,7 @@
   "terms": "شروط الخدمة",
   "copyright": "حقوق الطبع والنشر © هيروز {year}",
  
-  "heroTripTitle": "أبناءكم مدعون لرحلة مدرسية ليست فقط للترفيه، بل لبناء مهارات ، توسيع مدارك و صنع ذكريات",
+  "heroTripTitle": "أبناؤكم مدعوون لرحلة مدرسية ليست فقط للترفيه، بل لبناء مهارات ، توسيع مدارك و صنع ذكريات",
   "introReviewAndBook": " امنح أبناءك فرصة المشاركة في رحلة {name} المدرسية",
   "noImages": "لا توجد صور",
   "activityImageAlt": "صورة الفعالية",
@@ -123,7 +123,16 @@
   "paySuccessRetryBtn": "إعادة المحاولة",
   "paySuccessMissingParams": "المعامل paymentId أو id مفقود في الرابط (ولا يوجد PayRefNo في التخزين المحلي).",
   "paySuccessFailedUpdate": "فشل في تحديث حالة الدفع.",
-  "paySuccessNetworkError": "حدث خطأ في الشبكة أو الخادم أثناء تحديث حالة الدفع."
+  "paySuccessNetworkError": "حدث خطأ في الشبكة أو الخادم أثناء تحديث حالة الدفع.",
+  "food_name": "الاسم",
+  "food_school_price": "المدرسة",
+  "food_vendor_price": "المورد",
+  "food_heroz_price": "هيروز",
+  "food_total": "الإجمالي",
+  "food_extra": "إضافي",
+  "food_included_option": "وجبة مشمولة",
+  "food_extra_option": "وجبة إضافية",
+  "ar_terms_agree" : " يُعتبر الدفع عبر المنصة أحد وسائل الموافقة على مشاركة الطفل في الرحلة. "
  
    
 }

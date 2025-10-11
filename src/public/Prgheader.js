@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import herozlogo from "../assets/logo/herozlogo.png"; // adjust path if needed
 
-// 🔤 i18n packs (reuse the same JSON files you already use in ProposalPage)
+// 🔤 i18n packs (reuse the same JSON files you already use in )
 import enPack from "../i18n/enlangpack.json";
 import arPack from "../i18n/arlangpack.json";
 
