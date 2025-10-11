@@ -16,5 +16,5 @@ app.get('*', (req, res) => {
 
 
 app.listen(PORT, () => {
-  console.log(`App running on http://127.0.0.1:${PORT}`);
+  console.log(`Test Server App running on http://127.0.0.1:${PORT}`);
 });
