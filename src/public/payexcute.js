@@ -29,6 +29,10 @@ export async function executeMyFatoorahPayment({
   displayCurrency = "SAR",
   redirect = true,
 }) {
+
+   const customerReferenceVal= localStorage.getItem("customerReference") || "";
+    const userDefinedFieldVal= localStorage.getItem("userDefinedField") || "";
+ 
   const payload = {
     amount,
     currency: "SAR",
@@ -36,6 +40,8 @@ export async function executeMyFatoorahPayment({
     customer,          // pass through as-is
     language,
     displayCurrency,
+    customerReference : customerReferenceVal, 
+    userDefinedField : userDefinedFieldVal
   };
 
   const r = await fetch(`${API_BASE_URL}/myfatrooahdata/pay/execute-session`, {
