@@ -140,7 +140,7 @@ export default function PaymentMethodPicker({
 
       {/* List & choose */}
       <div>
-        <strong>{dict.ar_choose_method || "Choose method:"}</strong>
+        <strong>{dict.ar_choose_method || "Choose method:"} <span style={{ color: 'red', fontSize: '25px' }}>*</span></strong>
         <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
           {methods.map((m) => {
             const primaryName = isArabic ? (m.PaymentMethodAr || m.PaymentMethodEn) : (m.PaymentMethodEn || m.PaymentMethodAr);
@@ -193,6 +193,7 @@ export default function PaymentMethodPicker({
     gap: 8,
   }}
 >
+  <span style={{ color: 'red', fontSize: '25px' }}>*</span>
   <input
     type="checkbox"
     id="termsAgree"
