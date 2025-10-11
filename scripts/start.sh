@@ -16,10 +16,6 @@ echo "🚀 Starting production deployment for $APP_NAME..."
 # Go to app directory
 cd $APP_DIR
 
-# Install dependencies if needed
-echo "📦 Installing dependencies..."
-npm ci --legacy-peer-deps
-
 # Build production bundle
 echo "🏗️ Building production bundle..."
 npm run build:prod
