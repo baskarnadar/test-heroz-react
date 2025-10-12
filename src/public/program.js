@@ -440,14 +440,16 @@ const ProposalPage = () => {
       };
     });
  // By Default
-    var  userDefinedFieldVal ="SCH-"+ActivityData.actRequestRefNo+"-"+ActivityData.actName+"-"+getFormattedDateTime();
+    var  userDefinedFieldVal =TripData.actRequestRefNo+"-"+ActivityData.actName+"-"+getFormattedDateTime();
 
     if (ActivityData.actRequestStatus=="TRIP-BOOKED")
-      userDefinedFieldVal="SCH-"+ActivityData.actRequestRefNo+"-"+ActivityData.actName+getFormattedDateTime();;
+      userDefinedFieldVal=TripData.actRequestRefNo+"-"+ActivityData.actName+getFormattedDateTime();;
+    alert(userDefinedFieldVal); 
+    var customerReferenceVal=RequestID+"-"+TripData.actRequestRefNo+"-"+ActivityData.actName;
     // Local Storage 
     const PayRefNoVal = generatePayRefNo();
     localStorage.setItem('PayRefNo', PayRefNoVal);
-    localStorage.setItem('customerReference', RequestID);
+    localStorage.setItem('customerReference', customerReferenceVal);
     localStorage.setItem('userDefinedField', userDefinedFieldVal);
 
     const kidsInfo = validKids.map((row) => ({

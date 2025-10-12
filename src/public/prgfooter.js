@@ -48,7 +48,7 @@ const ProgramFooter = ({ className = "", lang = "en" }) => {
           <ul>
             <li>
               <strong>{dict.customerSupport}</strong>{" "}
-              <a href="mailto:Herozapp1@gmail.com">sales@heroz.com</a>
+              <a href="mailto:Herozapp1@gmail.com">sales@heroz.sa</a>
             </li>
           <li >
   

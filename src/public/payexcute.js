@@ -1,9 +1,27 @@
 // src/services/myfatoorah.js
 import { API_BASE_URL } from "../config";
+
 // Minimal helper to parse JSON safely
 async function safeParse(response) {
   const text = await response.text();
   try { return JSON.parse(text); } catch { return { raw: text }; }
+}
+
+// --- NEW: tiny helper to send PayLogData without affecting flow ---
+function sendPayLog(PayLogData) {
+  const url = `${API_BASE_URL}/myfatrooahdata/pay/paylog`;
+  try {
+    const body = JSON.stringify({ PayLogData });
+    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+      const blob = new Blob([body], { type: "application/json" });
+      navigator.sendBeacon(url, blob);
+    } else {
+      // fire-and-forget
+      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body }).catch(() => {});
+    }
+  } catch (_) {
+    // swallow logging errors
+  }
 }
 
 /**
@@ -30,9 +48,9 @@ export async function executeMyFatoorahPayment({
   redirect = true,
 }) {
 
-   const customerReferenceVal= localStorage.getItem("customerReference") || "";
-    const userDefinedFieldVal= localStorage.getItem("userDefinedField") || "";
- 
+  const customerReferenceVal = localStorage.getItem("customerReference") || "";
+  const userDefinedFieldVal = localStorage.getItem("userDefinedField") || "";
+
   const payload = {
     amount,
     currency: "SAR",
@@ -40,17 +58,32 @@ export async function executeMyFatoorahPayment({
     customer,          // pass through as-is
     language,
     displayCurrency,
-    customerReference : customerReferenceVal, 
-    userDefinedField : userDefinedFieldVal
+    customerReference: customerReferenceVal, 
+    userDefinedField: userDefinedFieldVal
   };
 
-  const r = await fetch(`${API_BASE_URL}/myfatrooahdata/pay/execute-session`, {
+  const apiUrl = `${API_BASE_URL}/myfatrooahdata/pay/execute-session`; // <--- NEW keep the called URL
+  const r = await fetch(apiUrl, {
     method: "POST",
-   headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
   const data = await safeParse(r);
+
+  // --- NEW: log success/error response with API URL + payload + response ---
+  try {
+    sendPayLog({
+      apiUrl,
+      requestTs: new Date().toISOString(),
+      sentPayload: payload,
+      responseStatus: r.status,
+      responseOk: r.ok,
+      apiResponse: data,
+      // a bit of client context can help later; harmless to include
+      client: { href: typeof window !== "undefined" ? window.location.href : "", ua: typeof navigator !== "undefined" ? navigator.userAgent : "" }
+    });
+  } catch (_) {}
 
   if (!r.ok) {
     const error =
@@ -70,6 +103,7 @@ export async function executeMyFatoorahPayment({
   }
 
   if (redirect) {
+    // redirect after sending log (sendBeacon ensures it still posts during unload)
     window.location.href = paymentUrl;
   }
 
