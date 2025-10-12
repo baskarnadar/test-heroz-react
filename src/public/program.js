@@ -444,7 +444,7 @@ const ProposalPage = () => {
 
     if (ActivityData.actRequestStatus=="TRIP-BOOKED")
       userDefinedFieldVal=TripData.actRequestRefNo+"-"+ActivityData.actName+getFormattedDateTime();;
-    alert(userDefinedFieldVal); 
+   
     var customerReferenceVal=RequestID+"-"+TripData.actRequestRefNo+"-"+ActivityData.actName;
     // Local Storage 
     const PayRefNoVal = generatePayRefNo();
