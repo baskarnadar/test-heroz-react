@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders } from '../../utils/operation';
+import { IsAdminLoginIsValid } from '../../../utils/operation';
+
 const UserForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,6 +19,11 @@ const UserForm = () => {
   const [username, setusername] = useState('');
   const [usertype, setusertype] = useState('Admin');
   const [userstatus, setuserstatus] = useState(1); // 1 = Active, 0 = Inactive
+
+  // ✅ Added: admin login validation (your requested snippet)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);

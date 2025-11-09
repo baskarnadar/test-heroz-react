@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const CityList = () => {
   const [City, setCity] = useState([]);
@@ -29,6 +29,11 @@ const CityList = () => {
       navigate('/login');
     }
   }, [navigate]);
+
+  // ✅ Admin login validation (added as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const fetchCity = async () => {
     setLoading(true);
@@ -132,10 +137,8 @@ const CityList = () => {
             <thead>
               <tr>
                 <th>#</th>
-               
                 <th>English City Name</th>
                 <th>Arabic City Name</th>
-                
                 <th>Actions</th>
               </tr>
             </thead>
@@ -143,15 +146,21 @@ const CityList = () => {
               {City.map((city, index) => (
                 <tr key={city.CityID}>
                   <td><strong>{(currentPage - 1) * CityPerPage + index + 1}</strong></td>
-                 
-                  <td>
-                    {city.EnCityName}
-                  </td>
+                  <td>{city.EnCityName}</td>
                   <td>{city.ArCityName}</td>
-                  
                   <td>
-                    <CIcon onClick={() => handleModifyClick(city.CityID)} icon={cilPencil} size="lg" className="edit-icon" />
-                    <CIcon onClick={() => handleDeleteClick(city.CityID)} icon={cilTrash} size="lg" className="trash-icon" />
+                    <CIcon
+                      onClick={() => handleModifyClick(city.CityID)}
+                      icon={cilPencil}
+                      size="lg"
+                      className="edit-icon"
+                    />
+                    <CIcon
+                      onClick={() => handleDeleteClick(city.CityID)}
+                      icon={cilTrash}
+                      size="lg"
+                      className="trash-icon"
+                    />
                   </td>
                 </tr>
               ))}
@@ -201,7 +210,6 @@ const CityList = () => {
         </div>
       )}
 
-     
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   );

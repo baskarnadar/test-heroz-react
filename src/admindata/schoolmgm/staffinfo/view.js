@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
-import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage, getAuthHeaders } from '../../../utils/operation';
+import { IsAdminLoginIsValid } from '../../../utils/operation';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
 
@@ -27,6 +28,10 @@ const StudentViewForm = () => {
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     const fetchClassData = async () => {
@@ -117,7 +122,6 @@ const StudentViewForm = () => {
       <div className="divhbg">
         <div className="txtheadertitle">{ProductID ? '' : ''}View Student </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          
           <button
             type="button"
             className="admin-buttonv1"
@@ -201,8 +205,7 @@ const StudentViewForm = () => {
       </div>
 
       <div className="button-container">
-        
-        
+        {/* No buttons here as per your original code */}
       </div>
 
       <DspToastMessage message={toastMessage} type={toastType} />

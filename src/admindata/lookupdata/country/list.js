@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const CountryList = () => {
   const [Country, setCountry] = useState([]);
@@ -29,6 +29,11 @@ const CountryList = () => {
       navigate('/login');
     }
   }, [navigate]);
+
+  // ✅ Admin login validation (added as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const fetchCountry = async () => {
     setLoading(true);
@@ -132,26 +137,32 @@ const CountryList = () => {
             <thead>
               <tr>
                 <th>#</th>
-               
                 <th>English Country Name</th>
                 <th>Arabic Country Name</th>
-                
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {Country.map((Country, index) => (
                 <tr key={Country.CountryID}>
-                  <td><strong>{(currentPage - 1) * CountryPerPage + index + 1}</strong></td>
-                 
                   <td>
-                    {Country.EnCountryName}
+                    <strong>{(currentPage - 1) * CountryPerPage + index + 1}</strong>
                   </td>
+                  <td>{Country.EnCountryName}</td>
                   <td>{Country.ArCountryName}</td>
-                  
                   <td>
-                    <CIcon onClick={() => handleModifyClick(Country.CountryID)} icon={cilPencil} size="lg" className="edit-icon" />
-                    <CIcon onClick={() => handleDeleteClick(Country.CountryID)} icon={cilTrash} size="lg" className="trash-icon" />
+                    <CIcon
+                      onClick={() => handleModifyClick(Country.CountryID)}
+                      icon={cilPencil}
+                      size="lg"
+                      className="edit-icon"
+                    />
+                    <CIcon
+                      onClick={() => handleDeleteClick(Country.CountryID)}
+                      icon={cilTrash}
+                      size="lg"
+                      className="trash-icon"
+                    />
                   </td>
                 </tr>
               ))}
@@ -194,14 +205,17 @@ const CountryList = () => {
             <h4>Confirm Delete</h4>
             <p>Are you sure you want to delete this Country?</p>
             <div className="modal-buttons">
-              <button className="admin-buttonv1" onClick={confirmDelete}>Yes</button>
-              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>No</button>
+              <button className="admin-buttonv1" onClick={confirmDelete}>
+                Yes
+              </button>
+              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>
+                No
+              </button>
             </div>
           </div>
         </div>
       )}
 
-     
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   );

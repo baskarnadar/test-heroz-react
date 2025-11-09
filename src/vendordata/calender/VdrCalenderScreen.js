@@ -12,7 +12,11 @@ import { format, isSameDay } from "date-fns";
 
 // NOTE: adjust these imports to match your project paths
 import { API_BASE_URL } from "../../config"; // e.g. src/config
-import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
+import {
+  getAuthHeaders,
+  getCurrentLoggedUserID,
+  IsVendorLoginIsValid,        // ✅ ADDED
+} from "../../utils/operation";
 
 /**
  * Helpers
@@ -97,6 +101,11 @@ const getDir = () => {
  */
 export default function VdrCalenderScreen() {
   const navigate = useNavigate();
+
+  // ✅ Vendor login/session validation
+  useEffect(() => {
+    IsVendorLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   // Month focus
   const [focusedMonth, setFocusedMonth] = useState(() => {

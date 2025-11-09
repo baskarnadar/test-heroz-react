@@ -6,7 +6,7 @@ import {
   CButton, CForm, CFormInput, CFormTextarea, CFormSelect, CAlert, CRow, CCol, CSpinner,
   CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CBadge
 } from "@coreui/react";
-import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
+import { getAuthHeaders, getCurrentLoggedUserID, IsAdminLoginIsValid } from "../../utils/operation";
 
 const PAY_SCHOOL_URL = `${API_BASE_URL}/admindata/payment/paytoSchVdr`;
 const GET_SCH_VDR_URL = `${API_BASE_URL}/admindata/payment/getSchVdr`;
@@ -190,6 +190,11 @@ const Tile = ({ title, value, tone = "neutral", subtitle }) => {
 };
 
 const SchPaymentModal = ({ visible, onClose, item, totalProfit }) => {
+  // ✅ Admin login validity check (applied here)
+  React.useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
+
   // === derived values following your conditions ===
   const tripSchool = sumTripSchoolPrice(item); // ✅ 100% of APPROVED TripSchoolPrice
   const foodSchool = sumFoodSchoolPrice(item); // ✅ 100% of APPROVED kids-only FoodSchoolPrice

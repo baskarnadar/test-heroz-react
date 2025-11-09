@@ -6,7 +6,7 @@ import { getFileNameFromUrl } from '../../utils/operation';
 // Removed: import 'react-quill/dist/quill.snow.css'
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 
 const ProductCategoryDropdown = () => {
   const navigate = useNavigate();
@@ -28,6 +28,11 @@ const ProductCategoryDropdown = () => {
   const [ArPrdNameVal, setArPrdName] = useState('');
   const [PrdDiscountVal, setPrdDiscountVal] = useState('');
   const [PrdDescVal, setPrdDesc] = useState('');
+
+  // 🔒 Admin login validation – will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid();
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -94,7 +99,14 @@ const ProductCategoryDropdown = () => {
     setLoading(true);
     setToastMessage('');
 
-    if (!EnPrdNameVal || !ArPrdNameVal || !PrdCodeNoVal || !selectedCategory || !PrdDescVal || PrdDescVal.trim() === '') {
+    if (
+      !EnPrdNameVal ||
+      !ArPrdNameVal ||
+      !PrdCodeNoVal ||
+      !selectedCategory ||
+      !PrdDescVal ||
+      PrdDescVal.trim() === ''
+    ) {
       setToastMessage('Please fill in all required fields.');
       setLoading(false);
       return;
@@ -105,13 +117,16 @@ const ProductCategoryDropdown = () => {
     try {
       if (PtrImage instanceof File) {
         const formdata = new FormData();
-        formdata.append("image", PtrImage);
-        formdata.append("foldername", "files/product/images");
+        formdata.append('image', PtrImage);
+        formdata.append('foldername', 'files/product/images');
 
-        const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: "POST",
-          body: formdata,
-        });
+        const uploadResponse = await fetch(
+          `${API_BASE_URL}/product/upload/uploadImage`,
+          {
+            method: 'POST',
+            body: formdata,
+          }
+        );
 
         const uploadResult = await uploadResponse.json();
         const uploadedKey = uploadResult?.data?.key || uploadResult?.data?.Key;
@@ -128,11 +143,11 @@ const ProductCategoryDropdown = () => {
         PrdGridList: PrdImageVal,
         PrdDesc: PrdDescVal,
         PrdDiscount: PrdDiscountVal,
-        createdBy: "USER",
-        updatedBy: "USER",
+        createdBy: 'USER',
+        updatedBy: 'USER',
         IsDataStatus: 1,
         CategoryID: selectedCategory,
-        ProductTypeID: "PRODUCT",
+        ProductTypeID: 'PRODUCT',
       };
 
       if (ProductID) payload.ProductID = ProductID;
@@ -150,7 +165,6 @@ const ProductCategoryDropdown = () => {
       setToastMessage('Product saved successfully!');
       setToastType('success');
       setTimeout(() => navigate('/forms/product/productlist'), 2000);
-
     } catch (error) {
       console.error('Error saving product:', error);
       setToastType('fail');
@@ -163,28 +177,85 @@ const ProductCategoryDropdown = () => {
   return (
     <form onSubmit={handleSubmit} className="form-container">
       <div className="page-title">
-        <h3>{ProductID ? 'View' : 'Add'} activity Oversight  </h3> 
+        <h3>{ProductID ? 'View' : 'Add'} activity Oversight</h3>
       </div>
-       <div className="page-title">
-       
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Personal Details </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Shared Account </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Children's </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Payments </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > SubScription </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > School Trips </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Loyality Points </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Referal Program </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Achivement System </button>
-        <button  type="button"  onClick={() => navigate('/parents/list')}  className="admin-buttonv1"  > Return </button>
-       
+      <div className="page-title">
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Personal Details
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Shared Account
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Children's
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Payments
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          SubScription
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          School Trips
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Loyality Points
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Referal Program
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Achivement System
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/parents/list')}
+          className="admin-buttonv1"
+        >
+          Return
+        </button>
       </div>
 
-     
       <div className="form-group">
         <label>Name</label>
         <input
-          className='admin-txt-box'
+          className="admin-txt-box"
           type="text"
           value={EnPrdNameVal}
           onChange={(e) => setPrdName(e.target.value)}
@@ -195,7 +266,7 @@ const ProductCategoryDropdown = () => {
       <div className="form-group">
         <label>Email Address</label>
         <input
-          className='admin-txt-box'
+          className="admin-txt-box"
           type="text"
           value={ArPrdNameVal}
           onChange={(e) => setArPrdName(e.target.value)}
@@ -203,20 +274,42 @@ const ProductCategoryDropdown = () => {
         />
       </div>
 
-      <div className="form-group"> <label>Mobile Number</label> 
-      <input   className='admin-txt-box'  type="text"   value={PrdCodeNoVal}   />
-      </div> 
+      <div className="form-group">
+        <label>Mobile Number</label>
+        <input
+          className="admin-txt-box"
+          type="text"
+          value={PrdCodeNoVal}
+        />
+      </div>
 
- <div className="form-group"> <label>City</label> 
-      <input   className='admin-txt-box'  type="text"   value={PrdCodeNoVal}   />
-      </div> 
+      <div className="form-group">
+        <label>City</label>
+        <input
+          className="admin-txt-box"
+          type="text"
+          value={PrdCodeNoVal}
+        />
+      </div>
 
-       <div className="form-group"> <label>Number of Children</label> 
-      <input   className='admin-txt-box'  type="text"   value={PrdCodeNoVal}   />
-      </div> 
-      <div className="form-group"> <label>Track</label> 
-      <input   className='admin-txt-box'  type="text"   value={PrdCodeNoVal}   />
-      </div> 
+      <div className="form-group">
+        <label>Number of Children</label>
+        <input
+          className="admin-txt-box"
+          type="text"
+          value={PrdCodeNoVal}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Track</label>
+        <input
+          className="admin-txt-box"
+          type="text"
+          value={PrdCodeNoVal}
+        />
+      </div>
+
       <DspToastMessage message={toastMessage} type={toastType} />
     </form>
   );

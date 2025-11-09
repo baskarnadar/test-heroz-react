@@ -3,7 +3,12 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
 import {
-  CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CButton,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
+  CButton,
 } from "@coreui/react";
 import { API_BASE_URL } from "../config";
 import herozlogo from "../assets/logo/herozlogo.png";
@@ -34,15 +39,20 @@ const PAYERROR_URL = "https://school.heroz.sa/public/payerror";
 // Map PaymentMethodId -> UI label
 const paymentLabelFromId = (id) => {
   switch (Number(id)) {
-    case 11: return "Apple Pay";
-    case 2:  return "VISA / MasterCard";
-    case 14: return "STC Pay";
-    case 6:  return "MADA";
-    default: return `Method ${id}`;
+    case 11:
+      return "Apple Pay";
+    case 2:
+      return "VISA / MasterCard";
+    case 14:
+      return "STC Pay";
+    case 6:
+      return "MADA";
+    default:
+      return `Method ${id}`;
   }
 };
 
-  const getFormattedDateTime = () => {
+const getFormattedDateTime = () => {
   const now = new Date();
   const dd = String(now.getDate()).padStart(2, "0");
   const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -55,11 +65,16 @@ const paymentLabelFromId = (id) => {
 // Map PaymentMethodId -> tripPaymentTypeID you store in backend
 const tripPaymentTypeIdFromId = (id) => {
   switch (Number(id)) {
-    case 11: return "APPLE-PAY";
-    case 2:  return "CREDIT-CARD";
-    case 14: return "STC-PAY";
-    case 6:  return "MADA";
-    default: return "ONLINE";
+    case 11:
+      return "APPLE-PAY";
+    case 2:
+      return "CREDIT-CARD";
+    case 14:
+      return "STC-PAY";
+    case 6:
+      return "MADA";
+    default:
+      return "ONLINE";
   }
 };
 
@@ -94,7 +109,9 @@ const ProposalPage = () => {
   const [loading, setLoading] = useState(false);
 
   // ➕ added gender to each row (kept your original fields)
-  const [childRows, setChildRows] = useState([{ schoolID: "", name: "", className: "", gender: "" }]);
+  const [childRows, setChildRows] = useState([
+    { schoolID: "", name: "", className: "", gender: "" },
+  ]);
 
   // Removed old selectedMethod radio; we rely only on PaymentMethodPicker
   const [selectedMethodId, setSelectedMethodId] = useState(null);
@@ -138,7 +155,10 @@ const ProposalPage = () => {
   };
 
   const handleAddRow = () =>
-    setChildRows([...childRows, { schoolID: "", name: "", className: "", gender: "" }]);
+    setChildRows([
+      ...childRows,
+      { schoolID: "", name: "", className: "", gender: "" },
+    ]);
 
   const handleRemoveRow = (idx) =>
     setChildRows((prev) => prev.filter((_, i) => i !== idx));
@@ -163,7 +183,11 @@ const ProposalPage = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal, RequestID: RequestIDVal }),
+          body: JSON.stringify({
+            ActivityID: ActivityIDVal,
+            VendorID: VendorIDVal,
+            RequestID: RequestIDVal,
+          }),
         }
       );
       if (!response.ok) throw new Error("Failed to fetch activities");
@@ -182,7 +206,8 @@ const ProposalPage = () => {
   const handleCheckboxChange = (FoodID, isIncludedArg) => {
     const inferredIncluded =
       isIncludedArg ??
-      (ActivityData?.foodList?.find((f) => f.FoodID === FoodID)?.Include === true);
+      (ActivityData?.foodList?.find((f) => f.FoodID === FoodID)?.Include ===
+        true);
 
     setCheckedFoodItems((prev) => {
       const next = { ...prev };
@@ -213,7 +238,9 @@ const ProposalPage = () => {
       if (!response.ok)
         throw new Error(`Request failed with status ${response.status}`);
       const data = await response.json();
-      const payload = Array.isArray(data?.data) ? data.data[0] ?? null : data?.data ?? null;
+      const payload = Array.isArray(data?.data)
+        ? data.data[0] ?? null
+        : data?.data ?? null;
 
       const dueRaw = payload?.PaymentDueDate;
       const missingDue =
@@ -230,7 +257,8 @@ const ProposalPage = () => {
 
       const ActivityIDVal = payload?.ActivityID;
       const VendorIDVal = payload?.VendorID;
-      if (ActivityIDVal && VendorIDVal) fetchActivity(ActivityIDVal, VendorIDVal, RequestID);
+      if (ActivityIDVal && VendorIDVal)
+        fetchActivity(ActivityIDVal, VendorIDVal, RequestID);
     } catch (err) {
       console.error("Error fetching trip data:", err);
       setError(err.message || "Error fetching trip data");
@@ -340,7 +368,11 @@ const ProposalPage = () => {
     const vendor = parseFloat(p?.Price);
     const heroz = parseFloat(p?.HerozStudentPrice);
     const school = parseFloat(p?.RequestSchoolPrice);
-    return Number.isFinite(vendor) || Number.isFinite(heroz) || Number.isFinite(school);
+    return (
+      Number.isFinite(vendor) ||
+      Number.isFinite(heroz) ||
+      Number.isFinite(school)
+    );
   });
 
   const priceTotal = filteredPriceList.reduce((sum, item) => {
@@ -368,18 +400,24 @@ const ProposalPage = () => {
   }, [ActivityData, checkedFoodItems, schoolPriceMap]);
 
   const grandTotal = priceTotal + foodTotal;
-  const TAX_RATE = 0;
+
+  // 🔽 TAX: 15% VAT (per student)
+  const TAX_RATE = 0.15; // 15%
   const taxAmount = (Number(grandTotal) || 0) * TAX_RATE;
   const grandTotalWithTax = (Number(grandTotal) || 0) + taxAmount;
 
   // ---------- helpers ----------
   // Student ID OPTIONAL now: only name + className required
   const isValidKid = (row) =>
-    (row.name || "").trim() &&
-    (row.className || "").trim();
+    (row.name || "").trim() && (row.className || "").trim();
 
   const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
+
+  // 🔽 VAT shown in UI should reflect number of kids
+  const vatAmountToShow = (
+    taxAmount * (validKidsCount > 0 ? validKidsCount : 1)
+  ).toFixed(2);
 
   // ======= total amount to pass into PaymentMethodPicker =======
   const paymentAmount = useMemo(() => {
@@ -428,7 +466,8 @@ const ProposalPage = () => {
       const school =
         schoolPriceMap[item.FoodID] ??
         (parseFloat(item?.RequestFoodSchoolPrice) || 0);
-      const vendor = parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
+      const vendor =
+        parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
       const heroz = parseFloat(item?.FoodHerozPrice) || 0;
       return {
         FoodID: item.FoodID,
@@ -439,18 +478,27 @@ const ProposalPage = () => {
         Total: school + vendor + heroz,
       };
     });
- // By Default
-    var  userDefinedFieldVal =TripData.actRequestRefNo+"-"+ActivityData.actName+"-"+getFormattedDateTime();
+    // By Default
+    var userDefinedFieldVal =
+      TripData.actRequestRefNo +
+      "-" +
+      ActivityData.actName +
+      "-" +
+      getFormattedDateTime();
 
-    if (ActivityData.actRequestStatus=="TRIP-BOOKED")
-      userDefinedFieldVal=TripData.actRequestRefNo+"-"+ActivityData.actName+getFormattedDateTime();;
-   
-    var customerReferenceVal=RequestID+"-"+TripData.actRequestRefNo+"-"+ActivityData.actName;
-    // Local Storage 
+    if (ActivityData.actRequestStatus == "TRIP-BOOKED")
+      userDefinedFieldVal =
+        TripData.actRequestRefNo +
+        "-" +
+        ActivityData.actName +
+        getFormattedDateTime();
+
+    var customerReferenceVal = RequestID + "-" + TripData.actRequestRefNo;
+    // Local Storage
     const PayRefNoVal = generatePayRefNo();
-    localStorage.setItem('PayRefNo', PayRefNoVal);
-    localStorage.setItem('customerReference', customerReferenceVal);
-    localStorage.setItem('userDefinedField', userDefinedFieldVal);
+    localStorage.setItem("PayRefNo", PayRefNoVal);
+    localStorage.setItem("customerReference", customerReferenceVal);
+    localStorage.setItem("userDefinedField", userDefinedFieldVal);
 
     const kidsInfo = validKids.map((row) => ({
       RequestID,
@@ -470,8 +518,6 @@ const ProposalPage = () => {
       PayRefNo: PayRefNoVal,
       PayTypeID: "ONLINE",
     }));
-
-  
 
     const paymentLabel = paymentLabelFromId(selectedMethodId);
 
@@ -498,11 +544,17 @@ const ProposalPage = () => {
       RequestID,
       ParentsID,
       tripParentsName:
-        document.querySelector('input[name="txtParentName"]')?.value.trim() || "",
+        document
+          .querySelector('input[name="txtParentName"]')
+          ?.value.trim() || "",
       tripParentsMobileNo:
-        document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "",
+        document
+          .querySelector('input[name="tripParentsMobileNo"]')
+          ?.value.trim() || "",
       tripParentsNote:
-        document.querySelector('textarea[name="txtParentsNote"]')?.value.trim() || "",
+        document
+          .querySelector('textarea[name="txtParentsNote"]')
+          ?.value.trim() || "",
       tripPaymentTypeID: tripPaymentTypeIdFromId(selectedMethodId),
       kidsInfo,
       FoodIncluded: includedId ? [includedId] : [],
@@ -521,11 +573,16 @@ const ProposalPage = () => {
 
   // ---------- Validation ----------
   const validateBeforeSubmit = () => {
-    const hasMeals = Array.isArray(ActivityData?.foodList) && ActivityData.foodList.length > 0;
-    const hasIncludedOptions = hasMeals && ActivityData.foodList.some((f) => f.Include === true);
+    const hasMeals =
+      Array.isArray(ActivityData?.foodList) &&
+      ActivityData.foodList.length > 0;
+    const hasIncludedOptions =
+      hasMeals && ActivityData.foodList.some((f) => f.Include === true);
 
     if (hasIncludedOptions) {
-      const includedFoodRadio = document.querySelector('input[name="foodSelect"]:checked');
+      const includedFoodRadio = document.querySelector(
+        'input[name="foodSelect"]:checked'
+      );
       if (!includedFoodRadio) {
         showError(dict.errSelectIncludedFood);
         return false;
@@ -533,9 +590,13 @@ const ProposalPage = () => {
     }
 
     const parentName =
-      document.querySelector('input[name="txtParentName"]')?.value.trim() || "";
+      document
+        .querySelector('input[name="txtParentName"]')
+        ?.value.trim() || "";
     const parentMobile =
-      document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
+      document
+        .querySelector('input[name="tripParentsMobileNo"]')
+        ?.value.trim() || "";
 
     if (!parentName) {
       showError(dict.errEnterParentName);
@@ -556,11 +617,13 @@ const ProposalPage = () => {
       return false;
     }
 
-       const termsCheckbox = document.getElementById("termsAgree");
-  if (!termsCheckbox || !termsCheckbox.checked) {
-    showError(dict.errAgreeTerms || "Please agree to the terms and conditions.");
-    return false;
-  }
+    const termsCheckbox = document.getElementById("termsAgree");
+    if (!termsCheckbox || !termsCheckbox.checked) {
+      showError(
+        dict.errAgreeTerms || "Please agree to the terms and conditions."
+      );
+      return false;
+    }
 
     return true;
   };
@@ -616,9 +679,13 @@ const ProposalPage = () => {
 
       const schoolTotalTripCost = paymentAmount;
       const parentName =
-        document.querySelector('input[name="txtParentName"]')?.value.trim() || "";
+        document
+          .querySelector('input[name="txtParentName"]')
+          ?.value.trim() || "";
       const parentMobile =
-        document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
+        document
+          .querySelector('input[name="tripParentsMobileNo"]')
+          ?.value.trim() || "";
 
       if (!selectedMethodId) {
         showError(dict.errChoosePaymentMethod);
@@ -660,7 +727,8 @@ const ProposalPage = () => {
   )}`;
 
   // ---------- SEO / Social (Helmet) ----------
-  const canonicalUrl = shareUrl || `${window.location.origin}${window.location.pathname}`;
+  const canonicalUrl =
+    shareUrl || `${window.location.origin}${window.location.pathname}`;
   const program = useMemo(() => {
     const title = ActivityData?.actName
       ? `${dict.seoTripPrefix} — ${ActivityData.actName}`
@@ -677,13 +745,17 @@ const ProposalPage = () => {
         <title>{program.title}</title>
         <meta property="og:title" content={program.title} />
         <meta property="og:description" content={program.description} />
-        {program.imageUrl ? <meta property="og:image" content={program.imageUrl} /> : null}
+        {program.imageUrl ? (
+          <meta property="og:image" content={program.imageUrl} />
+        ) : null}
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={program.title} />
         <meta name="twitter:description" content={program.description} />
-        {program.imageUrl ? <meta name="twitter:image" content={program.imageUrl} /> : null}
+        {program.imageUrl ? (
+          <meta name="twitter:image" content={program.imageUrl} />
+        ) : null}
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
@@ -712,12 +784,14 @@ const ProposalPage = () => {
                 </h2>
                 <h3 className="card-title">{dict.aboutThisTrip}</h3>
                 <p className="card-text">
-                  {ActivityData?.actDesc?.split('\n').map((line, index) => (
-                    <React.Fragment key={index}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}
+                  {ActivityData?.actDesc
+                    ?.split("\n")
+                    .map((line, index) => (
+                      <React.Fragment key={index}>
+                        {line}
+                        <br />
+                      </React.Fragment>
+                    ))}
                 </p>
               </div>
 
@@ -726,12 +800,17 @@ const ProposalPage = () => {
                   <div className="detail">
                     <div className="detail-label trip-gradient-color  fontsize30">
                       <div className="row-inline">
-                        <img src={icon5} alt="HEROZ" className="icon-tint-pink" />
+                        <img
+                          src={icon5}
+                          alt="HEROZ"
+                          className="icon-tint-pink"
+                        />
                         <span> {dict.tripCost}</span>
                       </div>
                     </div>
                     <div className="detail-value ">
-                      {priceTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                      {priceTotal.toFixed(2)}{" "}
+                      <img src={icon5} alt="HEROZ" />
                     </div>
                   </div>
                 </div>
@@ -793,7 +872,11 @@ const ProposalPage = () => {
                         aria-label={dict.viewOnMap}
                         title={dict.viewOnMap}
                       >
-                        <img src={viewonmap} alt="HEROZ" className="footer-logo" />
+                        <img
+                          src={viewonmap}
+                          alt="HEROZ"
+                          className="footer-logo"
+                        />
                       </a>
                     )}
                   </div>
@@ -806,12 +889,17 @@ const ProposalPage = () => {
           <section className="container twocol">
             {/* Pricing */}
             <div className="card pricing">
-              <h3 className="card-title trip-gradient-color fontsize40">{dict.tripsPricing}</h3>
+              <h3 className="card-title trip-gradient-color fontsize40">
+                {dict.tripsPricing}
+              </h3>
 
               <div className="price-row">
-                <span className="price-label fontsize20">{dict.baseTripCost}</span>
+                <span className="price-label fontsize20">
+                  {dict.baseTripCost}
+                </span>
                 <span className="price-value fontsize20">
-                  {priceTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                  {priceTotal.toFixed(2)}{" "}
+                  <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
 
@@ -832,23 +920,44 @@ const ProposalPage = () => {
                 <div className="summary-row">
                   <span>{dict.subtotal}</span>
                   <span>
-                    {grandTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                    {grandTotal.toFixed(2)}{" "}
+                    <img src={icon5} alt="HEROZ" />
                   </span>
                 </div>
               </div>
 
               <div className="summary-row total trip-gradient-color">
                 <span>
-                  <div>{dict.totalPayable}</div> <div>({dict.perStudent})</div>
+                  <div>{dict.totalPayable}</div>{" "}
+                  <div>({dict.perStudent})</div>
                 </span>
                 <span>
-                  {grandTotalWithTax.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                  {grandTotalWithTax.toFixed(2)}{" "}
+                  <img src={icon5} alt="HEROZ" />
+                </span>
+              </div>
+
+              {/* 🔽 TAX ROWS BELOW FINAL AMOUNT */}
+              <div className="summary-row">
+                <span>{dict.taxValueLabel || "Tax Value"}</span>
+                <span>15%</span>
+              </div>
+              <div className="summary-row">
+                <span>{dict.taxAmountLabel || "VAT Amount"}</span>
+                <span>
+                  {vatAmountToShow}{" "}
+                  <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
 
               {validKidsCount > 1 && (
                 <div className="summary-row total net-payable trip-gradient-color">
-                  <span>{dict.netPayableAmount.replace("{count}", validKidsCount)}</span>
+                  <span>
+                    {dict.netPayableAmount.replace(
+                      "{count}",
+                      validKidsCount
+                    )}
+                  </span>
                   <span>
                     {(grandTotalWithTax * validKidsCount).toFixed(2)}{" "}
                     <img src={icon5} alt="HEROZ" />
@@ -886,11 +995,27 @@ const ProposalPage = () => {
 
               <div className="form-grid">
                 <div className="form-group">
-                  <label>{dict.parentNameReq}<span style={{ color: 'red', fontSize: '25px' }}> *</span></label>
+                  <label>
+                    {dict.parentNameReq}
+                    <span
+                      style={{ color: "red", fontSize: "25px" }}
+                    >
+                      {" "}
+                      *
+                    </span>
+                  </label>
                   <input name="txtParentName" className="input" />
                 </div>
                 <div className="form-group">
-                  <label>{dict.parentPhoneReq}<span style={{ color: 'red', fontSize: '25px' }}> *</span></label>
+                  <label>
+                    {dict.parentPhoneReq}
+                    <span
+                      style={{ color: "red", fontSize: "25px" }}
+                    >
+                      {" "}
+                      *
+                    </span>
+                  </label>
                   <input
                     name="tripParentsMobileNo"
                     className="input"
@@ -899,7 +1024,9 @@ const ProposalPage = () => {
                     maxLength={10}
                     placeholder="05XXXXXXXX"
                     onInput={(e) => {
-                      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      e.target.value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10);
                     }}
                   />
                 </div>
@@ -909,21 +1036,49 @@ const ProposalPage = () => {
                 <div className="kid-card" key={index}>
                   <div className="form-grid">
                     <div className="form-group">
-                      <label>{dict.childNameReq}<span style={{ color: 'red', fontSize: '25px' }}> *</span></label>
+                      <label>
+                        {dict.childNameReq}
+                        <span
+                          style={{ color: "red", fontSize: "25px" }}
+                        >
+                          {" "}
+                          *
+                        </span>
+                      </label>
                       <input
                         name="txtKidsName"
                         className="input"
                         value={row.name}
-                        onChange={(e) => handleInputChange(index, "name", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange(
+                            index,
+                            "name",
+                            e.target.value
+                          )
+                        }
                       />
                     </div>
                     <div className="form-group">
-                      <label>{dict.gradeClassReq}<span style={{ color: 'red', fontSize: '25px' }}> *</span></label>
+                      <label>
+                        {dict.gradeClassReq}
+                        <span
+                          style={{ color: "red", fontSize: "25px" }}
+                        >
+                          {" "}
+                          *
+                        </span>
+                      </label>
                       <input
                         name="txtKidsClassName"
                         className="input"
                         value={row.className}
-                        onChange={(e) => handleInputChange(index, "className", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange(
+                            index,
+                            "className",
+                            e.target.value
+                          )
+                        }
                       />
                     </div>
                   </div>
@@ -935,7 +1090,13 @@ const ProposalPage = () => {
                       <select
                         className="input"
                         value={row.gender}
-                        onChange={(e) => handleInputChange(index, "gender", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange(
+                            index,
+                            "gender",
+                            e.target.value
+                          )
+                        }
                       >
                         <option value="">{dict.select}</option>
                         <option value="Male">{dict.male}</option>
@@ -948,7 +1109,13 @@ const ProposalPage = () => {
                         name="txtKidsSchoolID"
                         className="input"
                         value={row.schoolID}
-                        onChange={(e) => handleInputChange(index, "schoolID", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange(
+                            index,
+                            "schoolID",
+                            e.target.value
+                          )
+                        }
                       />
                     </div>
                   </div>
@@ -966,10 +1133,18 @@ const ProposalPage = () => {
               ))}
 
               <div className="btn-row-left">
-                <button type="button" className="btn-link" onClick={handleAddRow}>
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={handleAddRow}
+                >
                   <span className="trip-gradient-color">
                     <div className="row-inline">
-                      <img src={icon6} alt="HEROZ" className="icon-tint-pink" />
+                      <img
+                        src={icon6}
+                        alt="HEROZ"
+                        className="icon-tint-pink"
+                      />
                       <span> {dict.addMoreChild}</span>
                     </div>
                   </span>
@@ -989,42 +1164,52 @@ const ProposalPage = () => {
               <div className="terms">
                 <h4>{dict.proposalMessage}</h4>
                 <div className="terms-text">
-                  {TripData?.ProposalMessage?.split('\n').map((line, index) => (
-                    <React.Fragment key={index}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}
+                  {TripData?.ProposalMessage?.split("\n").map(
+                    (line, index) => (
+                      <React.Fragment key={index}>
+                        {line}
+                        <br />
+                      </React.Fragment>
+                    )
+                  )}
                 </div>
               </div>
 
               <div className="terms">
                 <h4>{dict.vendorTerms}</h4>
                 <div className="terms-text">
-                  {ActivityData?.actAdminNotes?.split('\n').map((line, index) => (
-                    <React.Fragment key={index}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}
+                  {ActivityData?.actAdminNotes
+                    ?.split("\n")
+                    .map((line, index) => (
+                      <React.Fragment key={index}>
+                        {line}
+                        <br />
+                      </React.Fragment>
+                    ))}
                 </div>
               </div>
               <div className="terms">
                 <h4>{dict.schoolTerms}</h4>
                 <div className="terms-text">
-                  {TripData?.SchoolTerms?.split('\n').map((line, index) => (
-                    <React.Fragment key={index}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}
+                  {TripData?.SchoolTerms?.split("\n").map(
+                    (line, index) => (
+                      <React.Fragment key={index}>
+                        {line}
+                        <br />
+                      </React.Fragment>
+                    )
+                  )}
                 </div>
               </div>
             </div>
           </section>
 
           {/* Confirm Modal */}
-          <CModal visible={confirmOpen} onClose={() => setConfirmOpen(false)} alignment="center">
+          <CModal
+            visible={confirmOpen}
+            onClose={() => setConfirmOpen(false)}
+            alignment="center"
+          >
             <CModalHeader onClose={() => setConfirmOpen(false)}>
               <CModalTitle>{dict.confirmSelections}</CModalTitle>
             </CModalHeader>
@@ -1032,34 +1217,52 @@ const ProposalPage = () => {
               {confirmSummary ? (
                 <div className="confirm-summary">
                   <div style={{ marginBottom: 12 }}>
-                    <strong>{dict.includedFood}</strong> {confirmSummary.included}
+                    <strong>{dict.includedFood}</strong>{" "}
+                    {confirmSummary.included}
                   </div>
 
                   <div style={{ marginBottom: 12 }}>
-                    <strong>{dict.paymentMethod}</strong> {confirmSummary.paymentLabel}
+                    <strong>{dict.paymentMethod}</strong>{" "}
+                    {confirmSummary.paymentLabel}
                   </div>
 
                   <div>
                     <strong>{dict.totals}</strong>
                     <ul style={{ marginTop: 6 }}>
-                      <li>{dict.baseTripPerStudent}: {confirmSummary.totals.baseTripPerStudent}</li>
-                      <li>{dict.foodPerStudent}: {confirmSummary.totals.foodPerStudent}</li>
-                      <li>{dict.grandPerStudent}: {confirmSummary.totals.grandPerStudent}</li>
                       <li>
-                        {dict.studentsLabel}: {confirmSummary.totals.students} — {dict.netAmountLabel}:{" "}
+                        {dict.baseTripPerStudent}:{" "}
+                        {confirmSummary.totals.baseTripPerStudent}
+                      </li>
+                      <li>
+                        {dict.foodPerStudent}:{" "}
+                        {confirmSummary.totals.foodPerStudent}
+                      </li>
+                      <li>
+                        {dict.grandPerStudent}:{" "}
+                        {confirmSummary.totals.grandPerStudent}
+                      </li>
+                      <li>
+                        {dict.studentsLabel}:{" "}
+                        {confirmSummary.totals.students} —{" "}
+                        {dict.netAmountLabel}:{" "}
                         {confirmSummary.totals.netAmount}
                       </li>
                     </ul>
                   </div>
 
-                  <div style={{ marginTop: 6 }}>{dict.areYouSureSubmit}</div>
+                  <div style={{ marginTop: 6 }}>
+                    {dict.areYouSureSubmit}
+                  </div>
                 </div>
               ) : (
                 <div>{dict.loadingSummary}</div>
               )}
             </CModalBody>
             <CModalFooter>
-              <CButton color="secondary" onClick={() => setConfirmOpen(false)}>
+              <CButton
+                color="secondary"
+                onClick={() => setConfirmOpen(false)}
+              >
                 {dict.cancel}
               </CButton>
               <CButton
@@ -1074,7 +1277,11 @@ const ProposalPage = () => {
           </CModal>
 
           {/* Error Modal */}
-          <CModal visible={errModalOpen} onClose={() => setErrModalOpen(false)} alignment="center">
+          <CModal
+            visible={errModalOpen}
+            onClose={() => setErrModalOpen(false)}
+            alignment="center"
+          >
             <CModalHeader onClose={() => setErrModalOpen(false)}>
               <CModalTitle>{errModalTitle}</CModalTitle>
             </CModalHeader>
@@ -1082,7 +1289,10 @@ const ProposalPage = () => {
               <p>{errModalMsg}</p>
             </CModalBody>
             <CModalFooter>
-              <CButton color="secondary" onClick={() => setErrModalOpen(false)}>
+              <CButton
+                color="secondary"
+                onClick={() => setErrModalOpen(false)}
+              >
                 {dict.close}
               </CButton>
             </CModalFooter>

@@ -5,7 +5,7 @@ import { cilFilter } from '@coreui/icons';
 import ToggleButtons from '../include/headermenu';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
-import { formatDate, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { formatDate, DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const ParentList = () => {
   const navigate = useNavigate();
@@ -29,6 +29,11 @@ const ParentList = () => {
     checkLogin(navigate);
     fetchOrders();
   }, [currentPage]);
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -73,8 +78,10 @@ const ParentList = () => {
     }
   };
 
-  const handleModify = (id) => navigate(`/admindata/schoolmgm/parentinfo/modify?SchoolID=${id}`);
-  const handleView = (id) => navigate(`/admindata/schoolmgm/parentinfo/view?SchoolID=${id}`);
+  const handleModify = (id) =>
+    navigate(`/admindata/schoolmgm/parentinfo/modify?SchoolID=${id}`);
+  const handleView = (id) =>
+    navigate(`/admindata/schoolmgm/parentinfo/view?SchoolID=${id}`);
   const handleNew = () => navigate('/admindata/schoolmgm/parentinfo/new');
 
   const filteredOrders = orders.filter((order) => {
@@ -96,7 +103,15 @@ const ParentList = () => {
     <div>
       <ToggleButtons active={active} handleClick={(value) => setActive(value)} />
 
-      <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+      <div
+        className="page-title"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          marginBottom: '1rem',
+        }}
+      >
         <h3 style={{ margin: 0, flexShrink: 0 }}>Parent Information</h3>
 
         <div style={{ position: 'relative', flexGrow: 3, maxWidth: '300px' }}>
@@ -132,7 +147,12 @@ const ParentList = () => {
             height="16"
             style={{ marginRight: '8px' }}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
           </svg>
           New
         </button>
@@ -152,7 +172,6 @@ const ParentList = () => {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Mobile No</th>
-                
                 <th>Created Date</th>
                 <th className="txt-center">Action</th>
               </tr>
@@ -160,7 +179,10 @@ const ParentList = () => {
             <tbody>
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '1rem' }}>
+                  <td
+                    colSpan="8"
+                    style={{ textAlign: 'center', padding: '1rem' }}
+                  >
                     No records found.
                   </td>
                 </tr>
@@ -172,7 +194,6 @@ const ParentList = () => {
                     <td>{order.customerName || 'Ahmed'}</td>
                     <td>{order.customerEmail || 'sample@sample.com'}</td>
                     <td>{order.customerPhone || '0500865623'}</td>
-                   
                     <td>{formatDate(order.CreatedBy)}</td>
                     <td align="center">
                       <div className="action-buttons">
@@ -183,10 +204,20 @@ const ParentList = () => {
                           rel="noopener noreferrer"
                           title="WhatsApp"
                         >
-                          <i style={{ color: 'darkgreen' }} className="fa fa-whatsapp" />
+                          <i
+                            style={{ color: 'darkgreen' }}
+                            className="fa fa-whatsapp"
+                          />
                         </a>
-                        <button onClick={() => handleModify(order._id)} title="Edit" className="graybox">
-                          <i className="fa fa-pencil" style={{ color: '#cf2037' }} />
+                        <button
+                          onClick={() => handleModify(order._id)}
+                          title="Edit"
+                          className="graybox"
+                        >
+                          <i
+                            className="fa fa-pencil"
+                            style={{ color: '#cf2037' }}
+                          />
                         </button>
                         <button
                           onClick={() => {
@@ -196,10 +227,20 @@ const ParentList = () => {
                           title="Delete"
                           className="graybox"
                         >
-                          <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
+                          <i
+                            className="fa fa-trash-o"
+                            style={{ color: '#cf2037' }}
+                          />
                         </button>
-                        <button onClick={() => handleView(order._id)} title="View" className="graybox">
-                          <i className="fa fa-eye" style={{ color: '#cf2037' }} />
+                        <button
+                          onClick={() => handleView(order._id)}
+                          title="View"
+                          className="graybox"
+                        >
+                          <i
+                            className="fa fa-eye"
+                            style={{ color: '#cf2037' }}
+                          />
                         </button>
                       </div>
                     </td>
@@ -210,19 +251,27 @@ const ParentList = () => {
           </table>
 
           <div className="pagination-container">
-            <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
               {'<<'}
             </button>
             {getPageRange().map((page) => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`pagination-button ${currentPage === page ? 'active' : ''}`}
+                className={`pagination-button ${
+                  currentPage === page ? 'active' : ''
+                }`}
               >
                 {page}
               </button>
             ))}
-            <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
               {'>>'}
             </button>
           </div>
@@ -235,8 +284,15 @@ const ParentList = () => {
             <h4>Confirm Delete</h4>
             <p>Are you sure you want to delete this Parent?</p>
             <div className="modal-buttons">
-              <button className="admin-buttonv1" onClick={handleDelete}>Yes</button>
-              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>No</button>
+              <button className="admin-buttonv1" onClick={handleDelete}>
+                Yes
+              </button>
+              <button
+                className="admin-buttonv1"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                No
+              </button>
             </div>
           </div>
         </div>

@@ -12,7 +12,8 @@ import {
   dspstatus,
   DspToastMessage,
   dspstatusv1,
-  getAuthHeaders
+  getAuthHeaders,
+  IsVendorLoginIsValid, // ✅ added
 } from '../../utils/operation'
 
 const SchoolList = () => {
@@ -28,6 +29,11 @@ const SchoolList = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
   const [selectedNoteID, setSelectedNoteID] = useState(null)
+
+  // ✅ NEW: validate vendor login (will redirect if token/usertype invalid)
+  useEffect(() => {
+    IsVendorLoginIsValid()
+  }, [])
 
   const getPageRange = () => {
     const range = []
@@ -80,9 +86,9 @@ const SchoolList = () => {
     setSelectedNoteID(NoteID)
     setShowDeleteModal(true)
   }
-  const handleSetLinkClick = (NoteID,ActivityID,noteKeyWord) => {
-    
-    if (noteKeyWord==="ACTIVITY-WAITING-FOR-APPROVAL")
+
+  const handleSetLinkClick = (NoteID, ActivityID, noteKeyWord) => {
+    if (noteKeyWord === 'ACTIVITY-WAITING-FOR-APPROVAL')
       navigate(`/admindata/setlink/setlink?NoteID=${NoteID}`)
   }
 
@@ -142,7 +148,6 @@ const SchoolList = () => {
               <tr>
                 <th>#</th>
                 <th> Description</th>
-
                 <th> Date</th>
                 <th>Status</th>
                 <th className="txt-center">Action</th>
@@ -160,7 +165,7 @@ const SchoolList = () => {
                   <tr key={notedata.NoteID || index}>
                     <td>{(currentPage - 1) * NoteInfoPerPage + index + 1}</td>
 
-                    <td> 
+                    <td>
                       {notedata.actName} -{dspstatus(notedata.actStatus)}
                     </td>
                     <td>{formatDate(notedata.CreatedDate)}</td>
@@ -175,7 +180,13 @@ const SchoolList = () => {
                           <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
                         </button>
                         <button
-                          onClick={() => handleSetLinkClick(notedata.NoteID,notedata.ActivityID,notedata.noteKeyWord,)}
+                          onClick={() =>
+                            handleSetLinkClick(
+                              notedata.NoteID,
+                              notedata.ActivityID,
+                              notedata.noteKeyWord,
+                            )
+                          }
                           title="View"
                           className="  graybox"
                         >

@@ -5,7 +5,7 @@ import { CIcon } from '@coreui/icons-react'
 import { cilTrash, cilPencil } from '@coreui/icons'
 import '../../scss/toast.css'
 import { checkLogin } from '../../utils/auth'
-import { DspToastMessage ,getAuthHeaders} from '../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
 import logo from '../../assets/logo/default.png'
 import { ActionButtonsV1 } from '../../utils/btn'
 
@@ -29,6 +29,11 @@ const IncomingTransaction = () => {
   useEffect(() => {
     checkLogin(navigate)
   }, [navigate])
+
+  // ✅ Admin login validation (applied here)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   useEffect(() => {
     if (toastMessage) {

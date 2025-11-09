@@ -2,14 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
-import {  getAuthHeaders } from '../../utils/operation';
+import { getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
+
 const ViewBanner = () => {
   const navigate = useNavigate();
 
-  // Check for Auth
+  // Check for Auth (existing)
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // ✅ Admin login validation (added, as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -120,7 +126,11 @@ const ViewBanner = () => {
       </div>
 
       <div className="form-row">
-        <button type="button" className="admin-buttonv1" onClick={updateBannerStatus}>
+        <button
+          type="button"
+          className="admin-buttonv1"
+          onClick={updateBannerStatus}
+        >
           Update Status
         </button>
       </div>

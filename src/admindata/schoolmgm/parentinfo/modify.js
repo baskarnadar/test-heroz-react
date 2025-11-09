@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
-import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
 
@@ -29,6 +29,10 @@ const ParentModifyForm = () => {
   }, [navigate]);
 
   useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
+
+  useEffect(() => {
     const fetchClassData = async () => {
       if (!ProductID) return;
 
@@ -49,7 +53,7 @@ const ParentModifyForm = () => {
             studentId: product.PrdCodeNo || '',
             parentName: '', // No value in product, add if available
             mobileNumber: '', // Same here
-            schoolClass: '',  // Same here
+            schoolClass: '', // Same here
           });
         }
       } catch (err) {
@@ -184,8 +188,6 @@ const ParentModifyForm = () => {
             />
           </div>
         </div>
-
-       
       </div>
 
       <div className="button-container">

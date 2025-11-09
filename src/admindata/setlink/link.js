@@ -1,5 +1,15 @@
+import { useEffect } from 'react'
 import { API_BASE_URL } from '../../config'
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
+
+// ✅ Custom hook so you can use your admin-login check anywhere in React components
+export const useAdminLoginGuard = () => {
+  useEffect(() => {
+    // IsAdminLoginIsValidd(); // will redirect to BaseURL if token/usertype invalid (original snippet with typo)
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
+}
+
 // Navigation function
 export const fnNavigation = async (data, navigate) => {
   if (!data) {
@@ -21,7 +31,9 @@ export const fnNavigation = async (data, navigate) => {
   }
 
   if (noteKeyWord === 'ACTIVITY-WAITING-FOR-APPROVAL') {
-    navigate(`/admindata/activityinfo/activity/view?ActivityID=${ActivityID}&VendorID=${VendorID}`)
+    navigate(
+      `/admindata/activityinfo/activity/view?ActivityID=${ActivityID}&VendorID=${VendorID}`,
+    )
   } else {
     console.info(`fnNavigation: No navigation rule for keyword ${noteKeyWord}`)
   }

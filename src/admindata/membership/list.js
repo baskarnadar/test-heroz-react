@@ -5,7 +5,7 @@ import { CIcon } from '@coreui/icons-react'
 import { cilTrash, cilPencil } from '@coreui/icons'
 import '../../scss/toast.css'
 import { checkLogin } from '../../utils/auth'
-import { DspToastMessage ,getAuthHeaders} from '../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
 import card1 from '../../assets/card/card1.png'
 import card2 from '../../assets/card/card2.png'
 import card3 from '../../assets/card/card3.jpg'
@@ -30,6 +30,7 @@ const ProductListWithPagination = () => {
 
   useEffect(() => {
     checkLogin(navigate)
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
   }, [navigate])
 
   useEffect(() => {
@@ -74,12 +75,14 @@ const ProductListWithPagination = () => {
   const handleViewClick = (ProductID) => {
     navigate(`/activityoversight/view?ProductID=${ProductID}`)
   }
+
   const handleClick = (type) => {
     setActive(type)
     console.log(type)
     if (type == 'providers') navigate('/reportsandanalysis/providerlist')
     if (type == 'school') navigate('/reportsandanalysis/schoollist')
   }
+
   const getPageRange = () => {
     const range = []
     const startPage = Math.floor((currentPage - 1) / 5) * 5 + 1
@@ -89,51 +92,49 @@ const ProductListWithPagination = () => {
   }
 
   const pageNumbers = getPageRange()
- const handleModifyClick = () => {
+
+  const handleModifyClick = () => {
     navigate(`/membership/modify`)
   }
 
-
   const handleDeleteClick = () => {
-      setProductIDToDelete()
-      setShowDeleteModal(true)
-    }
-  
-    const confirmDelete = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/product/delproductByID`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ ProductID: ProductIDToDelete }),
-        })
-  
-        if (response.ok) {
-          setToastType('success')
-          setToastMessage('Product deleted successfully!')
-          setShowDeleteModal(false)
-          fetchProducts()
-        } else {
-          setToastType('fail')
-          setToastMessage('Failed to delete product!')
-        }
-      } catch (error) {
+    setProductIDToDelete()
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/product/delproductByID`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ ProductID: ProductIDToDelete }),
+      })
+
+      if (response.ok) {
+        setToastType('success')
+        setToastMessage('Product deleted successfully!')
+        setShowDeleteModal(false)
+        fetchProducts()
+      } else {
         setToastType('fail')
-        setToastMessage('Error deleting product')
+        setToastMessage('Failed to delete product!')
       }
+    } catch (error) {
+      setToastType('fail')
+      setToastMessage('Error deleting product')
     }
+  }
 
   return (
     <div>
       <div className="page-title">
         <h3 style={{ margin: 0 }}>Membership And Credit Management </h3>
       </div>
-        <div className="page-title">
-       
+      <div className="page-title">
         <button onClick={() => navigate('/admindata/membership/new')} className="add-product-button">
           New Card
         </button>
       </div>
-
 
       <div className="dashboard-row">
         <div className="dashboard-col">
@@ -236,24 +237,24 @@ const ProductListWithPagination = () => {
         </div>
       </div>
 
-       {showDeleteModal && (
-             <div className="modal-overlay">
-               <div className="modal-content_50">
-                 <h4>Confirm Delete</h4>
-                 <p>Are you sure you want to delete this Card?</p>
-                 <div className="modal-buttons">
-                   <button className="admin-buttonv1" onClick={confirmDelete}>
-                     Yes
-                   </button>
-                   <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>
-                     No
-                   </button>
-                 </div>
-               </div>
-             </div>
-           )}
-     
-           <DspToastMessage message={toastMessage} type={toastType} />
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content_50">
+            <h4>Confirm Delete</h4>
+            <p>Are you sure you want to delete this Card?</p>
+            <div className="modal-buttons">
+              <button className="admin-buttonv1" onClick={confirmDelete}>
+                Yes
+              </button>
+              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   )
 }

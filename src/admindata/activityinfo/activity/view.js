@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, dspstatusv1,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, dspstatusv1, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import {
   getFileNameFromUrl,
@@ -13,6 +13,7 @@ import {
 import { CRow, CCol } from '@coreui/react'
 import moneyv1 from '../../../assets/images/moneyv1.png'
 import ReactPlayer from 'react-player'
+
 const Vendor = () => {
   const [error, setError] = useState('')
   const [txtactImageName1, setactImageName1] = useState(null)
@@ -26,13 +27,21 @@ const Vendor = () => {
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
+
   const getSearchParams = () => {
-  const search = window.location.search ||
-    (window.location.hash && window.location.hash.includes('?')
-      ? `?${window.location.hash.split('?')[1]}`
-      : '');
-  return new URLSearchParams(search);
-};
+    const search =
+      window.location.search ||
+      (window.location.hash && window.location.hash.includes('?')
+        ? `?${window.location.hash.split('?')[1]}`
+        : '')
+    return new URLSearchParams(search)
+  }
+
+  // ✅ NEW: ADMIN LOGIN VALIDATION (as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
+
   const fetchActivity = async (ActivityIDVal, VendorIDVal) => {
     setLoading(true)
     try {
@@ -54,6 +63,7 @@ const Vendor = () => {
       setLoading(false)
     }
   }
+
   useEffect(() => {
     if (!ActivityData) return
 
@@ -65,7 +75,7 @@ const Vendor = () => {
 
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-    const urlParams = getSearchParams();
+    const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get('ActivityID')
     const VendorIDVal = urlParams.get('VendorID')
     if (ActivityIDVal) {
@@ -150,7 +160,7 @@ const Vendor = () => {
           {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 1</label>
-            <FilePreview file={txtactImageName1} /> 
+            <FilePreview file={txtactImageName1} />
           </div>
 
           {/* Image 2 */}
@@ -178,15 +188,14 @@ const Vendor = () => {
             marginBottom: '20px',
           }}
         >
-          {/* Image 1 */}
+          {/* Video 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 1</label>
             <YouTubeEmbed videoId={ActivityData?.actYouTubeID1} />
-
             <div></div>
           </div>
 
-          {/* Image 2 */}
+          {/* Video 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 2</label>
             <div>
@@ -194,7 +203,7 @@ const Vendor = () => {
             </div>
           </div>
 
-          {/* Image 3 */}
+          {/* Video 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 3</label>
             <div>
@@ -203,6 +212,7 @@ const Vendor = () => {
           </div>
         </div>
       </div>
+
       <div className="txtsubtitle">Activity Location </div>
 
       <div className="divbox">
@@ -236,6 +246,7 @@ const Vendor = () => {
           </div>
         </div>
       </div>
+
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
@@ -259,6 +270,7 @@ const Vendor = () => {
           </div>
         </div>
       </div>
+
       <div className="txtsubtitle"> Age Range </div>
       <div className="divbox">
         {/* // row start */}

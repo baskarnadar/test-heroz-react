@@ -8,7 +8,7 @@ import {
 } from "@coreui/react";
 
 import { API_BASE_URL } from "../../config";
-import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
+import { getAuthHeaders, getCurrentLoggedUserID,IsVendorLoginIsValid } from "../../utils/operation";
 import { AppColors } from "../../_shared/colors";
 
 // ⬇️ externalized components (your utils versions)
@@ -286,6 +286,11 @@ const ViewActivityScreen = () => {
   const lang = useLang();
   const [i18n, setI18n] = useState({});
   const t = useCallback((k) => (i18n && Object.prototype.hasOwnProperty.call(i18n, k) ? i18n[k] : k), [i18n]);
+
+    // ✅ run vendor login validation on mount
+    useEffect(() => {
+      IsVendorLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+    }, []);
 
   useEffect(() => {
     let alive = true;

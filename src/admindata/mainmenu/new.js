@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
+
 const AddNewmainmenu = () => {
   const navigate = useNavigate();
 
@@ -11,13 +12,18 @@ const AddNewmainmenu = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-    const [toastMessage, setToastMessage] = useState('');
-    const [toastType, setToastType] = useState('info');
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('info');
 
   // Check user login
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // Admin validity check (added)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,13 +51,11 @@ const AddNewmainmenu = () => {
       setToastMessage('mainmenu created successfully!');
       setEnMenuName('');
       setArMenuName('');
-       setToastType('success');
-
+      setToastType('success');
     } catch (error) {
       console.error('Error creating mainmenu:', error);
       setToastMessage('Failed to create mainmenu.');
-       setToastType('fail');
-
+      setToastType('fail');
     } finally {
       setLoading(false);
     }
@@ -117,9 +121,8 @@ const AddNewmainmenu = () => {
         </p>
       )}
 
-         <DspToastMessage message={toastMessage} type={toastType} />
+      <DspToastMessage message={toastMessage} type={toastType} />
     </form>
-    
   );
 };
 

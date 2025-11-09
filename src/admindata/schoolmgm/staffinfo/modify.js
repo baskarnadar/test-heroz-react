@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
-import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
 
@@ -23,6 +23,10 @@ const StaffModifyForm = () => {
     mobileNumber: '',
     schoolClass: '',
   });
+
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);

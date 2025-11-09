@@ -15,7 +15,7 @@ import {
 // NOTE: this file lives in src/vendordata/activityinfo/activity/
 // so config/utils are three levels up
 import { API_BASE_URL } from '../../config'
-import { getAuthHeaders, getCurrentLoggedUserID } from '../../utils/operation'
+import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
 
 // ---------- Small helpers ----------
 const SectionTitle = ({ children }) => (
@@ -203,6 +203,11 @@ const ActDetailInfo = () => {
   const ActivityID = requestId || search.get('ActivityID') || ''
   const VendorID = search.get('VendorID') || getCurrentLoggedUserID()
   const debug = search.get('debug') === '1'
+
+  // ✅ Vendor login guard
+  useEffect(() => {
+    IsVendorLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const [data, setData] = useState(null)
   const [rawJson, setRawJson] = useState(null)

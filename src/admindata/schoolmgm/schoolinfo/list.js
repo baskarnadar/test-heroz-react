@@ -6,7 +6,7 @@ import { cilFilter } from '@coreui/icons'
 
 import logo from '../../../assets/logo/default.png'
 import { API_BASE_URL } from '../../../config'
-import { getStatusBadgeColor, formatDate, getAuthHeaders, DspToastMessage } from '../../../utils/operation'
+import { getStatusBadgeColor, formatDate, getAuthHeaders, DspToastMessage, IsAdminLoginIsValid } from '../../../utils/operation'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
@@ -26,6 +26,11 @@ const SchoolList = () => {
   const [toastKey, setToastKey] = useState(0) // forces re-mount so it always shows
 
   const [selectedSchoolID, setSelectedSchoolID] = useState(null)
+
+  // ✅ will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   // Helper: always show toast (even same text) by bumping key
   const showToast = useCallback((type, message) => {

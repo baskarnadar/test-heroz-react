@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const SchEduLevelList = () => {
   const [SchEduLevel, setSchEduLevel] = useState([]);
@@ -22,6 +22,11 @@ const SchEduLevelList = () => {
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // 🔐 Admin login validation (added)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -81,19 +86,18 @@ const SchEduLevelList = () => {
   };
 
   const handleDeleteClick = (SchEduLevelID) => {
-        console.log(SchEduLevelID);
+    console.log(SchEduLevelID);
     setSelectedSchEduLevelID(SchEduLevelID);
     setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
     try {
-       console.log(selectedSchEduLevelID);
+      console.log(selectedSchEduLevelID);
       const response = await fetch(`${API_BASE_URL}/lookupdata/schedulevel/delSchedulevel`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ SchEduLevelID: selectedSchEduLevelID }),
-       
       });
 
       if (response.ok) {
@@ -135,26 +139,32 @@ const SchEduLevelList = () => {
             <thead>
               <tr>
                 <th>#</th>
-               
                 <th>English SchEduLevel Name</th>
                 <th>Arabic SchEduLevel Name</th>
-                
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {SchEduLevel.map((SchEduLevel, index) => (
                 <tr key={SchEduLevel.SchEduLevelID}>
-                  <td><strong>{(currentPage - 1) * SchEduLevelPerPage + index + 1}</strong></td>
-                 
                   <td>
-                    {SchEduLevel.EnSchEduLevelName}
+                    <strong>{(currentPage - 1) * SchEduLevelPerPage + index + 1}</strong>
                   </td>
+                  <td>{SchEduLevel.EnSchEduLevelName}</td>
                   <td>{SchEduLevel.ArSchEduLevelName}</td>
-                  
                   <td>
-                    <CIcon onClick={() => handleModifyClick(SchEduLevel.SchEduLevelID)} icon={cilPencil} size="lg" className="edit-icon" />
-                    <CIcon onClick={() => handleDeleteClick(SchEduLevel.SchEduLevelID)} icon={cilTrash} size="lg" className="trash-icon" />
+                    <CIcon
+                      onClick={() => handleModifyClick(SchEduLevel.SchEduLevelID)}
+                      icon={cilPencil}
+                      size="lg"
+                      className="edit-icon"
+                    />
+                    <CIcon
+                      onClick={() => handleDeleteClick(SchEduLevel.SchEduLevelID)}
+                      icon={cilTrash}
+                      size="lg"
+                      className="trash-icon"
+                    />
                   </td>
                 </tr>
               ))}
@@ -197,14 +207,17 @@ const SchEduLevelList = () => {
             <h4>Confirm Delete</h4>
             <p>Are you sure you want to delete this SchEduLevel?</p>
             <div className="modal-buttons">
-              <button className="admin-buttonv1" onClick={confirmDelete}>Yes</button>
-              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>No</button>
+              <button className="admin-buttonv1" onClick={confirmDelete}>
+                Yes
+              </button>
+              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>
+                No
+              </button>
             </div>
           </div>
         </div>
       )}
 
-     
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   );

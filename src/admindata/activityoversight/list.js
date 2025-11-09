@@ -5,7 +5,7 @@ import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 import logo from '../../assets/logo/default.png';
 import { ActionButtonsV1 } from '../../utils/btn';
  
@@ -25,6 +25,11 @@ const ProductListWithPagination = () => {
 
   const productsPerPage = 10;
   const navigate = useNavigate();
+
+  // 🔒 Admin login validation – will redirect if invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -69,7 +74,7 @@ const ProductListWithPagination = () => {
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber);
 
-   const handleViewClick = (ProductID) => {
+  const handleViewClick = (ProductID) => {
     navigate(`/activityoversight/view?ProductID=${ProductID}`);
   };
  
@@ -91,7 +96,7 @@ const ProductListWithPagination = () => {
           onClick={() => navigate('/parents/export')}
           className="add-product-button"
         >
-        Export
+          Export
         </button>
       </div>
 
@@ -104,16 +109,16 @@ const ProductListWithPagination = () => {
           <table className="grid-table">
             <thead>
               <tr>
-            <th>#</th>
-            <th>Image</th>
-            <th>Club Name</th>
-            <th>Activity Name</th>
-            <th>Description</th> 
-            <th>Created Date</th> 
-            <th>Price </th> 
-            <th>Category </th> 
-            <th>Status </th> 
-            <th>Actions</th>
+                <th>#</th>
+                <th>Image</th>
+                <th>Club Name</th>
+                <th>Activity Name</th>
+                <th>Description</th> 
+                <th>Created Date</th> 
+                <th>Price </th> 
+                <th>Category </th> 
+                <th>Status </th> 
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -127,50 +132,50 @@ const ProductListWithPagination = () => {
                       <img src={logo} alt="logo" />
                     </div>
                   </td>
-            <td>  LTR Main Club  </td>
-            <td>Swiming Pool </td>
-            <td>Sample Description</td> 
-            <td>25-Jun-2025</td>
+                  <td>LTR Main Club</td>
+                  <td>Swiming Pool</td>
+                  <td>Sample Description</td> 
+                  <td>25-Jun-2025</td>
                   <td>150</td>
-                   <td>Fun</td>
-                     <td>Active</td>
+                  <td>Fun</td>
+                  <td>Active</td>
                  
-           <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
-       <div
-    className="text-align"
-    style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}
-  >
-    <button
-       onClick={() => handleModifyClick(product.ProductID)}
-      title="Edit/حذف"
-      className="btn btnbtn-default graybox"
-      style={{ padding: '2px', cursor: 'pointer' }}
-      aria-label="Edit/حذف"
-    >
-      <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
-    </button>
+                  <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
+                    <div
+                      className="text-align"
+                      style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}
+                    >
+                      <button
+                        onClick={() => handleModifyClick(product.ProductID)}
+                        title="Edit/حذف"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="Edit/حذف"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
+                      </button>
 
-    <button
-       onClick={() => handleDeleteClick(product.ProductID)}
-      title="Delete/حذف"
-      className="btn btnbtn-default graybox"
-      style={{ padding: '2px', cursor: 'pointer' }}
-      aria-label="Delete/حذف"
-    >
-      <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
-    </button>
+                      <button
+                        onClick={() => handleDeleteClick(product.ProductID)}
+                        title="Delete/حذف"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="Delete/حذف"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
+                      </button>
 
-    <button
-      onClick={() => handleViewClick(product.ProductID)}
-      title="Transfer/تحويل"
-      className="btn btnbtn-default graybox"
-      style={{ padding: '2px', cursor: 'pointer' }}
-      aria-label="View"
-    >
-      <i style={{ color: '#cf2037' }} className="fa fa-eye" />
-    </button>
-  </div>
-</td>
+                      <button
+                        onClick={() => handleViewClick(product.ProductID)}
+                        title="Transfer/تحويل"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="View"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-eye" />
+                      </button>
+                    </div>
+                  </td>
 
                 </tr>
               ))}
@@ -207,8 +212,6 @@ const ProductListWithPagination = () => {
           </div>
         </>
       )}
-
-    
 
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>

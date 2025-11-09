@@ -12,7 +12,8 @@ import {
   dspstatus,
   DspToastMessage,
   dspstatusv1,
-  getAuthHeaders
+  getAuthHeaders,
+  IsAdminLoginIsValid, // ✅ added
 } from '../../utils/operation'
 
 const SchoolList = () => {
@@ -28,6 +29,11 @@ const SchoolList = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
   const [selectedNoteID, setSelectedNoteID] = useState(null)
+
+  // ✅ admin login validity check (applied here)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const getPageRange = () => {
     const range = []
@@ -80,9 +86,9 @@ const SchoolList = () => {
     setSelectedNoteID(NoteID)
     setShowDeleteModal(true)
   }
-  const handleSetLinkClick = (NoteID,ActivityID,noteKeyWord) => {
-    
-    if (noteKeyWord==="ACTIVITY-WAITING-FOR-APPROVAL")
+
+  const handleSetLinkClick = (NoteID, ActivityID, noteKeyWord) => {
+    if (noteKeyWord === 'ACTIVITY-WAITING-FOR-APPROVAL')
       navigate(`/admindata/setlink/setlink?NoteID=${NoteID}`)
   }
 
@@ -99,13 +105,13 @@ const SchoolList = () => {
       })
 
       console.log('Raw response:', response)
-      const data = await response.json() // Safely parse JSON
+      const data = await response.json()
       console.log('Response JSON:', data)
 
       if (response.ok) {
         setToastMessage(data.message || 'School successfully deleted')
         setToastType('success')
-        fetchNoteInfo() // Refresh list
+        fetchNoteInfo()
       } else {
         setToastMessage(data.message || 'Failed to delete School')
         setToastType('fail')
@@ -142,7 +148,6 @@ const SchoolList = () => {
               <tr>
                 <th>#</th>
                 <th> Description</th>
-
                 <th> Date</th>
                 <th>Status</th>
                 <th className="txt-center">Action</th>
@@ -160,8 +165,8 @@ const SchoolList = () => {
                   <tr key={notedata.NoteID || index}>
                     <td>{(currentPage - 1) * NoteInfoPerPage + index + 1}</td>
 
-                    <td> 
-                      {notedata.actName} -{dspstatus(notedata.actStatus)}
+                    <td>
+                      {notedata.actName} - {dspstatus(notedata.actStatus)}
                     </td>
                     <td>{formatDate(notedata.CreatedDate)}</td>
                     <td>{dspstatusv1(notedata.noteStatus)}</td>
@@ -175,7 +180,13 @@ const SchoolList = () => {
                           <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
                         </button>
                         <button
-                          onClick={() => handleSetLinkClick(notedata.NoteID,notedata.ActivityID,notedata.noteKeyWord,)}
+                          onClick={() =>
+                            handleSetLinkClick(
+                              notedata.NoteID,
+                              notedata.ActivityID,
+                              notedata.noteKeyWord,
+                            )
+                          }
                           title="View"
                           className="  graybox"
                         >

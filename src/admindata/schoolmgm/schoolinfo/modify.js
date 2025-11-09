@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getCurrentLoggedUserID, getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getCurrentLoggedUserID, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl } from '../../../utils/operation'
 
@@ -77,6 +77,11 @@ const Vendor = () => {
 
   // Generic fetch error (for top-level load failures)
   const [error, setError] = useState('')
+
+  // ✅ Admin login validation (will redirect to BaseURL if token/usertype invalid)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   // ----------------------------
   // Helpers

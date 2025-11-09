@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { IsAdminLoginIsValid } from '../../../utils/operation'
 
 const StudentNewForm = () => {
   const navigate = useNavigate()
@@ -8,6 +9,11 @@ const StudentNewForm = () => {
     className: '',
     numberOfStudents: '',
   })
+
+  // ✅ Added: admin login validation (runs once on mount)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -31,7 +37,12 @@ const StudentNewForm = () => {
           <button className="admin-buttonv1" onClick={handleSave}>
             Save
           </button>
-          <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/studentinfo/list')}>
+          <button
+            className="admin-buttonv1"
+            onClick={() =>
+              navigate('/admindata/schoolmgm/studentinfo/list')
+            }
+          >
             Return
           </button>
         </div>
@@ -106,7 +117,12 @@ const StudentNewForm = () => {
         <button className="admin-buttonv1" onClick={handleSave}>
           Save
         </button>
-        <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/studentinfo/list')}>
+        <button
+          className="admin-buttonv1"
+          onClick={() =>
+            navigate('/admindata/schoolmgm/studentinfo/list')
+          }
+        >
           Cancel
         </button>
       </div>

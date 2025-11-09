@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import CIcon from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders } from '../../utils/operation';
+import { IsAdminLoginIsValid } from '../../../utils/operation';
 
 const SubMenuListWithPagination = () => {
   const [subMenus, setSubMenus] = useState([]);
@@ -18,6 +19,11 @@ const SubMenuListWithPagination = () => {
   useEffect(() => {
     fetchSubMenuList();
   }, [currentPage]);
+
+  // Admin validation – will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const fetchSubMenuList = async () => {
     setLoading(true);
@@ -82,7 +88,10 @@ const SubMenuListWithPagination = () => {
 
   return (
     <div className="submenu-list-container">
-      <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        className="page-title"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         <h3>SubMenu List</h3>
         <button onClick={() => navigate('/submenu/new')} className="add-product-button">
           Add New SubMenu
@@ -102,7 +111,7 @@ const SubMenuListWithPagination = () => {
                 <th>English Name</th>
                 <th>Arabic Name</th>
                 <th>MainMenu Name</th>
-                 <th>PageID</th>
+                <th>PageID</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -121,8 +130,8 @@ const SubMenuListWithPagination = () => {
                     </td>
                     <td>{menu.EnMenuName || 'N/A'}</td>
                     <td>{menu.ArMenuName || 'N/A'}</td>
-                      <td>{menu.MainMenuName || 'N/A'}</td>
-                        <td>{menu.PageID || 'N/A'}</td>
+                    <td>{menu.MainMenuName || 'N/A'}</td>
+                    <td>{menu.PageID || 'N/A'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <CIcon
                         icon={cilPencil}
@@ -144,7 +153,10 @@ const SubMenuListWithPagination = () => {
           </table>
 
           {/* Pagination */}
-          <div className="pagination-container" style={{ marginTop: '15px', textAlign: 'center' }}>
+          <div
+            className="pagination-container"
+            style={{ marginTop: '15px', textAlign: 'center' }}
+          >
             <button
               className="pagination-button"
               onClick={() => handlePageClick(currentPage - 1)}

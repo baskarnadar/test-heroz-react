@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 import { API_BASE_URL } from '../../config';
 
 const AGREEMENT_API = `${API_BASE_URL}/commondata/operation/herozagreement`; // Update endpoint
@@ -13,11 +13,16 @@ const AgreementForm = () => {
   const navigate = useNavigate();
 
   const [desc, setDesc] = useState('');
-  const [loading, setLoading] = useState(false);       // for update button
+  const [loading, setLoading] = useState(false); // for update button
   const [prefillLoading, setPrefillLoading] = useState(true); // for initial fetch
 
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('info'); // 'success' | 'fail' | 'info'
+
+  // 👇 Admin login validation – will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -54,10 +59,7 @@ const AgreementForm = () => {
         }
 
         // Common shapes (support both your sendResponse wrapper and raw payloads)
-        const data =
-          result?.data ||
-          result ||
-          {};
+        const data = result?.data || result || {};
 
         const initialText =
           data?.HerozAgreeDesc ??
@@ -142,7 +144,11 @@ const AgreementForm = () => {
       </div>
 
       <div className="submit-container custom-top-5">
-        <button type="submit" className="admin-buttonv1" disabled={loading || prefillLoading}>
+        <button
+          type="submit"
+          className="admin-buttonv1"
+          disabled={loading || prefillLoading}
+        >
           {prefillLoading ? 'Loading…' : loading ? 'Updating…' : 'Update'}
         </button>
       </div>

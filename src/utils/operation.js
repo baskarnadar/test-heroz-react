@@ -280,10 +280,47 @@ export function getAuthHeaders() {
 
 export function getAuthHeadersV1() {
   const token = localStorage.getItem('token');
- 
   console.log("token:", token); 
-
   return { 
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+}
+
+
+//------------------Vendor user Verification------------------------------------------------
+export function IsVendorLoginIsValid() {
+  const token = localStorage.getItem('token');
+  const usertype = localStorage.getItem('usertype'); 
+
+  if (!token || isTokenExpired(token) || usertype !== 'VENDOR-SUBADMIN') {
+    console.warn("Invalid session (token or usertype) — redirecting to login");
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('usertype');
+    window.location.href = BaseURL; 
+    return {}; 
+  }
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+}
+
+//------------------admin user Verification------------------------------------------------
+export function IsAdminLoginIsValid() {
+  const token = localStorage.getItem('token');
+  const usertype = localStorage.getItem('usertype'); 
+
+  if (!token || isTokenExpired(token) || usertype !== 'ADMIN') {
+    console.warn("Invalid session (token or usertype) — redirecting to login");
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('usertype');
+    window.location.href = BaseURL; 
+    return {}; 
+  }
+  return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };

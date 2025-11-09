@@ -1,22 +1,29 @@
 import React, { useEffect, useState } from "react";
 import "../../../scss/model.css"; // Your existing modal CSS
 import { API_BASE_URL } from "../../../config"; // Make sure this is correct
-import { formatDate  , getAuthHeaders } from "../../../utils/operation";
+import { formatDate, getAuthHeaders, IsAdminLoginIsValid } from "../../../utils/operation";
 import "../../../scss/trip.css";
 import moneyv1 from "../../../assets/images/moneyv1.png";
+
 const TripPaidListWithModal = () => {
   const [studentData, setStudentData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-      const getSearchParams = () => {
-        const search = window.location.search ||
-        (window.location.hash && window.location.hash.includes('?')
-        ? `?${window.location.hash.split('?')[1]}`
-        : '');
-        return new URLSearchParams(search);
-        };
+  const getSearchParams = () => {
+    const search =
+      window.location.search ||
+      (window.location.hash && window.location.hash.includes("?")
+        ? `?${window.location.hash.split("?")[1]}`
+        : "");
+    return new URLSearchParams(search);
+  };
+
+  // 🔒 Admin login validation – will redirect if invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   // 🔍 Extract RequestID from the hash URL
   const getRequestIDFromHash = () => {
@@ -38,7 +45,7 @@ const TripPaidListWithModal = () => {
           `${API_BASE_URL}/admindata/activityinfo/trip/tripPaidList`,
           {
             method: "POST",
-           headers: getAuthHeaders(),
+            headers: getAuthHeaders(),
             body: JSON.stringify({ RequestID }),
           }
         );

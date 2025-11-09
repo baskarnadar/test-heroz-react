@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const OfferForm = () => {
   const navigate = useNavigate();
@@ -12,17 +12,21 @@ const OfferForm = () => {
   const SchEduLevelID = queryParams.get('SchEduLevelID');
 
   const [loading, setLoading] = useState(false);
- 
 
   const [EnSchEduLevelName, setEnSchEduLevelName] = useState('');
   const [ArSchEduLevelName, setArSchEduLevelName] = useState('');
 
   const [toastMessage, setToastMessage] = useState('');
-    const [toastType, setToastType] = useState('info');
+  const [toastType, setToastType] = useState('info');
 
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // 🔐 Admin login validation (added)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     const fetchSchEduLevelData = async () => {
@@ -57,7 +61,7 @@ const OfferForm = () => {
 
     if (!EnSchEduLevelName.trim() || !ArSchEduLevelName.trim()) {
       setToastMessage('Please fill in all required fields.');
-       setToastType('fail');
+      setToastType('fail');
       setLoading(false);
       return;
     }
@@ -80,12 +84,12 @@ const OfferForm = () => {
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
       setToastMessage('SchEduLevel updated successfully!');
-       setToastType('success');
+      setToastType('success');
       setTimeout(() => navigate('/admindata/schedulevel/list'), 2000);
     } catch (err) {
       console.error('Error updating SchEduLevel:', err);
       setToastMessage('Failed to update SchEduLevel.');
-       setToastType('fail');
+      setToastType('fail');
     }
 
     setLoading(false);
@@ -134,7 +138,7 @@ const OfferForm = () => {
         </button>
       </div>
 
-     <DspToastMessage message={toastMessage} type={toastType} />
+      <DspToastMessage message={toastMessage} type={toastType} />
     </form>
   );
 };

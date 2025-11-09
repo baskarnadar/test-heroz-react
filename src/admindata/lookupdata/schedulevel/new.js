@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { checkLogin } from '../../../utils/auth'
 import '../../../scss/toast.css'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 
 const AddSchEduLevelForm = () => {
   const navigate = useNavigate()
@@ -19,35 +19,17 @@ const AddSchEduLevelForm = () => {
     checkLogin(navigate)
   }, [navigate])
 
+  // 🔐 Admin login validation (added)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
+
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => setToastMessage(''), 2000)
       return () => clearTimeout(timer)
     }
   }, [toastMessage])
-
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/schedulevel/getSchedulevelList`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // If your API expects data in the body
-        })
-
-        const result = await response.json()
-        if (result.data) {
-          setSchEduLevelList(result.data)
-        }
-      } catch (error) {
-        console.error('Error fetching SchEduLevel list:', error)
-      }
-    }
-
-    fetchCities()
-  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -94,7 +76,11 @@ const AddSchEduLevelForm = () => {
     <form onSubmit={handleSubmit} className="form-container">
       <div className="page-title">
         <h3 style={{ margin: 0 }}>Add SchEduLevel</h3>
-        <button type="button" onClick={() => navigate('/admindata/schedulevel/list')} className="admin-buttonv1">
+        <button
+          type="button"
+          onClick={() => navigate('/admindata/schedulevel/list')}
+          className="admin-buttonv1"
+        >
           Return
         </button>
       </div>

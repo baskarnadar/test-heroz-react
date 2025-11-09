@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
-import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
 
@@ -21,6 +21,11 @@ const ClassModifyForm = () => {
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     const fetchClassData = async () => {
@@ -63,10 +68,10 @@ const ClassModifyForm = () => {
     const payload = {
       PrdName: className,
       ArPrdName: studentCount, // Rename appropriately if needed
-      createdBy: "USER",
-      updatedBy: "USER",
+      createdBy: 'USER',
+      updatedBy: 'USER',
       IsDataStatus: 1,
-      ProductTypeID: "PRODUCT",
+      ProductTypeID: 'PRODUCT',
     };
 
     if (ProductID) payload.ProductID = ProductID;
@@ -100,7 +105,11 @@ const ClassModifyForm = () => {
           <button type="submit" className="admin-buttonv1" disabled={loading}>
             {loading ? 'Saving...' : 'Save'}
           </button>
-          <button type="button" className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/classinfo/list')}>
+          <button
+            type="button"
+            className="admin-buttonv1"
+            onClick={() => navigate('/admindata/schoolmgm/classinfo/list')}
+          >
             Return
           </button>
         </div>
@@ -134,7 +143,11 @@ const ClassModifyForm = () => {
         <button type="submit" className="admin-buttonv1" disabled={loading}>
           {loading ? 'Saving...' : 'Save'}
         </button>
-        <button type="button" className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/classinfo/list')}>
+        <button
+          type="button"
+          className="admin-buttonv1"
+          onClick={() => navigate('/admindata/schoolmgm/classinfo/list')}
+        >
           Cancel
         </button>
       </div>

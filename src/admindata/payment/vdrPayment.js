@@ -8,7 +8,7 @@ import {
   CButton, CForm, CFormInput, CFormTextarea, CFormSelect, CAlert, CRow, CCol, CSpinner,
   CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CBadge
 } from "@coreui/react";
-import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
+import { getAuthHeaders, getCurrentLoggedUserID, IsAdminLoginIsValid } from "../../utils/operation";
 
 const PAY_URL = `${API_BASE_URL}/admindata/payment/paytoSchVdr`;
 const GET_SCH_VDR_URL = `${API_BASE_URL}/admindata/payment/getSchVdr`;
@@ -57,6 +57,11 @@ const Tile = ({ title, value, tone = "neutral", subtitle }) => {
 };
 
 const VendorPaymentModal = ({ visible, onClose, item, totalProfit }) => {
+  // ✅ Admin login validity check (applied here)
+  React.useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
+
   // derive totals (vendor-focused)
   const tripVendor = sumTripVendor(item);
   const foodVendor = sumFoodVendor(item);
@@ -328,19 +333,16 @@ const VendorPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                   <CTableHead color="light">
                     <CTableRow>
                       <CTableHeaderCell className="text-center" style={{ width: 60 }}>#</CTableHeaderCell>
-                     
                       <CTableHeaderCell style={{ width: 160 }}>Date</CTableHeaderCell>
                       <CTableHeaderCell style={{ width: 170 }}>Type</CTableHeaderCell>
                       <CTableHeaderCell>Note</CTableHeaderCell>
-                       <CTableHeaderCell className="text-end pe-3" style={{ width: 180 }}>Amount</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end pe-3" style={{ width: 180 }}>Amount</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
                     {records.map((r, idx) => (
                       <CTableRow key={idx} className={idx % 2 ? "bg-body-tertiary" : ""}>
                         <CTableDataCell className="text-center">{idx + 1}</CTableDataCell>
-                        {/* RIGHT aligned + padding on the right */}
-                       
                         <CTableDataCell>{r?.schPaidDate || "-"}</CTableDataCell>
                         <CTableDataCell>
                           <CBadge color="light" textColor="dark">
@@ -348,7 +350,7 @@ const VendorPaymentModal = ({ visible, onClose, item, totalProfit }) => {
                           </CBadge>
                         </CTableDataCell>
                         <CTableDataCell>{r?.schPaidNote || "-"}</CTableDataCell>
-                         <CTableDataCell className="text-end pe-3 mono">{fmt(r?.schPaidAmount)}</CTableDataCell>
+                        <CTableDataCell className="text-end pe-3 mono">{fmt(r?.schPaidAmount)}</CTableDataCell>
                       </CTableRow>
                     ))}
                   </CTableBody>

@@ -1,9 +1,8 @@
-// apply response2 i18n logic without removing your code
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsVendorLoginIsValid } from '../../../utils/operation' // ✅ added IsVendorLoginIsValid here
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -22,6 +21,11 @@ const Vendor = () => {
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_ACTIVITY_RATING_UI = false   // actRating field visible
   const HIDE_FOOD_IMAGE = true            // 👈 hide Food Image everywhere
+
+  // ✅ Vendor login guard: runs once when this page mounts
+  useEffect(() => {
+    IsVendorLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const [showModal, setShowModal] = useState(false)
   const [txtactImageName1, setactImageName1] = useState(null)
@@ -602,7 +606,9 @@ const Vendor = () => {
                     style={{ marginRight: 8, transform: 'scale(2.0)', cursor: 'pointer', accentColor: 'red' }}
                   />
                 </div>
-                <div className="pink-shadow4">{item.EnCategoryName}</div>
+                <div className="pink-shadow4">
+                  {lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}
+                </div>
               </label>
             ))}
           </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
-import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage,getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
 
@@ -21,6 +21,11 @@ const ProductCategoryDropdown = () => {
   const [ArPrdNameVal, setArPrdName] = useState('');
   const [PrdDiscountVal, setPrdDiscountVal] = useState('');
   const [PrdDescVal, setPrdDesc] = useState('');
+
+  // ✅ Admin login validation – will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -138,61 +143,60 @@ const ProductCategoryDropdown = () => {
 
   return (
     <form onSubmit={handleSubmit} className="form-container">
-     <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  <h3 style={{ margin: 0 }}>Create New Badge</h3>
+      <div
+        className="page-title"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
+        <h3 style={{ margin: 0 }}>Create New Badge</h3>
 
-  <div style={{ display: 'flex', gap: '10px' }}>
-     <button type="submit" className="admin-buttonv1" disabled={loading}>
-      {loading ? 'Uploading...' : 'Submit'}
-    </button> <button
-      type="button"
-      onClick={() => navigate('/admindata/badge/list')}
-      className="admin-buttonv1"
-    >
-      Return
-    </button> 
-  </div>
-</div>
-
-<div className='divbox'>
-      
-      <div className="form-group">
-        <label>Badge Line</label>
-        <input
-          className="admin-txt-box"
-          type="text"
-          value={EnPrdNameVal}
-          onChange={(e) => setPrdName(e.target.value)}
-          required
-        />
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button type="submit" className="admin-buttonv1" disabled={loading}>
+            {loading ? 'Uploading...' : 'Submit'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/admindata/badge/list')}
+            className="admin-buttonv1"
+          >
+            Return
+          </button>
+        </div>
       </div>
 
-      <div className="form-group">
-        <label>Badge Name</label>
-        <input
-          className="admin-txt-box"
-          type="email"
-          value={ArPrdNameVal}
-          onChange={(e) => setArPrdName(e.target.value)}
-          required
-        />
-      </div>
+      <div className="divbox">
+        <div className="form-group">
+          <label>Badge Line</label>
+          <input
+            className="admin-txt-box"
+            type="text"
+            value={EnPrdNameVal}
+            onChange={(e) => setPrdName(e.target.value)}
+            required
+          />
+        </div>
 
-      <div className="form-group">
-        <label>Rule To Gain</label>
-        <input
-          className="admin-txt-box"
-          type="text"
-          value={PrdCodeNoVal}
-          onChange={(e) => setPrdCodeNo(e.target.value)}
-          required
-        />
-      </div>
+        <div className="form-group">
+          <label>Badge Name</label>
+          <input
+            className="admin-txt-box"
+            type="email"
+            value={ArPrdNameVal}
+            onChange={(e) => setArPrdName(e.target.value)}
+            required
+          />
+        </div>
 
-     
- 
-</div>
-     
+        <div className="form-group">
+          <label>Rule To Gain</label>
+          <input
+            className="admin-txt-box"
+            type="text"
+            value={PrdCodeNoVal}
+            onChange={(e) => setPrdCodeNo(e.target.value)}
+            required
+          />
+        </div>
+      </div>
 
       <DspToastMessage message={toastMessage} type={toastType} />
     </form>

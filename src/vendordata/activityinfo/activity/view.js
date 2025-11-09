@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,dspstatusv1,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, dspstatusv1, getAuthHeaders, IsVendorLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import {
   getFileNameFromUrl,
@@ -21,6 +21,11 @@ import arPack from '../../../i18n/arloc100.json'
 const Vendor = () => {
   // ✅ Toggle to hide "Student Range From" and "Student Range To"
   const HIDE_PRICE_RANGE_UI = true
+
+  // ✅ Vendor login guard: runs once when this page mounts
+  useEffect(() => {
+    IsVendorLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   // ---- i18n helpers (non-destructive) ----
   const getStoredLang = () => {
@@ -75,6 +80,7 @@ const Vendor = () => {
       setLoading(false)
     }
   }
+
   useEffect(() => {
     if (!ActivityData) return
 
@@ -83,17 +89,19 @@ const Vendor = () => {
     setactImageName2(ActivityData.actImageName2Url || '')
     setactImageName3(ActivityData.actImageName3Url || '')
   }, [ActivityData])
+
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-     const getSearchParams = () => {
-        const search = window.location.search ||
+    const getSearchParams = () => {
+      const search =
+        window.location.search ||
         (window.location.hash && window.location.hash.includes('?')
-        ? `?${window.location.hash.split('?')[1]}`
-        : '');
-        return new URLSearchParams(search);
-        };
+          ? `?${window.location.hash.split('?')[1]}`
+          : '')
+      return new URLSearchParams(search)
+    }
 
-        const urlParams = getSearchParams()
+    const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get('ActivityID')
 
     if (ActivityIDVal) {
@@ -106,8 +114,11 @@ const Vendor = () => {
   return (
     <div>
       <div className="msgbox" style={{ marginBottom: '20px', marginTop: '20px' }}>
-        <div className="form-group text-center"> 
-          <div style={{ padding: '20px'  }}> <b>{tr('labelActivityStatus', 'ACTIVITY STATUS :')}</b> {dspstatusv1(ActivityData?.actStatus)} </div>
+        <div className="form-group text-center">
+          <div style={{ padding: '20px' }}>
+            <b>{tr('labelActivityStatus', 'ACTIVITY STATUS :')}</b>{' '}
+            {dspstatusv1(ActivityData?.actStatus)}
+          </div>
         </div>
       </div>
       <div className="divhbg">
@@ -130,12 +141,16 @@ const Vendor = () => {
 
       <div className="divbox">
         <div className="form-group">
-          <label style={{ marginBottom: '10px', marginTop: '20px' }}>{tr('labelActivityName', 'Activity Name')}</label>
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>
+            {tr('labelActivityName', 'Activity Name')}
+          </label>
           <div className="admin-lbl-box"> {ActivityData?.actName} </div>
         </div>
 
         <div className="form-group">
-          <label style={{ marginBottom: '10px', marginTop: '20px' }}>{tr('labelActivityType', 'Activity Type')}</label>
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>
+            {tr('labelActivityType', 'Activity Type')}
+          </label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div className="admin-lbl-box"> {ActivityData?.actTypeID} </div>
           </div>
@@ -203,15 +218,13 @@ const Vendor = () => {
             marginBottom: '20px',
           }}
         >
-          {/* Image 1 */}
+          {/* Video 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelYouTube1', 'Youtube Video Link 1')}</label>
             <YouTubeEmbed videoId={ActivityData?.actYouTubeID1} />
-
-            <div></div>
           </div>
 
-          {/* Image 2 */}
+          {/* Video 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelYouTube2', 'Youtube Video Link 2')}</label>
             <div>
@@ -219,7 +232,7 @@ const Vendor = () => {
             </div>
           </div>
 
-          {/* Image 3 */}
+          {/* Video 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelYouTube3', 'Youtube Video Link 3')}</label>
             <div>
@@ -228,39 +241,49 @@ const Vendor = () => {
           </div>
         </div>
       </div>
+
       <div className="txtsubtitle">{tr('sectionLocation', 'Activity Location')} </div>
 
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">{tr('labelGoogleMap', 'Google Map Location')}</label>
+              <label className="vendor-label">
+                {tr('labelGoogleMap', 'Google Map Location')}
+              </label>
 
-             <iframe
-  width="100%"
-  height="300"
-  frameBorder="0"
-  style={{ border: 0 }}
-  referrerPolicy="no-referrer-when-downgrade"
-  src={`https://www.google.com/maps/embed/v1/view?key=AIzaSyC59f-F3JungvspyPlTLlQa90DQ2aQAhRo&center=${ActivityData?.actGlat ||39.2111492},${ActivityData?.actGlan || 21.4552355}&zoom=15`}
-  allowFullScreen
-  title="Google Map"
-/>
+              <iframe
+                width="100%"
+                height="300"
+                frameBorder="0"
+                style={{ border: 0 }}
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://www.google.com/maps/embed/v1/view?key=AIzaSyC59f-F3JungvspyPlTLlQa90DQ2aQAhRo&center=${
+                  ActivityData?.actGlat || 39.2111492
+                },${ActivityData?.actGlan || 21.4552355}&zoom=15`}
+                allowFullScreen
+                title="Google Map"
+              />
             </div>
           </div>
 
           <div className="vendor-row">
             <div className="vendor-column">
-              <label className="vendor-label">{tr('labelLatitude', 'Google Latitude')}</label>
+              <label className="vendor-label">
+                {tr('labelLatitude', 'Google Latitude')}
+              </label>
               <div className="admin-lbl-box"> {ActivityData?.actGlat} </div>
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">{tr('labelLongitude', 'Google Longitude')}</label>
+              <label className="vendor-label">
+                {tr('labelLongitude', 'Google Longitude')}
+              </label>
               <div className="admin-lbl-box"> {ActivityData?.actGlan} </div>
             </div>
           </div>
         </div>
       </div>
+
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
@@ -284,6 +307,7 @@ const Vendor = () => {
           </div>
         </div>
       </div>
+
       <div className="txtsubtitle">{tr('sectionAgeRange', ' Age Range ')}</div>
       <div className="divbox">
         {/* // row start */}
@@ -293,7 +317,9 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">{tr('labelMinAge', 'Minimum Age')}</label>
+              <label className="vendor-label">
+                {tr('labelMinAge', 'Minimum Age')}
+              </label>
 
               <div className="admin-lbl-box"> {ActivityData?.actMinAge} </div>
             </div>
@@ -302,7 +328,9 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">{tr('labelMaxAge', 'Maximum Age')}</label>
+              <label className="vendor-label">
+                {tr('labelMaxAge', 'Maximum Age')}
+              </label>
               <div className="admin-lbl-box"> {ActivityData?.actMaxAge} </div>
             </div>
           </div>
@@ -322,7 +350,9 @@ const Vendor = () => {
       </div>
       {/* // row end */}
 
-      <div className="txtsubtitle">{tr('sectionCapacityInfo', 'Capacity Information ')} </div>
+      <div className="txtsubtitle">
+        {tr('sectionCapacityInfo', 'Capacity Information ')}{' '}
+      </div>
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">
@@ -331,7 +361,9 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">{tr('labelMinStudents', 'Minimum Students')}</label>
+              <label className="vendor-label">
+                {tr('labelMinStudents', 'Minimum Students')}
+              </label>
               <div className="admin-lbl-box"> {ActivityData?.actMinStudent} </div>
             </div>
 
@@ -339,7 +371,9 @@ const Vendor = () => {
               className="vendor-column"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <label className="vendor-label">{tr('labelMaxStudents', 'Maximum Students')}</label>
+              <label className="vendor-label">
+                {tr('labelMaxStudents', 'Maximum Students')}
+              </label>
               <div className="admin-lbl-box"> {ActivityData?.actMaxStudent} </div>
             </div>
           </div>
@@ -347,24 +381,28 @@ const Vendor = () => {
         {/* // row end */}
       </div>
 
-      <div className="txtsubtitle">{tr('sectionPricePerStudent', 'Price Per Student')}</div>
+      <div className="txtsubtitle">
+        {tr('sectionPricePerStudent', 'Price Per Student')}
+      </div>
 
       <div className="divbox">
         {/* Table Header */}
         <CRow className="fw-bold  mb-2">
           <CCol sm={3}>{tr('labelPrice', 'Price')}</CCol>
-          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>{tr('labelStudentRangeFrom', 'Student Range From')}</CCol>
-          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>{tr('labelStudentRangeTo', 'Student Range To')}</CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
+            {tr('labelStudentRangeFrom', 'Student Range From')}
+          </CCol>
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
+            {tr('labelStudentRangeTo', 'Student Range To')}
+          </CCol>
           <CCol sm={3}></CCol> {/* Remove column */}
         </CRow>
 
         {/* Dynamic Form Rows */}
-
         {ActivityData?.priceList?.map((priceItem, index) => (
           <CRow className="align-items-center mb-2" key={index}>
             <CCol sm={12}>
               <div className="admin-lbl-box pink-shadow1 ">
-                {' '}
                 <img
                   src={moneyv1}
                   alt="logo"
@@ -387,13 +425,17 @@ const Vendor = () => {
         ))}
       </div>
 
-      <div className="txtsubtitle">{tr('sectionSetAvailability', 'Set Availability')}</div>
+      <div className="txtsubtitle">
+        {tr('sectionSetAvailability', 'Set Availability')}
+      </div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
             .filter((day) => ActivityData?.availList?.some((item) => item.DayName === day))
             .map((day) => {
-              const matchedEntries = ActivityData.availList.filter((item) => item.DayName === day)
+              const matchedEntries = ActivityData.availList.filter(
+                (item) => item.DayName === day,
+              )
 
               return (
                 <div
@@ -411,7 +453,8 @@ const Vendor = () => {
                       className="admin-lbl-box pink-shadow1"
                       style={{ fontWeight: 'bold', textTransform: 'capitalize' }}
                     >
-                      {dayLabel(day)} <input type="checkbox" checked readOnly /> {tr('labelAvailable', 'Available')}
+                      {dayLabel(day)} <input type="checkbox" checked readOnly />{' '}
+                      {tr('labelAvailable', 'Available')}
                     </div>
                   </label>
 
@@ -427,9 +470,15 @@ const Vendor = () => {
                         marginBottom: '8px',
                       }}
                     >
-                      <div style={{ width: '200px', textAlign: 'center' }}>{tr('labelStartTime', 'Start Time')}</div>
-                      <div style={{ width: '200px', textAlign: 'center' }}>{tr('labelEndTime', 'End Time')}</div>
-                      <div style={{ width: '200px', textAlign: 'center' }}>{tr('labelNotes', 'Note')}</div>
+                      <div style={{ width: '200px', textAlign: 'center' }}>
+                        {tr('labelStartTime', 'Start Time')}
+                      </div>
+                      <div style={{ width: '200px', textAlign: 'center' }}>
+                        {tr('labelEndTime', 'End Time')}
+                      </div>
+                      <div style={{ width: '200px', textAlign: 'center' }}>
+                        {tr('labelNotes', 'Note')}
+                      </div>
                     </div>
 
                     {/* Data rows */}
@@ -471,7 +520,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Food Information')}</div>
+      <div className="txtsubtitle">
+        {tr('sectionFoodInfo', 'Food Information')}
+      </div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {/* Header Row */}
@@ -493,12 +544,16 @@ const Vendor = () => {
 
               {/* Price */}
               <CCol sm={2}>
-                <div className="admin-lbl-box text-center">{foodItem.FoodPrice}</div>
+                <div className="admin-lbl-box text-center">
+                  {foodItem.FoodPrice}
+                </div>
               </CCol>
 
               {/* Notes */}
               <CCol sm={3}>
-                <div className="admin-lbl-box text-center">{foodItem.FoodNotes}</div>
+                <div className="admin-lbl-box text-center">
+                  {foodItem.FoodNotes}
+                </div>
               </CCol>
 
               {/* Image Preview (optional handling for blank image) */}
@@ -506,29 +561,43 @@ const Vendor = () => {
                 {foodItem.FoodImage ? (
                   <FilePreview file={foodItem.FoodImage} />
                 ) : (
-                  <div className="admin-lbl-box text-center">{tr('noImage', 'No Image')}</div>
+                  <div className="admin-lbl-box text-center">
+                    {tr('noImage', 'No Image')}
+                  </div>
                 )}
               </CCol>
 
               {/* Include (displayed as Yes/No or Boolean) */}
               <CCol sm={1} className="text-center">
-                <div className="admin-lbl-box text-center">{foodItem.Include ? tr('yes', 'Yes') : tr('no', 'No')}</div>
+                <div className="admin-lbl-box text-center">
+                  {foodItem.Include ? tr('yes', 'Yes') : tr('no', 'No')}
+                </div>
               </CCol>
             </CRow>
           ))}
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionTerms', 'Terms And Conditions')}</div>
+      <div className="txtsubtitle">
+        {tr('sectionTerms', 'Terms And Conditions')}
+      </div>
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">
-          <div className="admin-lbl-boxv1">{ActivityData?.actAdminNotes}</div>
+          <div className="admin-lbl-boxv1">
+            {ActivityData?.actAdminNotes}
+          </div>
         </div>
         {/* // row end */}
       </div>
       <div className="button-container">
-        <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
+        <button
+          type="button"
+          className="admin-buttonv1"
+          onClick={() =>
+            navigate('/vendordata/activityinfo/activity/list')
+          }
+        >
           {tr('btnReturn', 'Return')}
         </button>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
-import { getFileNameFromUrl, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
 
@@ -27,6 +27,11 @@ const ParentViewForm = () => {
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     const fetchClassData = async () => {
@@ -134,8 +139,6 @@ const ParentViewForm = () => {
             />
           </div>
         </div>
-
-        
       </div>
 
       <DspToastMessage message={toastMessage} type={toastType} />

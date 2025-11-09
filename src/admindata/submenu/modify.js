@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import '../../../scss/toast.css';
 import { checkLogin } from '../../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { DspToastMessage, getAuthHeaders } from '../../../utils/operation';
+import { IsAdminLoginIsValid } from '../../../utils/operation';
 
 const SubMenuForm = () => {
   const navigate = useNavigate();
@@ -21,6 +22,11 @@ const SubMenuForm = () => {
   const [PageID, setPageID] = useState('');
 
   const [mainMenuList, setMainMenuList] = useState([]);
+
+  // ✅ Admin login validation effect (as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -82,6 +88,7 @@ const SubMenuForm = () => {
       setLoading(false);
       return;
     }
+
     const payload = {
       EnMenuName,
       ArMenuName,
@@ -162,7 +169,7 @@ const SubMenuForm = () => {
         />
       </div>
 
-     <div className="form-group">
+      <div className="form-group">
         <label>Main Menu</label>
         <select
           className="admin-txt-box"

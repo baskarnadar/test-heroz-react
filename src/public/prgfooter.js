@@ -1,5 +1,5 @@
-import React from "react";
-import { FaInstagram, FaFacebookF, FaTwitter } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaInstagram, FaFacebookF, FaTwitter, FaRegCopy } from "react-icons/fa";
 import herozlogo from "../assets/logo/herozlogo.png"; // adjust path if needed
 
 // 🔤 i18n packs
@@ -8,6 +8,22 @@ import arPack from "../i18n/arlangpack.json";
 
 const ProgramFooter = ({ className = "", lang = "en" }) => {
   const dict = lang === "ar" ? arPack : enPack;
+  const [copied, setCopied] = useState(false);
+
+  const phoneNumber = "+966548066660";
+  const whatsappMsg = encodeURIComponent(
+    "Hello i need help to pay My Kids Trip Payment"
+  );
+  const whatsappLink = `https://wa.me/${phoneNumber.replace(
+    /\+/g,
+    ""
+  )}?text=${whatsappMsg}`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(phoneNumber);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <footer className={`site-footer ${className}`}>
@@ -50,13 +66,51 @@ const ProgramFooter = ({ className = "", lang = "en" }) => {
               <strong>{dict.customerSupport}</strong>{" "}
               <a href="mailto:Herozapp1@gmail.com">sales@heroz.sa</a>
             </li>
-          <li >
-  
-   <span className="phone-label"> {dict.phoneNumber}   </span>
- 
-<span className="phone-number">+966548066660</span>
- 
-</li>
+
+            <li>
+              <span className="phone-label"> {dict.phoneNumber} </span>
+
+              {/* ✅ WhatsApp clickable number */}
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="phone-number"
+                style={{
+                  color: "#25D366",
+                  textDecoration: "none",
+                  marginLeft: "6px",
+                  fontWeight: "600",
+                }}
+              >
+                {phoneNumber}
+              </a>
+
+              {/* ✅ Copy icon */}
+              <FaRegCopy
+                onClick={handleCopy}
+                title="Copy number"
+                style={{
+                  marginLeft: "6px",
+                  cursor: "pointer",
+                  color: copied ? "#4caf50" : "#555",
+                }}
+              />
+
+              {/* ✅ Copy confirmation */}
+              {copied && (
+                <span
+                  style={{
+                    marginLeft: "5px",
+                    fontSize: "12px",
+                    color: "#4caf50",
+                  }}
+                >
+                  Copied!
+                </span>
+              )}
+            </li>
+
             <li>
               <strong>{dict.headquarters}</strong> {dict.headquartersAddress}
             </li>
@@ -95,7 +149,9 @@ const ProgramFooter = ({ className = "", lang = "en" }) => {
       </div>
 
       <div className="footer-bottom container">
-        <span>{dict.copyright.replace("{year}", new Date().getFullYear())}</span>
+        <span>
+          {dict.copyright.replace("{year}", new Date().getFullYear())}
+        </span>
       </div>
     </footer>
   );

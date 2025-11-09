@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
+
 const AddUserForm = () => {
   const navigate = useNavigate();
 
@@ -15,6 +16,11 @@ const AddUserForm = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [error, setError] = useState('');
+
+  // ✅ Added admin login validation (your requested snippet)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -37,7 +43,7 @@ const AddUserForm = () => {
 
     setLoading(true);
     setError('');
- 
+
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/createsubadmin`, {
         method: 'POST',
@@ -45,7 +51,7 @@ const AddUserForm = () => {
         body: JSON.stringify({
           userfullname,
           username,
-          password,  
+          password,
           usertype,
           userstatus: userstatus ? 1 : 0,
           CreatedBy: 'ADMIN',
@@ -123,9 +129,8 @@ const AddUserForm = () => {
           onChange={(e) => setusertype(e.target.value)}
           required
         >
-           <option value="--">--Select User Type</option>
-          <option value="ADMIN">ADMIN</option> 
-           
+          <option value="--">--Select User Type</option>
+          <option value="ADMIN">ADMIN</option>
         </select>
       </div>
 
@@ -136,7 +141,7 @@ const AddUserForm = () => {
           value={userstatus ? '1' : '0'}
           onChange={(e) => setuserstatus(e.target.value === '1')}
         >
-           <option value="--">--Select User Status</option>
+          <option value="--">--Select User Status</option>
           <option value="ACTIVE">ACTIVE</option>
           <option value="INACTIVE">INACTIVE</option>
         </select>

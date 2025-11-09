@@ -1,11 +1,11 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 import logo from '../../assets/logo/default.png';
 import { ActionButtonsV1 } from '../../utils/btn';
  
@@ -25,6 +25,11 @@ const ProductListWithPagination = () => {
 
   const productsPerPage = 10;
   const navigate = useNavigate();
+
+  // Admin login validation – will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -77,7 +82,8 @@ const ProductListWithPagination = () => {
   const handleModifyClick = (ProductID) => {
     navigate(`/badge/modify?ProductID=${ProductID}`);
   };
-const handleViewClick = (ProductID) => {
+
+  const handleViewClick = (ProductID) => {
     navigate(`/badge/view?ProductID=${ProductID}`);
   };
 
@@ -127,7 +133,7 @@ const handleViewClick = (ProductID) => {
           onClick={() => navigate('/admindata/badge/new')}
           className="add-product-button"
         >
-         New Badge
+          New Badge
         </button>
       </div>
 
@@ -160,48 +166,47 @@ const handleViewClick = (ProductID) => {
                       <img src={logo} alt="logo" />
                     </div>
                   </td>
-                  <td>   Rising Star Line  </td>
+                  <td>Rising Star Line</td>
                   <td>Super Hero Star</td>
                   <td>Book and Complete 10 Star</td>
                   <td>25-Jun-2025</td>
-                 
-                 
-           <td align="center" style={{ width: '17%', whiteSpace: 'nowrap' }}>
-  <div
-    className="text-align"
-    style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}
-  >
-    <button
-       onClick={() => handleModifyClick(product.ProductID)}
-      title="Edit/حذف"
-      className="btn btnbtn-default graybox"
-      style={{ padding: '2px', cursor: 'pointer' }}
-      aria-label="Edit/حذف"
-    >
-      <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
-    </button>
 
-    <button
-       onClick={() => handleDeleteClick(product.ProductID)}
-      title="Delete/حذف"
-      className="btn btnbtn-default graybox"
-      style={{ padding: '2px', cursor: 'pointer' }}
-      aria-label="Delete/حذف"
-    >
-      <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
-    </button>
+                  <td align="center" style={{ width: '17%', whiteSpace: 'nowrap' }}>
+                    <div
+                      className="text-align"
+                      style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}
+                    >
+                      <button
+                        onClick={() => handleModifyClick(product.ProductID)}
+                        title="Edit/حذف"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="Edit/حذف"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
+                      </button>
 
-    <button
-      onClick={() => handleViewClick(product.ProductID)}
-      title="Transfer/تحويل"
-      className="btn btnbtn-default graybox"
-      style={{ padding: '2px', cursor: 'pointer' }}
-      aria-label="View"
-    >
-      <i style={{ color: '#cf2037' }} className="fa fa-eye" />
-    </button>
-  </div>
-</td>
+                      <button
+                        onClick={() => handleDeleteClick(product.ProductID)}
+                        title="Delete/حذف"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="Delete/حذف"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
+                      </button>
+
+                      <button
+                        onClick={() => handleViewClick(product.ProductID)}
+                        title="Transfer/تحويل"
+                        className="btn btnbtn-default graybox"
+                        style={{ padding: '2px', cursor: 'pointer' }}
+                        aria-label="View"
+                      >
+                        <i style={{ color: '#cf2037' }} className="fa fa-eye" />
+                      </button>
+                    </div>
+                  </td>
 
                 </tr>
               ))}

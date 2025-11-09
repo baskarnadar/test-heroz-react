@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-// import ToggleButtons from '../vendor/include/headermenu'
+import {
+  IsAdminLoginIsValid
+} from '../../../utils/operation'
+
 const Vendor = () => {
   const [active, setActive] = useState('VENDOR')
   const navigate = useNavigate()
@@ -42,6 +45,11 @@ const Vendor = () => {
       sat: false,
     },
   })
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid()
+  }, [])
 
   const times = [
     '00:00',
@@ -417,12 +425,10 @@ const Vendor = () => {
 
   return (
     <div>
-      
       <div className="divhbg">
-       
-        <div className="txtheadertitle">View Vendor</div>  
+        <div className="txtheadertitle">View Vendor</div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-         {/* <ToggleButtons active={active} handleClick={(value) => setActive(value)} /> */}
+          {/* <ToggleButtons active={active} handleClick={(value) => setActive(value)} /> */}
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
 import { CIcon } from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const CategoryList = () => {
   const [Category, setCategory] = useState([]);
@@ -22,6 +22,11 @@ const CategoryList = () => {
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // ✅ Added admin login validation effect
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -132,10 +137,8 @@ const CategoryList = () => {
             <thead>
               <tr>
                 <th>#</th>
-               
                 <th>English Category Name</th>
                 <th>Arabic Category Name</th>
-                
                 <th>Actions</th>
               </tr>
             </thead>
@@ -143,15 +146,21 @@ const CategoryList = () => {
               {Category.map((Category, index) => (
                 <tr key={Category.CategoryID}>
                   <td><strong>{(currentPage - 1) * CategoryPerPage + index + 1}</strong></td>
-                 
-                  <td>
-                    {Category.EnCategoryName}
-                  </td>
+                  <td>{Category.EnCategoryName}</td>
                   <td>{Category.ArCategoryName}</td>
-                  
                   <td>
-                    <CIcon onClick={() => handleModifyClick(Category.CategoryID)} icon={cilPencil} size="lg" className="edit-icon" />
-                    <CIcon onClick={() => handleDeleteClick(Category.CategoryID)} icon={cilTrash} size="lg" className="trash-icon" />
+                    <CIcon
+                      onClick={() => handleModifyClick(Category.CategoryID)}
+                      icon={cilPencil}
+                      size="lg"
+                      className="edit-icon"
+                    />
+                    <CIcon
+                      onClick={() => handleDeleteClick(Category.CategoryID)}
+                      icon={cilTrash}
+                      size="lg"
+                      className="trash-icon"
+                    />
                   </td>
                 </tr>
               ))}
@@ -201,7 +210,6 @@ const CategoryList = () => {
         </div>
       )}
 
-     
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   );

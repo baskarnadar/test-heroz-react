@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,getCurrentLoggedUserID,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getCurrentLoggedUserID, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
+
 const Vendor = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -16,6 +17,11 @@ const Vendor = () => {
     newpassword: '',
     daysAvailable: {},
   })
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   // Extract SchoolID from URL query params
   useEffect(() => {
@@ -32,49 +38,46 @@ const Vendor = () => {
   }, [schoolID])
 
   const updateSchoolPwd = async (SchoolID, usernameval, newpasswordval) => {
-  setLoading(true)
-  setError(null)
+    setLoading(true)
+    setError(null)
 
+    try {
+      const response = await fetch(`${API_BASE_URL}/schoolinfo/school/updatepwd`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          prtuserid: SchoolID,
+          username: usernameval,
+          password: newpasswordval,
+          ModifyBy: getCurrentLoggedUserID(),
+        }),
+      })
 
+      console.log('response.ok:', response.ok)
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/schoolinfo/school/updatepwd`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        prtuserid: SchoolID,
-        username: usernameval,
-        password: newpasswordval,
-        ModifyBy: getCurrentLoggedUserID(),
-      }),
-    })
+      const data = await response.json()
 
-    console.log("response.ok:", response.ok)
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update password')
+      }
 
-    const data = await response.json()
+      console.log('Update response:', data)
 
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to update password')
+      setToastMessage('Password successfully updated')
+      setToastType('success')
+
+      // ✅ Redirect to list page after short delay
+      setTimeout(() => {
+        navigate('/admindata/schoolmgm/schoolinfo/list')
+      }, 2000)
+    } catch (err) {
+      console.error('Error updating password:', err)
+      setToastMessage('Error updating password')
+      setToastType('fail')
+    } finally {
+      setLoading(false)
     }
-
-    console.log('Update response:', data)
-
-    setToastMessage('Password successfully updated')
-    setToastType('success')
-
-    // ✅ Redirect to list page after short delay
-    setTimeout(() => {
-      navigate('/admindata/schoolmgm/schoolinfo/list')
-    }, 2000)
-
-  } catch (err) {
-    console.error("Error updating password:", err)
-    setToastMessage('Error updating password')
-    setToastType('fail')
-  } finally {
-    setLoading(false)
   }
-}
 
   const fetchSchoolinfo = async (SchoolID) => {
     setLoading(true)
@@ -131,9 +134,9 @@ const Vendor = () => {
       setError('Please enter a new password')
       return
     }
-    console.log("formData.newpassword");
-     console.log(formData.newpassword)
-    updateSchoolPwd(schoolID, schoolinfo.schMobileNo1 , formData.newpassword)
+    console.log('formData.newpassword')
+    console.log(formData.newpassword)
+    updateSchoolPwd(schoolID, schoolinfo.schMobileNo1, formData.newpassword)
   }
   return (
     <form onSubmit={handleUpdateClick}>
@@ -170,7 +173,6 @@ const Vendor = () => {
                     required
                   />
                 </div>
-                
               </div>
             </div>
             <div className="button-container">

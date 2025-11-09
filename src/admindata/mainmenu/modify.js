@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 
 const MainMenuForm = () => {
   const navigate = useNavigate();
@@ -22,6 +22,11 @@ const MainMenuForm = () => {
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // Extra admin/session validation
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   // Load MainMenu data if editing
   useEffect(() => {
@@ -51,50 +56,50 @@ const MainMenuForm = () => {
   }, [MainMenuID]);
 
   // Handle form submit
-   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setToastMessage('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setToastMessage('');
 
-  if (!EnMenuName || !ArMenuName) {
-    setToastMessage('Please enter both English and Arabic menu names.');
-    setToastType('fail');
-    setLoading(false);
-    return;
-  }
-
-  try {
-    const payload = {
-      EnMenuName,
-      ArMenuName,
-      ModifyBy: 'USER',
-    };
-
-    if (MainMenuID) {
-      payload.MainMenuID = MainMenuID; // ✅ include MainMenuID when editing
+    if (!EnMenuName || !ArMenuName) {
+      setToastMessage('Please enter both English and Arabic menu names.');
+      setToastType('fail');
+      setLoading(false);
+      return;
     }
 
-    const apiUrl = `${API_BASE_URL}/mainmenu/updatemainmenu`;
+    try {
+      const payload = {
+        EnMenuName,
+        ArMenuName,
+        ModifyBy: 'USER',
+      };
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    });
+      if (MainMenuID) {
+        payload.MainMenuID = MainMenuID; // ✅ include MainMenuID when editing
+      }
 
-    if (!response.ok) throw new Error('API error');
+      const apiUrl = `${API_BASE_URL}/mainmenu/updatemainmenu`;
 
-    setToastMessage(`MainMenu ${MainMenuID ? 'updated' : 'created'} successfully!`);
-    setToastType('success');
-    setTimeout(() => navigate('/MainMenu/list'), 2000);
-  } catch (error) {
-    console.error('Error saving MainMenu:', error);
-    setToastType('fail');
-    setToastMessage('Failed to save MainMenu.');
-  } finally {
-    setLoading(false);
-  }
-};
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error('API error');
+
+      setToastMessage(`MainMenu ${MainMenuID ? 'updated' : 'created'} successfully!`);
+      setToastType('success');
+      setTimeout(() => navigate('/MainMenu/list'), 2000);
+    } catch (error) {
+      console.error('Error saving MainMenu:', error);
+      setToastType('fail');
+      setToastMessage('Failed to save MainMenu.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (

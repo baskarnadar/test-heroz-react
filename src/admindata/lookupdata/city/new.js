@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { checkLogin } from '../../../utils/auth'
 import '../../../scss/toast.css'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 
 const AddCityForm = () => {
   const navigate = useNavigate()
@@ -18,6 +18,11 @@ const AddCityForm = () => {
   useEffect(() => {
     checkLogin(navigate)
   }, [navigate])
+
+  // ✅ Admin login validation (as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   useEffect(() => {
     if (toastMessage) {
@@ -94,7 +99,11 @@ const AddCityForm = () => {
     <form onSubmit={handleSubmit} className="form-container">
       <div className="page-title">
         <h3 style={{ margin: 0 }}>Add City</h3>
-        <button type="button" onClick={() => navigate('/admindata/city/list')} className="admin-buttonv1">
+        <button
+          type="button"
+          onClick={() => navigate('/admindata/city/list')}
+          className="admin-buttonv1"
+        >
           Return
         </button>
       </div>

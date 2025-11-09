@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { IsAdminLoginIsValid } from '../../../utils/operation'
 
 const AddClassForm = () => {
   const navigate = useNavigate()
@@ -8,6 +9,11 @@ const AddClassForm = () => {
     className: '',
     numberOfStudents: '',
   })
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -28,8 +34,17 @@ const AddClassForm = () => {
       <div className="divhbg">
         <div className="txtheadertitle">Add New Class</div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="admin-buttonv1" onClick={handleSave}>Save</button>
-          <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/classinfo/list')}>Return</button>
+          <button className="admin-buttonv1" onClick={handleSave}>
+            Save
+          </button>
+          <button
+            className="admin-buttonv1"
+            onClick={() =>
+              navigate('/admindata/schoolmgm/classinfo/list')
+            }
+          >
+            Return
+          </button>
         </div>
       </div>
 
@@ -62,8 +77,17 @@ const AddClassForm = () => {
 
       {/* Footer Buttons */}
       <div className="button-container">
-        <button className="admin-buttonv1" onClick={handleSave}>Save</button>
-        <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/classinfo/list')}>Cancel</button>
+        <button className="admin-buttonv1" onClick={handleSave}>
+          Save
+        </button>
+        <button
+          className="admin-buttonv1"
+          onClick={() =>
+            navigate('/admindata/schoolmgm/classinfo/list')
+          }
+        >
+          Cancel
+        </button>
       </div>
     </div>
   )

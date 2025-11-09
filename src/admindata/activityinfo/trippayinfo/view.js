@@ -12,11 +12,14 @@ import {
   DspToastMessage,
   getCurrentLoggedUserID,
   generatePayRefNo,
-  getAuthHeaders } from "../../../utils/operation";
+  getAuthHeaders,
+  IsAdminLoginIsValid,
+} from "../../../utils/operation";
 
 //import FoodInfo from "../../../public/foodinfo";
 import moneyv1 from "../../../assets/images/moneyv1.png";
- import TripPaidList from "./trippaidlist";
+import TripPaidList from "./trippaidlist";
+
 const ProposalPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -46,6 +49,12 @@ const ProposalPage = () => {
     updatedRows[index][field] = value;
     setChildRows(updatedRows);
   };
+
+  // 🔒 Admin login validation – will redirect if invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
+
   // Hide header/sidebar/footer ONLY on this page
   useEffect(() => {
     document.body.classList.add("hide-chrome");
@@ -59,7 +68,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`,
         {
           method: "POST",
-         headers: getAuthHeaders(),
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: ActivityIDVal,
             VendorID: VendorIDVal,
@@ -97,7 +106,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
         {
           method: "POST",
-         headers: getAuthHeaders(),
+          headers: getAuthHeaders(),
           body: JSON.stringify({ RequestID }),
         }
       );
@@ -108,8 +117,8 @@ const ProposalPage = () => {
 
       const data = await response.json();
       const payload = Array.isArray(data?.data)
-        ? (data.data[0] ?? null)
-        : (data?.data ?? null);
+        ? data.data[0] ?? null
+        : data?.data ?? null;
       setTripData(payload);
 
       const ActivityIDVal = payload?.ActivityID;
@@ -144,16 +153,16 @@ const ProposalPage = () => {
     }
   }, [ActivityData]);
 
-    const getSearchParams = () => {
-        const search = window.location.search ||
-        (window.location.hash && window.location.hash.includes('?')
-        ? `?${window.location.hash.split('?')[1]}`
-        : '');
-        return new URLSearchParams(search);
-        };
+  const getSearchParams = () => {
+    const search =
+      window.location.search ||
+      (window.location.hash && window.location.hash.includes("?")
+        ? `?${window.location.hash.split("?")[1]}`
+        : "");
+    return new URLSearchParams(search);
+  };
 
   useEffect(() => {
-    
     const urlParams = getSearchParams();
     const RequestID = urlParams.get("RequestID");
     if (RequestID) {
@@ -222,6 +231,7 @@ const ProposalPage = () => {
   const handleMethodChange = (method) => {
     setSelectedMethod(method);
   };
+
   useEffect(() => {
     // Hide layout
     document.body.classList.add("hide-layout");
@@ -299,7 +309,7 @@ const ProposalPage = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
         {
           method: "POST",
-         headers: getAuthHeaders(),
+          headers: getAuthHeaders(),
           body: JSON.stringify(payload),
         }
       );
@@ -320,9 +330,8 @@ const ProposalPage = () => {
   return (
     <>
       <div>
-      
-      <TripPaidList   />
-    </div>
+        <TripPaidList />
+      </div>
       <div
         className="min-vh-100 d-flex flex-row align-items-center"
         style={{ backgroundColor: "#ffffff" }}
@@ -357,23 +366,6 @@ const ProposalPage = () => {
               {activityImages.map((src, idx) => (
                 <CCarouselItem key={idx}>
                   <div style={{ position: "relative" }}>
-                    {/* <img
-                      src={TripData?.schImageNameUrl ?? logo}
-                      style={{
-                        maxWidth: "200px",
-                        maxHeight: "150px",
-                        height: "auto",
-                        objectFit: "contain",
-                        display: "block",
-                        marginBottom: "10px",
-                        position: "absolute",
-                        top: 0,
-                        margin: 20,
-                        right: 0,
-                      }}
-                      loading="lazy"
-                    /> */}
-
                     <img
                       className="d-block w-100"
                       src={src}
@@ -381,13 +373,11 @@ const ProposalPage = () => {
                       style={{
                         objectFit: "cover",
                         maxHeight: 300,
-                        borderTopLeftRadius: "0px", // Use camelCase for CSS properties
-                        borderTopRightRadius: "0px", // Same here
+                        borderTopLeftRadius: "0px",
+                        borderTopRightRadius: "0px",
                         width: "100%",
                       }}
                     />
-                    {/* Text at the bottom */}
-                    {/* <div className="actname">{ActivityData?.actName}</div> */}
                   </div>
                 </CCarouselItem>
               ))}
@@ -405,12 +395,10 @@ const ProposalPage = () => {
                   <div>{TripData?.actRequestDate} </div>
                 </div>
                 <div className="tripsubtitlev3">
-                  {" "}
                   ⏰ Time
                   <div>{TripData?.actRequestTime}</div>
                 </div>
                 <div className="tripsubtitlev3">
-                  {" "}
                   ⏰ Localtion
                   <div>{ActivityData?.actAddress1}</div>
                   <div>{ActivityData?.actAddress2}</div>
@@ -440,20 +428,9 @@ const ProposalPage = () => {
                   </div>
                 </div>
               </div>
-              {/* Value row */}
             </section>
 
             <div className="tripsubtitlev1"> {ActivityData?.actDesc} </div>
-
-            {/* Price per student */}
-
-            {/* 
-            <FoodInfo
-              ActivityData={ActivityData}
-              checkedFoodItems={checkedFoodItems}
-              handleCheckboxChange={handleCheckboxChange}
-            />
-            Food */}
 
             <div className="tripsubtitle" style={{ marginTop: "10px" }}>
               Child Information & Booking
@@ -467,7 +444,10 @@ const ProposalPage = () => {
                 </div>
                 <div className="input-group">
                   <label>Parents Mobile Number</label>
-                  <input name="tripParentsMobileNo" className="vendor-input" />
+                  <input
+                    name="tripParentsMobileNo"
+                    className="vendor-input"
+                  />
                 </div>
               </div>
 
@@ -540,7 +520,6 @@ const ProposalPage = () => {
                     <b>Food Total:</b> {foodTotal.toFixed(2)}
                   </div>
 
-                  {/* Tax row */}
                   <div>
                     <b>Tax (15%):</b>{" "}
                     <img
@@ -556,7 +535,6 @@ const ProposalPage = () => {
                   </div>
 
                   <h2>
-                    {" "}
                     Price Per Student :{" "}
                     <img
                       src={moneyv1}
@@ -590,7 +568,9 @@ const ProposalPage = () => {
                         onChange={() => setSelectedMethod(option.value)}
                       />
                       <div>
-                        <div style={{ fontWeight: "bold" }}>{option.label}</div>
+                        <div style={{ fontWeight: "bold" }}>
+                          {option.label}
+                        </div>
                         <div style={{ fontSize: "0.9rem", color: "#555" }}>
                           {option.description}
                         </div>
@@ -617,7 +597,6 @@ const ProposalPage = () => {
               </div>
             </div>
 
-            {/* Button */}
             <div className="button-container"></div>
           </div>
           <DspToastMessage message={toastMessage} type={toastType} />

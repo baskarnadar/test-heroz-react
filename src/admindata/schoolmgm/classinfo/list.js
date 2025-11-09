@@ -5,7 +5,7 @@ import { cilFilter } from '@coreui/icons';
 import ToggleButtons from '../include/headermenu';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
-import { formatDate, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { formatDate, DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const ClassList = () => {
   const navigate = useNavigate();
@@ -29,6 +29,11 @@ const ClassList = () => {
     checkLogin(navigate);
     fetchOrders();
   }, [currentPage]);
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -73,8 +78,10 @@ const ClassList = () => {
     }
   };
 
-  const handleModify = (id) => navigate(`/admindata/schoolmgm/classinfo/modify?SchoolID=${id}`);
-  const handleView = (id) => navigate(`/admindata/schoolmgm/classinfo/view?SchoolID=${id}`);
+  const handleModify = (id) =>
+    navigate(`/admindata/schoolmgm/classinfo/modify?SchoolID=${id}`);
+  const handleView = (id) =>
+    navigate(`/admindata/schoolmgm/classinfo/view?SchoolID=${id}`);
   const handleNew = () => navigate('/admindata/schoolmgm/classinfo/new');
 
   const filteredOrders = orders.filter((order) => {
@@ -96,7 +103,15 @@ const ClassList = () => {
     <div>
       <ToggleButtons active={active} handleClick={(value) => setActive(value)} />
 
-      <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+      <div
+        className="page-title"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          marginBottom: '1rem',
+        }}
+      >
         <h3 style={{ margin: 0, flexShrink: 0 }}>Class Information</h3>
 
         <div style={{ position: 'relative', flexGrow: 3, maxWidth: '300px' }}>
@@ -132,7 +147,12 @@ const ClassList = () => {
             height="16"
             style={{ marginRight: '8px' }}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
           </svg>
           New
         </button>
@@ -170,16 +190,28 @@ const ClassList = () => {
                     <td>{formatDate(order.CreatedBy)}</td>
                     <td align="center">
                       <div className="action-buttons">
-                        <button onClick={() => handleModify(order._id)} title="Edit" className="graybox">
+                        <button
+                          onClick={() => handleModify(order._id)}
+                          title="Edit"
+                          className="graybox"
+                        >
                           <i className="fa fa-pencil" style={{ color: '#cf2037' }} />
                         </button>
-                        <button onClick={() => {
-                          setProductIDToDelete(order._id);
-                          setShowDeleteModal(true);
-                        }} title="Delete" className="graybox">
+                        <button
+                          onClick={() => {
+                            setProductIDToDelete(order._id);
+                            setShowDeleteModal(true);
+                          }}
+                          title="Delete"
+                          className="graybox"
+                        >
                           <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
                         </button>
-                        <button onClick={() => handleView(order._id)} title="View" className="graybox">
+                        <button
+                          onClick={() => handleView(order._id)}
+                          title="View"
+                          className="graybox"
+                        >
                           <i className="fa fa-eye" style={{ color: '#cf2037' }} />
                         </button>
                       </div>
@@ -191,17 +223,29 @@ const ClassList = () => {
           </table>
 
           <div className="pagination-container">
-            <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>{'<<'}</button>
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              {'<<'}
+            </button>
             {getPageRange().map((page) => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`pagination-button ${currentPage === page ? 'active' : ''}`}
+                className={`pagination-button ${
+                  currentPage === page ? 'active' : ''
+                }`}
               >
                 {page}
               </button>
             ))}
-            <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>>'}</button>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              {'>>'}
+            </button>
           </div>
         </div>
       )}
@@ -212,8 +256,15 @@ const ClassList = () => {
             <h4>Confirm Delete</h4>
             <p>Are you sure you want to delete this class?</p>
             <div className="modal-buttons">
-              <button className="admin-buttonv1" onClick={handleDelete}>Yes</button>
-              <button className="admin-buttonv1" onClick={() => setShowDeleteModal(false)}>No</button>
+              <button className="admin-buttonv1" onClick={handleDelete}>
+                Yes
+              </button>
+              <button
+                className="admin-buttonv1"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                No
+              </button>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
-import { getFileNameFromUrl, DspToastMessage } from '../../../utils/operation';
+import { getFileNameFromUrl, DspToastMessage, IsAdminLoginIsValid, getAuthHeaders } from '../../../utils/operation';
 import { checkLogin } from '../../../utils/auth';
 import '../../../scss/toast.css';
 
@@ -23,6 +23,11 @@ const StudentViewForm = () => {
     mobileNumber: '',
     schoolClass: '',
   });
+
+  // ✅ Added: admin login validation (runs once on mount)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -49,7 +54,7 @@ const StudentViewForm = () => {
             studentId: product.PrdCodeNo || '',
             parentName: '', // No value in product, add if available
             mobileNumber: '', // Same here
-            schoolClass: '',  // Same here
+            schoolClass: '', // Same here
           });
         }
       } catch (err) {
@@ -70,9 +75,23 @@ const StudentViewForm = () => {
     setToastMessage('');
     setLoading(true);
 
-    const { className, studentName, studentId, parentName, mobileNumber, schoolClass } = formData;
+    const {
+      className,
+      studentName,
+      studentId,
+      parentName,
+      mobileNumber,
+      schoolClass,
+    } = formData;
 
-    if (!className || !studentName || !studentId || !parentName || !mobileNumber || !schoolClass) {
+    if (
+      !className ||
+      !studentName ||
+      !studentId ||
+      !parentName ||
+      !mobileNumber ||
+      !schoolClass
+    ) {
       setToastMessage('Please fill in all required fields.');
       setToastType('fail');
       setLoading(false);
@@ -102,7 +121,10 @@ const StudentViewForm = () => {
 
       setToastMessage('Class saved successfully!');
       setToastType('success');
-      setTimeout(() => navigate('/admindata/schoolmgm/studentinfo/list'), 1500);
+      setTimeout(
+        () => navigate('/admindata/schoolmgm/studentinfo/list'),
+        1500
+      );
     } catch (error) {
       console.error('Error saving class:', error);
       setToastType('fail');
@@ -115,9 +137,10 @@ const StudentViewForm = () => {
   return (
     <form onSubmit={handleSubmit}>
       <div className="divhbg">
-        <div className="txtheadertitle">{ProductID ? '' : ''}View Student </div>
+        <div className="txtheadertitle">
+          {ProductID ? '' : ''}View Student{' '}
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          
           <button
             type="button"
             className="admin-buttonv1"
@@ -200,10 +223,7 @@ const StudentViewForm = () => {
         </div>
       </div>
 
-      <div className="button-container">
-        
-        
-      </div>
+      <div className="button-container"></div>
 
       <DspToastMessage message={toastMessage} type={toastType} />
     </form>

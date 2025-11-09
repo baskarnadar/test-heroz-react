@@ -2,9 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
+
 const ViewBanner = () => {
   const navigate = useNavigate();
+
+  // ✅ Admin login validation (will redirect if invalid)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   // Check for Auth
   useEffect(() => {
@@ -120,7 +126,11 @@ const ViewBanner = () => {
       </div>
 
       <div className="form-row">
-        <button type="button" className="admin-buttonv1" onClick={updateBannerStatus}>
+        <button
+          type="button"
+          className="admin-buttonv1"
+          onClick={updateBannerStatus}
+        >
           Update Status
         </button>
       </div>

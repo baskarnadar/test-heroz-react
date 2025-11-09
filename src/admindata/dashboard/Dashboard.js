@@ -36,9 +36,7 @@ import {
   cilUser,
   cilUserFemale,
 } from '@coreui/icons'
- 
 
- 
 import WidgetsDropdown from '../../views/widgets/WidgetsDropdown'
 import MainChart from './MainChart'
 
@@ -49,25 +47,31 @@ import DBCalendar from '../dashboard/component/dbcalendar'
 import DashboardSummary from '../dashboard/component/dashboardSummary'  
 import PayGraph from '../dashboard/component/paygraph'
 
+// ✅ NEW IMPORT (as requested)
+import {
+  IsAdminLoginIsValid
+} from '../../utils/operation'
 
 const Dashboard = () => {
   const navigate = useNavigate();  
+
+  // ✅ NEW EFFECT (as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
+
   return (
     <>
-    
       <DashboardSummary
         apiUrl={`${API_BASE_URL}/admindata/dashboard/getdashboardtotal`} // adjust path if needed
         title="Heroz – Dashboard Summary"
       />
 
-     
-
       <DBCalendar
         apiUrl={`${API_BASE_URL}/admindata/activityinfo/trip/getalltriplist`}
         title="Trips by Request Date"
       />
-       <PayGraph  title="Sales" />
-      
+      <PayGraph title="Sales" />
     </>
   )
 }

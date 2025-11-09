@@ -6,7 +6,7 @@ import {
   CSpinner, CAlert, CBadge, CButton
 } from '@coreui/react'
 import { API_BASE_URL } from '../../config'
-import { getAuthHeaders, getCurrentLoggedUserID } from '../../utils/operation'
+import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
 
 const GET_ACTIVITY_REQUESTS = `${API_BASE_URL}/vendordata/activityinfo/activity/getAllActivityRequest`
 
@@ -121,6 +121,11 @@ const ActivityRequestList = () => {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const actRequestStatus = params.get('status') || 'ALL'
+
+  // ✅ Vendor login guard
+  useEffect(() => {
+    IsVendorLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)

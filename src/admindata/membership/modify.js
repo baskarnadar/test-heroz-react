@@ -6,8 +6,7 @@ import { getFileNameFromUrl } from '../../utils/operation';
 // Removed: import 'react-quill/dist/quill.snow.css'
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
-
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 
 const ProductCategoryDropdown = () => {
   const [selectedType, setSelectedType] = useState('');
@@ -32,8 +31,10 @@ const ProductCategoryDropdown = () => {
   const [PrdDiscountVal, setPrdDiscountVal] = useState('');
   const [PrdDescVal, setPrdDesc] = useState('');
 
+  // ✅ Apply admin login validation here (same concept as other pages)
   useEffect(() => {
     checkLogin(navigate);
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
   }, [navigate]);
 
   useEffect(() => {
@@ -108,11 +109,11 @@ const ProductCategoryDropdown = () => {
     try {
       if (PtrImage instanceof File) {
         const formdata = new FormData();
-        formdata.append("image", PtrImage);
-        formdata.append("foldername", "files/product/images");
+        formdata.append('image', PtrImage);
+        formdata.append('foldername', 'files/product/images');
 
         const uploadResponse = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, {
-          method: "POST",
+          method: 'POST',
           body: formdata,
         });
 
@@ -131,11 +132,11 @@ const ProductCategoryDropdown = () => {
         PrdGridList: PrdImageVal,
         PrdDesc: PrdDescVal,
         PrdDiscount: PrdDiscountVal,
-        createdBy: "USER",
-        updatedBy: "USER",
+        createdBy: 'USER',
+        updatedBy: 'USER',
         IsDataStatus: 1,
         CategoryID: selectedCategory,
-        ProductTypeID: "PRODUCT",
+        ProductTypeID: 'PRODUCT',
       };
 
       if (ProductID) payload.ProductID = ProductID;
@@ -153,7 +154,6 @@ const ProductCategoryDropdown = () => {
       setToastMessage('Product saved successfully!');
       setToastType('success');
       setTimeout(() => navigate('/forms/product/productlist'), 2000);
-
     } catch (error) {
       console.error('Error saving product:', error);
       setToastType('fail');
@@ -182,9 +182,9 @@ const ProductCategoryDropdown = () => {
       </div>
 
       <div className="form-group">
-        <label>Card  Image</label>
+        <label>Card Image</label>
         <input
-          className='admin-txt-box'
+          className="admin-txt-box"
           type="file"
           accept="image/*"
           onChange={handleFileUpload(setPtrImage)}
@@ -200,9 +200,9 @@ const ProductCategoryDropdown = () => {
       </div>
 
       <div className="form-group">
-        <label> Membership Title</label>
+        <label>Membership Title</label>
         <input
-          className='admin-txt-box'
+          className="admin-txt-box"
           type="text"
           value={EnPrdNameVal}
           onChange={(e) => setPrdName(e.target.value)}
@@ -213,7 +213,7 @@ const ProductCategoryDropdown = () => {
       <div className="form-group">
         <label>Membership Amount</label>
         <input
-          className='admin-txt-box'
+          className="admin-txt-box"
           type="text"
           value={ArPrdNameVal}
           onChange={(e) => setArPrdName(e.target.value)}
@@ -224,15 +224,13 @@ const ProductCategoryDropdown = () => {
       <div className="form-group">
         <label>Membership Stars</label>
         <input
-          className='admin-txt-box'
+          className="admin-txt-box"
           type="text"
           value={PrdCodeNoVal}
           onChange={(e) => setPrdCodeNo(e.target.value)}
           required
         />
-      </div> 
-    
-     
+      </div>
 
       <DspToastMessage message={toastMessage} type={toastType} />
     </form>

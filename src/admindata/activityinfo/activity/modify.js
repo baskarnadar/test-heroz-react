@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID, dspstatusv1 } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -91,6 +91,11 @@ const Vendor = () => {
   ])
   const [countries, setCountries] = useState([])
   const [cityList, setCityList] = useState([])
+
+  // ✅ NEW: ADMIN LOGIN VALIDATION (as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   // === UPDATED: if include is turned on, force both prices to "0" and keep state in sync
   const handleFoodChange = (index, field, value) => {
@@ -948,7 +953,9 @@ const Vendor = () => {
 
       <div className="divbox">
         <div className="form-group">
-          <label>Activity Name <span style={{color:'red'}}>*</span></label>
+          <label>
+            Activity Name <span style={{ color: 'red' }}>*</span>
+          </label>
           <input
             name="txtactName"
             className="admin-txt-box"
@@ -962,7 +969,7 @@ const Vendor = () => {
 
         <div className="form-group">
           <label style={{ marginBottom: '10px', marginTop: '20px' }}>
-            Activity Type <span style={{color:'red'}}>*</span>
+            Activity Type <span style={{ color: 'red' }}>*</span>
           </label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1005,7 +1012,9 @@ const Vendor = () => {
 
         {/* ⭐ Activity Rating */}
         <div className="form-group" style={{ marginTop: 8 }}>
-          <label>Activity Rating <span style={{color:'red'}}>*</span></label>
+          <label>
+            Activity Rating <span style={{ color: 'red' }}>*</span>
+          </label>
           <input
             name="actRating"
             type="number"
@@ -1025,7 +1034,7 @@ const Vendor = () => {
 
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories <span style={{color:'red'}}>*</span>
+            Activity Categories <span style={{ color: 'red' }}>*</span>
           </label>
 
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -1053,7 +1062,9 @@ const Vendor = () => {
         </div>
 
         <div className="form-group">
-          <label>Activity Description <span style={{color:'red'}}>*</span></label>
+          <label>
+            Activity Description <span style={{ color: 'red' }}>*</span>
+          </label>
           <textarea
             name="txtactDesc"
             className="vendor-input"
@@ -1066,7 +1077,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Images <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        Activity Images <span style={{ color: 'red' }}>*</span>
+      </div>
       <div className="divbox">
         <div
           style={{
@@ -1170,7 +1183,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Location <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        Activity Location <span style={{ color: 'red' }}>*</span>
+      </div>
 
       <div className="divbox">
         <div className="vendor-container">
@@ -1286,7 +1301,9 @@ const Vendor = () => {
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
             <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <label className="vendor-label">Minimum Age <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                Minimum Age <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 value={txtactMinAge}
                 onChange={(e) => setMinAge(e.target.value)}
@@ -1297,7 +1314,9 @@ const Vendor = () => {
             </div>
 
             <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <label className="vendor-label">Maximum Age <span style={{color:'red'}}>*</span></label>
+              <label className="vendor-label">
+                Maximum Age <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 value={txtactMaxAge}
                 onChange={(e) => setMaxAge(e.target.value)}
@@ -1311,7 +1330,9 @@ const Vendor = () => {
 
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label className="vendor-label">Gender <span style={{color:'red'}}>*</span></label>
+            <label className="vendor-label">
+              Gender <span style={{ color: 'red' }}>*</span>
+            </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
@@ -1351,7 +1372,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Capacity Information <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        Capacity Information <span style={{ color: 'red' }}>*</span>
+      </div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
@@ -1380,7 +1403,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Price Per Student <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        Price Per Student <span style={{ color: 'red' }}>*</span>
+      </div>
 
       <div className="divbox">
         {/* Header: Only Price & Heroz Price (others hidden) */}
@@ -1705,7 +1730,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Terms And Conditions <span style={{color:'red'}}>*</span></div>
+      <div className="txtsubtitle">
+        Terms And Conditions <span style={{ color: 'red' }}>*</span>
+      </div>
       <div className="divbox">
         <div className="vendor-container">
           <textarea

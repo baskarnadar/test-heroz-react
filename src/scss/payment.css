@@ -922,3 +922,17 @@ body.no-chrome .page-wrapper {
 
 /* If you want outline only (no fill), add this class */
 .pay-error.outline{ background: transparent; }
+
+
+@media (min-width: 1025px) {
+    html[dir=ltr] .wrapper {
+        padding-left: 1% !important;
+        padding-right: 1% !important;
+    }
+}
+@media (min-width: 1025px) {
+    html[dir=rtl] .wrapper {
+        padding-left: 1% !important;
+        padding-right: 1% !important;
+    }
+}

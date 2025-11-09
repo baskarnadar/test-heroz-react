@@ -5,7 +5,7 @@ import { cilFilter } from '@coreui/icons';
 import ToggleButtons from '../include/headermenu';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
-import { formatDate, DspToastMessage,getAuthHeaders } from '../../../utils/operation';
+import { formatDate, DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 
 const StudentList = () => {
   const navigate = useNavigate();
@@ -24,6 +24,11 @@ const StudentList = () => {
   const [productIDToDelete, setProductIDToDelete] = useState(null);
 
   const ordersPerPage = 10;
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -153,7 +158,7 @@ const StudentList = () => {
                 <th>  Email</th>
                 <th>  Mobile No</th>
                 <th>  Role</th>
-                 <th>Created Date</th> 
+                <th>Created Date</th>
                 <th className="txt-center">Action</th>
               </tr>
             </thead>
@@ -171,44 +176,45 @@ const StudentList = () => {
                     <td>B56789</td>
                     <td>Ahmed</td>
                     <td>sample@sample.com</td>
-                      <td>0500865623</td>
-                        <td>Manage Booking</td>
-                    
+                    <td>0500865623</td>
+                    <td>Manage Booking</td>
                     <td>{formatDate(order.CreatedBy)}</td>
-                    
                     <td align="center">
-                      
                       <div className="action-buttons">
-                         <span
-          id="qlwapp"
-          className="qlwapp qlwapp-free qlwapp-button qlwapp-bottom-right qlwapp-all qlwapp-rounded"
-          style={{ display: 'inline-block' }}
-        >
-          <a
-            className="qlwapp-toggle"
-            data-action="open"
-            data-phone="966500832016"
-            data-message=""
-            role="button"
-            tabIndex={0}
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://wa.me/966500832016"
-            title="Show Hide Profile"
-          >
-            <div className="btn btnbtn-default graybox" style={{ padding: '2px' }}>
-              <i style={{ color: 'darkgreen' }} className="fa fa-whatsapp" />
-            </div>
-          </a>
-        </span>
+                        <span
+                          id="qlwapp"
+                          className="qlwapp qlwapp-free qlwapp-button qlwapp-bottom-right qlwapp-all qlwapp-rounded"
+                          style={{ display: 'inline-block' }}
+                        >
+                          <a
+                            className="qlwapp-toggle"
+                            data-action="open"
+                            data-phone="966500832016"
+                            data-message=""
+                            role="button"
+                            tabIndex={0}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            href="https://wa.me/966500832016"
+                            title="Show Hide Profile"
+                          >
+                            <div className="btn btnbtn-default graybox" style={{ padding: '2px' }}>
+                              <i style={{ color: 'darkgreen' }} className="fa fa-whatsapp" />
+                            </div>
+                          </a>
+                        </span>
 
                         <button onClick={() => handleModify(order._id)} title="Edit" className="graybox">
                           <i className="fa fa-pencil" style={{ color: '#cf2037' }} />
                         </button>
-                        <button onClick={() => {
-                          setProductIDToDelete(order._id);
-                          setShowDeleteModal(true);
-                        }} title="Delete" className="graybox">
+                        <button
+                          onClick={() => {
+                            setProductIDToDelete(order._id);
+                            setShowDeleteModal(true);
+                          }}
+                          title="Delete"
+                          className="graybox"
+                        >
                           <i className="fa fa-trash-o" style={{ color: '#cf2037' }} />
                         </button>
                         <button onClick={() => handleView(order._id)} title="View" className="graybox">
@@ -223,7 +229,9 @@ const StudentList = () => {
           </table>
 
           <div className="pagination-container">
-            <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>{'<<'}</button>
+            <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+              {'<<'}
+            </button>
             {getPageRange().map((page) => (
               <button
                 key={page}
@@ -233,7 +241,9 @@ const StudentList = () => {
                 {page}
               </button>
             ))}
-            <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>>'}</button>
+            <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
+              {'>>'}
+            </button>
           </div>
         </div>
       )}

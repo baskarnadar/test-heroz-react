@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
-import { DspToastMessage,getAuthHeaders} from '../../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
 import '../../../scss/toast.css';
 
 const ViewClass = () => {
@@ -21,6 +21,11 @@ const ViewClass = () => {
   useEffect(() => {
     checkLogin(navigate);
   }, [navigate]);
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     const fetchClassData = async () => {

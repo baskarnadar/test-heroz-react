@@ -2,17 +2,19 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select";
 import { API_BASE_URL } from "../../../config";
-import { DspToastMessage, dspstatusv1   } from "../../../utils/operation";
+import { DspToastMessage, dspstatusv1, IsAdminLoginIsValid } from "../../../utils/operation";
 import FilePreview from "../../../views/widgets/FilePreview";
 import {
   getFileNameFromUrl,
   getCurrentLoggedUserID,
   YouTubeEmbed,
   GoogleMapEmbed,
-  getAuthHeaders } from "../../../utils/operation";
+  getAuthHeaders,
+} from "../../../utils/operation";
 import { CRow, CCol } from "@coreui/react";
 import moneyv1 from "../../../assets/images/moneyv1.png";
 import ReactPlayer from "react-player";
+
 const Vendor = () => {
   const [error, setError] = useState("");
   const [TripData, setTripData] = useState([]);
@@ -28,7 +30,12 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
 
-  const fetchActivity = async (ActivityIDVal, VendorIDVal,RequestIDVal) => {
+  // ✅ Admin login validation – will redirect if invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
+
+  const fetchActivity = async (ActivityIDVal, VendorIDVal, RequestIDVal) => {
     setLoading(true);
     console.log(`${API_BASE_URL}/admindata/activityinfo/trip/gettripview`);
     try {
@@ -36,11 +43,11 @@ const Vendor = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`,
         {
           method: "POST",
-         headers: getAuthHeaders(),
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             ActivityID: ActivityIDVal,
             VendorID: VendorIDVal,
-             RequestID: RequestIDVal,
+            RequestID: RequestIDVal,
           }),
         }
       );
@@ -67,7 +74,7 @@ const Vendor = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
         {
           method: "POST",
-         headers: getAuthHeaders(),
+          headers: getAuthHeaders(),
           body: JSON.stringify({ RequestID }),
         }
       );
@@ -80,8 +87,8 @@ const Vendor = () => {
       console.log("API Response:", data);
 
       const payload = Array.isArray(data?.data)
-        ? (data.data[0] ?? null)
-        : (data?.data ?? null);
+        ? data.data[0] ?? null
+        : data?.data ?? null;
       setTripData(payload);
     } catch (error) {
       console.error("Error fetching trip data:", error);
@@ -100,23 +107,23 @@ const Vendor = () => {
     setactImageName3(ActivityData.actImageName3Url || "");
   }, [ActivityData]);
 
-  
-      const getSearchParams = () => {
-        const search = window.location.search ||
-        (window.location.hash && window.location.hash.includes('?')
-        ? `?${window.location.hash.split('?')[1]}`
-        : '');
-        return new URLSearchParams(search);
-        };
+  const getSearchParams = () => {
+    const search =
+      window.location.search ||
+      (window.location.hash && window.location.hash.includes("?")
+        ? `?${window.location.hash.split("?")[1]}`
+        : "");
+    return new URLSearchParams(search);
+  };
 
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-    const urlParams = getSearchParams()
+    const urlParams = getSearchParams();
     const ActivityIDVal = urlParams.get("ActivityID");
     const VendorIDVal = urlParams.get("VendorID");
     const RequestID = urlParams.get("RequestID");
     if (ActivityIDVal) {
-      fetchActivity(ActivityIDVal, VendorIDVal,RequestID);
+      fetchActivity(ActivityIDVal, VendorIDVal, RequestID);
       fetchTripData(RequestID);
     } else {
       setError("ActivityID is missing in URL");
@@ -622,14 +629,12 @@ const Vendor = () => {
           </CRow>
 
           {ActivityData?.foodList?.map((foodItem, index) => {
-
             console.log(ActivityData?.foodList);
             const TotalFoodPrice =
               (parseFloat(foodItem.FoodPrice) || 0) +
               (parseFloat(foodItem.FoodHerozPrice) || 0) +
               (parseFloat(foodItem.RequestFoodSchoolPrice) || 0);
 
-           
             console.log(parseFloat("foodItem.RequestFoodSchoolPrice"));
             console.log(parseFloat(foodItem.RequestFoodSchoolPrice));
             return (
@@ -652,7 +657,7 @@ const Vendor = () => {
                 </CCol>
                 <CCol sm={1}>
                   <div className="admin-lbl-box text-center pink-shadow8">
-                    {foodItem.RequestFoodSchoolPrice}  
+                    {foodItem.RequestFoodSchoolPrice}
                   </div>
                 </CCol>
 

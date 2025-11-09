@@ -10,7 +10,9 @@ import {
   formatDate,
   getCurrentLoggedUserID,
   dspstatus,
-  getAuthHeaders } from "../../../utils/operation";
+  getAuthHeaders,
+  IsAdminLoginIsValid, // ✅ added
+} from "../../../utils/operation";
 import logo from "../../../assets/logo/default.png";
 import moneyv1 from "../../../assets/images/moneyv1.png";
 import { ActionButtonsV1 } from "../../../utils/btn";
@@ -31,6 +33,11 @@ const TripDataList = () => {
 
   const TripDataPerPage = 10;
   const navigate = useNavigate();
+
+  // ✅ new admin login validation effect (as requested)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     fetchTripData();
@@ -84,7 +91,7 @@ const TripDataList = () => {
         `${API_BASE_URL}/admindata/activityinfo/trip/triplist`,
         {
           method: "POST",
-         headers: getAuthHeaders(),
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             page: currentPage,
             limit: TripDataPerPage,
@@ -122,18 +129,16 @@ const TripDataList = () => {
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleViewClick = (ActivityID,RequestID, VendorID) => {
+  const handleViewClick = (ActivityID, RequestID, VendorID) => {
     navigate(
       `/admindata/activityinfo/trip/view?ActivityID=${ActivityID}&RequestID=${RequestID}&VendorID=${VendorID}`
     );
   };
- const handlePaidStudentClick = (ActivityID,RequestID, VendorID) => {
+  const handlePaidStudentClick = (ActivityID, RequestID, VendorID) => {
     navigate(
       `/admindata/activityinfo/trippayinfo/view?ActivityID=${ActivityID}&RequestID=${RequestID}&VendorID=${VendorID}`
     );
   };
-
-  
 
   const getPageRange = () => {
     const range = [];
@@ -181,22 +186,28 @@ const TripDataList = () => {
                     </div>
                   </td>
                   <td> {TripData.actName} </td>
-                  <td> { (TripData.actRequestRefNo)} </td>
+                  <td> {TripData.actRequestRefNo} </td>
                   <td>{formatDate(TripData.actRequestDate)}</td>
-                   <td>{ (TripData.actRequestTime)}</td>
+                  <td>{TripData.actRequestTime}</td>
 
-                  <td>  <button
-                        onClick={() =>
-                          handlePaidStudentClick(TripData.ActivityID,TripData.RequestID, TripData.VendorID)
-                        }
-                        title="View"
-                        className="btn btnbtn-default graybox"
-                        style={{ padding: "2px", cursor: "pointer" }}
-                        aria-label="View"
-                      >
-                        Paid Student List
-                      </button> </td>
-                    <td> {dspstatus(TripData.actRequestStatus)} </td>
+                  <td>
+                    <button
+                      onClick={() =>
+                        handlePaidStudentClick(
+                          TripData.ActivityID,
+                          TripData.RequestID,
+                          TripData.VendorID
+                        )
+                      }
+                      title="View"
+                      className="btn btnbtn-default graybox"
+                      style={{ padding: "2px", cursor: "pointer" }}
+                      aria-label="View"
+                    >
+                      Paid Student List
+                    </button>
+                  </td>
+                  <td> {dspstatus(TripData.actRequestStatus)} </td>
                   <td
                     align="center"
                     style={{ width: "10%", whiteSpace: "nowrap" }}
@@ -212,7 +223,11 @@ const TripDataList = () => {
                     >
                       <button
                         onClick={() =>
-                          handleViewClick(TripData.ActivityID,TripData.RequestID, TripData.VendorID)
+                          handleViewClick(
+                            TripData.ActivityID,
+                            TripData.RequestID,
+                            TripData.VendorID
+                          )
                         }
                         title="View"
                         className="btn btnbtn-default graybox"
@@ -240,7 +255,9 @@ const TripDataList = () => {
             {pageNumbers.map((pageNumber) => (
               <button
                 key={pageNumber}
-                className={`pagination-button ${currentPage === pageNumber ? "active" : ""}`}
+                className={`pagination-button ${
+                  currentPage === pageNumber ? "active" : ""
+                }`}
                 onClick={() => handlePageClick(pageNumber)}
                 disabled={currentPage === pageNumber}
               >

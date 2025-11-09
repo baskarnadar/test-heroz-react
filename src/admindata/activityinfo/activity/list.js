@@ -11,6 +11,7 @@ import {
   getCurrentLoggedUserID,
   dspstatus,
   getAuthHeaders,
+  IsAdminLoginIsValid, // ✅ added here
 } from '../../../utils/operation'
 import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
@@ -33,7 +34,7 @@ const ActivityList = () => {
   const [confirmText, setConfirmText] = useState('')
 
   // Order editing state
-  const [orderMap, setOrderMap] = useState({})         // { [ActivityID]: number | '' }
+  const [orderMap, setOrderMap] = useState({}) // { [ActivityID]: number | '' }
   const [originalOrderMap, setOriginalOrderMap] = useState({})
   const [savingOrder, setSavingOrder] = useState(false)
 
@@ -47,6 +48,11 @@ const ActivityList = () => {
   const [filterStatus, setFilterStatus] = useState('')
 
   const navigate = useNavigate()
+
+  // ✅ NEW: admin login validation (runs once on mount)
+  useEffect(() => {
+    IsAdminLoginIsValid?.() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   // ---------- tiny logging helpers ----------
   const logApiRequest = (label, url, payload, headers) => {
@@ -69,7 +75,9 @@ const ActivityList = () => {
     const headers = Array.from(resp.headers?.entries?.() || [])
     const raw = await resp.text()
     let json = null
-    try { json = JSON.parse(raw) } catch {}
+    try {
+      json = JSON.parse(raw)
+    } catch {}
     console.groupCollapsed(`📨 ${label} — Response`)
     console.log('Status:', resp.status, resp.statusText, 'OK:', resp.ok)
     console.log('URL:', resp.url)
@@ -89,8 +97,10 @@ const ActivityList = () => {
     if (toastMessage) {
       timer = setTimeout(() => setToastMessage(''), 2000)
     }
-    return () => { if (timer) clearTimeout(timer) }
-  // (no dependency on currentPage here anymore for fetching)
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+    // (no dependency on currentPage here anymore for fetching)
   }, [pageSize, navigate, toastMessage])
 
   const safeNumFromApi = (v) => {
@@ -100,7 +110,7 @@ const ActivityList = () => {
   }
 
   // Prefer actOrderID from API
-  const pickOrderField = (row) => (
+  const pickOrderField = (row) =>
     row?.actOrderID ??
     row?.OrderID ??
     row?.orderId ??
@@ -112,7 +122,6 @@ const ActivityList = () => {
     row?.OrderNo ??
     row?.orderNo ??
     ''
-  )
 
   const fetchActivity = async () => {
     setLoading(true)
@@ -331,7 +340,12 @@ const ActivityList = () => {
     if (!hasChanges || savingOrder) return
     setSavingOrder(true)
     const API = `${API_BASE_URL}/admindata/activityinfo/activity/changeorder`
-    const payload = { items: changedItems.map(({ ActivityID, OrderID }) => ({ ActivityID, OrderID })) }
+    const payload = {
+      items: changedItems.map(({ ActivityID, OrderID }) => ({
+        ActivityID,
+        OrderID,
+      })),
+    }
 
     logApiRequest('Change Order', API, payload.items, getAuthHeaders())
 
@@ -344,7 +358,9 @@ const ActivityList = () => {
       const { json } = await logApiResponse('Change Order', resp)
 
       if (!resp.ok || (json && json.success === false)) {
-        const msg = (json && (json.message || json.error)) || `Order update failed (HTTP ${resp.status}).`
+        const msg =
+          (json && (json.message || json.error)) ||
+          `Order update failed (HTTP ${resp.status}).`
         setToastType('fail')
         setToastMessage(msg)
         return
@@ -421,7 +437,9 @@ const ActivityList = () => {
             }}
           >
             {[10, 25, 50, 100].map((n) => (
-              <option key={n} value={n}>{n}</option>
+              <option key={n} value={n}>
+                {n}
+              </option>
             ))}
           </select>
         </div>
@@ -429,7 +447,8 @@ const ActivityList = () => {
 
       {/* Quick stats for filtered results */}
       <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>
-        Showing {pageRows.length} of {filteredActivity.length} filtered record(s) • Total loaded: {Activity.length}
+        Showing {pageRows.length} of {filteredActivity.length} filtered record(s) • Total loaded:{' '}
+        {Activity.length}
       </div>
 
       {loading ? (
@@ -506,7 +525,11 @@ const ActivityList = () => {
                       <img
                         src={moneyv1}
                         alt="logo"
-                        style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
+                        style={{
+                          width: '14px',
+                          marginRight: '6px',
+                          verticalAlign: 'middle',
+                        }}
                       />
                       {row.priceList && row.priceList.length > 0
                         ? row.priceList.map((price, i) => (
@@ -549,12 +572,14 @@ const ActivityList = () => {
                           style={{
                             padding: '4px',
                             cursor: 'pointer',
-                            
                             backgroundColor: 'white',
                           }}
                           aria-label="View"
                         >
-                          <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-pencil" />
+                          <i
+                            style={{ color: '#cf2037', fontSize: '22px' }}
+                            className="fa fa-pencil"
+                          />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(row.ActivityID, row.VendorID)}
@@ -563,13 +588,14 @@ const ActivityList = () => {
                           style={{
                             padding: '4px',
                             cursor: 'pointer',
-                             
-                           
                             backgroundColor: 'white',
                           }}
                           aria-label="Delete"
                         >
-                          <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-trash" />
+                          <i
+                            style={{ color: '#cf2037', fontSize: '22px' }}
+                            className="fa fa-trash"
+                          />
                         </button>
                       </div>
                     </td>
@@ -608,7 +634,9 @@ const ActivityList = () => {
             {getPageRange().map((pageNumber) => (
               <button
                 key={pageNumber}
-                className={`pagination-button ${currentPage === pageNumber ? 'active' : ''}`}
+                className={`pagination-button ${
+                  currentPage === pageNumber ? 'active' : ''
+                }`}
                 onClick={() => handlePageClick(pageNumber)}
                 disabled={currentPage === pageNumber}
               >
@@ -629,7 +657,9 @@ const ActivityList = () => {
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">
-            <h4 style={{ color: '#cf2037', marginBottom: 8, fontWeight: 700 }}>Confirm Deletion</h4>
+            <h4 style={{ color: '#cf2037', marginBottom: 8, fontWeight: 700 }}>
+              Confirm Deletion
+            </h4>
             <p style={{ color: '#cf2037', marginBottom: 12 }}>
               ⚠️ This will permanently delete <strong>all data related to this activity</strong>.
               <br />
@@ -658,8 +688,12 @@ const ActivityList = () => {
                 onClick={confirmDelete}
                 disabled={!isConfirmMatch || !ActivityIDToDelete || !VendorIDToDelete}
                 style={{
-                  opacity: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 1 : 0.6,
-                  cursor: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 'pointer' : 'not-allowed',
+                  opacity:
+                    isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 1 : 0.6,
+                  cursor:
+                    isConfirmMatch && ActivityIDToDelete && VendorIDToDelete
+                      ? 'pointer'
+                      : 'not-allowed',
                   backgroundColor: isConfirmMatch ? '#cf2037' : '#bbb',
                   borderColor: '#cf2037',
                   color: '#fff',
@@ -692,10 +726,16 @@ const ActivityList = () => {
 const SimpleSelect = ({ label, value, onChange, options, allLabel }) => (
   <div>
     <label style={{ fontSize: 12, color: '#666' }}>{label}</label>
-    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
+    <select
+      className="form-control"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       <option value="">{allLabel}</option>
       {options.map((opt) => (
-        <option key={opt} value={opt}>{opt}</option>
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
       ))}
     </select>
   </div>
@@ -704,10 +744,16 @@ const SimpleSelect = ({ label, value, onChange, options, allLabel }) => (
 const VendorFilter = ({ value, onChange, options }) => (
   <div>
     <label style={{ fontSize: 12, color: '#666' }}>Vendor</label>
-    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
+    <select
+      className="form-control"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       <option value="">All Vendors</option>
       {options.map((v) => (
-        <option key={v} value={v}>{v}</option>
+        <option key={v} value={v}>
+          {v}
+        </option>
       ))}
     </select>
   </div>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation';
+
 const AddNewSubMenu = () => {
   const navigate = useNavigate();
 
@@ -14,6 +15,11 @@ const AddNewSubMenu = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // ✅ Admin login validation (your requested snippet)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -80,7 +86,11 @@ const AddNewSubMenu = () => {
     <form className="form-container" onSubmit={handleSubmit}>
       <div className="page-title">
         <h3 style={{ margin: 0 }}>New SubMenu</h3>
-        <button type="button" onClick={() => navigate('/submenu/list')} className="admin-buttonv1">
+        <button
+          type="button"
+          onClick={() => navigate('/submenu/list')}
+          className="admin-buttonv1"
+        >
           Return
         </button>
       </div>
@@ -147,7 +157,13 @@ const AddNewSubMenu = () => {
           Cancel
         </button>
         {error && (
-          <p className={error.toLowerCase().includes('success') ? 'message-success' : 'message-error'}>
+          <p
+            className={
+              error.toLowerCase().includes('success')
+                ? 'message-success'
+                : 'message-error'
+            }
+          >
             {error}
           </p>
         )}

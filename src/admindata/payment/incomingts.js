@@ -5,7 +5,7 @@ import { CIcon } from '@coreui/icons-react'
 import { cilTrash, cilPencil } from '@coreui/icons'
 import '../../scss/toast.css'
 import { checkLogin } from '../../utils/auth'
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
 import logo from '../../assets/logo/default.png'
 import { ActionButtonsV1 } from '../../utils/btn'
 
@@ -29,6 +29,11 @@ const IncomingTransaction = () => {
   useEffect(() => {
     checkLogin(navigate)
   }, [navigate])
+
+  // ✅ Admin login validation (applied here)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   useEffect(() => {
     if (toastMessage) {
@@ -136,7 +141,7 @@ const IncomingTransaction = () => {
                 <th>Date</th>
                 <th>Total Amount</th>
                 <th>Tax Amount</th>
-                <th>No Of Stars</th> 
+                <th>No Of Stars</th>
                 <th>Payment Type</th>
                 <th>Status</th>
               </tr>
@@ -152,7 +157,7 @@ const IncomingTransaction = () => {
                   <td>25-Jun-2025</td>
                   <td>1,490</td>
                   <td>700</td>
-                  <td>250</td> 
+                  <td>250</td>
                   <td>Cash</td>
                   <td>Completed</td>
                 </tr>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { API_BASE_URL } from '../../config'
 import { fnNavigation } from './link'
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
+
 const SetLinkList = () => {
   const [NoteInfo, setNoteInfo] = useState([])
   const [loading, setLoading] = useState(false)
@@ -12,9 +13,14 @@ const SetLinkList = () => {
   const queryParams = new URLSearchParams(location.search)
   const noteIdFromURL = queryParams.get('NoteID')
 
+  // ✅ Added admin login validation effect (your requested snippet, adapted)
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
+
   const fetchNoteInfo = async () => {
     if (!noteIdFromURL) return
-   
+
     setLoading(true)
     try {
       const response = await fetch(`${API_BASE_URL}/note/getnote`, {
@@ -24,10 +30,10 @@ const SetLinkList = () => {
           NoteID: noteIdFromURL,
         }),
       })
-  
+
       if (!response.ok) throw new Error('Failed to fetch notification')
       const data = await response.json()
-    console.log('response')
+      console.log('response')
       console.log(response)
       fnNavigation(data.data[0], navigate)
       setNoteInfo(data.data ? [data.data] : [])

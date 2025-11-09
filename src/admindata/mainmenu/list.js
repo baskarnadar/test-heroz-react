@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import CIcon from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
+import {
+  IsAdminLoginIsValid
+} from '../../../utils/operation';
 
 const MainMenuListWithPagination = () => {
   const [MainMenus, setMainMenus] = useState([]);
@@ -13,6 +16,11 @@ const MainMenuListWithPagination = () => {
 
   const itemsPerPage = 10;
   const navigate = useNavigate();
+
+  // ✅ Check admin login validity once on mount
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     fetchMainMenuList();
@@ -87,7 +95,10 @@ const MainMenuListWithPagination = () => {
 
   return (
     <div className="MainMenu-list-container">
-      <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        className="page-title"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         <h3>MainMenu List</h3>
         <button onClick={() => navigate('/MainMenu/new')} className="add-product-button">
           Add New MainMenu

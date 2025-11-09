@@ -1,9 +1,18 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import ToggleButtons from "../include/headermenu";  
+import {
+  IsAdminLoginIsValid
+} from '../../../utils/operation'
+
 const Vendor = () => {
   const navigate = useNavigate()
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -40,7 +49,7 @@ const Vendor = () => {
     { value: 'Elementary', label: 'Elementary' },
     { value: 'Secondary', label: 'Secondary' },
   ]
- const [active, setActive] = useState("SCHOOL");
+  const [active, setActive] = useState("SCHOOL");
   const countries = ['Saudi Arabia', 'UAE']
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -88,15 +97,15 @@ const Vendor = () => {
 
   const btnhandleClick = (value) => {
     setActive(value);
-     console.log(value);
+    console.log(value);
   };
   
   return (
     <div>
 
       <div>
-      <ToggleButtons active={active} handleClick={btnhandleClick} /> 
-    </div>
+        <ToggleButtons active={active} handleClick={btnhandleClick} /> 
+      </div>
 
       <div className="divhbg">
         {/* Left side: Title */}
@@ -142,7 +151,7 @@ const Vendor = () => {
             />
           </div>
         </div>
- <div className="form-group">
+        <div className="form-group">
           <label>Mobile Number 2</label>
           <div className="mobile-input-group">
             <select className="country-code-dropdown" required>

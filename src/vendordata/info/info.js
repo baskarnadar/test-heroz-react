@@ -1,7 +1,7 @@
 // src/pages/vendor/VendorInfoPage.js
 import React, { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../../config'
-import { getAuthHeaders, getCurrentLoggedUserID } from '../../utils/operation'
+import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
 
 /** ============== Localization placeholders (replace with your i18n) ============== */
 const L = {
@@ -84,7 +84,7 @@ export const kVendorLabels = {
   vdrAdminNotes: 'Admin Notes',
 }
 
- const VDR_INFO = `${API_BASE_URL}/vendordata/vendor/getvendor` // <-- adjust to your real path
+const VDR_INFO = `${API_BASE_URL}/vendordata/vendor/getvendor` // <-- adjust to your real path
 
 /** ===================== Utilities ===================== */
 const formatIsoDate = (value) => {
@@ -93,7 +93,9 @@ const formatIsoDate = (value) => {
   const dt = new Date(raw)
   if (isNaN(dt.getTime())) return raw
   const two = (n) => String(n).padStart(2, '0')
-  return `${dt.getFullYear()}-${two(dt.getMonth() + 1)}-${two(dt.getDate())} ${two(dt.getHours())}:${two(dt.getMinutes())}:${two(dt.getSeconds())}`
+  return `${dt.getFullYear()}-${two(dt.getMonth() + 1)}-${two(dt.getDate())} ${two(
+    dt.getHours(),
+  )}:${two(dt.getMinutes())}:${two(dt.getSeconds())}`
 }
 
 const maskIban = (value) => {
@@ -143,7 +145,15 @@ const Avatar = ({ imgUrl, fallbackLetter }) => {
           onError={() => setError(true)}
         />
       ) : (
-        <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#555' }}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'grid',
+            placeItems: 'center',
+            color: '#555',
+          }}
+        >
           <strong style={{ fontSize: 28 }}>{fallbackLetter || 'V'}</strong>
         </div>
       )}
@@ -171,23 +181,50 @@ const HeaderCard = ({ vendor }) => {
   }, [status])
 
   return (
-    <div style={{ borderRadius: 16, border: '1px solid #eee', padding: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div
+      style={{
+        borderRadius: 16,
+        border: '1px solid #eee',
+        padding: 16,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+      }}
+    >
       <Avatar imgUrl={imgUrl} fallbackLetter={initial} />
-      <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
         <div style={{ fontSize: 22, fontWeight: 700 }}>{name || L.dash}</div>
         {code && (
-          <span style={{
-            border: '1px solid #ddd', borderRadius: 999, padding: '4px 10px',
-            background: '#fafafa', fontWeight: 600
-          }}>
+          <span
+            style={{
+              border: '1px solid #ddd',
+              borderRadius: 999,
+              padding: '4px 10px',
+              background: '#fafafa',
+              fontWeight: 600,
+            }}
+          >
             {L.code_short}: {code}
           </span>
         )}
         {status && (
-          <span style={{
-            borderRadius: 999, padding: '4px 10px',
-            background: `${statusColor}22`, color: statusColor, fontWeight: 700
-          }}>
+          <span
+            style={{
+              borderRadius: 999,
+              padding: '4px 10px',
+              background: `${statusColor}22`,
+              color: statusColor,
+              fontWeight: 700,
+            }}
+          >
             {status}
           </span>
         )}
@@ -201,36 +238,52 @@ const renderLinkText = (value) => {
   const text = String(value ?? '').trim()
   if (!text) return <span>{L.dash}</span>
   const copy = async () => {
-    try { await navigator.clipboard.writeText(text) } catch {}
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {}
   }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <a href={text} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>
         {text}
       </a>
-      <button onClick={copy} title={L.copy} style={{ padding: '2px 6px' }}>📋</button>
+      <button onClick={copy} title={L.copy} style={{ padding: '2px 6px' }}>
+        📋
+      </button>
     </div>
   )
 }
 
 const renderMonospace = (value) => {
   const text = String(value ?? '')
-  return <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>{text || L.dash}</span>
+  return (
+    <span
+      style={{
+        fontFamily:
+          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+      }}
+    >
+      {text || L.dash}
+    </span>
+  )
 }
 
 const renderOfficeHours = (value) => {
-  if (!value || typeof value !== 'object' || !Array.isArray(value.rows)) return <span>{L.dash}</span>
+  if (!value || typeof value !== 'object' || !Array.isArray(value.rows))
+    return <span>{L.dash}</span>
   const rows = value.rows
   if (!rows.length) return <span>{L.dash}</span>
 
   return (
     <div style={{ marginTop: 6 }}>
-      <div style={{
-        background: '#faf8ff',
-        border: '1px solid #e6e1f2',
-        borderRadius: 8,
-        overflow: 'hidden',
-      }}>
+      <div
+        style={{
+          background: '#faf8ff',
+          border: '1px solid #e6e1f2',
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}
+      >
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#F6F2FF' }}>
             <tr>
@@ -243,7 +296,9 @@ const renderOfficeHours = (value) => {
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} style={{ borderTop: '1px solid #eee' }}>
-                <td style={{ padding: '8px', whiteSpace: 'nowrap', overflowX: 'auto' }}>{r.DayName || L.dash}</td>
+                <td style={{ padding: '8px', whiteSpace: 'nowrap', overflowX: 'auto' }}>
+                  {r.DayName || L.dash}
+                </td>
                 <td style={{ padding: '8px' }}>{r.StartTime || L.dash}</td>
                 <td style={{ padding: '8px' }}>{r.EndTime || L.dash}</td>
                 <td style={{ padding: '8px' }}>{r.Note || L.dash}</td>
@@ -289,12 +344,24 @@ const CustomizableFieldsCard = ({
           return (
             <div key={key}>
               <div style={{ padding: '10px 0' }}>
-                <div style={{ fontWeight: 700, color: '#111', marginBottom: 8 }}>{label}</div>
+                <div style={{ fontWeight: 700, color: '#111', marginBottom: 8 }}>
+                  {label}
+                </div>
                 <div>
-                  {custom ? custom(value) : <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{formatValue(value)}</pre>}
+                  {custom ? (
+                    custom(value)
+                  ) : (
+                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                      {formatValue(value)}
+                    </pre>
+                  )}
                 </div>
               </div>
-              {i !== keys.length - 1 && <hr style={{ border: 0, borderTop: '1px solid #eee', margin: 0 }} />}
+              {i !== keys.length - 1 && (
+                <hr
+                  style={{ border: 0, borderTop: '1px solid #eee', margin: 0 }}
+                />
+              )}
             </div>
           )
         }
@@ -302,12 +369,22 @@ const CustomizableFieldsCard = ({
         return (
           <div key={key}>
             <div style={{ padding: '10px 0', display: 'flex', gap: 16 }}>
-              <div style={{ flex: 2, fontWeight: 600, color: '#111' }}>{label}</div>
+              <div style={{ flex: 2, fontWeight: 600, color: '#111' }}>
+                {label}
+              </div>
               <div style={{ flex: 3 }}>
-                {custom ? custom(value) : <span>{formatValue(value)}</span>}
+                {custom ? (
+                  custom(value)
+                ) : (
+                  <span>{formatValue(value)}</span>
+                )}
               </div>
             </div>
-            {i !== keys.length - 1 && <hr style={{ border: 0, borderTop: '1px solid #eee', margin: 0 }} />}
+            {i !== keys.length - 1 && (
+              <hr
+                style={{ border: 0, borderTop: '1px solid #eee', margin: 0 }}
+              />
+            )}
           </div>
         )
       })}
@@ -327,6 +404,11 @@ const VendorInfoPage = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [vendor, setVendor] = useState(null)
+
+  // ✅ vendor-login validation (same pattern as other pages)
+  useEffect(() => {
+    IsVendorLoginIsValid?.()
+  }, [])
 
   const fetchVendor = async ({ vendorID } = {}) => {
     const id = String(vendorID ?? getCurrentLoggedUserID() ?? '').trim()
@@ -368,7 +450,7 @@ const VendorInfoPage = ({
 
   const mergedLabels = useMemo(
     () => ({ ...kVendorLabels, ...(customLabels || {}) }),
-    [customLabels]
+    [customLabels],
   )
 
   const hide = useMemo(
@@ -387,7 +469,7 @@ const VendorInfoPage = ({
         'vdrImageNameURL',
         'vdrImageNameUrl',
       ]),
-    []
+    [],
   )
 
   const renderers = useMemo(
@@ -409,7 +491,7 @@ const VendorInfoPage = ({
 
       OfficeOpenHours: (v) => renderOfficeHours(v),
     }),
-    []
+    [],
   )
 
   const order = useMemo(
@@ -456,7 +538,7 @@ const VendorInfoPage = ({
 
       'vdrAdminNotes',
     ],
-    []
+    [],
   )
 
   return (
@@ -469,7 +551,12 @@ const VendorInfoPage = ({
         </div>
       )}
 
-      {!loading && error && <ErrorView message={error} onRetry={() => fetchVendor()} />}
+      {!loading && error && (
+        <ErrorView
+          message={error}
+          onRetry={() => fetchVendor()}
+        />
+      )}
 
       {!loading && !error && vendor && (
         <>

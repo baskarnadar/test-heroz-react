@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { checkLogin } from '../../../utils/auth'
 import '../../../scss/toast.css'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 
 const AddCountryForm = () => {
   const navigate = useNavigate()
@@ -19,35 +19,17 @@ const AddCountryForm = () => {
     checkLogin(navigate)
   }, [navigate])
 
+  // 🔐 Admin login validation
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
+
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => setToastMessage(''), 2000)
       return () => clearTimeout(timer)
     }
   }, [toastMessage])
-
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/Country/getCountrylist`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // If your API expects data in the body
-        })
-
-        const result = await response.json()
-        if (result.data) {
-          setCountryList(result.data)
-        }
-      } catch (error) {
-        console.error('Error fetching Country list:', error)
-      }
-    }
-
-    fetchCities()
-  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -94,7 +76,11 @@ const AddCountryForm = () => {
     <form onSubmit={handleSubmit} className="form-container">
       <div className="page-title">
         <h3 style={{ margin: 0 }}>Add Country</h3>
-        <button type="button" onClick={() => navigate('/admindata/country/list')} className="admin-buttonv1">
+        <button
+          type="button"
+          onClick={() => navigate('/admindata/country/list')}
+          className="admin-buttonv1"
+        >
           Return
         </button>
       </div>

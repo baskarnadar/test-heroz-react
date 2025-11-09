@@ -6,7 +6,7 @@ import { getFileNameFromUrl } from '../../utils/operation';
 // Removed: import 'react-quill/dist/quill.snow.css'
 import '../../scss/toast.css';
 import { checkLogin } from '../../utils/auth';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation';
 
 const ProductCategoryDropdown = () => {
   const navigate = useNavigate();
@@ -28,6 +28,11 @@ const ProductCategoryDropdown = () => {
   const [ArPrdNameVal, setArPrdName] = useState('');
   const [PrdDiscountVal, setPrdDiscountVal] = useState('');
   const [PrdDescVal, setPrdDesc] = useState('');
+
+  // 🔒 Admin login validation – will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     checkLogin(navigate);
@@ -157,7 +162,7 @@ const ProductCategoryDropdown = () => {
       setToastMessage('Failed to save product.');
     }
 
-    setLoading(false);
+  setLoading(false);
   };
 
   return (

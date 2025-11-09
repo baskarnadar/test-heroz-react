@@ -36,6 +36,16 @@ const fmtDateTime = (iso) => {
   } catch { return toStr(iso); }
 };
 
+// ✅ Date-only formatter (YYYY-MM-DD)
+const fmtDateOnly = (iso) => {
+  if (!iso) return "-";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return toStr(iso);
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  } catch { return toStr(iso); }
+};
+
 const statusClassName = (status = "") => {
   const s = (status || "").toUpperCase();
   if (s === "TRIP-BOOKED") return "status--trip-booked";
@@ -328,7 +338,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
     return map;
   }, [effectivePayments]);
 
-  // ------- NEW: count MyFatrooahRefNo to detect multi-kid payments -------
+  // count MyFatrooahRefNo to detect multi-kid payments
   const refCountMap = React.useMemo(() => {
     const m = {};
     for (const p of effectivePayments) {
@@ -462,7 +472,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
     return { totalFull, totalSchool, totalVendor, totalHeroz };
   }, [item, paymentMap]);
 
-  // ------- NEW: header totals (with/without ABSENT) -------
+  // header totals (with/without ABSENT)
   const headerTotals = React.useMemo(() => {
     let withAll = 0;
     let withoutAbsent = 0;
@@ -515,7 +525,8 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
           SchoolNo: k?.TripKidsSchoolNo ?? "",
           Name: k?.TripKidsName ?? "",
           Status: k?.tripKidsStatus ?? "",
-          Created: fmtDateTime(k?.CreatedDate),
+          // export date only
+          Created: fmtDateOnly(k?.CreatedDate),
           ParentName: parent?.tripParentsName ?? "",
           Mobile: parent?.tripParentsMobileNo ?? "",
           MyFatrooahRefNo: myfRef || "",
@@ -548,6 +559,12 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
     }
   }, [item, parentMap, paymentMap]);
 
+  // ====== 15% tax breakdown values (base = Trip Full Amount of all payments) ======
+  const totalAmountBeforeTax = React.useMemo(() => aggregates.trip.fullAmount, [aggregates.trip.fullAmount]);
+  const TAX_RATE_15 = 0.15;
+  const taxAmount15 = React.useMemo(() => totalAmountBeforeTax * TAX_RATE_15, [totalAmountBeforeTax]);
+  const netAfterTax15 = React.useMemo(() => totalAmountBeforeTax + taxAmount15, [totalAmountBeforeTax, taxAmount15]);
+
   // ===== Render =====
   const vendorTrip  = aggregates.trip.vendor;
   const vendorFood  = aggregates.food.vendor;
@@ -566,7 +583,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
       <CModalHeader closeButton>
         <CModalTitle>Payment Request Details</CModalTitle>
 
-        {/* NEW: header totals on the right */}
+        {/* header totals on the right */}
         <div className="ms-auto d-flex align-items-center gap-2">
           <CBadge color="secondary" className="px-3 py-2">
             With Absent: <span className="mono">{fmtMoney(headerTotals.withAll)}</span>
@@ -591,8 +608,21 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                   <span className="pair__value mono">{item?.RequestID || "-"}</span>
                 </div>
                 <div className="pair">
-                  <span className="pair__label">Reference No.</span>
-                  <span className="pair__value mono">{item?.actRequestRefNo || "-"}</span>
+                  <span className="pair__label">Trip No</span>
+                  <span className="pair__value mono">
+                    {/* styled Trip Number badge */}
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "2px 10px",
+                        borderRadius: 8,
+                        backgroundColor: "rgba(128, 0, 0, 0.3)",
+                        border: "1px solid rgba(128, 0, 0, 0.8)",
+                      }}
+                    >
+                      {item?.actRequestRefNo || "-"}
+                    </span>
+                  </span>
                 </div>
               </div>
 
@@ -630,7 +660,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
               <Tile className="tile--stat" label="New"        value={fmtNum(item?.studentSummary?.totalStudentNew)} />
             </Grid>
 
-            {/* ===== Payments Summary → Party (single grid) ===== */}
+            {/* ===== Payments Summary → Party ===== */}
             <SectionTitle>Payments Summary</SectionTitle>
             <div className="summary-card">
               <div className="card-head">
@@ -651,7 +681,6 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                 </div>
               </div>
 
-              {/* Single compact table */}
               <CTable small hover responsive className="mb-0 table--dense table--accented">
                 <CTableHead>
                   <CTableRow>
@@ -700,7 +729,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
               </CTable>
             </div>
 
-            {/* ===== Profit Breakdown (All Records) ===== */}
+            {/* ===== Profit Breakdown ===== */}
             <SectionTitle>Profit Breakdown (All Records)</SectionTitle>
             <div className="table-card">
               <CTable small hover striped responsive className="mb-0 table--dense profit-breakdown">
@@ -776,7 +805,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                       const key = norm(k?.KidsID);
                       const pay = paymentMap[key];
 
-                      // NEW: detect duplicate reference numbers for pink row background
+                      // duplicate ref detection
                       const ref = pay
                         ? strField(
                             pay,
@@ -810,7 +839,8 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                               {k?.tripKidsStatus || "-"}
                             </CBadge>
                           </CTableDataCell>
-                          <CTableDataCell className="mono">{fmtDateTime(k?.CreatedDate)}</CTableDataCell>
+                          {/* date only */}
+                          <CTableDataCell className="mono">{fmtDateOnly(k?.CreatedDate)}</CTableDataCell>
                           <CTableDataCell>{parent?.tripParentsName || "-"}</CTableDataCell>
                           <CTableDataCell className="mono">{parent?.tripParentsMobileNo || "-"}</CTableDataCell>
                         </CTableRow>
@@ -856,6 +886,23 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
           <div>Trip Full Amount (all payments): <b>{fmtMoney(aggregates.trip.fullAmount)}</b></div>
           <div>Food on Payments: <b>{fmtMoney(aggregates.trip.foodCostOnPayments)}</b> • Tax: <b>{fmtMoney(aggregates.trip.tax)}</b></div>
           <div>Total Profit: <b>{totalProfitStr}</b></div>
+
+          {/* ✅ Trip Data With Tax Information (kept) */}
+          <div
+            style={{
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 10,
+              border: "1px solid rgba(128, 0, 0, 0.6)", // maroon border
+              backgroundColor: "rgba(128, 0, 0, 0.03)", // very light maroon background
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Trip Data With Tax Information</div>
+            <div>Total Amount: <b>{fmtMoney(totalAmountBeforeTax)}</b></div>
+            <div>Tax: <b>15%</b></div>
+            <div>Tax Amount: <b>{fmtMoney(taxAmount15)}</b></div>
+            <div>After Tax Net Amount: <b>{fmtMoney(netAfterTax15)}</b></div>
+          </div>
         </div>
 
         <CButton
@@ -867,14 +914,14 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
           {exportBusy ? "Exporting..." : "Export to Grid"}
         </CButton>
 
-        <CButton
+        {/* <CButton
           color={showDebug ? "warning" : "info"}
           variant={showDebug ? "solid" : "outline"}
           className="me-2"
           onClick={() => setShowDebug((v) => !v)}
         >
           {showDebug ? "Hide Debug" : "Debug API"}
-        </CButton>
+        </CButton> */}
 
         <CButton color="secondary" className="add-product-button" variant="outline" onClick={onClose}>
           Close

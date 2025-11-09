@@ -3,17 +3,24 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IsUserAccessPage } from '../../utils/auth'
 import { API_BASE_URL } from '../../config'
-import { getAuthHeaders, getCurrentLoggedUserID } from '../../utils/operation'
-import VdrCalenderScreen from "../calender/VdrCalenderScreen";
+import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
+import VdrCalenderScreen from '../calender/VdrCalenderScreen'
 import {
-  CCard, CCardBody, CCardHeader, CRow, CCol, CProgress, CBadge,
-  CSpinner, CAlert,
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CRow,
+  CCol,
+  CProgress,
+  CBadge,
+  CSpinner,
+  CAlert,
 } from '@coreui/react'
 
 // 🔤 i18n packs (default Arabic if not set)
 import enPack from '../../i18n/enloc100.json'
 import arPack from '../../i18n/arloc100.json'
- 
+
 const GET_VDR_SUMMARY = `${API_BASE_URL}/vendordata/dashboard/getvdrsummary`
 
 function StatCard({ title, value, color = 'primary', onClick }) {
@@ -70,6 +77,11 @@ const Dashboard = () => {
   const [totalTodayTrip, setTotalTodayTrip] = useState(0)
   const [totalPayableSchoolAmount, setTotalPayableSchoolAmount] = useState(0)
 
+  // ✅ vendor-login validation (same pattern as other vendor pages)
+  useEffect(() => {
+    IsVendorLoginIsValid?.()
+  }, [])
+
   // ---- i18n (local, no provider) ----
   const getStoredLang = () => {
     try {
@@ -94,7 +106,8 @@ const Dashboard = () => {
   // Helper: navigate safely for both HashRouter and BrowserRouter
   const goToListByStatus = (statusKey) => {
     const query = `?status=${encodeURIComponent(statusKey)}`
-    const usingHash = typeof window !== 'undefined' && window.location.hash.startsWith('#/')
+    const usingHash =
+      typeof window !== 'undefined' && window.location.hash.startsWith('#/')
     if (usingHash) {
       window.location.hash = `#/vendor/activity-requests${query}`
     } else {
@@ -147,17 +160,60 @@ const Dashboard = () => {
         setLoading(false)
       }
     })()
-    return () => { isMounted = false }
+    return () => {
+      isMounted = false
+    }
   }, [navigate])
 
-  const statCards = useMemo(() => ([
-    { title: tr('dashPendingRequests', 'Pending Requests'), value: pendingCount, color: 'warning', statusKey: 'WAITING-FOR-APPROVAL' },
-    { title: tr('dashApprovedRequests', 'Approved Requests'), value: approvedCount, color: 'success', statusKey: 'APPROVED' },
-    { title: tr('dashTripBooked', 'Trip Booked'), value: totalProposalCreated, color: 'info', statusKey: 'TRIP-BOOKED' },
-    { title: tr('dashCompletedTrip', 'Completed Trip'), value: totalCompletedTrip, color: 'primary', statusKey: 'COMPLETED' },
-    { title: tr('dashTotalRequests', 'Total Requests'), value: totalCount, color: 'secondary', statusKey: 'ALL' },
-    { title: tr('dashRejected', 'Rejected'), value: rejectedCount, color: 'danger', statusKey: 'REJECTED' },
-  ]), [pendingCount, approvedCount, totalProposalCreated, totalCompletedTrip, totalCount, rejectedCount, dict])
+  const statCards = useMemo(
+    () => [
+      {
+        title: tr('dashPendingRequests', 'Pending Requests'),
+        value: pendingCount,
+        color: 'warning',
+        statusKey: 'WAITING-FOR-APPROVAL',
+      },
+      {
+        title: tr('dashApprovedRequests', 'Approved Requests'),
+        value: approvedCount,
+        color: 'success',
+        statusKey: 'APPROVED',
+      },
+      {
+        title: tr('dashTripBooked', 'Trip Booked'),
+        value: totalProposalCreated,
+        color: 'info',
+        statusKey: 'TRIP-BOOKED',
+      },
+      {
+        title: tr('dashCompletedTrip', 'Completed Trip'),
+        value: totalCompletedTrip,
+        color: 'primary',
+        statusKey: 'COMPLETED',
+      },
+      {
+        title: tr('dashTotalRequests', 'Total Requests'),
+        value: totalCount,
+        color: 'secondary',
+        statusKey: 'ALL',
+      },
+      {
+        title: tr('dashRejected', 'Rejected'),
+        value: rejectedCount,
+        color: 'danger',
+        statusKey: 'REJECTED',
+      },
+    ],
+    [
+      pendingCount,
+      approvedCount,
+      totalProposalCreated,
+      totalCompletedTrip,
+      totalCount,
+      rejectedCount,
+      dict,
+    ],
+  )
 
   return (
     <>
@@ -178,10 +234,18 @@ const Dashboard = () => {
       {/* Wallet */}
       <CRow className="mb-4">
         <CCol xs={12} md={6}>
-          <WalletCard label={tr('dashAmountReceived', 'Amount Received')} amount={'0'} />
+          {/* No explicit "received" value in summary yet, keep as 0 */}
+          <WalletCard
+            label={tr('dashAmountReceived', 'Amount Received')}
+            amount={'0'}
+          />
         </CCol>
         <CCol xs={12} md={6}>
-          <WalletCard label={tr('dashBalance', 'Balance')} amount={'0'} />
+          {/* Use TotalPayableSchoolAmount as current balance */}
+          <WalletCard
+            label={tr('dashBalance', 'Balance')}
+            amount={totalPayableSchoolAmount}
+          />
         </CCol>
       </CRow>
 
@@ -190,8 +254,12 @@ const Dashboard = () => {
         <CCol xs={12}>
           <CCard>
             <CCardHeader className="d-flex align-items-center justify-content-between">
-              <div className="fw-bold">{tr('dashTodaysTrips', 'Today’s Trips')}</div>
-              <CBadge color="primary" shape="rounded-pill">{totalTodayTrip}</CBadge>
+              <div className="fw-bold">
+                {tr('dashTodaysTrips', 'Today’s Trips')}
+              </div>
+              <CBadge color="primary" shape="rounded-pill">
+                {totalTodayTrip}
+              </CBadge>
             </CCardHeader>
             <CCardBody>
               <CProgress value={100} />
@@ -200,6 +268,7 @@ const Dashboard = () => {
         </CCol>
       </CRow>
 
+      {/* Calendar */}
       <VdrCalenderScreen />
 
       {/* Loading / Error */}

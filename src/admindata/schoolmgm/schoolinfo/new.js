@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl } from '../../../utils/operation'
 import { checkUserExists, checkSchUserExists } from '../../../utils/auth'
@@ -42,6 +42,11 @@ const logApi = (label, meta, body) => {
 
 const Vendor = () => {
   const navigate = useNavigate()
+
+  // ✅ Admin login validation (will redirect to BaseURL if token/usertype invalid)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   // Inline errors (required, format, etc.)
   const [errors, setErrors] = useState({})
@@ -574,7 +579,7 @@ const Vendor = () => {
             }}
             onBlur={handleEmailBlur}
           />
-          <div className="ErrorMsg">
+        <div className="ErrorMsg">
             {errors.txtschEmailAddress || (!uniqueOk && ErrorUserExistMsg)}
           </div>
         </div>

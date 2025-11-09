@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { IsAdminLoginIsValid } from '../../../utils/operation'
 
 const ParentNewForm = () => {
   const navigate = useNavigate()
@@ -8,6 +9,11 @@ const ParentNewForm = () => {
     className: '',
     numberOfParents: '',
   })
+
+  // will redirect to BaseURL if token/usertype invalid
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -31,7 +37,10 @@ const ParentNewForm = () => {
           <button className="admin-buttonv1" onClick={handleSave}>
             Save
           </button>
-          <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/parentinfo/list')}>
+          <button
+            className="admin-buttonv1"
+            onClick={() => navigate('/admindata/schoolmgm/parentinfo/list')}
+          >
             Return
           </button>
         </div>
@@ -89,8 +98,6 @@ const ParentNewForm = () => {
             />
           </div>
         </div>
-
-       
       </div>
 
       {/* Footer Buttons */}
@@ -98,7 +105,10 @@ const ParentNewForm = () => {
         <button className="admin-buttonv1" onClick={handleSave}>
           Save
         </button>
-        <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/parentinfo/list')}>
+        <button
+          className="admin-buttonv1"
+          onClick={() => navigate('/admindata/schoolmgm/parentinfo/list')}
+        >
           Cancel
         </button>
       </div>

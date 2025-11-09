@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage,getAuthHeaders } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
-import { getFileNameFromUrl, getCurrentLoggedUserID, dspstatusv1,getAuthHeaders } from '../../../utils/operation'
+import { getFileNameFromUrl, getCurrentLoggedUserID, dspstatusv1, getAuthHeaders as getAuthHeaders2 } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
+
 const Vendor = () => {
   const [error, setError] = useState('')
 
@@ -59,6 +60,11 @@ const Vendor = () => {
   ])
   const [countries, setCountries] = useState([])
   const [cityList, setCityList] = useState([])
+
+  // ✅ Admin login validation – will redirect if invalid
+  useEffect(() => {
+    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
 
   const handleFoodChange = (index, field, value) => {
     const updated = [...foods]
@@ -355,7 +361,7 @@ const Vendor = () => {
     const actfoodDataVal = await getFoodData()
     const actavailDaysHoursVal = getAvailDaysHoursData()
     const actPriceDataVal = getPriceData()
- 
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`,
@@ -369,8 +375,6 @@ const Vendor = () => {
             actTypeID: selectedType,
             actCategoryID: selectedCategories,
             actDesc: txtactDesc || '',
-
-
 
             actImageName1: txtactImageName1Val, // file
             actImageName2: txtactImageName2Val, // file
@@ -451,14 +455,15 @@ const Vendor = () => {
     }
   }
 
-      const getSearchParams = () => {
-        const search = window.location.search ||
-        (window.location.hash && window.location.hash.includes('?')
+  const getSearchParams = () => {
+    const search =
+      window.location.search ||
+      (window.location.hash && window.location.hash.includes('?')
         ? `?${window.location.hash.split('?')[1]}`
-        : '');
-        return new URLSearchParams(search);
-        };
-        
+        : '')
+    return new URLSearchParams(search)
+  }
+
   const handleAddRange = () => {
     setPriceRanges((prev) => [...prev, { price: '', range: '' }])
   }
@@ -503,10 +508,7 @@ const Vendor = () => {
         }
 
         // Get ActivityID from URL
-
-    
-
-        const urlParams = getSearchParams();
+        const urlParams = getSearchParams()
         const ActivityIDVal = urlParams.get('ActivityID')
 
         if (ActivityIDVal) {
@@ -526,11 +528,11 @@ const Vendor = () => {
   //Edit
   useEffect(() => {
     if (!ActivityData) return
-setactImageName1(ActivityData.actImageName1Url)
+    setactImageName1(ActivityData.actImageName1Url)
     setactImageName2(ActivityData.actImageName2Url)
     setactImageName3(ActivityData.actImageName3Url)
 
-     setOrgsetactImageName1(ActivityData.actImageName1)
+    setOrgsetactImageName1(ActivityData.actImageName1)
     setOrgsetactImageName2(ActivityData.actImageName2)
     setOrgsetactImageName3(ActivityData.actImageName3)
     // Basic info
@@ -637,15 +639,16 @@ setactImageName1(ActivityData.actImageName1Url)
 
   useEffect(() => {
     // 👇 Extract ActivityID from the URL
-     const getSearchParams = () => {
-        const search = window.location.search ||
+    const getSearchParamsLocal = () => {
+      const search =
+        window.location.search ||
         (window.location.hash && window.location.hash.includes('?')
-        ? `?${window.location.hash.split('?')[1]}`
-        : '');
-        return new URLSearchParams(search);
-        };
+          ? `?${window.location.hash.split('?')[1]}`
+          : '')
+      return new URLSearchParams(search)
+    }
 
-        const urlParams = getSearchParams()
+    const urlParams = getSearchParamsLocal()
     const ActivityIDVal = urlParams.get('ActivityID')
     const VendorIDVal = urlParams.get('VendorID')
 
@@ -960,10 +963,8 @@ setactImageName1(ActivityData.actImageName1Url)
               onChange={handleFileUpload(setactImageName1)}
               style={{ height: 50, width: '100%' }}
             />
-           <FilePreview file={txtactImageName1} />
-           <div>
- 
-</div>
+            <FilePreview file={txtactImageName1} />
+            <div></div>
           </div>
 
           {/* Image 2 */}
@@ -1029,7 +1030,6 @@ setactImageName1(ActivityData.actImageName1Url)
               onChange={(e) => setYouTube2(e.target.value)}
               required
             />
-           
           </div>
 
           {/* Image 3 */}
@@ -1042,7 +1042,6 @@ setactImageName1(ActivityData.actImageName1Url)
               onChange={(e) => setYouTube3(e.target.value)}
               required
             />
-            
           </div>
         </div>
       </div>
@@ -1547,7 +1546,7 @@ setactImageName1(ActivityData.actImageName1Url)
                   onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                 />
               </CCol>
-              {/* Price */}
+              {/* Heroz Price */}
               <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
                 <input
                   type="number"

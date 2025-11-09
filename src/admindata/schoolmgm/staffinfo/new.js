@@ -1,8 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { IsAdminLoginIsValid } from '../../../utils/operation'
 
 const StaffNewForm = () => {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const [formData, setFormData] = useState({
     className: '',
@@ -31,7 +36,10 @@ const StaffNewForm = () => {
           <button className="admin-buttonv1" onClick={handleSave}>
             Save
           </button>
-          <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/staffinfo/list')}>
+          <button
+            className="admin-buttonv1"
+            onClick={() => navigate('/admindata/schoolmgm/staffinfo/list')}
+          >
             Return
           </button>
         </div>
@@ -94,7 +102,7 @@ const StaffNewForm = () => {
           <label>Role</label>
           <select className="admin-txt-box" name="schoolClass" required>
             <option value="">-- Select Role --</option>
-            <option value="A">Manage Booking</option> 
+            <option value="A">Manage Booking</option>
           </select>
         </div>
       </div>
@@ -104,7 +112,10 @@ const StaffNewForm = () => {
         <button className="admin-buttonv1" onClick={handleSave}>
           Save
         </button>
-        <button className="admin-buttonv1" onClick={() => navigate('/admindata/schoolmgm/staffinfo/list')}>
+        <button
+          className="admin-buttonv1"
+          onClick={() => navigate('/admindata/schoolmgm/staffinfo/list')}
+        >
           Cancel
         </button>
       </div>

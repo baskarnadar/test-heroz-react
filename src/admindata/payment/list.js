@@ -439,7 +439,12 @@ const ViewActivityScreen = () => {
 
                       <CTableDataCell className="text-nowrap">
                         <div className="d-flex gap-1 flex-nowrap overflow-auto" style={{ maxWidth: '220px' }}>
-                          <CButton
+                        <CButton
+                            size="sm" color="secondary" variant="outline" title="View"
+                            onClick={(e) => { e.stopPropagation(); openModalFor(row); }}
+                          >
+                            <IconEye title="View" />
+                          </CButton>  <CButton
                             size="sm" color="success" variant="outline" title="Pay School"
                             onClick={(e) => { e.stopPropagation(); setSelected(row); setShowSchPay(true); }}
                           >
@@ -451,12 +456,7 @@ const ViewActivityScreen = () => {
                           >
                             <IconCard title="Pay Vendor" />
                           </CButton>
-                          <CButton
-                            size="sm" color="secondary" variant="outline" title="View"
-                            onClick={(e) => { e.stopPropagation(); openModalFor(row); }}
-                          >
-                            <IconEye title="View" />
-                          </CButton>
+                          
                         </div>
                       </CTableDataCell>
                     </CTableRow>

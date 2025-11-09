@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import CIcon from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
-import { DspToastMessage,getAuthHeaders } from '../../utils/operation';
+import { DspToastMessage, getAuthHeaders } from '../../utils/operation';
+import { IsAdminLoginIsValid } from '../../../utils/operation';
+
 const SubMenuListWithPagination = () => {
   const [subMenus, setSubMenus] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -13,6 +15,11 @@ const SubMenuListWithPagination = () => {
 
   const itemsPerPage = 10;
   const navigate = useNavigate();
+
+  // ✅ Admin login validation (your requested snippet, using the correct function name)
+  useEffect(() => {
+    IsAdminLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   useEffect(() => {
     fetchSubMenuList();
@@ -81,9 +88,15 @@ const SubMenuListWithPagination = () => {
 
   return (
     <div className="submenu-list-container">
-      <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        className="page-title"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         <h3>SubMenu List</h3>
-        <button onClick={() => navigate('/admindata/subadmin/new')} className="add-product-button">
+        <button
+          onClick={() => navigate('/admindata/subadmin/new')}
+          className="add-product-button"
+        >
           Add New SubMenu
         </button>
       </div>
@@ -94,14 +107,17 @@ const SubMenuListWithPagination = () => {
         <p style={{ color: 'red' }}>{error}</p>
       ) : (
         <>
-          <table className="grid-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table
+            className="grid-table"
+            style={{ width: '100%', borderCollapse: 'collapse' }}
+          >
             <thead>
               <tr>
                 <th>#</th>
                 <th>English Name</th>
                 <th>Arabic Name</th>
                 <th>MainMenu Name</th>
-                 <th>PageID</th>
+                <th>PageID</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -120,8 +136,8 @@ const SubMenuListWithPagination = () => {
                     </td>
                     <td>{menu.EnMenuName || 'N/A'}</td>
                     <td>{menu.ArMenuName || 'N/A'}</td>
-                      <td>{menu.MainMenuName || 'N/A'}</td>
-                        <td>{menu.PageID || 'N/A'}</td>
+                    <td>{menu.MainMenuName || 'N/A'}</td>
+                    <td>{menu.PageID || 'N/A'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <CIcon
                         icon={cilPencil}
@@ -143,7 +159,10 @@ const SubMenuListWithPagination = () => {
           </table>
 
           {/* Pagination */}
-          <div className="pagination-container" style={{ marginTop: '15px', textAlign: 'center' }}>
+          <div
+            className="pagination-container"
+            style={{ marginTop: '15px', textAlign: 'center' }}
+          >
             <button
               className="pagination-button"
               onClick={() => handlePageClick(currentPage - 1)}
@@ -155,7 +174,9 @@ const SubMenuListWithPagination = () => {
             {getPageRange().map((pageNumber) => (
               <button
                 key={pageNumber}
-                className={`pagination-button ${currentPage === pageNumber ? 'active' : ''}`}
+                className={`pagination-button ${
+                  currentPage === pageNumber ? 'active' : ''
+                }`}
                 onClick={() => handlePageClick(pageNumber)}
               >
                 {pageNumber}

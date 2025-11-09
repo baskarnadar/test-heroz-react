@@ -12,6 +12,7 @@ import {
   getCurrentLoggedUserID,
   dspstatus,
   getAuthHeaders,
+  IsVendorLoginIsValid,   // ✅ IsVendorLoginIsValid imported here
 } from '../../../utils/operation'
 import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
@@ -25,6 +26,11 @@ import enPack from '../../../i18n/enloc100.json'
 import arPack from '../../../i18n/arloc100.json'
 
 const ActivityList = () => {
+  // ✅ Vendor login guard: runs once when component mounts
+  useEffect(() => {
+    IsVendorLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+  }, [])
+
   const [ActivityIDToDelete, setActivityIDelete] = useState(null)
   const [Activity, setActivity] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -114,6 +120,7 @@ const ActivityList = () => {
   const handleModifyClick = (ActivityID) => {
     navigate(`/vendordata/activityinfo/activity/modify?ActivityID=${ActivityID}`)
   }
+
   const handleViewClick = (ActivityID) => {
     navigate(`/vendordata/activityinfo/activity/view?ActivityID=${ActivityID}`)
   }
@@ -295,7 +302,13 @@ const ActivityList = () => {
                         onClick={() => handleImageGalleryClick(row)}
                         title={tr('btnImageGallery', 'Image Gallery')}
                         className="btn btn-default graybox"
-                        style={{ padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        style={{
+                          padding: '2px 6px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
                         aria-label={tr('btnImageGallery', 'Image Gallery')}
                       >
                         <i className="fa fa-picture-o" style={{ color: '#cf2037' }} aria-hidden="true" />
@@ -367,7 +380,12 @@ const ActivityList = () => {
             <p>
               {tr('confirmDeleteMsg', 'Are you sure you want to delete this Activity?')}
               {selectedActivity?.actName && (
-                <> <span style={{ color: '#cf2037', fontWeight: 700 }}>{' '}{selectedActivity.actName}</span></>
+                <>
+                  {' '}
+                  <span style={{ color: '#cf2037', fontWeight: 700 }}>
+                    {selectedActivity.actName}
+                  </span>
+                </>
               )}
             </p>
             <div className="modal-buttons">
