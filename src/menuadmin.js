@@ -63,12 +63,12 @@ const adminmenu = [
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
   },
     // ✅ NEW MENU ADDED HERE
-  {
-    component: CNavItem,
-    name: 'Trip tripdata',
-    to: '/trip/tripdata',
-    icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Trip tripdata',
+  //   to: '/trip/tripdata',
+  //   icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
+  // },
   
   // {
   //   component: CNavItem,
