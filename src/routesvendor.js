@@ -18,7 +18,7 @@ const VendordataNoteList = React.lazy(() => import('./vendordata/note/list'))
 
 // ✅ NEW Trip pages
 const TripBooked = React.lazy(() => import('./vendordata/trip/tripbooked.js'))
-const TripCompleted = React.lazy(() => import('./vendordata/trip/Completed.js'))
+const TripCompleted = React.lazy(() => import('./vendordata/trip/completed.js'))
 
 const routes = [
   { path: '/', name: 'Home' },
