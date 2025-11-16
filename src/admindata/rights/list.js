@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../config';
 import CIcon from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
 import { DspToastMessage, getAuthHeaders } from '../../utils/operation';
-import { IsAdminLoginIsValid } from '../../../utils/operation';
+import { IsAdminLoginIsValid } from '../../utils/operation';
 
 const SubMenuListWithPagination = () => {
   const [subMenus, setSubMenus] = useState([]);

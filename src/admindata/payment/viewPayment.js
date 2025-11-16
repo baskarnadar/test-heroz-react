@@ -1,3 +1,4 @@
+// src/vendordata/activityinfo/payment/ViewPaymentModal.js (path for reference)
 import React from "react";
 import {
   CModal, CModalHeader, CModalBody, CModalFooter, CModalTitle,
@@ -237,6 +238,31 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
   const [lastApiDebug, setLastApiDebug] = React.useState(null);
   const [matchedDebug, setMatchedDebug] = React.useState(null);
 
+  // Kids summary & ABSENT set
+  const kidsSummary = React.useMemo(
+    () => (Array.isArray(item?.KidsSumamry) ? item.KidsSumamry : []),
+    [item]
+  );
+
+  const absentKidIds = React.useMemo(() => {
+    const s = new Set();
+    for (const k of kidsSummary) {
+      const st = String(k?.tripKidsStatus || "").toUpperCase();
+      if (st === "ABSENT" || st === "ABSET") {
+        s.add(norm(k?.KidsID));
+      }
+    }
+    return s;
+  }, [kidsSummary]);
+
+  // helper: should this payment be counted in totals?
+  const isPaymentCountable = React.useCallback((pay) => {
+    const key = norm(pay?.KidsID);
+    if (!key) return true;          // no kids binding => count it
+    if (absentKidIds.has(key)) return false; // ABSENT kids => exclude from totals
+    return true;
+  }, [absentKidIds]);
+
   // try to fetch payments only if needed (visible, selected item, no payments)
   React.useEffect(() => {
     let aborted = false;
@@ -370,6 +396,9 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
 
   // ---------- Aggregate profits & totals (All records) ----------
   const aggregates = React.useMemo(() => {
+    // ONLY count payments where kid is NOT ABSENT
+    const countablePayments = effectivePayments.filter(isPaymentCountable);
+
     const trip = {
       count: 0,
       fullAmount: 0,
@@ -380,7 +409,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
       tax: 0,
     };
 
-    for (const p of effectivePayments) {
+    for (const p of countablePayments) {
       trip.count += 1;
       trip.fullAmount += numField(p, "TripFullAmount", "tripFullAmount");
       trip.school += numField(p, "TripSchoolPrice", "tripSchoolPrice");
@@ -434,32 +463,36 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
     };
 
     return { trip, food, grand };
-  }, [effectivePayments, foodExtras, item]);
+  }, [effectivePayments, foodExtras, item, isPaymentCountable]);
 
-  // Per-kid costs (robust: average across payments)
+  // Per-kid costs (average across NON-ABSENT payments)
   const perKid = React.useMemo(() => {
-    if (!effectivePayments.length) return { vendor: 0, school: 0, heroz: 0 };
+    const countablePayments = effectivePayments.filter(isPaymentCountable);
+    if (!countablePayments.length) return { vendor: 0, school: 0, heroz: 0 };
     let vSum = 0, sSum = 0, hSum = 0;
-    for (const p of effectivePayments) {
+    for (const p of countablePayments) {
       vSum += numField(p, "TripVendorCost", "tripVendorCost");
       sSum += numField(p, "TripSchoolPrice", "tripSchoolPrice");
       hSum += numField(p, "TripHerozCost", "tripHerozCost");
     }
-    const n = effectivePayments.length || 1;
+    const n = countablePayments.length || 1;
     return {
       vendor: vSum / n,
       school: sSum / n,
       heroz:  hSum / n
     };
-  }, [effectivePayments]);
+  }, [effectivePayments, isPaymentCountable]);
 
   // Single “Total Profit” (Vendor grand total) as text
   const totalProfitStr = React.useMemo(() => fmtMoney(aggregates.grand.vendor), [aggregates.grand.vendor]);
 
-  // Totals for footer under kids table
+  // Totals for footer under kids table (EXCLUDE ABSENT)
   const paymentTotalsForKids = React.useMemo(() => {
     let totalFull = 0, totalSchool = 0, totalVendor = 0, totalHeroz = 0;
-    for (const k of (item?.KidsSumamry || [])) {
+    for (const k of kidsSummary) {
+      const st = String(k?.tripKidsStatus || "").toUpperCase();
+      if (st === "ABSENT" || st === "ABSET") continue; // ❌ skip ABSENT
+
       const key = norm(k?.KidsID);
       const pay = paymentMap[key];
       if (pay) {
@@ -470,24 +503,30 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
       }
     }
     return { totalFull, totalSchool, totalVendor, totalHeroz };
-  }, [item, paymentMap]);
+  }, [kidsSummary, paymentMap]);
 
-  // header totals (with/without ABSENT)
+  // header totals (With / Without Absent) – now BOTH exclude ABSENT payments
   const headerTotals = React.useMemo(() => {
     let withAll = 0;
     let withoutAbsent = 0;
-    for (const k of (item?.KidsSumamry || [])) {
-      const pay = paymentMap[norm(k?.KidsID)];
-      if (!pay) continue;
-      const amt = numField(pay, "TripFullAmount", "tripFullAmount");
-      withAll += amt;
+    for (const k of kidsSummary) {
       const st = String(k?.tripKidsStatus || "").toUpperCase();
-      if (st !== "ABSENT" && st !== "ABSET") {
-        withoutAbsent += amt;
+      const key = norm(k?.KidsID);
+      const pay = paymentMap[key];
+      if (!pay) continue;
+
+      const amt = numField(pay, "TripFullAmount", "tripFullAmount");
+
+      // ✅ rule: ABSENT = do NOT include in any totals
+      if (st === "ABSENT" || st === "ABSET") {
+        continue;
       }
+
+      withAll += amt;
+      withoutAbsent += amt;
     }
     return { withAll, withoutAbsent };
-  }, [item, paymentMap]);
+  }, [kidsSummary, paymentMap]);
 
   // ---------- Excel Export (Kids grid + MyFatrooahRefNo) ----------
   const [exportBusy, setExportBusy] = React.useState(false);
@@ -559,7 +598,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
     }
   }, [item, parentMap, paymentMap]);
 
-  // ====== 15% tax breakdown values (base = Trip Full Amount of all payments) ======
+  // ====== 15% tax breakdown values (base = Trip Full Amount of NON-ABSENT payments) ======
   const totalAmountBeforeTax = React.useMemo(() => aggregates.trip.fullAmount, [aggregates.trip.fullAmount]);
   const TAX_RATE_15 = 0.15;
   const taxAmount15 = React.useMemo(() => totalAmountBeforeTax * TAX_RATE_15, [totalAmountBeforeTax]);
@@ -583,15 +622,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
       <CModalHeader closeButton>
         <CModalTitle>Payment Request Details</CModalTitle>
 
-        {/* header totals on the right */}
-        <div className="ms-auto d-flex align-items-center gap-2">
-          <CBadge color="secondary" className="px-3 py-2">
-            With Absent: <span className="mono">{fmtMoney(headerTotals.withAll)}</span>
-          </CBadge>
-          <CBadge color="success" className="px-3 py-2">
-            Without Absent: <span className="mono">{fmtMoney(headerTotals.withoutAbsent)}</span>
-          </CBadge>
-        </div>
+         
       </CModalHeader>
 
       <CModalBody style={{ maxHeight: "70vh", overflowY: "auto" }}>
@@ -848,8 +879,9 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
                     })}
                     <CTableRow>
                       <CTableDataCell />
+                      {/* totals EXCLUDING ABSENT */}
                       <CTableDataCell className="mono"><b>{fmtMoney(paymentTotalsForKids.totalFull)}</b></CTableDataCell>
-                      <CTableDataCell colSpan={3}><i>Trip totals by mapped payments:</i></CTableDataCell>
+                      <CTableDataCell colSpan={3}><i>Trip totals by mapped payments (ABSENT excluded):</i></CTableDataCell>
                       <CTableDataCell className="mono">
                         <span className="me-2">School:</span><b>{fmtMoney(paymentTotalsForKids.totalSchool)}</b>
                       </CTableDataCell>
@@ -883,11 +915,11 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
 
       <CModalFooter className="footer-meta">
         <div className="me-auto small text-muted footer-meta__left">
-          <div>Trip Full Amount (all payments): <b>{fmtMoney(aggregates.trip.fullAmount)}</b></div>
+          <div>Trip Full Amount (all NON-ABSENT payments): <b>{fmtMoney(aggregates.trip.fullAmount)}</b></div>
           <div>Food on Payments: <b>{fmtMoney(aggregates.trip.foodCostOnPayments)}</b> • Tax: <b>{fmtMoney(aggregates.trip.tax)}</b></div>
           <div>Total Profit: <b>{totalProfitStr}</b></div>
 
-          {/* ✅ Trip Data With Tax Information (kept) */}
+          {/* Trip Data With Tax Information */}
           <div
             style={{
               marginTop: 12,
@@ -914,6 +946,7 @@ const ViewPaymentModal = ({ visible, onClose, item, paymentsOverride, allRequest
           {exportBusy ? "Exporting..." : "Export to Grid"}
         </CButton>
 
+        {/* Debug button kept commented as before */}
         {/* <CButton
           color={showDebug ? "warning" : "info"}
           variant={showDebug ? "solid" : "outline"}

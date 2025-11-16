@@ -2,7 +2,7 @@ import React from 'react'
 const AdminDashboard = React.lazy(() => import('./admindata/dashboard/Dashboard'))
 const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
 const PublicProgram = React.lazy(() => import('./public/program.js'))
- 
+
 const PublicPayError = React.lazy(() => import('./public/payerror.js'))
 const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
 
@@ -19,9 +19,11 @@ const adminschoolmgmChangePwd = React.lazy(
 const adminschTripProposalCraeted = React.lazy(() => import('./admindata/activityinfo/trip/list'))
 const adminschTripView = React.lazy(() => import('./admindata/activityinfo/trip/view'))
 
+// trip tripdata (✅ your file: admindata/trip/tripdata.js)
+const Triptripdata = React.lazy(() => import('./admindata/trip/tripdata'))
+
 //tripPayInfo
 const adminTripPayInfo = React.lazy(() => import('./admindata/activityinfo/trippayinfo/view'))
- 
 
 //classinfo
 const classinfoList = React.lazy(() => import('./admindata/schoolmgm/classinfo/list'))
@@ -67,13 +69,12 @@ const BadgeView = React.lazy(() => import('./admindata/badge/view'))
 
 //activityoversight
 const activityoversightList = React.lazy(() => import('./admindata/activityoversight/list'))
- 
+
 //reportsandanalysis
 const reportsandanalysisList = React.lazy(
   () => import('./admindata/reportsandanalysis/providerlist'),
 )
 const reportsandanalysisNew = React.lazy(() => import('./admindata/reportsandanalysis/schoollist'))
-
 
 //MemberShip List
 const MemberShipList = React.lazy(() => import('./admindata/membership/list'))
@@ -114,19 +115,12 @@ const MainMenuList = React.lazy(() => import('./admindata/mainmenu/list'))
 const MainMenuNew = React.lazy(() => import('./admindata/mainmenu/new'))
 const MainMenuModify = React.lazy(() => import('./admindata/mainmenu/modify'))
 
-
 //BirthDay List
 const NoteList = React.lazy(() => import('./admindata/note/list'))
 
 const AdminSetLink = React.lazy(() => import('./admindata/setlink/setlink'))
 
-
-
 const RightsList = React.lazy(() => import('./admindata/rights/list'))
-
-
-
-
 
 //admin Activity
 const adminDataActivityView = React.lazy(() => import('./admindata/activityinfo/activity/view'))
@@ -156,14 +150,32 @@ const routes = [
     name: 'View',
     element: adminschoolmgmChangePwd,
   },
+
   //trip PayInfo
-{    path: '/admindata/activityinfo/trippayinfo/view',    name: 'Paid Student List',    element: adminTripPayInfo,},
- 
+  {
+    path: '/admindata/activityinfo/trippayinfo/view',
+    name: 'Paid Student List',
+    element: adminTripPayInfo,
+  },
 
+  //trip proposal
+  {
+    path: '/admindata/activityinfo/trip/list',
+    name: ' Created',
+    element: adminschTripProposalCraeted,
+  },
+  {
+    path: '/admindata/activityinfo/trip/view',
+    name: ' View',
+    element: adminschTripView,
+  },
 
-  //trip propsal
-{    path: '/admindata/activityinfo/trip/list',    name: ' Created',    element: adminschTripProposalCraeted,},
-{    path: '/admindata/activityinfo/trip/view',    name: ' View',    element: adminschTripView,},
+  // ✅ Trip tripdata route (admin trip tripdata screen)
+  {
+    path: '/trip/tripdata',
+    name: 'Trip tripdata',
+    element: Triptripdata,
+  },
 
   //classinfo
   {
@@ -223,11 +235,11 @@ const routes = [
   { path: '/admindata/vendor/staffinfo/view', name: 'View', element: vendorstaffinfoView },
 
   //badge
-
   { path: '/admindata/badge/list', name: 'Badge List', element: BadgeList },
   { path: '/admindata/badge/new', name: 'Badge New', element: BadgeNew },
   { path: '/admindata/badge/modify', name: 'Badge Modify', element: BadgeModify },
   { path: '/admindata/badge/view', name: 'Badge Modify', element: BadgeView },
+
   //activityoversight
   {
     path: '/admindata/activityoversight/list',
@@ -252,10 +264,9 @@ const routes = [
   { path: '/admindata/membership/new', name: 'banner List', element: MemberShipNew },
   { path: '/admindata/membership/modify', name: 'banner List', element: MemberShipModify },
 
-    //Payment
+  //Payment
   { path: '/admindata/payment/list', name: 'banner List', element: PaymentList },
-   { path: '/admindata/agree/modify', name: 'Agrement ', element: AgreementList },
-  
+  { path: '/admindata/agree/modify', name: 'Agrement ', element: AgreementList },
 
   //City
   { path: 'admindata/city/list', name: 'City List', element: CityList },
@@ -277,28 +288,22 @@ const routes = [
   { path: 'admindata/schedulevel/new', name: 'New schedulevel', element: SchEduLevelNew },
   { path: 'admindata/schedulevel/modify', name: 'Modify schedulevel', element: SchEduLevelModify },
 
-
-//SubAdmin
+  //SubAdmin
   { path: '/admindata/subadmin/list', name: 'User List', element: UserList },
   { path: '/admindata/subadmin/new', name: 'New User', element: UserNew },
   { path: '/admindata/subadmin/modify', name: 'Modify User', element: UserModify },
-
-  
 
   //Parents
   { path: '/parents/list', name: 'parents List', element: parentsList },
   { path: '/parents/view', name: 'parents Modify', element: parentsView },
 
- 
-
   { path: '/mainmenu/list', name: 'banner List', element: MainMenuList },
   { path: '/mainmenu/new', name: 'banner List', element: MainMenuNew },
-  { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify }, 
+  { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify },
   { path: '/rights/list', name: 'banner List', element: RightsList },
-  
- 
-{ path: '/public/program/:requestId', name: 'Program', element: PublicProgram },
- 
+
+  { path: '/public/program/:requestId', name: 'Program', element: PublicProgram },
+
   { path: '/public/payerror', name: 'Pay Error ', element: PublicPayError },
   { path: '/public/paysuccess', name: 'Pay Success ', element: PublicPaySuccess },
 

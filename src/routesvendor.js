@@ -12,9 +12,14 @@ const ActivityView = React.lazy(() => import('./vendordata/activityinfo/activity
 const ViewActivityScreen = React.lazy(() => import('./vendordata/activity/ViewActivityScreen.js'))
 const ActivityRequestList = React.lazy(() => import('./vendordata/actrequest/ActReqList.js'))
 const ActivityRequestInfo = React.lazy(() => import('./vendordata/actrequest/ActReqInfo.js'))
- const PaymentList = React.lazy(() => import('./vendordata/payment/list.js'))
+const PaymentList = React.lazy(() => import('./vendordata/payment/list.js'))
 const VendorInfoPage = React.lazy(() => import('./vendordata/info/info'))
 const VendordataNoteList = React.lazy(() => import('./vendordata/note/list'))
+
+// ✅ NEW Trip pages
+const TripBooked = React.lazy(() => import('./vendordata/trip/tripbooked.js'))
+const TripCompleted = React.lazy(() => import('./vendordata/trip/Completed.js'))
+
 const routes = [
   { path: '/', name: 'Home' },
 
@@ -32,12 +37,15 @@ const routes = [
   { path: '/vendordata/activityinfo/activity/modify', name: 'Modify', element: ActivityModify },
   { path: '/vendordata/activityinfo/activity/view', name: 'View', element: ActivityView },
 
-  // ✅ Vendor Activity Screen (both paths point to same component)
+  // Vendor Activity Screen (both paths point to same component)
   { path: '/vendordata/activity/ViewActivityScreen', name: 'ViewActivityScreen', element: ViewActivityScreen },
-   { path: '/vendordata/payment/list', name: 'ViewActivityScreen', element: PaymentList },
-    { path: '/vendordata/note/list', name: 'VendorNoteList', element: VendordataNoteList },
 
-   
+  { path: '/vendordata/payment/list', name: 'VendorPaymentList', element: PaymentList },
+  { path: '/vendordata/note/list', name: 'VendorNoteList', element: VendordataNoteList },
+
+  // ✅ NEW Trip routes
+  { path: '/vendordata/trip/tripbooked', name: 'Trip Booked', element: TripBooked },
+  { path: '/vendordata/trip/completed', name: 'Completed Trips', element: TripCompleted },
 ]
 
 export default routes

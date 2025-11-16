@@ -169,6 +169,23 @@ const vendormenu = [
     name: <Txt k="navFieldTrip" fb="Field Trip" />,
   },
   // You can apply same query logic for trips too later
+
+  // 🚍 Trip Booked
+  {
+    component: CNavItem,
+    name: <Txt k="navTripBooked" fb="Trip Booked" />,
+    to: '/vendordata/trip/tripbooked',
+    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+  },
+
+  // ✅ Completed Trips
+  {
+    component: CNavItem,
+    name: <Txt k="navCompletedTrips" fb="Completed Trips" />,
+    to: '/vendordata/trip/completed',
+    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+  },
+
   {
     component: CNavItem,
     name: <Txt k="navPayment" fb="Payment" />,

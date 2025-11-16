@@ -139,6 +139,8 @@ const normalizeItem = (x) => ({
     totalStudentApproved: Number(x?.studentSummary?.totalStudentApproved ?? 0),
     totalStudentFailed: Number(x?.studentSummary?.totalStudentFailed ?? 0),
     totalStudentNew: Number(x?.studentSummary?.totalStudentNew ?? 0),
+    // ✅ NEW: totalStudentAbsent from API
+    totalStudentAbsent: Number(x?.studentSummary?.totalStudentAbsent ?? 0),
   },
   tripPayment: {
     totalTripVendorCost: Number(x?.tripPayment?.totalTripVendorCost ?? 0),
@@ -338,7 +340,10 @@ const ViewActivityScreen = () => {
 
   // apply filters
   const filteredItems = React.useMemo(() => {
-    let data = items;
+    // ✅ FIRST: only keep COMPLETED statuses
+    let data = items.filter(
+      (it) => (it.actRequestStatus || "").toUpperCase() === "TRIP-BOOKED"
+    );
 
     const t = searchTerm.trim().toLowerCase();
     if (t) {
@@ -432,39 +437,11 @@ const ViewActivityScreen = () => {
                 className="title-main"
                 style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}
               >
-                Payment Information
+                 Trip-Booked Information
               </div>
             </div>
 
-          {/* Right-side total profit box with rounded corners */}
-            <div className="vas-header-right">
-              <div className="vas-total-tile tile--xl">
-                <Tile
-                  label="Total Profit"
-                  value={fmtNum(totalProfitAll)}
-                  mono
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(59,130,246,0.06), rgba(16,185,129,0.08))",
-                    border: "1px solid rgba(59,130,246,0.18)",
-                  }}
-                />
-              </div>
-              <CButton
-                color="secondary"
-                className="add-product-button"
-                variant="outline"
-                onClick={() => navigate(-1)}
-                style={{
-                  marginLeft: 8,
-                  borderRadius: 999,
-                  borderColor: "#d1d5db",
-                  fontSize: 12,
-                }}
-              >
-                ← Back
-              </CButton>
-            </div>
+            {/* Right side (kept empty now) */}
           </div>
 
           {/* 🔍 Filters and page-size selector – all in one row: Search / Status / Show records */}
@@ -637,7 +614,9 @@ const ViewActivityScreen = () => {
                     <CTableHeaderCell>Trip Date</CTableHeaderCell>
                     <CTableHeaderCell>Time</CTableHeaderCell>
                     <CTableHeaderCell>Status</CTableHeaderCell>
-                    <CTableHeaderCell>Total Student</CTableHeaderCell>
+                    <CTableHeaderCell>Total Present</CTableHeaderCell>
+                    {/* ✅ NEW column header for totalStudentAbsent */}
+                    <CTableHeaderCell>Total Absense </CTableHeaderCell>
                     <CTableHeaderCell>Vendor Cost</CTableHeaderCell>
                     {/* Food Profit & Total Profit kept but hidden from grid */}
                     <CTableHeaderCell style={{ display: "none" }}>
@@ -691,9 +670,14 @@ const ViewActivityScreen = () => {
                           </CBadge>
                         </CTableDataCell>
 
-                        {/* Student Summary Approved */}
+                        {/* Student Summary Approved (Total Student) */}
                         <CTableDataCell className="mono">
                           {fmtNum(row.studentSummary.totalStudentApproved)}
+                        </CTableDataCell>
+
+                        {/* ✅ NEW cell: Total Absense Student from API */}
+                        <CTableDataCell className="mono">
+                          {fmtNum(row.studentSummary.totalStudentAbsent)}
                         </CTableDataCell>
 
                         {/* Vendor Cost */}
@@ -1090,24 +1074,30 @@ const ViewActivityScreen = () => {
                           );
                         })}
 
-                        {/* Total Trip Vendor Cost row - PRESENT ONLY */}
-                        <CTableRow className="kids-total-row">
-                          <CTableDataCell
-                            colSpan={6}
-                            style={{
-                              textAlign: "right",
-                              fontWeight: "bold",
-                            }}
-                          >
-                            Total Trip Vendor Cost (Present Only)
-                          </CTableDataCell>
-                          <CTableDataCell
-                            className="mono"
-                            style={{ fontWeight: "bold" }}
-                          >
-                            {fmtNum(kidsVendorTotal.toFixed(2))}
-                          </CTableDataCell>
-                        </CTableRow>
+                        {/* Total Trip Vendor Cost row - PRESENT ONLY + Total Absent */}
+                        {(() => {
+                          const { absentCount } = computeKidsPresence(kids);
+                          return (
+                            <CTableRow className="kids-total-row">
+                              <CTableDataCell
+                                colSpan={6}
+                                style={{
+                                  textAlign: "right",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                Total Trip Vendor Cost (Present Only) | Total Absent Student:{" "}
+                                {fmtNum(absentCount)}
+                              </CTableDataCell>
+                              <CTableDataCell
+                                className="mono"
+                                style={{ fontWeight: "bold" }}
+                              >
+                                {fmtNum(kidsVendorTotal.toFixed(2))}
+                              </CTableDataCell>
+                            </CTableRow>
+                          );
+                        })()}
                       </CTableBody>
                     </CTable>
                   </>

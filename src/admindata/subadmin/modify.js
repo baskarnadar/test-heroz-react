@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../config';
 import { checkLogin } from '../../utils/auth';
 import '../../scss/toast.css';
 import { DspToastMessage, getAuthHeaders } from '../../utils/operation';
-import { IsAdminLoginIsValid } from '../../../utils/operation';
+import { IsAdminLoginIsValid } from '../../utils/operation';
 
 const UserForm = () => {
   const navigate = useNavigate();

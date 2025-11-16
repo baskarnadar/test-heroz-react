@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   IsAdminLoginIsValid
-} from '../../../utils/operation'
+} from '../../utils/operation'
 
 const Vendor = () => {
   const [active, setActive] = useState('VENDOR')

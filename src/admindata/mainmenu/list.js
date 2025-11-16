@@ -5,7 +5,7 @@ import CIcon from '@coreui/icons-react';
 import { cilTrash, cilPencil } from '@coreui/icons';
 import {
   IsAdminLoginIsValid
-} from '../../../utils/operation';
+} from '../../utils/operation';
 
 const MainMenuListWithPagination = () => {
   const [MainMenus, setMainMenus] = useState([]);

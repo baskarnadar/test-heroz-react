@@ -255,3 +255,11 @@
   border-color: rgba(241, 196, 15, 0.8);
   background-color: rgba(241, 196, 15, 0.1);
 }
+.status--rejected
+{
+  color:red !important;
+}
+.status--waiting
+{
+  color:darkgoldenrod;
+}

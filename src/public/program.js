@@ -399,12 +399,30 @@ const ProposalPage = () => {
     }, 0);
   }, [ActivityData, checkedFoodItems, schoolPriceMap]);
 
-  const grandTotal = priceTotal + foodTotal;
+  // ----------------- VAT + TOTAL (rounded correctly) -----------------
+  const grandTotal = priceTotal + foodTotal; // raw per-student subtotal (trip + food)
 
-  // 🔽 TAX: 15% VAT (per student)
   const TAX_RATE = 0.15; // 15%
-  const taxAmount = (Number(grandTotal) || 0) * TAX_RATE;
-  const grandTotalWithTax = (Number(grandTotal) || 0) + taxAmount;
+
+  // Freeze subtotal to 2 decimals
+  const perStudentSubTotal = Number(
+    (Number(grandTotal) || 0).toFixed(2)
+  );
+
+  // VAT from rounded subtotal
+  const perStudentTax = Number(
+    (perStudentSubTotal * TAX_RATE).toFixed(2)
+  );
+
+  // Total from rounded subtotal + rounded VAT
+  const perStudentTotal = Number(
+    (perStudentSubTotal + perStudentTax).toFixed(2)
+  );
+
+  // Keep your old variable names so the rest of the code still works
+  const taxAmount = perStudentTax;
+  const grandTotalWithTax = perStudentTotal;
+  // ---------------------------------------------------------------
 
   // ---------- helpers ----------
   // Student ID OPTIONAL now: only name + className required
@@ -414,7 +432,7 @@ const ProposalPage = () => {
   const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
 
-  // 🔽 VAT shown in UI should reflect number of kids
+  // 👉 VAT amount for all kids (used in UI). If no kid yet, show per-student VAT.
   const vatAmountToShow = (
     taxAmount * (validKidsCount > 0 ? validKidsCount : 1)
   ).toFixed(2);
@@ -508,7 +526,7 @@ const ProposalPage = () => {
       TripKidsName: row.name.trim(),
       tripKidsClassName: row.className.trim(),
       TripKidsGender: (row.gender || "").trim(),
-      TripCost: priceTotal.toFixed(2),
+      TripCost: perStudentSubTotal.toFixed(2), // subtotal (trip + food)
       TripFoodCost: foodTotal.toFixed(2),
       TripTaxAmount: taxAmount.toFixed(2),
       TripFullAmount: grandTotalWithTax.toFixed(2),
@@ -532,7 +550,7 @@ const ProposalPage = () => {
       })),
       paymentLabel,
       totals: {
-        baseTripPerStudent: priceTotal.toFixed(2),
+        baseTripPerStudent: perStudentSubTotal.toFixed(2),
         foodPerStudent: foodTotal.toFixed(2),
         grandPerStudent: grandTotalWithTax.toFixed(2),
         students: validKids.length,
@@ -610,6 +628,18 @@ const ProposalPage = () => {
     if (validKids.length === 0) {
       showError(dict.errEnterChildInfo);
       return false;
+    }
+
+    // 🔐 NEW: child name length validation (minimum 10 characters)
+    for (const kid of validKids) {
+      if (kid.name.trim().length < 10) {
+        showError(
+          lang === "ar"
+            ? "يجب أن يكون اسم الطفل 10 أحرف على الأقل."
+            : "Child name must be at least 10 characters long."
+        );
+        return false;
+      }
     }
 
     if (!selectedMethodId) {
@@ -809,7 +839,7 @@ const ProposalPage = () => {
                       </div>
                     </div>
                     <div className="detail-value ">
-                      {priceTotal.toFixed(2)}{" "}
+                      {perStudentSubTotal.toFixed(2)}{" "}
                       <img src={icon5} alt="HEROZ" />
                     </div>
                   </div>
@@ -898,7 +928,7 @@ const ProposalPage = () => {
                   {dict.baseTripCost}
                 </span>
                 <span className="price-value fontsize20">
-                  {priceTotal.toFixed(2)}{" "}
+                  {perStudentSubTotal.toFixed(2)}{" "}
                   <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
@@ -920,15 +950,28 @@ const ProposalPage = () => {
                 <div className="summary-row">
                   <span>{dict.subtotal}</span>
                   <span>
-                    {grandTotal.toFixed(2)}{" "}
+                    {perStudentSubTotal.toFixed(2)}{" "}
                     <img src={icon5} alt="HEROZ" />
                   </span>
                 </div>
               </div>
 
+              {/* ✅ VAT row ALWAYS visible (uses vatAmountToShow) */}
+              <div className="summary-row total">
+                <span>
+                  {lang === "ar"
+                    ? "قيمة الضريبة (15٪)"
+                    : "VAT Amount (15%)"}
+                </span>
+                <span>
+                  {vatAmountToShow} <img src={icon5} alt="HEROZ" />
+                </span>
+              </div>
+
+              {/* Total Payable (per student) = subtotal + TAX */}
               <div className="summary-row total trip-gradient-color">
                 <span>
-                  <div>{dict.totalPayable}</div>{" "}
+                  <div>{dict.totalPayable}</div>
                   <div>({dict.perStudent})</div>
                 </span>
                 <span>
@@ -937,19 +980,7 @@ const ProposalPage = () => {
                 </span>
               </div>
 
-              {/* 🔽 TAX ROWS BELOW FINAL AMOUNT */}
-              <div className="summary-row">
-                <span>{dict.taxValueLabel || "Tax Value"}</span>
-                <span>15%</span>
-              </div>
-              <div className="summary-row">
-                <span>{dict.taxAmountLabel || "VAT Amount"}</span>
-                <span>
-                  {vatAmountToShow}{" "}
-                  <img src={icon5} alt="HEROZ" />
-                </span>
-              </div>
-
+              {/* Net payable only if more than 1 kid */}
               {validKidsCount > 1 && (
                 <div className="summary-row total net-payable trip-gradient-color">
                   <span>

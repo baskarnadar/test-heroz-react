@@ -1,6 +1,7 @@
 // src/views/dashboard/components/dashboardSummary.js
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
 import { CRow, CCol, CCard, CCardBody, CBadge, CSpinner } from "@coreui/react";
 import { getAuthHeaders } from "../../../utils/operation";
 
@@ -23,16 +24,34 @@ const tiles = [
   { key: "totalCompleted", label: "Completed", color: "success" },
 ];
 
-const StatCard = ({ label, value, badgeColor }) => {
+const StatCard = ({ label, value, badgeColor, onClick }) => {
+  const clickable = typeof onClick === "function";
+
   return (
     <CCard
+      onClick={onClick}
       style={{
         border: "none",
         borderRadius: 16,
         overflow: "hidden",
         boxShadow: UI.cardShadow,
         background: "#ffffff",
+        cursor: clickable ? "pointer" : "default",
+        transform: clickable ? "translateY(0)" : undefined,
+        transition: clickable ? "transform 0.12s ease, box-shadow 0.12s ease" : undefined,
       }}
+      {...(clickable
+        ? {
+            onMouseEnter: (e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 16px 30px rgba(15, 23, 42, 0.12)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = UI.cardShadow;
+            },
+          }
+        : {})}
     >
       <div
         style={{
@@ -106,9 +125,11 @@ StatCard.propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   badgeColor: PropTypes.string,
+  onClick: PropTypes.func,
 };
 
 const DashboardSummary = ({ apiUrl, title = "Dashboard Summary" }) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [error, setError] = useState("");
@@ -152,6 +173,24 @@ const DashboardSummary = ({ apiUrl, title = "Dashboard Summary" }) => {
       alive = false;
     };
   }, [apiUrl]);
+
+  // map tile keys to navigation targets
+  const getTileClickHandler = (key) => {
+    switch (key) {
+      case "totalTripBooked":
+        return () => navigate("/trip/tripdata?status=TRIP-BOOKED");
+      case "totalWaitingForApproval":
+        return () => navigate("/trip/tripdata?status=WAITING-FOR-APPROVAL");
+      case "totalRejected":
+        return () => navigate("/trip/tripdata?status=REJECTED");
+      case "totalApproved":
+        return () => navigate("/trip/tripdata?status=APPROVED");
+      case "totalCompleted":
+        return () => navigate("/trip/tripdata?status=COMPLETED");
+      default:
+        return undefined;
+    }
+  };
 
   const content = useMemo(() => {
     if (loading) {
@@ -198,12 +237,13 @@ const DashboardSummary = ({ apiUrl, title = "Dashboard Summary" }) => {
               label={t.label}
               value={Number(stats[t.key] ?? 0)}
               badgeColor={t.color}
+              onClick={getTileClickHandler(t.key)}
             />
           </CCol>
         ))}
       </CRow>
     );
-  }, [loading, error, stats]);
+  }, [loading, error, stats, navigate]);
 
   return (
     <div style={{ marginBottom: 16 }}>

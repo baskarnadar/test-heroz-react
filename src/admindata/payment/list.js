@@ -8,7 +8,7 @@ import {
   CPagination, CPaginationItem
 } from "@coreui/react";
 import { AppColors } from "../../_shared/colors";
-import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
+import { getAuthHeaders, getCurrentLoggedUserID, IsAdminLoginIsValid } from "../../utils/operation";
 import "../../style/payment.css";
 
 import SchPaymentModal from "./schPayment";
@@ -21,24 +21,24 @@ import { API_BASE_URL } from '../../config';
 const IconCard = ({ size = 16, title = "Pay" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title} focusable="false">
     <title>{title}</title>
-    <rect x="2" y="5" width="20" height="14" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/>
-    <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" strokeWidth="2"/>
-    <rect x="6" y="14" width="6" height="2" fill="currentColor"/>
+    <rect x="2" y="5" width="20" height="14" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2" />
+    <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" strokeWidth="2" />
+    <rect x="6" y="14" width="6" height="2" fill="currentColor" />
   </svg>
 );
 
 const IconEye = ({ size = 16, title = "View" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title} focusable="false">
     <title>{title}</title>
-    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" fill="none" stroke="currentColor" strokeWidth="2"/>
-    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2"/>
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" fill="none" stroke="currentColor" strokeWidth="2" />
+    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2" />
   </svg>
 );
 
 // helpers
 const toStr = (v) => (v ?? "").toString();
 const fmtNum = (v) => (Number.isFinite(Number(v)) ? Number(v).toString() : toStr(v));
-// ✅ NEW: strict 2-decimal money formatter (non-destructive addition)
+// ✅ strict 2-decimal money formatter (non-destructive addition)
 const fmtMoney = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n.toFixed(2) : "-";
@@ -135,6 +135,11 @@ const ViewActivityScreen = () => {
   const navigate = useNavigate();
   const dir = useDocDir();
   const vendorID = getCurrentLoggedUserID?.() || "";
+
+  // ✅ NEW: validate admin login on mount
+  React.useEffect(() => {
+    IsAdminLoginIsValid?.(); // will redirect to BaseURL if token/usertype invalid
+  }, []);
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -310,7 +315,6 @@ const ViewActivityScreen = () => {
 
             <div className="vas-header-right">
               <div className="vas-total-tile tile--xl">
-                {/* ✨ Only change: force 2 decimals */}
                 <Tile label="Total Profit" value={fmtMoney(totalProfitAll)} mono />
               </div>
               <CButton color="secondary" className="add-product-button" variant="outline" onClick={() => navigate(-1)}>
@@ -434,17 +438,17 @@ const ViewActivityScreen = () => {
                         </CBadge>
                       </CTableDataCell>
                       <CTableDataCell className="mono">{fmtNum(row.studentSummary.totalStudentApproved)}</CTableDataCell>
-                      {/* ✨ Only change: force 2 decimals for per-row profit */}
                       <CTableDataCell className="mono">{fmtMoney(row.totalPaymentSummary.totalVendorTripProfit)}</CTableDataCell>
 
                       <CTableDataCell className="text-nowrap">
                         <div className="d-flex gap-1 flex-nowrap overflow-auto" style={{ maxWidth: '220px' }}>
-                        <CButton
+                          <CButton
                             size="sm" color="secondary" variant="outline" title="View"
                             onClick={(e) => { e.stopPropagation(); openModalFor(row); }}
                           >
                             <IconEye title="View" />
-                          </CButton>  <CButton
+                          </CButton>
+                          <CButton
                             size="sm" color="success" variant="outline" title="Pay School"
                             onClick={(e) => { e.stopPropagation(); setSelected(row); setShowSchPay(true); }}
                           >
@@ -456,7 +460,7 @@ const ViewActivityScreen = () => {
                           >
                             <IconCard title="Pay Vendor" />
                           </CButton>
-                          
+
                         </div>
                       </CTableDataCell>
                     </CTableRow>
@@ -500,9 +504,7 @@ const ViewActivityScreen = () => {
       <ViewPaymentModal
         visible={showModal}
         onClose={() => setShowModal(false)}
-        // ✅ pass the COMPLETE JSON for the clicked record
         item={selected?.__full || selected}
-        // ✅ pass the COMPLETE JSON array so the modal can also cross-reference if it needs
         allRequests={rawAllRequests}
       />
 
