@@ -33,12 +33,18 @@ import ViewPaymentModal from "../payment/viewPayment";
 
 import { API_BASE_URL } from "../../config";
 
-// 🔧 column width constants
+// 🔧 column width constants (you can tweak these)
 const TRIP_COL_WIDTH = "26ch";
 const SCHOOL_COL_WIDTH = "26ch";
-const VENDOR_COL_WIDTH = "32ch"; // 👈 Vendor column wider now
+const VENDOR_COL_WIDTH = "32ch"; // Vendor wider
 const DATE_COL_WIDTH = "22ch";
 const ACTIONS_COL_WIDTH = "18ch";
+
+// 🔴 debug style for every column (header + data)
+const debugCellStyle = {
+  border: "1px solid #f3eded",
+  borderCollapse: "collapse",
+};
 
 // ---------- tiny inline SVG icons ----------
 const IconCard = ({ size = 16, title = "Pay" }) => (
@@ -128,12 +134,14 @@ const useDocDir = () => {
   return dir;
 };
 
-const Ellipsis = ({ text, width = "22ch", className = "" }) => (
+// ✅ Ellipsis now fills full cell width; maxWidth is optional cap
+const Ellipsis = ({ text, maxWidth, className = "" }) => (
   <div
     className={`text-truncate ${className}`}
     title={text || ""}
     style={{
-      maxWidth: width,
+      width: "100%",
+      maxWidth: maxWidth || "100%",
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -614,7 +622,7 @@ const ViewActivityScreen = () => {
           borderColor: AppColors?.onPinkBorderColor || undefined,
         }}
       >
-        {/* remove a bit of right padding to shrink empty space */}
+        {/* small right padding so grid uses more space */}
         <CCardBody className="vas-card-body" style={{ paddingRight: 8 }}>
           {/* Header */}
           <div className="vas-header">
@@ -741,17 +749,20 @@ const ViewActivityScreen = () => {
                   style={{
                     tableLayout: "auto",
                     width: "100%",
+                    borderCollapse: "collapse",
                   }}
                 >
                   <CTableHead>
                     <CTableRow>
                       <CTableHeaderCell
-                        style={{ width: "5ch" }}
+                        style={{ ...debugCellStyle, width: "5ch" }}
                         className="text-center"
                       >
                         #
                       </CTableHeaderCell>
-                      <CTableHeaderCell style={{ width: "8ch" }}>
+                      <CTableHeaderCell
+                        style={{ ...debugCellStyle, width: "8ch" }}
+                      >
                         <SortHeader
                           label="Ref#"
                           columnKey="actRequestRefNo"
@@ -761,7 +772,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: TRIP_COL_WIDTH }}
+                        style={{ ...debugCellStyle, width: TRIP_COL_WIDTH }}
                       >
                         <SortHeader
                           label="Trip Name"
@@ -772,7 +783,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: SCHOOL_COL_WIDTH }}
+                        style={{ ...debugCellStyle, width: SCHOOL_COL_WIDTH }}
                       >
                         <SortHeader
                           label="School"
@@ -783,7 +794,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: VENDOR_COL_WIDTH }} // 👈 wider
+                        style={{ ...debugCellStyle, width: VENDOR_COL_WIDTH }}
                       >
                         <SortHeader
                           label="Vendor"
@@ -794,7 +805,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: DATE_COL_WIDTH }}
+                        style={{ ...debugCellStyle, width: DATE_COL_WIDTH }}
                       >
                         <SortHeader
                           label="Trip Date"
@@ -804,7 +815,9 @@ const ViewActivityScreen = () => {
                         />
                       </CTableHeaderCell>
 
-                      <CTableHeaderCell style={{ width: "15ch" }}>
+                      <CTableHeaderCell
+                        style={{ ...debugCellStyle, width: "15ch" }}
+                      >
                         <SortHeader
                           label="Status"
                           columnKey="actRequestStatus"
@@ -813,7 +826,7 @@ const ViewActivityScreen = () => {
                         />
                       </CTableHeaderCell>
                       <CTableHeaderCell
-                        style={{ width: "9ch" }}
+                        style={{ ...debugCellStyle, width: "9ch" }}
                         className="text-center"
                       >
                         <SortHeader
@@ -824,7 +837,7 @@ const ViewActivityScreen = () => {
                         />
                       </CTableHeaderCell>
                       <CTableHeaderCell
-                        style={{ width: "9ch" }}
+                        style={{ ...debugCellStyle, width: "9ch" }}
                         className="text-center"
                       >
                         <SortHeader
@@ -835,7 +848,9 @@ const ViewActivityScreen = () => {
                         />
                       </CTableHeaderCell>
                       {SHOW_PROFIT_COLUMN && (
-                        <CTableHeaderCell style={{ width: "10ch" }}>
+                        <CTableHeaderCell
+                          style={{ ...debugCellStyle, width: "10ch" }}
+                        >
                           <SortHeader
                             label="Profit"
                             columnKey="profit"
@@ -846,7 +861,7 @@ const ViewActivityScreen = () => {
                       )}
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: ACTIONS_COL_WIDTH }}
+                        style={{ ...debugCellStyle, width: ACTIONS_COL_WIDTH }}
                       >
                         Actions
                       </CTableHeaderCell>
@@ -859,28 +874,37 @@ const ViewActivityScreen = () => {
                         onClick={() => openModalFor(row)}
                         className="row-clickable"
                       >
-                        <CTableDataCell className="text-center">
+                        <CTableDataCell
+                          className="text-center"
+                          style={debugCellStyle}
+                        >
                           {startIndex + idx + 1}
                         </CTableDataCell>
-                        <CTableDataCell className="mono">
+                        <CTableDataCell className="mono" style={debugCellStyle}>
                           {row.actRequestRefNo || "-"}
                         </CTableDataCell>
-                        <CTableDataCell>
-                          <Ellipsis text={row.actName} width={TRIP_COL_WIDTH} />
+                        <CTableDataCell style={debugCellStyle}>
+                          <Ellipsis
+                            text={row.actName}
+                            maxWidth={TRIP_COL_WIDTH}
+                          />
                         </CTableDataCell>
-                        <CTableDataCell>
+                        <CTableDataCell style={debugCellStyle}>
                           <Ellipsis
                             text={row.schName}
-                            width={SCHOOL_COL_WIDTH}
+                            maxWidth={SCHOOL_COL_WIDTH}
                           />
                         </CTableDataCell>
-                        <CTableDataCell>
+                        <CTableDataCell style={debugCellStyle}>
                           <Ellipsis
                             text={row.vdrName}
-                            width={VENDOR_COL_WIDTH} // 👈 uses same bigger width
+                            maxWidth={VENDOR_COL_WIDTH}
                           />
                         </CTableDataCell>
-                        <CTableDataCell className="mono text-nowrap">
+                        <CTableDataCell
+                          className="mono text-nowrap"
+                          style={debugCellStyle}
+                        >
                           <div>{row.actRequestDate || "-"}</div>
                           <div
                             style={{
@@ -894,7 +918,7 @@ const ViewActivityScreen = () => {
                           </div>
                         </CTableDataCell>
 
-                        <CTableDataCell>
+                        <CTableDataCell style={debugCellStyle}>
                           <CBadge
                             className={`status-badge ${statusClassName(
                               row.actRequestStatus
@@ -903,31 +927,43 @@ const ViewActivityScreen = () => {
                             {row.actRequestStatus}
                           </CBadge>
                         </CTableDataCell>
-                        <CTableDataCell className="mono text-center">
+                        <CTableDataCell
+                          className="mono text-center"
+                          style={debugCellStyle}
+                        >
                           {fmtNum(
                             row.studentSummary.totalStudentApproved
                           )}
                         </CTableDataCell>
-                        <CTableDataCell className="mono text-center">
+                        <CTableDataCell
+                          className="mono text-center"
+                          style={debugCellStyle}
+                        >
                           {fmtNum(row.studentSummary.totalStudentAbsent)}
                         </CTableDataCell>
                         {SHOW_PROFIT_COLUMN && (
-                          <CTableDataCell className="mono">
+                          <CTableDataCell
+                            className="mono"
+                            style={debugCellStyle}
+                          >
                             {fmtMoney(
                               row.totalPaymentSummary.totalVendorTripProfit
                             )}
                           </CTableDataCell>
                         )}
 
-                        <CTableDataCell className="text-nowrap">
+                        <CTableDataCell
+                          className="text-nowrap"
+                          style={debugCellStyle}
+                        >
                           <div
-                            className="d-flex gap-1 flex-nowrap"
-                            style={{
-                              maxWidth: "260px",
-                              minWidth: "260px",
-                              overflow: "visible",
-                            }}
-                          >
+  className="d-flex gap-1 flex-wrap"
+  style={{
+    maxWidth: "180px",
+    minWidth: "120px",
+    overflow: "visible",
+  }}
+>
                             <CButton
                               size="sm"
                               color="secondary"
