@@ -98,7 +98,6 @@ const IconEye = ({ size = 16, title = "View" }) => (
 const toStr = (v) => (v ?? "").toString();
 const fmtNum = (v) =>
   Number.isFinite(Number(v)) ? Number(v).toString() : toStr(v);
-// strict 2-decimal money formatter
 const fmtMoney = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n.toFixed(2) : "-";
@@ -141,28 +140,56 @@ const Ellipsis = ({ text, width = "22ch", className = "" }) => (
 const get_trip_data = `${API_BASE_URL}/trip/tripdata`;
 const get_pay_summary = `${API_BASE_URL}/commondata/trip/gettripPaymentSummary`;
 
-// helper: build URL from a given status (THIS is exactly where ?status=... is added)
+// helper: build URL from a given status (?status=...)
 const buildTripUrl = (status) => {
   const qs = new URLSearchParams();
-  if (status) {
-    qs.set("status", status);
-  }
+  if (status) qs.set("status", status);
   return qs.toString() ? `${get_trip_data}?${qs.toString()}` : get_trip_data;
+};
+
+// ---------- status helpers ----------
+const statusMatchesFilter = (rowStatus, targetStatus) => {
+  const rs = (rowStatus || "").toUpperCase().trim();
+  const ts = (targetStatus || "").toUpperCase().trim();
+  if (!ts) return true;
+  if (!rs) return false;
+
+  if (rs === ts) return true;
+
+  // ACTIVITY-REJECTED → REJECTED, ACTIVITY-APPROVED → APPROVED, etc.
+  const rsNoActivityPrefix = rs.replace(/^ACTIVITY-/, "");
+  if (rsNoActivityPrefix === ts) return true;
+
+  // TRIP-BOOKED → BOOKED (just in case)
+  const rsAfterDash = rs.includes("-") ? rs.split("-").slice(-1)[0] : rs;
+  if (rsAfterDash === ts) return true;
+
+  // fallback: contains
+  if (rs.includes(ts)) return true;
+
+  return false;
 };
 
 // ✅ badge classes with your requested colors
 const statusClassName = (status = "") => {
   const s = (status || "").toUpperCase().trim();
 
-  // NEW STATUSES / COLORS
-  if (s === "APPROVED" || s === "COMPLETED" || s === "COMPLATED")
+  if (
+    s === "APPROVED" ||
+    s === "COMPLETED" ||
+    s === "COMPLATED" ||
+    s === "ACTIVITY-APPROVED"
+  )
     return "status--approved"; // green
+
   if (s === "TRIP-BOOKED") return "status--trip-booked"; // orange
+
   if (s === "WAITING-FOR-APPROVAL" || s === "WAITING-FOR-APPROVAL-")
     return "status--waiting"; // dark yellow
-  if (s === "REJECTED") return "status--rejected"; // red
 
-  // OTHER EXISTING ONES (kept)
+  if (s === "REJECTED" || s === "ACTIVITY-REJECTED")
+    return "status--rejected"; // red
+
   if (s === "FAILED") return "status--failed";
   if (s === "NEW") return "status--new";
   if (s === "PRESENT") return "status--present";
@@ -199,7 +226,6 @@ const normalizeItem = (x) => ({
   actRequestDate: toStr(x.actRequestDate),
   actRequestTime: toStr(x.actRequestTime),
 
-  // minimal numbers for table
   studentSummary: {
     totalStudentPaid: Number(x?.studentSummary?.totalStudentPaid ?? 0),
     totalStudentApproved: Number(
@@ -227,9 +253,46 @@ const normalizeItem = (x) => ({
     ),
   },
 
-  // keep the untouched complete server object
   __full: x,
 });
+
+// sort header with ▲▼
+const SortHeader = ({ label, columnKey, sortConfig, onSort }) => {
+  const active = sortConfig?.key === columnKey ? sortConfig.direction : null;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(columnKey)}
+      style={{
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        margin: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        cursor: "pointer",
+        font: "inherit",
+      }}
+    >
+      <span>{label}</span>
+      <span
+        style={{
+          display: "inline-flex",
+          flexDirection: "column",
+          lineHeight: 0.7,
+          fontSize: "0.65em",
+        }}
+      >
+        <span style={{ opacity: active === "asc" ? 1 : 0.3 }}>▲</span>
+        <span style={{ opacity: active === "desc" ? 1 : 0.3 }}>▼</span>
+      </span>
+    </button>
+  );
+};
+
+// Profit column flag
+const SHOW_PROFIT_COLUMN = false;
 
 const ViewActivityScreen = () => {
   const navigate = useNavigate();
@@ -237,9 +300,8 @@ const ViewActivityScreen = () => {
   const dir = useDocDir();
   const vendorID = getCurrentLoggedUserID?.() || "";
 
-  // validate admin login on mount
   React.useEffect(() => {
-    IsAdminLoginIsValid?.(); // will redirect to BaseURL if token/usertype invalid
+    IsAdminLoginIsValid?.();
   }, []);
 
   const [loading, setLoading] = React.useState(true);
@@ -252,7 +314,7 @@ const ViewActivityScreen = () => {
   const [showSchPay, setShowSchPay] = React.useState(false);
   const [showVdrPay, setShowVdrPay] = React.useState(false);
 
-  // filters (NOT status now)
+  // filters
   const [filterVendor, setFilterVendor] = React.useState("");
   const [filterFromDate, setFilterFromDate] = React.useState("");
   const [filterToDate, setFilterToDate] = React.useState("");
@@ -262,20 +324,20 @@ const ViewActivityScreen = () => {
   const [pageSize, setPageSize] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
 
-  // 🔴 Get status from the BROWSER URL: ?status=APPROVED / ?status=REJECTED / etc.
+  // sorting
+  const [sortConfig, setSortConfig] = React.useState({
+    key: "",
+    direction: "asc",
+  });
+
+  // status from URL
   const statusFromUrl = React.useMemo(() => {
     const params = new URLSearchParams(location.search);
-    const raw = params.get("status") || "COMPLETED"; // default COMPLETED if not set
+    const raw = params.get("status") || "COMPLETED";
     return raw.trim();
   }, [location.search]);
 
   const statusUpperFromUrl = statusFromUrl.toUpperCase();
-
-  // just for display, so you SEE the URL on screen
-  const currentApiUrl = React.useMemo(
-    () => buildTripUrl(statusFromUrl),
-    [statusFromUrl]
-  );
 
   React.useEffect(() => {
     let isMounted = true;
@@ -285,15 +347,11 @@ const ViewActivityScreen = () => {
       setError("");
 
       try {
-        // ✅ Build URL from status in URL
         const url = buildTripUrl(statusFromUrl);
 
-        console.log("[TripView] calling:", url, "statusFromUrl:", statusFromUrl);
-
         let json;
-        let usedLegacy = false;
 
-        // ---- try new endpoint first ----
+        // ---- NEW endpoint ----
         const res = await fetch(url, {
           method: "GET",
           headers: {
@@ -302,12 +360,9 @@ const ViewActivityScreen = () => {
         });
 
         if (res.status === 404) {
-          // 🔁 fall back to old API if /trip/tripdata is not defined yet
-          console.warn(
-            "[TripView] /trip/tripdata 404 – falling back to /commondata/trip/gettripPaymentSummary"
-          );
-
+          // ---- LEGACY endpoint ----
           const legacyBody = statusFromUrl ? { status: statusFromUrl } : {};
+
           const legacyRes = await fetch(get_pay_summary, {
             method: "POST",
             headers: {
@@ -317,20 +372,35 @@ const ViewActivityScreen = () => {
             body: JSON.stringify(legacyBody),
           });
 
-          const legacyJson = await legacyRes.json().catch(() => ({}));
+          const legacyText = await legacyRes.text();
+          let legacyJson;
+          try {
+            legacyJson = legacyText ? JSON.parse(legacyText) : {};
+          } catch {
+            legacyJson = { _raw: legacyText };
+          }
+
           if (!legacyRes.ok) {
             throw new Error(
               legacyJson?.message ||
                 `Legacy request failed: ${legacyRes.status}`
             );
           }
+
           json = legacyJson;
-          usedLegacy = true;
         } else {
-          const body = await res.json().catch(() => ({}));
+          const text = await res.text();
+          let body;
+          try {
+            body = text ? JSON.parse(text) : {};
+          } catch {
+            body = { _raw: text };
+          }
+
           if (!res.ok) {
             throw new Error(body?.message || `Request failed: ${res.status}`);
           }
+
           json = body;
         }
 
@@ -340,46 +410,19 @@ const ViewActivityScreen = () => {
           ? [json.data]
           : [];
 
-        // 1) normalize
+        // normalize
         let normalized = rawArr.map(normalizeItem);
 
-        // 2) 🔥 Filter JSON result by status from URL
+        // status filter by URL
         if (statusUpperFromUrl) {
-          normalized = normalized.filter((it) => {
-            const rowStatus = (it.actRequestStatus || "")
-              .trim()
-              .toUpperCase();
-            const match = rowStatus === statusUpperFromUrl;
-            console.log(
-              "[TripView] row status check:",
-              "rowStatus=",
-              rowStatus,
-              "expected=",
-              statusUpperFromUrl,
-              "match=",
-              match
-            );
-            return match;
-          });
-        }
-
-        if (!normalized.length) {
-          throw new Error(
-            `No data returned for status: ${statusFromUrl}.`
+          normalized = normalized.filter((it) =>
+            statusMatchesFilter(it.actRequestStatus, statusUpperFromUrl)
           );
         }
 
         if (isMounted) {
           setItems(normalized);
-          setSelected(normalized[0]);
-          console.log(
-            "[TripView] loaded records (after status-filter):",
-            normalized.length,
-            "statusFromUrl=",
-            statusFromUrl,
-            "via",
-            usedLegacy ? "LEGACY API" : "NEW /trip/tripdata"
-          );
+          setSelected(normalized[0] || null);
         }
       } catch (e) {
         if (isMounted) {
@@ -396,7 +439,7 @@ const ViewActivityScreen = () => {
     return () => {
       isMounted = false;
     };
-  }, [vendorID, statusFromUrl]); // 🔁 refetch when URL status changes
+  }, [vendorID, statusFromUrl, statusUpperFromUrl]);
 
   const openModalFor = (row) => {
     setSelected(row);
@@ -413,18 +456,15 @@ const ViewActivityScreen = () => {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [items]);
 
-  // ✅ filter (vendor, date, query) – NO status filtering here,
-  //    because status is already applied using URL + server result.
+  // filter (vendor, date, query)
   const filteredItems = React.useMemo(() => {
     const from = parseYMD(filterFromDate);
     const to = parseYMD(filterToDate);
     const q = fold(filterQuery);
 
     return items.filter((it) => {
-      // Vendor filter
       if (filterVendor && (it.vdrName || "") !== filterVendor) return false;
 
-      // Date range
       if (filterFromDate || filterToDate) {
         const d = parseYMD(it.actRequestDate);
         if (!d) return false;
@@ -436,7 +476,6 @@ const ViewActivityScreen = () => {
         }
       }
 
-      // Text search
       if (q) {
         const hay = `${it.actName} ${it.schName} ${it.vdrName} ${it.actRequestRefNo}`;
         if (!fold(hay).includes(q)) return false;
@@ -446,7 +485,55 @@ const ViewActivityScreen = () => {
     });
   }, [items, filterVendor, filterFromDate, filterToDate, filterQuery]);
 
-  // totals
+  // sorted items (after filter)
+  const sortedItems = React.useMemo(() => {
+    if (!sortConfig?.key) return filteredItems;
+
+    const arr = [...filteredItems];
+
+    const getSortValue = (item) => {
+      switch (sortConfig.key) {
+        case "actRequestRefNo":
+          return toStr(item.actRequestRefNo);
+        case "actName":
+          return toStr(item.actName);
+        case "schName":
+          return toStr(item.schName);
+        case "vdrName":
+          return toStr(item.vdrName);
+        case "actRequestDate": {
+          const d = parseYMD(item.actRequestDate);
+          return d ? d.getTime() : 0;
+        }
+        case "actRequestTime":
+          return toStr(item.actRequestTime);
+        case "actRequestStatus":
+          return toStr(item.actRequestStatus);
+        case "studentApproved":
+          return Number(item.studentSummary?.totalStudentApproved ?? 0);
+        case "studentAbsent":
+          return Number(item.studentSummary?.totalStudentAbsent ?? 0);
+        case "profit":
+          return Number(
+            item.totalPaymentSummary?.totalVendorTripProfit ?? 0
+          );
+        default:
+          return 0;
+      }
+    };
+
+    arr.sort((a, b) => {
+      const aVal = getSortValue(a);
+      const bVal = getSortValue(b);
+
+      if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [filteredItems, sortConfig]);
+
   const totalProfitAll = React.useMemo(() => {
     try {
       return filteredItems.reduce(
@@ -465,22 +552,38 @@ const ViewActivityScreen = () => {
     setFilterFromDate("");
     setFilterToDate("");
     setFilterQuery("");
-    // status is not reset here; it's controlled only by URL (?status=...)
+  };
+
+  const handleSort = (columnKey) => {
+    setSortConfig((prev) => {
+      if (prev?.key === columnKey) {
+        const nextDir = prev.direction === "asc" ? "desc" : "asc";
+        return { key: columnKey, direction: nextDir };
+      }
+      return { key: columnKey, direction: "asc" };
+    });
   };
 
   // pagination derived
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [filterVendor, filterFromDate, filterToDate, filterQuery, pageSize, statusFromUrl]);
+  }, [
+    filterVendor,
+    filterFromDate,
+    filterToDate,
+    filterQuery,
+    pageSize,
+    statusFromUrl,
+  ]);
 
-  const totalItems = filteredItems.length;
+  const totalItems = sortedItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const pageItems = React.useMemo(
-    () => filteredItems.slice(startIndex, endIndex),
-    [filteredItems, startIndex, endIndex]
+    () => sortedItems.slice(startIndex, endIndex),
+    [sortedItems, startIndex, endIndex]
   );
 
   const goToPage = (p) => {
@@ -522,7 +625,7 @@ const ViewActivityScreen = () => {
             </div>
           </div>
 
-          {/* Filters row (NO status dropdown) */}
+          {/* Filters row */}
           <div
             className="d-flex align-items-end gap-2 flex-nowrap overflow-auto mb-3"
             style={{ paddingBottom: 4 }}
@@ -612,31 +715,127 @@ const ViewActivityScreen = () => {
           {/* Table */}
           {!loading && !error && !!pageItems.length && (
             <div className="mb-3">
-              <CTable small hover responsive>
+              <CTable
+                small
+                hover
+                className="vas-table"
+                style={{ tableLayout: "fixed", width: "100%" }}
+              >
                 <CTableHead>
                   <CTableRow>
-                    <CTableHeaderCell>#</CTableHeaderCell>
-                    <CTableHeaderCell>Ref#</CTableHeaderCell>
-                    <CTableHeaderCell className="text-nowrap">
-                      Trip Name
+                    <CTableHeaderCell
+                      style={{ width: "2ch" }}
+                      className="text-center"
+                    >
+                      #
                     </CTableHeaderCell>
-                    <CTableHeaderCell className="text-nowrap">
-                      School
+                    <CTableHeaderCell style={{ width: "8ch" }}>
+                      <SortHeader
+                        label="Ref#"
+                        columnKey="actRequestRefNo"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
                     </CTableHeaderCell>
-                    <CTableHeaderCell className="text-nowrap">
-                      Vendor
+                    <CTableHeaderCell
+                      className="text-nowrap"
+                      style={{ width: "16ch" }}
+                    >
+                      <SortHeader
+                        label="Trip Name"
+                        columnKey="actName"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
                     </CTableHeaderCell>
-                    <CTableHeaderCell className="text-nowrap">
-                      Trip Date
+                    <CTableHeaderCell
+                      className="text-nowrap"
+                      style={{ width: "14ch" }}
+                    >
+                      <SortHeader
+                        label="School"
+                        columnKey="schName"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
                     </CTableHeaderCell>
-                    <CTableHeaderCell className="text-nowrap">
-                      Time
+                    <CTableHeaderCell
+                      className="text-nowrap"
+                      style={{ width: "12ch" }}
+                    >
+                      <SortHeader
+                        label="Vendor"
+                        columnKey="vdrName"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
                     </CTableHeaderCell>
-                    <CTableHeaderCell>Status</CTableHeaderCell>
-                    <CTableHeaderCell>Student</CTableHeaderCell>
-                    <CTableHeaderCell>Total Absense</CTableHeaderCell>
-                    <CTableHeaderCell>Profit</CTableHeaderCell>
-                    <CTableHeaderCell className="text-nowrap">
+                    <CTableHeaderCell
+                      className="text-nowrap"
+                      style={{ width: "10ch" }}
+                    >
+                      <SortHeader
+                        label="Trip Date"
+                        columnKey="actRequestDate"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell
+                      className="text-nowrap"
+                      style={{ width: "12ch" }}
+                    >
+                      <SortHeader
+                        label="Time"
+                        columnKey="actRequestTime"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell style={{ width: "12ch" }}>
+                      <SortHeader
+                        label="Status"
+                        columnKey="actRequestStatus"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell
+                      style={{ width: "9ch" }}
+                      className="text-center"
+                    >
+                      <SortHeader
+                        label="Student"
+                        columnKey="studentApproved"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell
+                      style={{ width: "9ch" }}
+                      className="text-center"
+                    >
+                      <SortHeader
+                        label="Absense"
+                        columnKey="studentAbsent"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    {SHOW_PROFIT_COLUMN && (
+                      <CTableHeaderCell style={{ width: "10ch" }}>
+                        <SortHeader
+                          label="Profit"
+                          columnKey="profit"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
+                    )}
+                    <CTableHeaderCell
+                      className="text-nowrap"
+                      style={{ width: "16ch" }}
+                    >
                       Actions
                     </CTableHeaderCell>
                   </CTableRow>
@@ -648,18 +847,20 @@ const ViewActivityScreen = () => {
                       onClick={() => openModalFor(row)}
                       className="row-clickable"
                     >
-                      <CTableDataCell>{startIndex + idx + 1}</CTableDataCell>
+                      <CTableDataCell className="text-center">
+                        {startIndex + idx + 1}
+                      </CTableDataCell>
                       <CTableDataCell className="mono">
                         {row.actRequestRefNo || "-"}
                       </CTableDataCell>
                       <CTableDataCell>
-                        <Ellipsis text={row.actName} width="26ch" />
+                        <Ellipsis text={row.actName} width="16ch" />
                       </CTableDataCell>
                       <CTableDataCell>
-                        <Ellipsis text={row.schName} width="24ch" />
+                        <Ellipsis text={row.schName} width="14ch" />
                       </CTableDataCell>
                       <CTableDataCell>
-                        <Ellipsis text={row.vdrName} width="20ch" />
+                        <Ellipsis text={row.vdrName} width="12ch" />
                       </CTableDataCell>
                       <CTableDataCell className="mono text-nowrap">
                         {row.actRequestDate || "-"}
@@ -676,24 +877,26 @@ const ViewActivityScreen = () => {
                           {row.actRequestStatus}
                         </CBadge>
                       </CTableDataCell>
-                      <CTableDataCell className="mono">
+                      <CTableDataCell className="mono text-center">
                         {fmtNum(
                           row.studentSummary.totalStudentApproved
                         )}
                       </CTableDataCell>
-                      <CTableDataCell className="mono">
+                      <CTableDataCell className="mono text-center">
                         {fmtNum(row.studentSummary.totalStudentAbsent)}
                       </CTableDataCell>
-                      <CTableDataCell className="mono">
-                        {fmtMoney(
-                          row.totalPaymentSummary.totalVendorTripProfit
-                        )}
-                      </CTableDataCell>
+                      {SHOW_PROFIT_COLUMN && (
+                        <CTableDataCell className="mono">
+                          {fmtMoney(
+                            row.totalPaymentSummary.totalVendorTripProfit
+                          )}
+                        </CTableDataCell>
+                      )}
 
                       <CTableDataCell className="text-nowrap">
                         <div
-                          className="d-flex gap-1 flex-nowrap overflow-auto"
-                          style={{ maxWidth: "220px" }}
+                          className="d-flex gap-1 flex-nowrap"
+                          style={{ maxWidth: "100%", overflow: "hidden" }}
                         >
                           <CButton
                             size="sm"
@@ -750,13 +953,13 @@ const ViewActivityScreen = () => {
                     disabled={safePage === 1}
                     onClick={() => goToPage(1)}
                   >
-                    « First
+                    «
                   </CPaginationItem>
                   <CPaginationItem
                     disabled={safePage === 1}
                     onClick={() => goToPage(safePage - 1)}
                   >
-                    ‹ Prev
+                    ‹
                   </CPaginationItem>
                   {Array.from({ length: Math.min(5, totalPages) }).map(
                     (_, i) => {
@@ -781,13 +984,13 @@ const ViewActivityScreen = () => {
                     disabled={safePage === totalPages}
                     onClick={() => goToPage(safePage + 1)}
                   >
-                    Next ›
+                    ›
                   </CPaginationItem>
                   <CPaginationItem
                     disabled={safePage === totalPages}
                     onClick={() => goToPage(totalPages)}
                   >
-                    Last »
+                    »
                   </CPaginationItem>
                 </CPagination>
               </div>

@@ -1,0 +1,265 @@
+:root {
+  --vas-border: #e5e7eb;
+  --vas-muted: #6b7280;
+  --vas-text: #111827;
+  --vas-bg-tile: #f9fafb;
+}
+
+/* Layout */
+.vas-container { padding: 16px; }
+.vas-card { border-radius: 20px; border: 1px solid var(--vas-border); overflow: hidden; }
+.vas-card-body { padding: 16px; }
+
+.vas-header {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px;
+}
+.title-main { font-size: 22px; font-weight: 900; color: var(--vas-text); }
+
+.vas-header-right { display: flex; align-items: center; gap: 12px; }
+.vas-total-tile { width: 260px; }
+
+/* Grid + Tile */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+
+.tile {
+  border: 1px solid var(--vas-border);
+  background: var(--vas-bg-tile);
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.tile__label { color: var(--vas-muted); font-size: 12px; font-weight: 600; }
+.tile__value { font-size: 16px; font-weight: 800; color: var(--vas-text); letter-spacing: 0; }
+.tile--xl .tile__value { font-size: 28px; letter-spacing: 0.5px; }
+
+/* Typography helpers */
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+.center-text { text-align: center; }
+.muted { color: var(--vas-muted); }
+.mb-16 { margin-bottom: 16px; }
+
+/* Clickable rows */
+.row-clickable { cursor: pointer; }
+
+/* Status badges */
+.status-badge {
+  font-weight: 800; padding: 4px 8px; border-radius: 999px; font-size: 11px;
+  letter-spacing: 0.5px; color: #fff;
+}
+.status--trip-booked { background: #067f3c; }
+.status--approved { background: #2c4696; }
+.status--failed { background: #b91c1c; }
+.status--new { background: #6b7280; }
+.status--default { background: #374151; }
+
+/* ID pills in modal */
+.id-pills { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+.pill {
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--vas-border);
+  background: var(--vas-bg-tile); font-size: 12px;
+}
+/* Attendance badges */
+.status-badge.status--present {
+  background-color: #e7f5ec !important; /* light green bg */
+  color: #0f5132 !important;            /* dark green text */
+  border: 1px solid #0f5132 !important;
+}
+
+.status-badge.status--absent {
+  background-color: #fdecec !important; /* light red bg */
+  color: #842029 !important;            /* dark red text */
+  border: 1px solid #842029 !important;
+}
+.custom-modal .modal-dialog {
+  max-width: 90% !important;  /* make it wider */
+  width: 1200px;              /* fixed width */
+}
+/* Modal width */
+.custom-modal .modal-dialog {
+  max-width: 90% !important;
+  width: 1200px;
+}
+@media (max-width: 1400px) {
+  .custom-modal .modal-dialog {
+    width: 95vw;
+  }
+}
+
+/* Profit Breakdown color coding */
+.profit-breakdown .col-school {
+  background-color: rgba(52, 152, 219, 0.3);  /* blue 30% */
+}
+.profit-breakdown .col-vendor {
+  background-color: rgba(46, 204, 113, 0.3);  /* green 30% */
+}
+.profit-breakdown .col-heroz {
+  background-color: rgba(241, 196, 15, 0.3);  /* gold 30% */
+}
+
+/* Stronger tint for header cells */
+.profit-breakdown thead .col-school {
+  background-color: rgba(52, 152, 219, 0.45);
+}
+.profit-breakdown thead .col-vendor {
+  background-color: rgba(46, 204, 113, 0.45);
+}
+.profit-breakdown thead .col-heroz {
+  background-color: rgba(241, 196, 15, 0.45);
+}
+
+/* Highlight grand total row */
+.profit-breakdown .row-total {
+  font-weight: 600;
+  border-top: 2px solid rgba(0,0,0,0.08);
+}
+
+/* Optional utilities you were already using (keep if present) */
+.section-title {
+  margin: 14px 0 8px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tile {
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
+.tile.mono .tile__value { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.tile__label { font-size: 12px; color: #6b7280; }
+.tile__value { font-size: 15px; font-weight: 600; }
+
+/* Status chips (you already had classes in your other file; keeping here for completeness) */
+.status-badge.status--approved  { background: #e6f0ff; color: #1a56db; }
+.status-badge.status--failed    { background: #ffe8e8; color: #b00020; }
+.status-badge.status--trip-booked { background: #eafaf1; color: #067f3c; }
+.status-badge.status--new       { background: #fff5e6; color: #ff8a00; }
+.status-badge.status--present   { background: #eafaf1; color: #067f3c; }
+.status-badge.status--absent    { background: #fff1f2; color: #e11d48; }
+.status-badge.status--default   { background: #f3f4f6; color: #374151; }
+/* Grand Total cells: colored borders + rounded corners */
+.profit-breakdown .row-total .col-school {
+  border: 2px solid rgba(52, 152, 219, 1);   /* blue border */
+  border-radius: 10px;
+  background-color: rgba(52, 152, 219, 1);  /* subtle fill */
+}
+
+.profit-breakdown .row-total .col-vendor {
+  border: 2px solid rgba(46, 204, 113, 1);   /* green border */
+  border-radius: 10px;
+  background-color: rgba(46, 204, 113, 1);
+}
+
+.profit-breakdown .row-total .col-heroz {
+  border: 2px solid rgba(241, 196, 15, 1);   /* gold border */
+  border-radius: 10px;
+  background-color: rgba(241, 196, 15, 1);
+}
+
+/* make the cells breathe a bit so the rounded border looks nice */
+.profit-breakdown .row-total .col-school,
+.profit-breakdown .row-total .col-vendor,
+.profit-breakdown .row-total .col-heroz {
+  padding: 6px 10px;        /* adjust if you want tighter/looser */
+}
+
+/* optional: remove default table inner borders so your custom borders stand out */
+.profit-breakdown.table > :not(caption) > * > * {
+  border: 0 !important;
+}
+.school-tile {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background-color: #fff;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Different colors for each */
+.school-tile.trip {
+  border-color: rgba(52, 152, 219, 0.8);   /* blue */
+  background-color: rgba(52, 152, 219, 0.1);
+}
+
+.school-tile.food {
+  border-color: rgba(46, 204, 113, 0.8);   /* green */
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+.school-tile.total {
+  border-color: rgba(241, 196, 15, 0.8);   /* gold */
+  background-color: rgba(241, 196, 15, 0.1);
+}
+/* small cards grid */
+.paycard {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.paycard__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(0,0,0,0.06);
+}
+.paycard__row:last-child { border-bottom: 0; }
+.paycard__label { color: #6b7280; font-size: 12px; }
+.paycard__value { font-weight: 600; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* total chip */
+.total-chip {
+  background: #f3f4f6;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 600;
+}
+
+/* colored school tiles (you already added these earlier) */
+.school-tile {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background-color: #fff;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.school-tile.trip {
+  border-color: rgba(52, 152, 219, 0.8);
+  background-color: rgba(52, 152, 219, 0.1);
+}
+.school-tile.food {
+  border-color: rgba(46, 204, 113, 0.8);
+  background-color: rgba(46, 204, 113, 0.1);
+}
+.school-tile.total {
+  border-color: rgba(241, 196, 15, 0.8);
+  background-color: rgba(241, 196, 15, 0.1);
+}
+.status--rejected
+{
+  color:red !important;
+}
+.status--waiting
+{
+  color:darkgoldenrod;
+}

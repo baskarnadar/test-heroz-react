@@ -1,0 +1,17 @@
+@font-face {
+  font-family: 'Bahij_TheSansArabic';
+  src: url('/fonts/Bahij_TheSansArabic-Light.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Apply to your wrapper when Arabic is active */
+[dir="rtl"] .use-arabic-font,
+[dir="rtl"] .use-arabic-font * {
+  font-family: 'Bahij_TheSansArabic', Tahoma, sans-serif !important;
+}
+[dir="rtl"] body,
+[dir="rtl"] body * {
+  font-family: 'Bahij_TheSansArabic', Tahoma, sans-serif !important;
+}

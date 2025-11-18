@@ -62,6 +62,7 @@ const getFormattedDateTime = () => {
   const ss = String(now.getSeconds()).padStart(2, "0");
   return `${dd}-${mm}-${yyyy} : ${hh}:${min}:${ss}`;
 };
+
 // Map PaymentMethodId -> tripPaymentTypeID you store in backend
 const tripPaymentTypeIdFromId = (id) => {
   switch (Number(id)) {
@@ -399,28 +400,17 @@ const ProposalPage = () => {
     }, 0);
   }, [ActivityData, checkedFoodItems, schoolPriceMap]);
 
-  // ----------------- VAT + TOTAL (rounded correctly) -----------------
+  // ----------------- TOTAL (NO VAT) -----------------
   const grandTotal = priceTotal + foodTotal; // raw per-student subtotal (trip + food)
 
-  const TAX_RATE = 0.15; // 15%
+  // Subtotal per student (trip + food), rounded
+  const perStudentSubTotal = Number((Number(grandTotal) || 0).toFixed(2));
 
-  // Freeze subtotal to 2 decimals
-  const perStudentSubTotal = Number(
-    (Number(grandTotal) || 0).toFixed(2)
-  );
-
-  // VAT from rounded subtotal
-  const perStudentTax = Number(
-    (perStudentSubTotal * TAX_RATE).toFixed(2)
-  );
-
-  // Total from rounded subtotal + rounded VAT
-  const perStudentTotal = Number(
-    (perStudentSubTotal + perStudentTax).toFixed(2)
-  );
+  // Total payable per student = subtotal (no VAT)
+  const perStudentTotal = perStudentSubTotal;
 
   // Keep your old variable names so the rest of the code still works
-  const taxAmount = perStudentTax;
+  const taxAmount = 0; // no VAT
   const grandTotalWithTax = perStudentTotal;
   // ---------------------------------------------------------------
 
@@ -431,11 +421,6 @@ const ProposalPage = () => {
 
   const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
-
-  // 👉 VAT amount for all kids (used in UI). If no kid yet, show per-student VAT.
-  const vatAmountToShow = (
-    taxAmount * (validKidsCount > 0 ? validKidsCount : 1)
-  ).toFixed(2);
 
   // ======= total amount to pass into PaymentMethodPicker =======
   const paymentAmount = useMemo(() => {
@@ -496,6 +481,7 @@ const ProposalPage = () => {
         Total: school + vendor + heroz,
       };
     });
+
     // By Default
     var userDefinedFieldVal =
       TripData.actRequestRefNo +
@@ -528,8 +514,8 @@ const ProposalPage = () => {
       TripKidsGender: (row.gender || "").trim(),
       TripCost: perStudentSubTotal.toFixed(2), // subtotal (trip + food)
       TripFoodCost: foodTotal.toFixed(2),
-      TripTaxAmount: taxAmount.toFixed(2),
-      TripFullAmount: grandTotalWithTax.toFixed(2),
+      TripTaxAmount: taxAmount.toFixed(2), // 0.00 (no VAT)
+      TripFullAmount: grandTotalWithTax.toFixed(2), // same as subtotal
       PayStaus: "NEW",
       InvoiceNo: "0",
       MyFatrooahRefNo: "0",
@@ -956,19 +942,7 @@ const ProposalPage = () => {
                 </div>
               </div>
 
-              {/* ✅ VAT row ALWAYS visible (uses vatAmountToShow) */}
-              <div className="summary-row total">
-                <span>
-                  {lang === "ar"
-                    ? "قيمة الضريبة (15٪)"
-                    : "VAT Amount (15%)"}
-                </span>
-                <span>
-                  {vatAmountToShow} <img src={icon5} alt="HEROZ" />
-                </span>
-              </div>
-
-              {/* Total Payable (per student) = subtotal + TAX */}
+              {/* Total Payable (per student) = subtotal (NO VAT) */}
               <div className="summary-row total trip-gradient-color">
                 <span>
                   <div>{dict.totalPayable}</div>

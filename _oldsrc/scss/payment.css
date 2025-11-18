@@ -1,0 +1,938 @@
+/* --- Page chrome hide rule you already toggle with body.hide-chrome --- */
+body.hide-chrome .sidebar,
+body.hide-chrome .app-sidebar,
+body.hide-chrome .header,
+body.hide-chrome .app-header,
+body.hide-chrome .footer,
+body.hide-chrome .app-footer { display: none !important; }
+
+body.hide-chrome .wrapper {
+  margin-left: 0 !important;
+  --cui-sidebar-width: 0 !important;
+  --cui-sidebar-occupy-start: 0 !important;
+}
+body.hide-chrome .wrapper .body {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+body.hide-chrome .wrapper .body > .container,
+body.hide-chrome .wrapper .body > .container-fluid {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* --- Helpers --- */
+.container {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.alert-error {
+  color: #b00020;
+  background: #fde7ea;
+  border: 1px solid #f5c2c7;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin: 16px auto;
+  max-width: 1160px;
+}
+
+/* --- Hero --- */
+.proposal .hero {
+  position: relative;
+  margin: 24px auto 32px;
+ width: min(1120px, 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  aspect-ratio: 16/6;
+}
+.proposal .hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.proposal .hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(165, 67, 255, 0.5), rgba(255, 78, 162, 0.3));
+}
+.proposal .hero-content {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.35);
+}
+.proposal .hero-title {
+  margin: 0 0 6px;
+  font-size: clamp(22px, 3vw, 36px);
+  font-weight: 700;
+}
+.proposal .hero-sub {
+  margin: 0;
+  font-size: clamp(13px, 1.6vw, 16px);
+  opacity: 0.95;
+}
+
+/* --- Intro --- */
+.proposal .intro {
+  text-align: center;
+  margin: 8px auto 20px;
+}
+.proposal .intro-title {
+  margin: 0 0 6px;
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 800;
+  color: #5a2ca0;
+}
+.proposal .intro-sub {
+  margin: 0;
+  color: #6b7280;
+}
+
+/* --- Activity media --- */
+.proposal .activity-media {
+  margin: 20px auto 28px;
+  padding-left: 20px;
+  padding-right:20px;
+}
+.proposal .activity-img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 18px;
+}
+.proposal .empty-media {
+  text-align: center;
+  padding: 30px 0;
+  color: #6b7280;
+}
+
+/* --- Trip info grid --- */
+.proposal .trip-info {
+  display: grid;
+  grid-template-columns: 1.1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+@media (max-width: 900px) {
+  .proposal .trip-info {
+    grid-template-columns: 1fr;
+  }
+}
+.proposal .card {
+  background: #F8F8F8;
+  border-radius: 16px;
+   box-shadow: 0 8px 30px rgba(248, 248, 248, 0.07);
+  padding: 20px 20px;
+  border:1px solid rgb(237, 237, 237);
+}
+.proposal .card-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #000000;
+}
+.proposal .card-text {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+/* Detail blocks */
+.proposal .details .detail-row {
+  display: grid;
+  grid-template-columns: 2fr 0.5fr;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+@media (max-width: 520px) {
+  .proposal .details .detail-row {
+    grid-template-columns: 1fr;
+  }
+}
+.proposal .detail {
+  background: #ffffff;
+  border: 1px solid #e4e4e4;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.proposal .detail-label {
+  font-size: 12px;
+  color: #7c3aed;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.proposal .detail-value {
+  font-size: 18px;
+  color: #111827;
+  font-weight: bold;
+}
+.proposal .map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-weight: 600;
+  color: #7c3aed;
+  text-decoration: none;
+}
+.proposal .map-link:hover { text-decoration: underline; }
+.proposal .map-icon { font-size: 18px; }
+
+/* --- Two-column: Pricing + Booking --- */
+.proposal .twocol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 36px;
+}
+@media (max-width: 1000px) {
+  .proposal .twocol { grid-template-columns: 1fr; }
+}
+
+/* Pricing card */
+.proposal .pricing .price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 15px;
+}
+.proposal .pricing .price-label { color: #374151; }
+.proposal .pricing .price-value { font-weight: 700; color: #111827; }
+.proposal .pricing .price-subtitle {
+   
+  color: #010101;
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+.proposal .divider {
+  border-top: 1px solid #eee;
+  margin: 14px 0;
+}
+.proposal .food-wrap {
+  display: block; /* Styles for your FoodInfo component slot */
+}
+
+/* Totals */
+.proposal .summary { margin-top: 6px; }
+.proposal .summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  color: #374151;
+}
+.proposal .summary-row.total {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* Payment */
+.proposal .payment-group { margin-top: 12px; }
+.proposal .payment-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #374151;
+}
+.proposal .payment-option {
+  display: flex;
+  gap: 10px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.proposal .payment-option.active {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+.proposal .payment-option input { margin-top: 3px; }
+.proposal .payment-info .payment-label { font-weight: 700; color: #111827; }
+.proposal .payment-info .payment-desc { font-size: 13px; color: #6b7280; }
+
+.proposal .btn-primary {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #7c3aed, #ec4899);
+  color: #fff;
+  cursor: pointer;
+  margin-top: 6px;
+}
+.proposal .btn-primary:hover { filter: brightness(0.98); }
+
+/* Booking card */
+.proposal .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .proposal .form-grid { grid-template-columns: 1fr; }
+}
+.proposal .form-group { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.proposal .form-group label { font-size: 13px; color: #374151; font-weight: 600; }
+.proposal .input {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+.proposal .input:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.proposal .kid-card {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.proposal .btn-link {
+  border: 0;
+  background: transparent;
+  color: #6a21c2;
+  font-weight: 700;
+  margin: 6px 0 10px;
+  cursor: pointer;
+}
+
+.proposal .terms { margin-top: 10px; }
+.proposal .terms h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #090909;
+}
+.proposal .terms-text {
+  color: #4b5563;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+/* CoreUI Carousel fix to remove rounded conflict */
+.carousel,
+.carousel-item,
+.carousel-inner { border-radius: 18px; overflow: hidden; }
+.trip-info {
+  max-width: 1160px;
+  margin: 0 auto 32px;
+  padding: 0 16px;
+}
+ 
+
+.detail {
+  background: #faf7ff;
+  border: 1px solid #efe6ff;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: #7c3aed;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 15px;
+  color: #111827;
+}
+
+.map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-weight: 600;
+  color: #7c3aed;
+  text-decoration: none;
+}
+.map-link:hover {
+  text-decoration: underline;
+}
+.map-icon {
+  font-size: 18px;
+}
+
+@media (max-width: 900px) {
+  .about-details {
+    grid-template-columns: 1fr; /* Stack on small screens */
+  }
+}
+.about-details {
+  display: grid;
+  grid-template-columns: 2.75fr 1.25fr; /* 75% left, 25% right */
+  gap: 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(17, 24, 39, 0.07);
+  padding: 20px;
+}
+
+.about-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.about-right .detail-row {
+  margin-bottom: 12px;
+}
+.btn-remove {
+  background: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  margin-top: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-remove:hover { background: #e03131; }
+
+
+@media (max-width: 900px) {
+  .about-details {
+    grid-template-columns: 1fr; /* Stack vertically on mobile */
+  }
+}
+/* ===== Footer ===== */
+.site-footer {
+ 
+  margin-top: 40px;
+  border-top: 1px solid #eee;
+}
+
+.footer-top {
+  display: grid;
+  grid-template-columns: 1.1fr 1.6fr 0.9fr 0.9fr;
+  gap: 28px;
+  padding: 28px 0 18px;
+  align-items: start;
+}
+
+.footer-logo { height: 32px; width: auto; display: block; }
+.footer-tag { margin: 10px 0 12px; color: #555; }
+
+.footer-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  margin-right: 10px;
+  color: #6a1b9a; /* purple-ish to match screenshot */
+  text-decoration: none;
+  font-size: 18px;
+}
+.footer-social a:hover { opacity: 0.8; }
+
+.footer-contact h4,
+.footer-links h4 { font-size: 16px; margin: 0 0 10px; }
+
+.footer-contact ul,
+.footer-links ul { padding: 0; margin: 0; list-style: none; }
+
+.footer-contact li { margin: 6px 0; color: #333; }
+.footer-contact a { color: inherit; text-decoration: none; }
+.footer-contact a:hover { text-decoration: underline; }
+
+.footer-links li { margin: 6px 0; }
+.footer-links a { color: #333; text-decoration: none; }
+.footer-links a:hover { text-decoration: underline; }
+
+.footer-bottom {
+  border-top: 1px solid #eee;
+  padding: 14px 0 22px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .footer-top {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 576px) {
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .footer-bottom { text-align: left; }
+}
+
+/* Remove button (already used above) */
+.btn-remove {
+  background: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  margin-top: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-remove:hover { background: #e03131; }
+/* ====== Header ====== */
+.site-header {
+  
+  top: 0;
+  z-index: 1000; 
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 16px;
+}
+
+.brand-text {
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: .5px;
+  background: linear-gradient(90deg, #7a1e99, #de3aa1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav a {
+  color: #4a4a4a;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nav a:hover { opacity: 0.75; }
+
+.btn-join {
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: #fff !important;
+  background: linear-gradient(135deg, #7b1fa2, #ec4899);
+  box-shadow: 0 3px 10px rgba(236,72,153,.3);
+}
+
+.nav-toggle {
+  display: none;
+  width: 42px;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+}
+.nav-toggle span {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: #333;
+  transition: transform .25s, top .25s, opacity .2s;
+}
+.nav-toggle span:nth-child(1) { top: 12px; }
+.nav-toggle span:nth-child(2) { top: 18px; }
+.nav-toggle span:nth-child(3) { top: 24px; }
+.nav-toggle.open span:nth-child(1) { top: 18px; transform: rotate(45deg); }
+.nav-toggle.open span:nth-child(2) { opacity: 0; }
+.nav-toggle.open span:nth-child(3) { top: 18px; transform: rotate(-45deg); }
+
+/* Mobile nav */
+@media (max-width: 900px) {
+  .nav-toggle { display: block; }
+  .nav {
+    display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    flex-direction: column;
+    padding: 12px 16px 16px;
+    gap: 12px;
+    z-index: 999;
+  }
+  .nav.show { display: flex; }
+  .btn-join { width: 75%; text-align: center; }
+}
+.header-logo { height: 38px; width: auto; display: block; }
+/* ====== Footer bits you already added (kept) ====== */
+.footer-top { display: grid; grid-template-columns: 1.1fr 1.6fr 0.9fr 0.9fr; gap: 28px; padding: 28px 0 18px; align-items: start; }
+.footer-logo { height: 38px; width: auto; display: block; }
+.footer-tag { margin: 10px 0 12px; color: #555; }
+.footer-social a { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; margin-right: 10px; color: #6a1b9a; font-size: 18px; text-decoration: none; }
+.footer-social a:hover { opacity: .8; }
+.footer-contact h4, .footer-links h4 { font-size: 16px; margin: 0 0 10px; }
+.footer-contact ul, .footer-links ul { padding: 0; margin: 0; list-style: none; }
+.footer-contact li { margin: 6px 0; color: #333; }
+.footer-contact a { color: inherit; text-decoration: none; }
+.footer-contact a:hover { text-decoration: underline; }
+.footer-links li { margin: 6px 0; }
+.footer-links a { color: #333; text-decoration: none; }
+.footer-links a:hover { text-decoration: underline; }
+.site-footer {  margin-top:40px; border-top:1px solid #eee; padding-left:30px; padding-right: 2px; }
+.footer-bottom { border-top:1px solid #eee; padding:14px 0 22px; color:#666; font-size:14px; }
+@media (max-width: 992px){ .footer-top{ grid-template-columns: 1fr 1fr; } }
+@media (max-width: 576px){ .footer-top{ grid-template-columns: 1fr; gap: 20px; } }
+
+/* Remove child button */
+.btn-remove {
+  background: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  margin-top: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-remove:hover { background: #e03131; }
+/* Gradient headline: "Here your child is going for a trip" */
+.trip-gradient-title {
+  font-size: 40px;            /* requested size */
+  font-weight: 800; 
+  margin: 0;
+  display: inline-block;
+  background-image: linear-gradient(90deg, #9927BB, #AA1E89);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent; /* Safari/iOS */
+  color: transparent;                    /* fallback */
+}
+.trip-gradient-color { 
+  margin: 0;
+  display: inline-block;
+  background-image: linear-gradient(90deg, #9927BB, #AA1E89);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent; /* Safari/iOS */
+  color: transparent;                    /* fallback */
+}
+.fontsize30
+{
+  font-size: 20px !important;
+  font-weight:bold;
+}
+.fontsize40
+{
+  font-size: 30px !important;
+  font-weight:bold;
+}
+/* Section heading for Trip Information */
+.proposal .section-title {
+  margin: 0 0 12px;
+   
+   
+  font-size: clamp(16px, 2.2vw, 20px);
+  color: #111827;
+}
+
+/* Optional gradient look */
+.proposal .section-title.gradient {
+  background-image: linear-gradient(90deg, #9927BB, #AA1E89);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.fontsize20
+{
+  font-size: 20px !important;
+  font-weight: bold;
+}
+ /* forces the button row to align to the left no matter the parent layout */
+.btn-row-left {
+  display: flex;
+  justify-content: flex-start;
+}
+.btn-row-left .btn-link {
+  margin-left: 0;
+}
+.row-inline {
+  display: flex;
+  align-items: center;   /* vertically center icon + text */
+  gap: 8px;              /* space between them */
+  flex-wrap: nowrap;     /* keep on one line */
+  white-space: nowrap;   /* prevent the word from wrapping */
+}
+.row-inline img {
+  width: 18px;           /* tweak as you like */
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+.icon-tint-pink{
+  /* roughly #AA1E89 */
+  filter: brightness(0) saturate(100%)
+          invert(19%) sepia(73%) saturate(3681%)
+          hue-rotate(311deg) brightness(93%) contrast(90%);
+}
+@media (min-width: 1400px) {
+    .container-xxl, .container-xl, .container-lg, .container-md, .container-sm, .container {
+      
+       /* background-image: url("../assets/icon/etop.png");
+  background-repeat: no-repeat;
+  background-position: top;   
+  background-size: contain;   
+ */
+    }
+}
+body {
+  background-color: #fff;
+     /* or: cover */
+}
+
+/* If the image is in /public/assist/icon/eclip.png */
+.eclip{
+  background-image: url("../assets/icon/etop.png");
+  border:1px solid red;
+  height: 300px;
+  width: 300px;
+      /* optional */
+}
+
+ 
+/* sits above the image, below the text */
+.proposal .hero {
+  position: relative;
+  margin: 24px auto 32px;
+  max-width: 1160px;        /* adjust page width here if needed */
+  border-radius: 18px;
+  overflow: hidden;
+  aspect-ratio: 16 / 6;
+}
+
+.proposal .hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.proposal .hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* to top = strongest at bottom, fades upward */
+  background: linear-gradient(
+    to top,
+    rgba(170, 30, 137, 0.92) 0%,   /* #AA1E89 */
+    rgba(153, 39, 187, 0.65) 25%,  /* #9927BB */
+    rgba(153, 39, 187, 0.20) 70%,
+    rgba(153, 39, 187, 0.00) 100%
+  );
+}
+
+.proposal .hero-content {
+  position: absolute;
+  left: 24px;
+  bottom: 14px;
+  z-index: 2;               /* above the overlay */
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0,0,0,.35);
+}
+.bodyimg
+{
+  /* background-image: url("../assets/icon/etop.png");
+  background-repeat: no-repeat;
+  background-position: top right;    
+  background-size:500px auto;      
+  min-height: 540px;       
+  border:0px solid red    */
+
+}
+/* Kill any global sidebars when this page is open */
+body.no-sidebar .sidebar,
+body.no-sidebar .app-sidebar,
+body.no-sidebar .c-sidebar,
+body.no-sidebar .layout-sidebar,
+body.no-sidebar aside,
+body.no-sidebar .offcanvas-sidebar {
+  display: none !important;
+}
+
+/* Reset main area if your app pushes content right of a sidebar */
+body.no-sidebar .app-main,
+body.no-sidebar .main,
+body.no-sidebar .content,
+body.no-sidebar .page-wrapper {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Hide global CoreUI shell when .no-chrome is on body */
+body.no-chrome .sidebar,
+body.no-chrome .app-sidebar,
+body.no-chrome .sidebar-nav,
+body.no-chrome aside,
+body.no-chrome header.header,
+body.no-chrome .app-header,
+body.no-chrome .layout-fixed .sidebar,
+body.no-chrome .c-sidebar {
+  display: none !important;
+}
+
+/* Remove the left offset some layouts apply when sidebar is present */
+body.no-chrome .wrapper,
+body.no-chrome .app-body,
+body.no-chrome .app-main,
+body.no-chrome .main,
+body.no-chrome .content,
+body.no-chrome .page-wrapper {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+.success-message {
+  text-align: center !important;
+}
+.errormsg
+{
+  color:red;
+  text-align: center;
+}
+ 
+.sidebar-backdrop
+{
+  background-color: transparent !important;
+}
+/* Make the two cards lay out nicely and allow ordering */
+.twocol {
+  display: grid;
+  grid-template-columns: 1fr; /* mobile: single column */
+  gap: 20px;
+}
+
+/* Mobile-first order: Child Information first, Pricing second */
+.order-child { order: 1; }
+.order-pricing { order: 2; }
+
+/* Desktop / large screens: 2 columns, natural order (left-to-right) */
+@media (min-width: 992px) {
+  .twocol {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  /* Optional: if you want Pricing on the left and Booking on right,
+     keep these orders; they match your JSX left-to-right */
+  .order-child { order: 2; }
+  .order-pricing { order: 1; }
+}
+
+/* (Optional) Toast positioning if you want it fixed at bottom */
+.errormsg {
+  position: relative; /* or fixed if you want pinned */
+  z-index: 1000;
+}
+/* Existing layout for the two cards */
+.twocol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* desktop/tablet */
+  gap: 24px;
+}
+
+/* On mobile, stack and put "Child Information & Booking" BEFORE "Trips Pricing" */
+@media (max-width: 768px) {
+  .twocol {
+    display: flex;
+    flex-direction: column;
+  }
+  .twocol .booking { order: 1; }   /* first */
+  .twocol .pricing { order: 2; }   /* second */
+}
+
+@media (max-width: 768px) {
+.proposal .hero { 
+  min-height: 250px !important;
+}
+  .trip-gradient-title {
+    font-size: 20px; 
+}
+}
+
+@media (min-width: 992px) {
+  .proposal .hero { 
+  min-height: 250px !important;
+  }
+  .trip-gradient-title {
+    font-size: 20px; 
+}
+}
+
+/* Red circle + cross (pure CSS) */
+.pay-error{
+  --size: 40px;           /* change for default size */
+  --color: #ef4444;       /* Tailwind red-500-ish */
+  width: var(--size);
+  height: var(--size);
+  display: inline-block;
+  position: relative;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px var(--color);  /* circle stroke */
+  background: rgba(239, 68, 68, 0.08);       /* subtle fill; remove if you want outline only */
+}
+
+/* the "X" */
+.pay-error::before,
+.pay-error::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 90%;
+  height: 3px;
+  background: var(--color);
+  transform-origin: center;
+  border-radius: 2px;
+}
+.pay-error::before{ transform: translate(-50%, -50%) rotate(45deg); }
+.pay-error::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/* Size helpers */
+.pay-error.sm{ --size: 20px; }
+.pay-error.lg{ --size: 64px; }
+
+/* Optional: quick attention shake */
+.pay-error.shake{ animation: pay-shake .36s ease-in-out; }
+@keyframes pay-shake{
+  0%,100%{ transform: translateX(0); }
+  25%{ transform: translateX(-2px); }
+  50%{ transform: translateX(2px); }
+  75%{ transform: translateX(-1px); }
+}
+
+/* If you want outline only (no fill), add this class */
+.pay-error.outline{ background: transparent; }
+
+
+@media (min-width: 1025px) {
+    html[dir=ltr] .wrapper {
+        padding-left: 1% !important;
+        padding-right: 1% !important;
+    }
+}
+@media (min-width: 1025px) {
+    html[dir=rtl] .wrapper {
+        padding-left: 1% !important;
+        padding-right: 1% !important;
+    }
+}

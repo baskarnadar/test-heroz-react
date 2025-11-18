@@ -1,5 +1,5 @@
 // src/vendordata/activityinfo/activity/ViewActivityScreen.js
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CCard,
@@ -21,10 +21,16 @@ import {
   CModalTitle,
 } from "@coreui/react";
 import { AppColors } from "../../_shared/colors";
-import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from "../../utils/operation";
+import {
+  getAuthHeaders,
+  getCurrentLoggedUserID,
+  IsVendorLoginIsValid,
+} from "../../utils/operation";
 import "../../style/paymentv1.css";
+import * as XLSX from "xlsx"; // ✅ Excel export
 
 import { API_BASE_URL } from "../../config";
+
 const ts = (fontSize, extra = {}) => ({ fontSize, ...extra }); // kept
 const toStr = (v) => (v ?? "").toString();
 const fmtNum = (v) =>
@@ -32,9 +38,12 @@ const fmtNum = (v) =>
 
 const useDocDir = () => {
   const [dir, setDir] = React.useState(
-    document?.documentElement?.dir || "ltr"
+    typeof document !== "undefined"
+      ? document.documentElement?.dir || "ltr"
+      : "ltr"
   );
   React.useEffect(() => {
+    if (typeof document === "undefined") return;
     const obs = new MutationObserver(() => {
       setDir(document?.documentElement?.dir || "ltr");
     });
@@ -77,26 +86,15 @@ const statusClassName = (status = "") => {
 };
 
 const SectionTitle = ({ children }) => (
-  <div className="section-title">
-    {children}
-  </div>
+  <div className="section-title">{children}</div>
 );
 
 const Tile = ({ label, value, mono, style }) => (
-  <div
-    className={`tile ${mono ? "mono" : ""}`}
-    style={style}
-  >
-    <div className="tile__label">
-      {label}
-    </div>
-    <div className="tile__value">
-      {value}
-    </div>
+  <div className={`tile ${mono ? "mono" : ""}`} style={style}>
+    <div className="tile__label">{label}</div>
+    <div className="tile__value">{value}</div>
   </div>
 );
-
-const Grid = ({ children }) => <div className="grid">{children}</div>;
 
 // simple helper to force a specific number of columns in one row
 const RowGrid = ({ columns, children }) => (
@@ -125,7 +123,7 @@ const isAbsentStatus = (status) => {
 };
 
 // Server → UI
-const normalizeItem = (x) => ({
+const normalizeItem = (x = {}) => ({
   RequestID: toStr(x.RequestID),
   ActivityID: toStr(x.ActivityID),
   SchoolID: toStr(x.SchoolID),
@@ -136,7 +134,9 @@ const normalizeItem = (x) => ({
   actRequestTime: toStr(x.actRequestTime),
   studentSummary: {
     totalStudentPaid: Number(x?.studentSummary?.totalStudentPaid ?? 0),
-    totalStudentApproved: Number(x?.studentSummary?.totalStudentApproved ?? 0),
+    totalStudentApproved: Number(
+      x?.studentSummary?.totalStudentApproved ?? 0
+    ),
     totalStudentFailed: Number(x?.studentSummary?.totalStudentFailed ?? 0),
     totalStudentNew: Number(x?.studentSummary?.totalStudentNew ?? 0),
     // ✅ NEW: totalStudentAbsent from API
@@ -179,15 +179,55 @@ const computeKidsPresence = (kidsList = []) => {
   return { totalKids, presentCount, absentCount };
 };
 
+// 🔽🔼 Sortable header (used for main grid + kids grid)
+const SortHeader = ({ label, columnKey, sortConfig, onSort }) => {
+  const active = sortConfig?.key === columnKey ? sortConfig.direction : null;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(columnKey)}
+      style={{
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        margin: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        cursor: "pointer",
+        font: "inherit",
+        color: "#111827",
+      }}
+    >
+      <span>{label}</span>
+      <span
+        style={{
+          display: "inline-flex",
+          flexDirection: "column",
+          lineHeight: 0.7,
+          fontSize: "0.65em",
+        }}
+      >
+        <span style={{ opacity: active === "asc" ? 1 : 0.3 }}>▲</span>
+        <span style={{ opacity: active === "desc" ? 1 : 0.3 }}>▼</span>
+      </span>
+    </button>
+  );
+};
+
 const ViewActivityScreen = () => {
   const navigate = useNavigate();
   const dir = useDocDir();
   const vendorID = getCurrentLoggedUserID?.() || "";
 
-  // ✅ run vendor login validation on mount
+  // ✅ run vendor login validation on mount (pass navigate – safer)
   useEffect(() => {
-    IsVendorLoginIsValid(); // will redirect to BaseURL if token/usertype invalid
-  }, []);
+    try {
+      IsVendorLoginIsValid(navigate);
+    } catch (e) {
+      console.error("IsVendorLoginIsValid error:", e);
+    }
+  }, [navigate]);
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -202,8 +242,21 @@ const ViewActivityScreen = () => {
   const [pageSize, setPageSize] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
 
+  // sorting (main grid)
+  const [sortConfig, setSortConfig] = React.useState({
+    key: "",
+    direction: "asc",
+  });
+
   // kids rows for current selected record (built from API data)
   const [kids, setKids] = React.useState([]);
+
+  // kids filter + sorting
+  const [kidsFilter, setKidsFilter] = React.useState("ALL"); // ALL | PRESENT | ABSENT
+  const [kidsSortConfig, setKidsSortConfig] = React.useState({
+    key: "",
+    direction: "asc",
+  });
 
   React.useEffect(() => {
     let isMounted = true;
@@ -248,13 +301,21 @@ const ViewActivityScreen = () => {
           setSelected(normalized[0]);
         }
       } catch (e) {
+        console.error("Error loading trip payment summary:", e);
         if (isMounted) setError(e.message || "Failed to load data.");
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    run();
+    if (vendorID) {
+      run();
+    } else {
+      setLoading(false);
+      setItems([]);
+      setSelected(null);
+    }
+
     return () => {
       isMounted = false;
     };
@@ -307,9 +368,13 @@ const ViewActivityScreen = () => {
   };
 
   const openModalFor = (row) => {
-    setSelected(row);
+    setSelected(row || null);
     setShowModal(true);
     setKids(buildKidsRows(row)); // build kids grid directly from current record
+
+    // reset kids filters/sorting on each open
+    setKidsFilter("ALL");
+    setKidsSortConfig({ key: "", direction: "asc" });
   };
 
   // unique vendors for dropdown (kept, but UI hidden)
@@ -338,7 +403,7 @@ const ViewActivityScreen = () => {
     [items]
   );
 
-  // apply filters
+  // apply filters (main grid)
   const filteredItems = React.useMemo(() => {
     // ✅ FIRST: only keep COMPLETED statuses
     let data = items.filter(
@@ -371,26 +436,79 @@ const ViewActivityScreen = () => {
     return data;
   }, [items, searchTerm, vendorFilter, statusFilter]);
 
-  // reset to first page when filters/page size change
+  // 🔽🔼 apply sorting on filteredItems (main grid)
+  const sortedItems = React.useMemo(() => {
+    if (!sortConfig?.key) return filteredItems;
+
+    const arr = [...filteredItems];
+
+    const getSortValue = (item) => {
+      switch (sortConfig.key) {
+        case "actRequestRefNo":
+          return toStr(item.actRequestRefNo);
+        case "actName":
+          return toStr(item.actName);
+        case "actRequestDate": {
+          const d = new Date(item.actRequestDate);
+          return isNaN(d.getTime()) ? 0 : d.getTime();
+        }
+        case "actRequestTime":
+          return toStr(item.actRequestTime);
+        case "actRequestStatus":
+          return toStr(item.actRequestStatus);
+        case "studentApproved":
+          return Number(item.studentSummary?.totalStudentApproved ?? 0);
+        case "studentAbsent":
+          return Number(item.studentSummary?.totalStudentAbsent ?? 0);
+        case "vendorCost":
+          return Number(item.tripPayment?.totalTripVendorCost ?? 0);
+        default:
+          return 0;
+      }
+    };
+
+    arr.sort((a, b) => {
+      const aVal = getSortValue(a);
+      const bVal = getSortValue(b);
+
+      if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [filteredItems, sortConfig]);
+
+  const handleSort = (columnKey) => {
+    setSortConfig((prev) => {
+      if (prev?.key === columnKey) {
+        const nextDir = prev.direction === "asc" ? "desc" : "asc";
+        return { key: columnKey, direction: nextDir };
+      }
+      return { key: columnKey, direction: "asc" };
+    });
+  };
+
+  // reset to first page when filters/page size / sort change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, vendorFilter, statusFilter, pageSize]);
+  }, [searchTerm, vendorFilter, statusFilter, pageSize, sortConfig]);
 
   const totalPages = React.useMemo(() => {
-    if (!filteredItems.length) return 1;
-    return Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  }, [filteredItems, pageSize]);
+    if (!sortedItems.length) return 1;
+    return Math.max(1, Math.ceil(sortedItems.length / pageSize));
+  }, [sortedItems, pageSize]);
 
   const pageItems = React.useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredItems.slice(start, start + pageSize);
-  }, [filteredItems, currentPage, pageSize]);
+    return sortedItems.slice(start, start + pageSize);
+  }, [sortedItems, currentPage, pageSize]);
 
   const showingFrom =
-    filteredItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const showingTo = Math.min(currentPage * pageSize, filteredItems.length);
+    sortedItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const showingTo = Math.min(currentPage * pageSize, sortedItems.length);
 
-  // total of all Vendor Trip Profit across items (kept same for header widget)
+  // total of all Vendor Trip Profit across items (kept for future if needed)
   const totalProfitAll = React.useMemo(() => {
     try {
       return items.reduce(
@@ -404,7 +522,7 @@ const ViewActivityScreen = () => {
     }
   }, [items]);
 
-  // total kids TripVendorCost (for current selected) – PRESENT ONLY
+  // total kids TripVendorCost (for current selected) – PRESENT ONLY (across all kids)
   const kidsVendorTotal = React.useMemo(() => {
     try {
       if (!kids || !kids.length) return 0;
@@ -418,6 +536,89 @@ const ViewActivityScreen = () => {
       return 0;
     }
   }, [kids]);
+
+  // ----- Kids filter + sorting -----
+  const filteredKids = React.useMemo(() => {
+    if (!kids || !kids.length) return [];
+
+    if (kidsFilter === "PRESENT") {
+      return kids.filter((k) => isPresentStatus(k.tripKidsStatus));
+    }
+    if (kidsFilter === "ABSENT") {
+      return kids.filter((k) => isAbsentStatus(k.tripKidsStatus));
+    }
+    return kids;
+  }, [kids, kidsFilter]);
+
+  const sortedKids = React.useMemo(() => {
+    if (!kidsSortConfig?.key) return filteredKids;
+
+    const arr = [...filteredKids];
+
+    const getVal = (kid) => {
+      switch (kidsSortConfig.key) {
+        case "TripKidsSchoolNo":
+          return toStr(kid.TripKidsSchoolNo);
+        case "TripKidsName":
+          return toStr(kid.TripKidsName);
+        case "tripKidsClassName":
+          return toStr(kid.tripKidsClassName);
+        case "tripKidsStatus":
+          return toStr(kid.tripKidsStatus);
+        case "tripPaymentTypeID":
+          return toStr(kid.tripPaymentTypeID);
+        case "TripVendorCost":
+          return Number(kid.TripVendorCost ?? 0);
+        default:
+          return 0;
+      }
+    };
+
+    arr.sort((a, b) => {
+      const aVal = getVal(a);
+      const bVal = getVal(b);
+
+      if (aVal < bVal) return kidsSortConfig.direction === "asc" ? -1 : 1;
+      if (aVal > bVal) return kidsSortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [filteredKids, kidsSortConfig]);
+
+  const handleKidsSort = (columnKey) => {
+    setKidsSortConfig((prev) => {
+      if (prev?.key === columnKey) {
+        const nextDir = prev.direction === "asc" ? "desc" : "asc";
+        return { key: columnKey, direction: nextDir };
+      }
+      return { key: columnKey, direction: "asc" };
+    });
+  };
+
+  // ✅ Export kids to real Excel (.xlsx)
+  const handleExportKids = () => {
+    if (!sortedKids || !sortedKids.length) return;
+
+    const dataForExcel = sortedKids.map((kid, index) => ({
+      "#": index + 1,
+      "School No": kid.TripKidsSchoolNo || "",
+      "Kid Name": kid.TripKidsName || "",
+      "Class Name": kid.tripKidsClassName || "",
+      Status: kid.tripKidsStatus || "",
+      "Payment Type": kid.tripPaymentTypeID || "",
+      "Trip Vendor Cost": Number(kid.TripVendorCost ?? 0),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataForExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Kids");
+
+    const ref = selected?.actRequestRefNo || "trip";
+    const fileName = `kids_${ref}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+  };
 
   return (
     <div dir={dir} className="vas-container">
@@ -435,7 +636,7 @@ const ViewActivityScreen = () => {
             <div className="vas-header-left">
               <div
                 className="title-main"
-                style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}
+                style={{ fontSize: 19, fontWeight: 700, color: "#111827" }}
               >
                 Completed Trip Information
               </div>
@@ -468,7 +669,7 @@ const ViewActivityScreen = () => {
                 minWidth: 220,
               }}
             >
-              <label style={ts(12, { marginBottom: 4, color: "#000000" })}>
+              <label style={ts(13, { marginBottom: 4, color: "#000000" })}>
                 Search
               </label>
               <input
@@ -476,7 +677,7 @@ const ViewActivityScreen = () => {
                 className="admin-txt-box"
                 style={{
                   width: "100%",
-                  fontSize: 12,
+                  fontSize: 13,
                   borderRadius: 999,
                   paddingInline: 12,
                   borderColor: "#d1d5db",
@@ -495,7 +696,7 @@ const ViewActivityScreen = () => {
                 minWidth: 160,
               }}
             >
-              <label style={ts(12, { marginBottom: 4 })}>Vendor</label>
+              <label style={ts(13, { marginBottom: 4 })}>Vendor</label>
               <select
                 className="admin-txt-box"
                 value={vendorFilter}
@@ -519,13 +720,13 @@ const ViewActivityScreen = () => {
                 minWidth: 160,
               }}
             >
-              <label style={ts(12, { marginBottom: 4, color: "#000000" })}>
+              <label style={ts(13, { marginBottom: 4, color: "#000000" })}>
                 Status
               </label>
               <select
                 className="admin-txt-box"
                 style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   borderRadius: 999,
                   paddingInline: 12,
                   borderColor: "#d1d5db",
@@ -551,13 +752,13 @@ const ViewActivityScreen = () => {
                 minWidth: 140,
               }}
             >
-              <label style={ts(12, { marginBottom: 4, color: "#000000" })}>
+              <label style={ts(13, { marginBottom: 4, color: "#000000" })}>
                 Show records
               </label>
               <select
                 className="admin-txt-box"
                 style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   borderRadius: 999,
                   paddingInline: 12,
                   borderColor: "#d1d5db",
@@ -595,7 +796,7 @@ const ViewActivityScreen = () => {
                 hover
                 responsive
                 style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   borderRadius: 12,
                   overflow: "hidden",
                   border: "1px solid rgba(229,231,235,0.9)",
@@ -604,20 +805,79 @@ const ViewActivityScreen = () => {
                 <CTableHead
                   style={{
                     background: "rgba(248,250,252,0.96)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#111827",
                   }}
                 >
                   <CTableRow>
                     {/* Headers */}
                     <CTableHeaderCell>#</CTableHeaderCell>
-                    <CTableHeaderCell>Ref No.</CTableHeaderCell>
-                    <CTableHeaderCell>Act Name</CTableHeaderCell>
-                    <CTableHeaderCell>Trip Date</CTableHeaderCell>
-                    <CTableHeaderCell>Time</CTableHeaderCell>
-                    <CTableHeaderCell>Status</CTableHeaderCell>
-                    <CTableHeaderCell>Total Present</CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Ref No."
+                        columnKey="actRequestRefNo"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Act Name"
+                        columnKey="actName"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Trip Date"
+                        columnKey="actRequestDate"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Time"
+                        columnKey="actRequestTime"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Status"
+                        columnKey="actRequestStatus"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Total Present"
+                        columnKey="studentApproved"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
                     {/* ✅ NEW column header for totalStudentAbsent */}
-                    <CTableHeaderCell>Total Absense </CTableHeaderCell>
-                    <CTableHeaderCell>Vendor Cost</CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Total Absense"
+                        columnKey="studentAbsent"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
+                    <CTableHeaderCell>
+                      <SortHeader
+                        label="Vendor Cost"
+                        columnKey="vendorCost"
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </CTableHeaderCell>
                     {/* Food Profit & Total Profit kept but hidden from grid */}
                     <CTableHeaderCell style={{ display: "none" }}>
                       Food Profit
@@ -716,7 +976,7 @@ const ViewActivityScreen = () => {
                             }}
                             style={{
                               borderRadius: 999,
-                              fontSize: 11,
+                              fontSize: 12,
                               padding: "3px 10px",
                             }}
                           >
@@ -729,10 +989,10 @@ const ViewActivityScreen = () => {
                 </CTableBody>
               </CTable>
 
-              {filteredItems.length === 0 && (
+              {sortedItems.length === 0 && (
                 <div
                   className="center-text muted"
-                  style={{ marginTop: 8, fontSize: 12 }}
+                  style={{ marginTop: 8, fontSize: 13 }}
                 >
                   No records match current filters.
                 </div>
@@ -745,7 +1005,7 @@ const ViewActivityScreen = () => {
           )}
 
           {/* 🔢 Pagination under grid footer */}
-          {!loading && !error && filteredItems.length > 0 && (
+          {!loading && !error && sortedItems.length > 0 && (
             <div
               className="vas-pagination"
               style={{
@@ -756,9 +1016,9 @@ const ViewActivityScreen = () => {
                 marginTop: 4,
               }}
             >
-              <div style={ts(12, { marginBottom: 4, color: "#000000" })}>
-                Showing {showingFrom} to {showingTo} of{" "}
-                {filteredItems.length} entries
+              <div style={ts(13, { marginBottom: 4, color: "#000000" })}>
+                Showing {showingFrom} to {showingTo} of {sortedItems.length}{" "}
+                entries
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -780,7 +1040,7 @@ const ViewActivityScreen = () => {
                         color:
                           page === currentPage ? "#ffffff" : "#111827",
                         cursor: "pointer",
-                        fontSize: 11,
+                        fontSize: 12,
                       }}
                     >
                       {page}
@@ -802,10 +1062,7 @@ const ViewActivityScreen = () => {
         size="xl"
         className="modern-modal"
       >
-        <CModalHeader
-          closeButton
-          className="modern-modal-header"
-        >
+        <CModalHeader closeButton className="modern-modal-header">
           <CModalTitle className="modern-modal-title">
             Payment Request Details
           </CModalTitle>
@@ -826,9 +1083,7 @@ const ViewActivityScreen = () => {
                   />
                   <Tile label="Activity Name" value={selected.actName} />
                   <div className="tile tile--status">
-                    <div className="tile__label">
-                      Status
-                    </div>
+                    <div className="tile__label">Status</div>
                     <div>
                       <CBadge
                         className={`status-badge ${statusClassName(
@@ -884,8 +1139,7 @@ const ViewActivityScreen = () => {
                       ? totalVendorCost / totalPresentStudent
                       : 0;
                   const taxRatePercent = 15;
-                  const taxAmount =
-                    totalVendorCost * (taxRatePercent / 100);
+                  const taxAmount = totalVendorCost * (taxRatePercent / 100);
                   const totalWithTax = totalVendorCost + taxAmount;
 
                   return (
@@ -993,44 +1247,176 @@ const ViewActivityScreen = () => {
               <div className="vas-section-block">
                 <SectionTitle>Kids Information</SectionTitle>
 
-                {kids && kids.length > 0 ? (
+                {/* Filter + Export toolbar */}
+                <div
+                  className="kids-toolbar"
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={ts(13, { color: "#000000" })}>
+                      Filter:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setKidsFilter("ALL")}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        border:
+                          kidsFilter === "ALL"
+                            ? "1px solid #4b5563"
+                            : "1px solid #d1d5db",
+                        backgroundColor:
+                          kidsFilter === "ALL" ? "#4b5563" : "#ffffff",
+                        color:
+                          kidsFilter === "ALL" ? "#ffffff" : "#111827",
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                    >
+                      All Kids
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKidsFilter("PRESENT")}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        border:
+                          kidsFilter === "PRESENT"
+                            ? "1px solid #16a34a"
+                            : "1px solid #d1d5db",
+                        backgroundColor:
+                          kidsFilter === "PRESENT" ? "#16a34a" : "#ffffff",
+                        color:
+                          kidsFilter === "PRESENT" ? "#ffffff" : "#111827",
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                    >
+                      PRESENT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKidsFilter("ABSENT")}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        border:
+                          kidsFilter === "ABSENT"
+                            ? "1px solid #dc2626"
+                            : "1px solid #d1d5db",
+                        backgroundColor:
+                          kidsFilter === "ABSENT" ? "#dc2626" : "#ffffff",
+                        color:
+                          kidsFilter === "ABSENT" ? "#ffffff" : "#111827",
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ABSENT
+                    </button>
+                  </div>
+
+                  <div>
+                    <CButton
+                      size="sm"
+                      color="success"
+                      variant="outline"
+                      disabled={!sortedKids.length}
+                      onClick={handleExportKids}
+                      style={{
+                        borderRadius: 999,
+                        fontSize: 12,
+                        padding: "4px 12px",
+                      }}
+                    >
+                      Export Excel
+                    </CButton>
+                  </div>
+                </div>
+
+                {sortedKids && sortedKids.length > 0 ? (
                   <>
                     <CTable
                       small
                       hover
                       responsive
                       className="mt-2 vas-kids-table"
+                      style={{ fontSize: 13 }}
                     >
                       <CTableHead>
                         <CTableRow>
                           <CTableHeaderCell>#</CTableHeaderCell>
                           <CTableHeaderCell>
-                            School No
+                            <SortHeader
+                              label="School No"
+                              columnKey="TripKidsSchoolNo"
+                              sortConfig={kidsSortConfig}
+                              onSort={handleKidsSort}
+                            />
                           </CTableHeaderCell>
                           <CTableHeaderCell>
-                            Kid Name
+                            <SortHeader
+                              label="Kid Name"
+                              columnKey="TripKidsName"
+                              sortConfig={kidsSortConfig}
+                              onSort={handleKidsSort}
+                            />
                           </CTableHeaderCell>
                           <CTableHeaderCell>
-                            Class Name
+                            <SortHeader
+                              label="Class Name"
+                              columnKey="tripKidsClassName"
+                              sortConfig={kidsSortConfig}
+                              onSort={handleKidsSort}
+                            />
                           </CTableHeaderCell>
-                          <CTableHeaderCell>Status</CTableHeaderCell>
                           <CTableHeaderCell>
-                            Payment Type
+                            <SortHeader
+                              label="Status"
+                              columnKey="tripKidsStatus"
+                              sortConfig={kidsSortConfig}
+                              onSort={handleKidsSort}
+                            />
                           </CTableHeaderCell>
                           <CTableHeaderCell>
-                            Trip Vendor Cost
+                            <SortHeader
+                              label="Payment Type"
+                              columnKey="tripPaymentTypeID"
+                              sortConfig={kidsSortConfig}
+                              onSort={handleKidsSort}
+                            />
+                          </CTableHeaderCell>
+                          <CTableHeaderCell>
+                            <SortHeader
+                              label="Trip Vendor Cost"
+                              columnKey="TripVendorCost"
+                              sortConfig={kidsSortConfig}
+                              onSort={handleKidsSort}
+                            />
                           </CTableHeaderCell>
                         </CTableRow>
                       </CTableHead>
                       <CTableBody>
-                        {kids.map((kid, index) => {
-                          const statusRaw =
-                            (kid.tripKidsStatus || "").toString();
+                        {sortedKids.map((kid, index) => {
+                          const statusRaw = (kid.tripKidsStatus || "").toString();
                           const present = isPresentStatus(statusRaw);
                           const absent = isAbsentStatus(statusRaw);
- 
-                          // no row border colors, only the circle badge
-                          const rowStyle = {};
 
                           const circleClass =
                             "kid-status-circle " +
@@ -1041,13 +1427,8 @@ const ViewActivityScreen = () => {
                               : "");
 
                           return (
-                            <CTableRow
-                              key={kid.KidsID || index}
-                              style={rowStyle}
-                            >
-                              <CTableDataCell>
-                                {index + 1}
-                              </CTableDataCell>
+                            <CTableRow key={kid.KidsID || index}>
+                              <CTableDataCell>{index + 1}</CTableDataCell>
                               <CTableDataCell className="mono">
                                 {kid.TripKidsSchoolNo || ""}
                               </CTableDataCell>
@@ -1074,7 +1455,7 @@ const ViewActivityScreen = () => {
                           );
                         })}
 
-                        {/* Total Trip Vendor Cost row - PRESENT ONLY + Total Absent */}
+                        {/* Total Trip Vendor Cost row - PRESENT ONLY + Total Absent (across ALL kids) */}
                         {(() => {
                           const { absentCount } = computeKidsPresence(kids);
                           return (
@@ -1086,8 +1467,8 @@ const ViewActivityScreen = () => {
                                   fontWeight: "bold",
                                 }}
                               >
-                                Total Trip Vendor Cost (Present Only) | Total Absent Student:{" "}
-                                {fmtNum(absentCount)}
+                                Total Trip Vendor Cost (Present Only) | Total
+                                Absent Student: {fmtNum(absentCount)}
                               </CTableDataCell>
                               <CTableDataCell
                                 className="mono"
@@ -1104,7 +1485,7 @@ const ViewActivityScreen = () => {
                 ) : (
                   <div
                     className="muted"
-                    style={{ marginTop: 4, fontSize: 12 }}
+                    style={{ marginTop: 4, fontSize: 13 }}
                   >
                     No kids information found for this trip.
                   </div>
@@ -1121,7 +1502,7 @@ const ViewActivityScreen = () => {
             onClick={() => setShowModal(false)}
             style={{
               borderRadius: 999,
-              fontSize: 12,
+              fontSize: 13,
               paddingInline: 16,
             }}
           >
