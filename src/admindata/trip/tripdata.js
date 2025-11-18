@@ -712,19 +712,26 @@ const ViewActivityScreen = () => {
             </CAlert>
           )}
 
-          {/* Table */}
+          {/* Table + horizontal scroll wrapper */}
           {!loading && !error && !!pageItems.length && (
-            <div className="mb-3">
+            <div
+              className="mb-3"
+              style={{ width: "100%", overflowX: "auto" }} // 👈 scroll here
+            >
               <CTable
                 small
                 hover
                 className="vas-table"
-                style={{ tableLayout: "fixed", width: "100%" }}
+                style={{
+                  tableLayout: "fixed",
+                  width: "100%",
+                  minWidth: "1200px", // 👈 wider than card
+                }}
               >
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell
-                      style={{ width: "2ch" }}
+                      style={{ width: "5ch" }}
                       className="text-center"
                     >
                       #
@@ -942,58 +949,6 @@ const ViewActivityScreen = () => {
                   ))}
                 </CTableBody>
               </CTable>
-
-              {/* Pagination */}
-              <div className="d-flex justify-content-between align-items-center mt-2">
-                <small className="text-muted">
-                  Page {safePage} of {totalPages}
-                </small>
-                <CPagination align="end" className="mb-0">
-                  <CPaginationItem
-                    disabled={safePage === 1}
-                    onClick={() => goToPage(1)}
-                  >
-                    «
-                  </CPaginationItem>
-                  <CPaginationItem
-                    disabled={safePage === 1}
-                    onClick={() => goToPage(safePage - 1)}
-                  >
-                    ‹
-                  </CPaginationItem>
-                  {Array.from({ length: Math.min(5, totalPages) }).map(
-                    (_, i) => {
-                      const half = 2;
-                      let start = Math.max(1, safePage - half);
-                      let end = Math.min(totalPages, start + 4);
-                      start = Math.max(1, end - 4);
-                      const page = start + i;
-                      if (page > totalPages) return null;
-                      return (
-                        <CPaginationItem
-                          key={page}
-                          active={page === safePage}
-                          onClick={() => goToPage(page)}
-                        >
-                          {page}
-                        </CPaginationItem>
-                      );
-                    }
-                  )}
-                  <CPaginationItem
-                    disabled={safePage === totalPages}
-                    onClick={() => goToPage(safePage + 1)}
-                  >
-                    ›
-                  </CPaginationItem>
-                  <CPaginationItem
-                    disabled={safePage === totalPages}
-                    onClick={() => goToPage(totalPages)}
-                  >
-                    »
-                  </CPaginationItem>
-                </CPagination>
-              </div>
             </div>
           )}
 
