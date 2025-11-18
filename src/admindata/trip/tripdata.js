@@ -712,243 +712,295 @@ const ViewActivityScreen = () => {
             </CAlert>
           )}
 
-          {/* Table + horizontal scroll wrapper */}
+          {/* Table + scroll wrapper */}
           {!loading && !error && !!pageItems.length && (
             <div
-              className="mb-3"
-              style={{ width: "100%", overflowX: "auto" }} // 👈 scroll here
+              className="mb-3 vas-table-scroll"
+              style={{ width: "100%", overflowX: "auto", overflowY: "auto" }}
             >
-              <CTable
-                small
-                hover
-                className="vas-table"
-                style={{
-                  tableLayout: "fixed",
-                  width: "100%",
-                  minWidth: "1200px", // 👈 wider than card
-                }}
-              >
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell
-                      style={{ width: "5ch" }}
-                      className="text-center"
-                    >
-                      #
-                    </CTableHeaderCell>
-                    <CTableHeaderCell style={{ width: "8ch" }}>
-                      <SortHeader
-                        label="Ref#"
-                        columnKey="actRequestRefNo"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell
-                      className="text-nowrap"
-                      style={{ width: "16ch" }}
-                    >
-                      <SortHeader
-                        label="Trip Name"
-                        columnKey="actName"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell
-                      className="text-nowrap"
-                      style={{ width: "14ch" }}
-                    >
-                      <SortHeader
-                        label="School"
-                        columnKey="schName"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell
-                      className="text-nowrap"
-                      style={{ width: "12ch" }}
-                    >
-                      <SortHeader
-                        label="Vendor"
-                        columnKey="vdrName"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell
-                      className="text-nowrap"
-                      style={{ width: "10ch" }}
-                    >
-                      <SortHeader
-                        label="Trip Date"
-                        columnKey="actRequestDate"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell
-                      className="text-nowrap"
-                      style={{ width: "12ch" }}
-                    >
-                      <SortHeader
-                        label="Time"
-                        columnKey="actRequestTime"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell style={{ width: "12ch" }}>
-                      <SortHeader
-                        label="Status"
-                        columnKey="actRequestStatus"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell
-                      style={{ width: "9ch" }}
-                      className="text-center"
-                    >
-                      <SortHeader
-                        label="Student"
-                        columnKey="studentApproved"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell
-                      style={{ width: "9ch" }}
-                      className="text-center"
-                    >
-                      <SortHeader
-                        label="Absense"
-                        columnKey="studentAbsent"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </CTableHeaderCell>
-                    {SHOW_PROFIT_COLUMN && (
-                      <CTableHeaderCell style={{ width: "10ch" }}>
+              <div className="vas-table-scroll-inner">
+                <CTable
+                  responsive
+                  small
+                  hover
+                  className="vas-table"
+                  style={{
+                    tableLayout: "fixed",
+                    width: "100%",
+                    minWidth: "1100px",
+                  }}
+                >
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell
+                        style={{ width: "5ch" }}
+                        className="text-center"
+                      >
+                        #
+                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ width: "8ch" }}>
                         <SortHeader
-                          label="Profit"
-                          columnKey="profit"
+                          label="Ref#"
+                          columnKey="actRequestRefNo"
                           sortConfig={sortConfig}
                           onSort={handleSort}
                         />
                       </CTableHeaderCell>
-                    )}
-                    <CTableHeaderCell
-                      className="text-nowrap"
-                      style={{ width: "16ch" }}
-                    >
-                      Actions
-                    </CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {pageItems.map((row, idx) => (
-                    <CTableRow
-                      key={row.RequestID || startIndex + idx}
-                      onClick={() => openModalFor(row)}
-                      className="row-clickable"
-                    >
-                      <CTableDataCell className="text-center">
-                        {startIndex + idx + 1}
-                      </CTableDataCell>
-                      <CTableDataCell className="mono">
-                        {row.actRequestRefNo || "-"}
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <Ellipsis text={row.actName} width="16ch" />
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <Ellipsis text={row.schName} width="14ch" />
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <Ellipsis text={row.vdrName} width="12ch" />
-                      </CTableDataCell>
-                      <CTableDataCell className="mono text-nowrap">
-                        {row.actRequestDate || "-"}
-                      </CTableDataCell>
-                      <CTableDataCell className="mono text-nowrap">
-                        {row.actRequestTime || "-"}
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <CBadge
-                          className={`status-badge ${statusClassName(
-                            row.actRequestStatus
-                          )}`}
-                        >
-                          {row.actRequestStatus}
-                        </CBadge>
-                      </CTableDataCell>
-                      <CTableDataCell className="mono text-center">
-                        {fmtNum(
-                          row.studentSummary.totalStudentApproved
-                        )}
-                      </CTableDataCell>
-                      <CTableDataCell className="mono text-center">
-                        {fmtNum(row.studentSummary.totalStudentAbsent)}
-                      </CTableDataCell>
+                      <CTableHeaderCell
+                        className="text-nowrap"
+                        style={{ width: "16ch" }}
+                      >
+                        <SortHeader
+                          label="Trip Name"
+                          columnKey="actName"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
+                      <CTableHeaderCell
+                        className="text-nowrap"
+                        style={{ width: "14ch" }}
+                      >
+                        <SortHeader
+                          label="School"
+                          columnKey="schName"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
+                      <CTableHeaderCell
+                        className="text-nowrap"
+                        style={{ width: "12ch" }}
+                      >
+                        <SortHeader
+                          label="Vendor"
+                          columnKey="vdrName"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
+                      <CTableHeaderCell
+                        className="text-nowrap"
+                        style={{ width: "18ch" }}
+                      >
+                        <SortHeader
+                          label="Trip Date"
+                          columnKey="actRequestDate"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
+                       
+                      <CTableHeaderCell style={{ width: "15ch" }}>
+                        <SortHeader
+                          label="Status"
+                          columnKey="actRequestStatus"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
+                      <CTableHeaderCell
+                        style={{ width: "9ch" }}
+                        className="text-center"
+                      >
+                        <SortHeader
+                          label="Student"
+                          columnKey="studentApproved"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
+                      <CTableHeaderCell
+                        style={{ width: "9ch" }}
+                        className="text-center"
+                      >
+                        <SortHeader
+                          label="Absense"
+                          columnKey="studentAbsent"
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      </CTableHeaderCell>
                       {SHOW_PROFIT_COLUMN && (
+                        <CTableHeaderCell style={{ width: "10ch" }}>
+                          <SortHeader
+                            label="Profit"
+                            columnKey="profit"
+                            sortConfig={sortConfig}
+                            onSort={handleSort}
+                          />
+                        </CTableHeaderCell>
+                      )}
+                      {/* 👉 fixed width for Actions column so all buttons fit */}
+                      <CTableHeaderCell
+                        className="text-nowrap"
+                        style={{ width: "20ch" }}
+                      >
+                        Actions
+                      </CTableHeaderCell>
+                    </CTableRow>
+                  </CTableHead>
+                  <CTableBody>
+                    {pageItems.map((row, idx) => (
+                      <CTableRow
+                        key={row.RequestID || startIndex + idx}
+                        onClick={() => openModalFor(row)}
+                        className="row-clickable"
+                      >
+                        <CTableDataCell className="text-center">
+                          {startIndex + idx + 1}
+                        </CTableDataCell>
                         <CTableDataCell className="mono">
-                          {fmtMoney(
-                            row.totalPaymentSummary.totalVendorTripProfit
+                          {row.actRequestRefNo || "-"}
+                        </CTableDataCell>
+                        <CTableDataCell>
+                          <Ellipsis text={row.actName} width="16ch" />
+                        </CTableDataCell>
+                        <CTableDataCell>
+                          <Ellipsis text={row.schName} width="14ch" />
+                        </CTableDataCell>
+                        <CTableDataCell>
+                          <Ellipsis text={row.vdrName} width="12ch" />
+                        </CTableDataCell>
+                        <CTableDataCell className="mono text-nowrap">
+                         <div> {row.actRequestDate || "-"}</div>
+                        <div style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+  {(row.actRequestTime || "-").toString().trim()}
+</div>
+                        </CTableDataCell>
+                       
+                        <CTableDataCell>
+                          <CBadge
+                            className={`status-badge ${statusClassName(
+                              row.actRequestStatus
+                            )}`}
+                          >
+                            {row.actRequestStatus}
+                          </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell className="mono text-center">
+                          {fmtNum(
+                            row.studentSummary.totalStudentApproved
                           )}
                         </CTableDataCell>
-                      )}
+                        <CTableDataCell className="mono text-center">
+                          {fmtNum(row.studentSummary.totalStudentAbsent)}
+                        </CTableDataCell>
+                        {SHOW_PROFIT_COLUMN && (
+                          <CTableDataCell className="mono">
+                            {fmtMoney(
+                              row.totalPaymentSummary.totalVendorTripProfit
+                            )}
+                          </CTableDataCell>
+                        )}
 
-                      <CTableDataCell className="text-nowrap">
-                        <div
-                          className="d-flex gap-1 flex-nowrap"
-                          style={{ maxWidth: "100%", overflow: "hidden" }}
+                        <CTableDataCell className="text-nowrap">
+                          <div
+                            className="d-flex gap-1 flex-nowrap"
+                            // 👉 wider container for three buttons, no clipping
+                            style={{
+                              maxWidth: "260px",
+                              minWidth: "260px",
+                              overflow: "visible",
+                            }}
+                          >
+                            <CButton
+                              size="sm"
+                              color="secondary"
+                              variant="outline"
+                              title="View"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openModalFor(row);
+                              }}
+                            >
+                              <IconEye title="View" />
+                            </CButton>
+                            <CButton
+                              size="sm"
+                              color="success"
+                              variant="outline"
+                              title="Pay School"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelected(row);
+                                setShowSchPay(true);
+                              }}
+                            >
+                              <IconCard title="Pay School" />
+                            </CButton>
+                            <CButton
+                              size="sm"
+                              color="primary"
+                              variant="outline"
+                              title="Pay Vendor"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelected(row);
+                                setShowVdrPay(true);
+                              }}
+                            >
+                              <IconCard title="Pay Vendor" />
+                            </CButton>
+                          </div>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </div>
+
+              {/* Pagination */}
+              <div className="d-flex justify-content-between align-items-center mt-2">
+                <small className="text-muted">
+                  Page {safePage} of {totalPages}
+                </small>
+                <CPagination align="end" className="mb-0">
+                  <CPaginationItem
+                    disabled={safePage === 1}
+                    onClick={() => goToPage(1)}
+                  >
+                    «
+                  </CPaginationItem>
+                  <CPaginationItem
+                    disabled={safePage === 1}
+                    onClick={() => goToPage(safePage - 1)}
+                  >
+                    ‹
+                  </CPaginationItem>
+                  {Array.from({ length: Math.min(5, totalPages) }).map(
+                    (_, i) => {
+                      const half = 2;
+                      let start = Math.max(1, safePage - half);
+                      let end = Math.min(totalPages, start + 4);
+                      start = Math.max(1, end - 4);
+                      const page = start + i;
+                      if (page > totalPages) return null;
+                      return (
+                        <CPaginationItem
+                          key={page}
+                          active={page === safePage}
+                          onClick={() => goToPage(page)}
                         >
-                          <CButton
-                            size="sm"
-                            color="secondary"
-                            variant="outline"
-                            title="View"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openModalFor(row);
-                            }}
-                          >
-                            <IconEye title="View" />
-                          </CButton>
-                          <CButton
-                            size="sm"
-                            color="success"
-                            variant="outline"
-                            title="Pay School"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelected(row);
-                              setShowSchPay(true);
-                            }}
-                          >
-                            <IconCard title="Pay School" />
-                          </CButton>
-                          <CButton
-                            size="sm"
-                            color="primary"
-                            variant="outline"
-                            title="Pay Vendor"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelected(row);
-                              setShowVdrPay(true);
-                            }}
-                          >
-                            <IconCard title="Pay Vendor" />
-                          </CButton>
-                        </div>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
+                          {page}
+                        </CPaginationItem>
+                      );
+                    }
+                  )}
+                  <CPaginationItem
+                    disabled={safePage === totalPages}
+                    onClick={() => goToPage(safePage + 1)}
+                  >
+                    ›
+                  </CPaginationItem>
+                  <CPaginationItem
+                    disabled={safePage === totalPages}
+                    onClick={() => goToPage(totalPages)}
+                  >
+                    »
+                  </CPaginationItem>
+                </CPagination>
+              </div>
             </div>
           )}
 
