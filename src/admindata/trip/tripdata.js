@@ -33,6 +33,13 @@ import ViewPaymentModal from "../payment/viewPayment";
 
 import { API_BASE_URL } from "../../config";
 
+// 🔧 column width constants
+const TRIP_COL_WIDTH = "26ch";
+const SCHOOL_COL_WIDTH = "26ch";
+const VENDOR_COL_WIDTH = "32ch"; // 👈 Vendor column wider now
+const DATE_COL_WIDTH = "22ch";
+const ACTIONS_COL_WIDTH = "18ch";
+
 // ---------- tiny inline SVG icons ----------
 const IconCard = ({ size = 16, title = "Pay" }) => (
   <svg
@@ -607,7 +614,8 @@ const ViewActivityScreen = () => {
           borderColor: AppColors?.onPinkBorderColor || undefined,
         }}
       >
-        <CCardBody className="vas-card-body">
+        {/* remove a bit of right padding to shrink empty space */}
+        <CCardBody className="vas-card-body" style={{ paddingRight: 8 }}>
           {/* Header */}
           <div className="vas-header">
             <div className="vas-header-left">
@@ -716,18 +724,23 @@ const ViewActivityScreen = () => {
           {!loading && !error && !!pageItems.length && (
             <div
               className="mb-3 vas-table-scroll"
-              style={{ width: "100%", overflowX: "auto", overflowY: "auto" }}
+              style={{
+                maxWidth: "100%",
+                overflowX: "auto",
+              }}
             >
-              <div className="vas-table-scroll-inner">
+              <div
+                className="vas-table-scroll-inner"
+                style={{ minWidth: "100%" }}
+              >
                 <CTable
                   responsive
                   small
                   hover
                   className="vas-table"
                   style={{
-                    tableLayout: "fixed",
+                    tableLayout: "auto",
                     width: "100%",
-                    minWidth: "1100px",
                   }}
                 >
                   <CTableHead>
@@ -748,7 +761,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: "16ch" }}
+                        style={{ width: TRIP_COL_WIDTH }}
                       >
                         <SortHeader
                           label="Trip Name"
@@ -759,7 +772,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: "14ch" }}
+                        style={{ width: SCHOOL_COL_WIDTH }}
                       >
                         <SortHeader
                           label="School"
@@ -770,7 +783,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: "12ch" }}
+                        style={{ width: VENDOR_COL_WIDTH }} // 👈 wider
                       >
                         <SortHeader
                           label="Vendor"
@@ -781,7 +794,7 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: "18ch" }}
+                        style={{ width: DATE_COL_WIDTH }}
                       >
                         <SortHeader
                           label="Trip Date"
@@ -790,7 +803,7 @@ const ViewActivityScreen = () => {
                           onSort={handleSort}
                         />
                       </CTableHeaderCell>
-                       
+
                       <CTableHeaderCell style={{ width: "15ch" }}>
                         <SortHeader
                           label="Status"
@@ -831,10 +844,9 @@ const ViewActivityScreen = () => {
                           />
                         </CTableHeaderCell>
                       )}
-                      {/* 👉 fixed width for Actions column so all buttons fit */}
                       <CTableHeaderCell
                         className="text-nowrap"
-                        style={{ width: "20ch" }}
+                        style={{ width: ACTIONS_COL_WIDTH }}
                       >
                         Actions
                       </CTableHeaderCell>
@@ -854,21 +866,34 @@ const ViewActivityScreen = () => {
                           {row.actRequestRefNo || "-"}
                         </CTableDataCell>
                         <CTableDataCell>
-                          <Ellipsis text={row.actName} width="16ch" />
+                          <Ellipsis text={row.actName} width={TRIP_COL_WIDTH} />
                         </CTableDataCell>
                         <CTableDataCell>
-                          <Ellipsis text={row.schName} width="14ch" />
+                          <Ellipsis
+                            text={row.schName}
+                            width={SCHOOL_COL_WIDTH}
+                          />
                         </CTableDataCell>
                         <CTableDataCell>
-                          <Ellipsis text={row.vdrName} width="12ch" />
+                          <Ellipsis
+                            text={row.vdrName}
+                            width={VENDOR_COL_WIDTH} // 👈 uses same bigger width
+                          />
                         </CTableDataCell>
                         <CTableDataCell className="mono text-nowrap">
-                         <div> {row.actRequestDate || "-"}</div>
-                        <div style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
-  {(row.actRequestTime || "-").toString().trim()}
-</div>
+                          <div>{row.actRequestDate || "-"}</div>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {(row.actRequestTime || "-")
+                              .toString()
+                              .trim()}
+                          </div>
                         </CTableDataCell>
-                       
+
                         <CTableDataCell>
                           <CBadge
                             className={`status-badge ${statusClassName(
@@ -897,7 +922,6 @@ const ViewActivityScreen = () => {
                         <CTableDataCell className="text-nowrap">
                           <div
                             className="d-flex gap-1 flex-nowrap"
-                            // 👉 wider container for three buttons, no clipping
                             style={{
                               maxWidth: "260px",
                               minWidth: "260px",
