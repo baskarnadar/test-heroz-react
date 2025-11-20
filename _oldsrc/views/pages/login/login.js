@@ -24,7 +24,7 @@ import enPack from '../../../i18n/enloc100.json'
 import arPack from '../../../i18n/arloc100.json'
 
 const Login = () => {
-   console.log(`${API_BASE_URL}/subadmin/signin`);
+  console.log(`${API_BASE_URL}/subadmin/signin`)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -46,19 +46,20 @@ const Login = () => {
 
   // keep <html dir/lang> + persist choice
   useEffect(() => {
-    try { localStorage.setItem('heroz_lang', lang) } catch {}
+    try {
+      localStorage.setItem('heroz_lang', lang)
+    } catch {}
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
       document.documentElement.setAttribute('lang', lang)
-        console.log(`${API_BASE_URL}/subadmin/signin`)
+      console.log(`${API_BASE_URL}/subadmin/signin`)
     }
   }, [lang])
 
   const handleLogin = async () => {
- 
-    console.log("username")
-    console.log(password)
-  console.log(`${API_BASE_URL}/subadmin/signin`)
+    //console.log('username')
+    //console.log(password)
+   // console.log(`${API_BASE_URL}/subadmin/signin`)
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
         method: 'POST',
@@ -70,11 +71,11 @@ const Login = () => {
           password,
         }),
       })
-      
+
       const data = await response.json()
-      console.log(`${API_BASE_URL}/subadmin/signin`)
-      console.log('API Response:', data)
-      console.log('data.data.token', data.data.token)
+     // console.log(`${API_BASE_URL}/subadmin/signin`)
+     // console.log('API Response:', data)
+      //console.log('data.data.token', data.data.token)
 
       if (response.ok && data.data.token) {
         // ✅ Save token to localStorage
@@ -86,13 +87,17 @@ const Login = () => {
         localStorage.setItem('username', data.data.username)
         localStorage.setItem('usertype', data.data.usertype)
         localStorage.setItem('loggedusername', data.data.loggedusername)
-        
-        if (data.data.usertype == 'ADMIN')  
-          navigate('/admin/dashboard') 
- 
-        if (data.data.usertype == 'VENDOR-SUBADMIN')  
-          navigate('/vendor/dashboard')
 
+        // ✅ NEW: save vatamount if backend sends it
+        // (change key name or property name if your API uses different naming)
+        if (data.data && data.data.vatamount != null) {
+          localStorage.setItem('vatamount', data.data.vatamount.toString())
+          console.log('Saved vatamount to localStorage:', data.data.vatamount)
+        }
+
+        if (data.data.usertype == 'ADMIN') navigate('/admin/dashboard')
+
+        if (data.data.usertype == 'VENDOR-SUBADMIN') navigate('/vendor/dashboard')
       } else {
         handleLogout()
         setError(data.message || tr('errInvalidCredentials', 'Invalid credentials'))
@@ -136,7 +141,10 @@ const Login = () => {
           title="العربية"
           aria-label="العربية"
         >
-          <span role="img" aria-hidden>🌐</span> AR
+          <span role="img" aria-hidden>
+            🌐
+          </span>{' '}
+          AR
         </CButton>
         <CButton
           size="sm"
@@ -147,7 +155,10 @@ const Login = () => {
           title="English"
           aria-label="English"
         >
-          <span role="img" aria-hidden>🌐</span> EN
+          <span role="img" aria-hidden>
+            🌐
+          </span>{' '}
+          EN
         </CButton>
       </div>
 
@@ -221,7 +232,9 @@ const Login = () => {
                   backgroundPosition: 'center',
                 }}
               >
-                <CCardBody className="text-center">{/* You can remove the <img> now */}</CCardBody>
+                <CCardBody className="text-center">
+                  {/* You can remove the <img> now */}
+                </CCardBody>
               </CCard>
             </CCardGroup>
           </CCol>

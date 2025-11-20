@@ -278,6 +278,10 @@ export function getAuthHeaders() {
   };
 }
 
+export function getVatAmount() {
+  return localStorage.getItem('vatamount');  ; 
+}
+
 export function getAuthHeadersV1() {
   const token = localStorage.getItem('token');
   console.log("token:", token); 
