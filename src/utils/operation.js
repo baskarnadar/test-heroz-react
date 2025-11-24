@@ -260,6 +260,11 @@ export const GoogleMapEmbed = ({ embedUrl, width = '100%', height = '400px' }) =
   }
 }
 
+export function getVatAmount() { 
+ 
+  return localStorage.getItem('VatAmount');
+}
+
 export function getAuthHeaders() {
   const token = localStorage.getItem('token'); 
   //console.log("token:", token);

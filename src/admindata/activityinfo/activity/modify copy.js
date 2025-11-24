@@ -2,21 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import {
-  DspToastMessage,
-  getAuthHeaders,
-  IsAdminLoginIsValid,
-  getVatAmount, // ✅ ADDED
-} from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID, dspstatusv1 } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
 
 // ✅ bring the shared validator
 import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
-
-// ✅ trip summary component
-import TripSummaryVat from './tripsummaryvat'
 
 // ✅ tiny error renderer (same as other page)
 const ErrorText = ({ msg }) =>
@@ -415,14 +407,6 @@ const Vendor = () => {
     const actavailDaysHoursVal = getAvailDaysHoursData()
     const actPriceDataVal = getPriceData()
 
-    // ✅ NEW: derive VAT fields from your existing VAT numbers
-    const effectiveVatPercent = vatPercentValue // same as getVatAmount()
-    const effectiveVatRate = vatRateValue // percent / 100
-    const firstPriceNum = tripBasePrice // first range base price
-    const dec = (v) => Number(v || 0).toFixed(2) // simple 2-decimal helper
-
-    const actPriceVatPercentageVal = effectiveVatPercent
-    const actPriceVatAmountVal = dec(firstPriceNum * effectiveVatRate)
     try {
       const response = await fetch(
         `${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`,
@@ -460,8 +444,6 @@ const Vendor = () => {
             actMaxStudent: txtactMaxStudent || '',
 
             actPrice: actPriceDataVal,
-            actPriceVatPercentage: actPriceVatPercentageVal,
-            actPriceVatAmount: actPriceVatAmountVal,
             actAvailDaysHours: actavailDaysHoursVal,
             actFood: actfoodDataVal,
 
@@ -643,19 +625,13 @@ const Vendor = () => {
 
     // Set Price list
     if (Array.isArray(ActivityData.priceList) && ActivityData.priceList.length > 0) {
-      const formattedPriceRanges = ActivityData.priceList.map((item) => {
-        const herozPriceNum = Number(item.HerozStudentPrice || 0)
-        const herozVatAmount = herozPriceNum * vatRateValue
-
-        return {
-          PriceID: item.PriceID,
-          price: item.Price,
-          HerozStudentPrice: item.HerozStudentPrice,
-          HerozStudentPriceVatAmount: herozVatAmount.toFixed(2),
-          rangeFrom: item.StudentRangeFrom,
-          rangeTo: item.StudentRangeTo,
-        }
-      })
+      const formattedPriceRanges = ActivityData.priceList.map((item) => ({
+        PriceID: item.PriceID,
+        price: item.Price,
+        HerozStudentPrice: item.HerozStudentPrice,
+        rangeFrom: item.StudentRangeFrom,
+        rangeTo: item.StudentRangeTo,
+      }))
       setPriceRanges(formattedPriceRanges)
     } else {
       setPriceRanges([{ PriceID: '', price: '', HerozStudentPrice: '', rangeFrom: '', rangeTo: '' }])
@@ -822,49 +798,33 @@ const Vendor = () => {
     return result.data?.key || result.data?.Key
   }
 
-const getFoodData = async () => {
-  const foodData = await Promise.all(
-    foods.map(async (item) => {
-      let uploadedImageKey = ''
-      if (item.image instanceof File) {
-        uploadedImageKey = await uploadFoodImage(item.image)
-      }
+  const getFoodData = async () => {
+    const foodData = await Promise.all(
+      foods.map(async (item) => {
+        let uploadedImageKey = ''
+        if (item.image instanceof File) {
+          uploadedImageKey = await uploadFoodImage(item.image)
+        }
 
-      // Guarantee price zeros if include is true
-      const priceOut = item.include ? '0' : item.price || ''
-      const herozOut = item.include ? '0' : item.herozprice || ''
+        // Guarantee price zeros if include is true (server-safety)
+        const priceOut = item.include ? '0' : item.price || ''
+        const herozOut = item.include ? '0' : item.herozprice || ''
 
-      // ⭐ VAT CALCULATIONS
-      const basePrice = Number(priceOut || 0)
-      const baseHeroz = Number(herozOut || 0)
+        return {
+          FoodID: item.FoodID || null,
+          FoodName: item.name || '',
+          FoodPrice: priceOut,
+          FoodHerozPrice: herozOut,
+          FoodNotes: item.notes || '',
+          FoodImage: uploadedImageKey || '',
+          Include: item.include || false,
+          RemoveFood: item.ChkRemoveFood || false,
+        }
+      }),
+    )
 
-      const foodVat = basePrice * vatRateValue
-      const herozVat = baseHeroz * vatRateValue
-
-      return {
-        FoodID: item.FoodID || null,
-        FoodName: item.name || '',
-        FoodPrice: priceOut,
-
-        // ⭐ NEW — FOOD VAT (Price)
-        FoodPriceVatPercentage: vatPercentValue,          // e.g., 15
-        FoodPriceVatAmount: foodVat.toFixed(2),           // price * VAT %
-
-        // ⭐ EXISTING + VAT
-        FoodHerozPrice: herozOut,
-        FoodHerozPriceVatAmount: herozVat.toFixed(2),
-
-        FoodNotes: item.notes || '',
-        FoodImage: uploadedImageKey || '',
-        Include: item.include || false,
-        RemoveFood: item.ChkRemoveFood || false,
-      }
-    })
-  )
-
-  return foodData
-}
-
+    return foodData
+  }
 
   //price ------------------------------------
   const [priceRanges, setPriceRanges] = useState([
@@ -878,25 +838,17 @@ const getFoodData = async () => {
       return updated
     })
   }
-const getPriceData = () => {
-  return priceRanges.map((item) => {
-    const baseHeroz = Number(item.HerozStudentPrice || 0)
-    const herozVat = baseHeroz * vatRateValue   // ← VAT CALCULATION
-
-    return {
+  const getPriceData = () => {
+    return priceRanges.map((item) => ({
       PriceID: item.PriceID || '',
       Price: item.price || '',
       HerozStudentPrice: item.HerozStudentPrice || '',
-      HerozStudentPriceVatAmount: herozVat.toFixed(2),   // ← ADDED HERE
-
-      // keep these fields for backward compatibility
+      // keep these fields in payload for backward compatibility (even if UI is hidden)
       StudentRangeFrom: item.rangeFrom || '',
       StudentRangeTo: item.rangeTo || '',
       RemovePrice: item.ChkRemovePrice || false,
-    }
-  })
-}
-
+    }))
+  }
 
   //Send to Admin Approval
   const handleSave = () => {
@@ -917,55 +869,6 @@ const getPriceData = () => {
   const handleCancel = () => {
     setShowModal(false)
   }
-
-  // ---------------- VAT & SUMMARY NUMBERS (READ-ONLY) ----------------
-  const vatPercentValue = Number(getVatAmount() || 0) // e.g. 15
-  const vatRateValue = vatPercentValue / 100 // e.g. 0.15
-
-  const firstRange = priceRanges && priceRanges.length > 0 ? priceRanges[0] : null
-
-  const tripBasePrice = firstRange ? Number(firstRange.price || 0) : 0
-  const tripBaseHerozPrice = firstRange ? Number(firstRange.HerozStudentPrice || 0) : 0
-
-  const tripVatAmount = tripBasePrice * vatRateValue
-  const tripHerozVatAmount = tripBaseHerozPrice * vatRateValue
-
-  const foodBaseAmount = foods.reduce(
-    (sum, item) => sum + (item.include ? 0 : Number(item.price || 0)),
-    0,
-  )
-  const foodHerozBaseAmount = foods.reduce(
-    (sum, item) => sum + (item.include ? 0 : Number(item.herozprice || 0)),
-    0,
-  )
-
-  const foodVatAmount = foodBaseAmount * vatRateValue
-  const foodHerozVatAmount = foodHerozBaseAmount * vatRateValue
-
-  const totalBaseAmount = tripBasePrice + foodBaseAmount
-  const totalHerozBaseAmount = tripBaseHerozPrice + foodHerozBaseAmount
-
-  const totalVatAmount = tripVatAmount + foodVatAmount
-  const totalHerozVatAmount = tripHerozVatAmount + foodHerozVatAmount
-
-  const totalWithVat = totalBaseAmount + totalVatAmount
-  const totalHerozWithVat = totalHerozBaseAmount + totalHerozVatAmount
-
-  const totalTripCost = totalWithVat + totalHerozWithVat
-  const to2 = (v) => Number(v || 0).toFixed(2)
-
-  const vatPillStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    border: '1px solid #cf2037',
-    borderRadius: 999,
-    padding: '3px 10px',
-    backgroundColor: 'rgba(207, 32, 55, 0.15)',
-    color: '#cf2037',
-    fontSize: 12,
-    marginTop: 4,
-  }
-  // -----------------------------------------------------------------------
 
   return (
     <div>
@@ -1502,23 +1405,6 @@ const getPriceData = () => {
 
       <div className="txtsubtitle">
         Price Per Student <span style={{ color: 'red' }}>*</span>
-        {vatPercentValue > 0 && (
-          <span
-            style={{
-              marginLeft: 8,
-              fontSize: 13,
-              border: '1px solid #cf2037',
-              borderRadius: 999,
-              padding: '3px 10px',
-              backgroundColor: 'rgba(207, 32, 55, 0.15)',
-              color: '#cf2037',
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-          >
-            + VAT {vatPercentValue.toFixed(2)}%
-          </span>
-        )}
       </div>
 
       <div className="divbox">
@@ -1530,73 +1416,48 @@ const getPriceData = () => {
           </CCol>
         </CRow>
 
-        {priceRanges.map((item, index) => {
-          const basePrice = Number(item.price || 0)
-          const baseHerozPrice = Number(item.HerozStudentPrice || 0)
-          const vatAmount = basePrice * vatRateValue
-          const vatHerozAmount = baseHerozPrice * vatRateValue
-
-          return (
-            <CRow key={index} className="align-items-center mb-2">
-              <CCol sm={3}>
-                <input
-                  name="txtPricePerStudent"
-                  type="number"
-                  className="vendor-input w-100"
-                  placeholder="Price"
-                  value={item.price}
-                  onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
-                />
-                {/* per-row error if provided; otherwise show global price error only under first row */}
-                <ErrorText
-                  msg={
-                    (errors.priceRanges &&
-                      errors.priceRanges[index] &&
-                      errors.priceRanges[index].price) ||
-                    (index === 0 ? errors.price : '')
-                  }
-                />
-                {/* VAT under Price */}
-                {vatPercentValue > 0 && basePrice > 0 && (
-                  <div>
-                    <span style={vatPillStyle}>
-                      VAT {vatPercentValue.toFixed(2)}%:{' '}
-                      <strong style={{ marginLeft: 4 }}>{vatAmount.toFixed(2)}</strong>
-                    </span>
-                  </div>
-                )}
-              </CCol>
-              <CCol sm={3} style={{ backgroundColor: '#f8eaf3ff' }}>
-                <input
-                  name="txtHerozStudentPrice"
-                  type="number"
-                  className="vendor-input w-100"
-                  placeholder="Heroz Price"
-                  value={item.HerozStudentPrice}
-                  onChange={(e) => handlePriceChange(index, 'HerozStudentPrice', e.target.value)}
-                />
-                <ErrorText
-                  msg={
-                    errors.priceRanges &&
+        {priceRanges.map((item, index) => (
+          <CRow key={index} className="align-items-center mb-2">
+            <CCol sm={3}>
+              <input
+                name="txtPricePerStudent"
+                type="number"
+                className="vendor-input w-100"
+                placeholder="Price"
+                value={item.price}
+                onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
+              />
+              {/* per-row error if provided; otherwise show global price error only under first row */}
+              <ErrorText
+                msg={
+                  (errors.priceRanges &&
                     errors.priceRanges[index] &&
-                    errors.priceRanges[index].HerozStudentPrice
-                      ? errors.priceRanges[index].HerozStudentPrice
-                      : ''
-                  }
-                />
-                {/* VAT under Heroz Price */}
-                {vatPercentValue > 0 && baseHerozPrice > 0 && (
-                  <div>
-                    <span style={vatPillStyle}>
-                      VAT {vatPercentValue.toFixed(2)}%:{' '}
-                      <strong style={{ marginLeft: 4 }}>{vatHerozAmount.toFixed(2)}</strong>
-                    </span>
-                  </div>
-                )}
-              </CCol>
-            </CRow>
-          )
-        })}
+                    errors.priceRanges[index].price) ||
+                  (index === 0 ? errors.price : '')
+                }
+              />
+            </CCol>
+            <CCol sm={3} style={{ backgroundColor: '#f8eaf3ff' }}>
+              <input
+                name="txtHerozStudentPrice"
+                type="number"
+                className="vendor-input w-100"
+                placeholder="Heroz Price"
+                value={item.HerozStudentPrice}
+                onChange={(e) => handlePriceChange(index, 'HerozStudentPrice', e.target.value)}
+              />
+              <ErrorText
+                msg={
+                  errors.priceRanges &&
+                  errors.priceRanges[index] &&
+                  errors.priceRanges[index].HerozStudentPrice
+                    ? errors.priceRanges[index].HerozStudentPrice
+                    : ''
+                }
+              />
+            </CCol>
+          </CRow>
+        ))}
       </div>
 
       <div className="txtsubtitle">Set Availability</div>
@@ -1761,122 +1622,103 @@ const getPriceData = () => {
             <CCol sm={1}>Delete</CCol>
           </CRow>
 
-          {foods.map((item, index) => {
-            const baseFoodPrice = item.include ? 0 : Number(item.price || 0)
-            const baseFoodHerozPrice = item.include ? 0 : Number(item.herozprice || 0)
-            const foodVat = baseFoodPrice * vatRateValue
-            const foodHerozVat = baseFoodHerozPrice * vatRateValue
+          {foods.map((item, index) => (
+            <CRow key={index} className="mb-3 align-items-center">
+              <CCol sm={3}>
+                <input
+                  type="text"
+                  className="admin-txt-box w-100"
+                  placeholder="Enter name"
+                  value={item.name}
+                  onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
+                />
+              </CCol>
 
-            return (
-              <CRow key={index} className="mb-3 align-items-center">
-                <CCol sm={3}>
-                  <input
-                    type="text"
-                    className="admin-txt-box w-100"
-                    placeholder="Enter name"
-                    value={item.name}
-                    onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
-                  />
-                </CCol>
+              <CCol sm={1}>
+                <input
+                  type="number"
+                  className="admin-txt-box w-100"
+                  placeholder="Enter price"
+                  value={item.price}
+                  onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
+                  disabled={item.include === true}
+                />
+              </CCol>
 
-                <CCol sm={1}>
-                  <input
-                    type="number"
-                    className="admin-txt-box w-100"
-                    placeholder="Enter price"
-                    value={item.price}
-                    onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
-                    disabled={item.include === true}
-                  />
-                  {/* VAT for food price */}
-                  {vatPercentValue > 0 && baseFoodPrice > 0 && (
-                    <div>
-                      <span style={vatPillStyle}>{foodVat.toFixed(2)}</span>
-                    </div>
-                  )}
-                </CCol>
+              <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
+                <input
+                  type="number"
+                  className="admin-txt-box w-100"
+                  placeholder="Enter Heroz price"
+                  value={item.herozprice}
+                  onChange={(e) => handleFoodChange(index, 'herozprice', e.target.value)}
+                  disabled={item.include === true}
+                />
+              </CCol>
 
-                <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
-                  <input
-                    type="number"
-                    className="admin-txt-box w-100"
-                    placeholder="Enter Heroz price"
-                    value={item.herozprice}
-                    onChange={(e) => handleFoodChange(index, 'herozprice', e.target.value)}
-                    disabled={item.include === true}
-                  />
-                  {/* VAT for Heroz food price */}
-                  {vatPercentValue > 0 && baseFoodHerozPrice > 0 && (
-                    <div>
-                      <span style={vatPillStyle}>{foodHerozVat.toFixed(2)}</span>
-                    </div>
-                  )}
-                </CCol>
+              <CCol sm={3}>
+                <input
+                  type="text"
+                  className="admin-txt-box w-100"
+                  placeholder="Enter notes"
+                  value={item.notes}
+                  onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
+                />
+              </CCol>
 
-                <CCol sm={3}>
-                  <input
-                    type="text"
-                    className="admin-txt-box w-100"
-                    placeholder="Enter notes"
-                    value={item.notes}
-                    onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
-                  />
-                </CCol>
+              <CCol sm={2}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="w-100"
+                  onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])}
+                />
+              </CCol>
 
-                <CCol sm={2}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="w-100"
-                    onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])}
-                  />
-                </CCol>
+              <CCol sm={1} className="text-center">
+                <input
+                  type="checkbox"
+                  checked={item.include}
+                  onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
+                  style={{
+                    transform: 'scale(1.5)',
+                    accentColor: 'red',
+                    cursor: 'pointer',
+                  }}
+                />
+              </CCol>
 
-                <CCol sm={1} className="text-center">
+              <CCol sm={1}>
+                {item.FoodID ? (
                   <input
                     type="checkbox"
-                    checked={item.include}
-                    onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
+                    name="ChkRemoveFood"
+                    onChange={(e) => {
+                      const updatedFoods = [...foods]
+                      updatedFoods[index].ChkRemoveFood = e.target.checked
+                      setFoods(updatedFoods)
+                    }}
                     style={{
-                      transform: 'scale(1.5)',
+                      width: '24px',
+                      height: '24px',
                       accentColor: 'red',
                       cursor: 'pointer',
                     }}
                   />
-                </CCol>
-
-                <CCol sm={1}>
-                  {item.FoodID ? (
-                    <input
-                      type="checkbox"
-                      name="ChkRemoveFood"
-                      onChange={(e) => {
-                        const updatedFoods = [...foods]
-                        updatedFoods[index].ChkRemoveFood = e.target.checked
-                        setFoods(updatedFoods)
-                      }}
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        accentColor: 'red',
-                        cursor: 'pointer',
-                      }}
-                    />
-                  ) : (
-                    priceRanges.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleFoodRemoveFood(index)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        Remove
-                      </button>
-                    )
-                  )}
-                </CCol>
-              </CRow>
-            )
-          })}
+                ) : (
+                  priceRanges.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleFoodRemoveFood(index)}
+                      className="btn btn-danger btn-sm"
+                    >
+                      Remove
+                    </button>
+                  )
+                )}
+              </CCol>
+            </CRow>
+          ))}
 
           <CRow className="mt-3">
             <CCol>
@@ -1887,29 +1729,6 @@ const getPriceData = () => {
           </CRow>
         </div>
       </div>
-
-      {/* -------------------- SUMMARY (ADMIN VIEW) VIA CHILD -------------------- */}
-      <div className="txtsubtitle">Summary</div>
-      <div className="divbox">
-        <TripSummaryVat
-          vatPercentValue={vatPercentValue}
-          tripBasePrice={tripBasePrice}
-          tripVatAmount={tripVatAmount}
-          tripBaseHerozPrice={tripBaseHerozPrice}
-          tripHerozVatAmount={tripHerozVatAmount}
-          foodBaseAmount={foodBaseAmount}
-          foodVatAmount={foodVatAmount}
-          foodHerozBaseAmount={foodHerozBaseAmount}
-          foodHerozVatAmount={foodHerozVatAmount}
-          totalBaseAmount={totalBaseAmount}
-          totalVatAmount={totalVatAmount}
-          totalHerozBaseAmount={totalHerozBaseAmount}
-          totalHerozVatAmount={totalHerozVatAmount}
-          totalWithVat={totalWithVat}
-          totalHerozWithVat={totalHerozWithVat}
-        />
-      </div>
-      {/* ----------------------------------------------------------- */}
 
       <div className="txtsubtitle">
         Terms And Conditions <span style={{ color: 'red' }}>*</span>
@@ -1925,35 +1744,6 @@ const getPriceData = () => {
           />
           <ErrorText msg={errors.txtactAdminNotes} />
         </div>
-      </div>
-
-      {/* ⭐ FINAL BIG TRIP COST SUMMARY (BELOW TERMS & CONDITIONS) */}
-      <div
-        style={{
-          maxWidth: 800,
-          margin: '0 auto 24px',
-          border: '4px solid #512da8',
-          borderRadius: 20,
-          padding: '16px 24px',
-          backgroundColor: '#f3e5f5',
-          textAlign: 'center',
-          fontSize: 20,
-          fontWeight: 800,
-          lineHeight: 1.6,
-        }}
-      >
-        Total Trip Cost (Incl. VAT) ={' '}
-        <span style={{ color: '#1b5e20' }}>
-          Total Cost (Incl. VAT) {to2(totalWithVat)}
-        </span>{' '}
-        +{' '}
-        <span style={{ color: '#1a237e' }}>
-          Heroz Cost (Incl. VAT) {to2(totalHerozWithVat)}
-        </span>{' '}
-        ={' '}
-        <span style={{ color: '#c62828' }}>
-          {to2(totalTripCost)}
-        </span>
       </div>
 
       <div className="button-container">

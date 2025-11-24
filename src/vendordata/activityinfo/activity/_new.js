@@ -279,8 +279,8 @@ const Vendor = () => {
           return {
             FoodName: item.name || '',
             FoodPrice: item.price || '',
-            FoodPriceVatPercentage: vatPercentValue, // ✅ VAT %
-            FoodPriceVatAmount: vatAmount,           // ✅ VAT amount for this food
+            FoodPriceVatPercentage: vatPercentValue, // ✅ pass VAT percentage
+            FoodPriceVatAmount: vatAmount,           // ✅ pass VAT amount for this food
             FoodNotes: item.notes || '',
             FoodImage: '',            // ← blank when hidden
             Include: item.include || false,
@@ -292,8 +292,8 @@ const Vendor = () => {
         return {
           FoodName: item.name || '',
           FoodPrice: item.price || '',
-          FoodPriceVatPercentage: vatPercentValue,
-          FoodPriceVatAmount: vatAmount,
+          FoodPriceVatPercentage: vatPercentValue, // ✅ pass VAT percentage
+          FoodPriceVatAmount: vatAmount,           // ✅ pass VAT amount
           FoodNotes: item.notes || '',
           FoodImage: uploadedImageKey || '',
           Include: item.include || false,
@@ -330,7 +330,7 @@ const Vendor = () => {
     return { actAvailDaysHours: val, rows }
   }
 
-  // -------------------- SUMMARY VALUES (VAT) --------------------
+  // -------------------- SUMMARY VALUES --------------------
   const tripPriceBase = Number(priceRanges[0]?.price || 0)
   const tripVatAmount = tripPriceBase * vatRateValue   // ✅ use decimal rate
 
@@ -357,7 +357,7 @@ const Vendor = () => {
     backgroundColor: 'rgba(207, 32, 55, 0.15)',
     color: '#cf2037',
   }
-  // -------------------------------------------------------------
+  // -------------------------------------------------------
 
   // load lookups
   useEffect(() => {
@@ -495,99 +495,70 @@ const Vendor = () => {
     } catch {
       // ignore upload error here; validator ensures at least one if required
     }
-alert(actPriceVatPercentageVal);
-alert(actPriceVatAmountVal);
-alert(totalWithVat);
+
     const actfoodDataVal = await getFoodData()
     const actavailDaysHoursVal = getAvailDaysHoursData()
-    const actPriceDataVal = getPriceData()
-
-    alert(totalVatAmount);
-    // 🔍 DEBUG: log VAT + payload
-    const url = `${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`
-    const payload = {
-      VendorID: getCurrentLoggedUserID(),
-      actName: txtactName || '',
-      actTypeID: selectedType,           // 'SCHOOL'
-      actCategoryID: selectedCategories,
-      actDesc: txtactDesc || '',
-
-      actImageName1: img1,
-      actImageName2: img2,
-      actImageName3: img3,
-
-      actYouTubeID1: txtactYouTubeID1,
-      actYouTubeID2: txtactYouTubeID2,
-      actYouTubeID3: txtactYouTubeID3,
-
-      actGoogleMap: txtactGoogleMap || '',
-      actGlat: txtactGlat || '',
-      actGlan: txtactGlan || '',
-      actAddress1: txtactAddress1 || '',
-      actAddress2: txtactAddress2 || '',
-      actCountryID: ddactCountryID || '',
-      actCityID: ddactCityID || '',
-
-      actMinAge: txtactMinAge || '',
-      actMaxAge: txtactMaxAge || '',
-      actGender: rdoactGender,
-      actMinStudent: txtactMinStudent || '',
-      actMaxStudent: txtactMaxStudent || '',
-
-      actPrice: actPriceDataVal,
-      actPriceVatPercentage: actPriceVatPercentageVal, // ✅ VAT %
-      actPriceVatAmount: actPriceVatAmountVal,         // ✅ VAT amount on base price
-
-      // 🟢 NEW: send full totals but KEEP base price unchanged
-      actTotalBaseAmount: totalBaseAmount,             // Trip + Food base
-      actTotalVatAmount: totalVatAmount,               // Trip VAT + Food VAT
-      actTotalAmountWithVat: totalWithVat,             // Base + VAT
-
-      actAvailDaysHours: actavailDaysHoursVal,
-      actFood: actfoodDataVal,        // 👈 FoodImage will be '' when hidden
-
-      actAdminNotes: txtactAdminNotes || '',
-      actRating: Number(actRating),   // visible + submitted
-      actStatus: actStatusVal,
-      IsDataStatus: 1,
-      CreatedBy: getCurrentLoggedUserID(),
-      ModifyBy: getCurrentLoggedUserID(),
-    }
-
-    console.log('▶️ createActivity URL:', url)
-    console.log('▶️ createActivity VAT %:', vatPercentValue, 'rate:', vatRateValue)
-    console.log('▶️ createActivity tripPriceBase:', tripPriceBase, 'tripVatAmount:', tripVatAmount)
-    console.log('▶️ createActivity foodBaseAmount:', foodBaseAmount, 'foodVatAmount:', foodVatAmount)
-    console.log('▶️ createActivity TOTAL base:', totalBaseAmount, 'TOTAL VAT:', totalVatAmount, 'TOTAL with VAT:', totalWithVat)
-    console.log('▶️ createActivity payload:', payload)
-
+    const actPriceDataVal = getPriceData();
+    console.log("url")
+    console.log(`${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`);
     try {
-      const response = await fetch(url, {
+      const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          VendorID: getCurrentLoggedUserID(),
+          actName: txtactName || '',
+          actTypeID: selectedType,           // 'SCHOOL'
+          actCategoryID: selectedCategories,
+          actDesc: txtactDesc || '',
+
+          actImageName1: img1,
+          actImageName2: img2,
+          actImageName3: img3,
+
+          actYouTubeID1: txtactYouTubeID1,
+          actYouTubeID2: txtactYouTubeID2,
+          actYouTubeID3: txtactYouTube3,
+
+          actGoogleMap: txtactGoogleMap || '',
+          actGlat: txtactGlat || '',
+          actGlan: txtactGlan || '',
+          actAddress1: txtactAddress1 || '',
+          actAddress2: txtactAddress2 || '',
+          actCountryID: ddactCountryID || '',
+          actCityID: ddactCityID || '',
+
+          actMinAge: txtactMinAge || '',
+          actMaxAge: txtactMaxAge || '',
+          actGender: rdoactGender,
+          actMinStudent: txtactMinStudent || '',
+          actMaxStudent: txtactMaxStudent || '',
+
+          actPrice: actPriceDataVal,
+          actPriceVatPercentage: actPriceVatPercentageVal, // ✅ VAT %
+          actPriceVatAmount: actPriceVatAmountVal,         // ✅ VAT amount on base price
+
+          actAvailDaysHours: actavailDaysHoursVal,
+          actFood: actfoodDataVal,        // 👈 FoodImage will be '' when hidden
+
+          actAdminNotes: txtactAdminNotes || '',
+          actRating: Number(actRating),   // visible + submitted
+          actStatus: actStatusVal,
+          IsDataStatus: 1,
+          CreatedBy: getCurrentLoggedUserID(),
+          ModifyBy: getCurrentLoggedUserID(),
+        }),
       })
+      console.log("console");
+      console.log(response);
+      alert(1);
+      if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
-      console.log('◀️ createActivity status:', response.status)
-
-      let resultJson = null
-      try {
-        resultJson = await response.json()
-        console.log('◀️ createActivity response JSON:', resultJson)
-      } catch (jsonErr) {
-        console.log('⚠️ Failed to parse JSON from createActivity:', jsonErr)
-      }
-
-      if (!response.ok) {
-        const errMsg = resultJson?.message || `HTTP error: ${response.status}`
-        throw new Error(errMsg)
-      }
-
+      await response.json()
       setToastMessage(tr('toastActivityAdded', 'Activity added successfully!'))
       setToastType('success')
       setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
-    } catch (err) {
-      console.error('❌ createActivity error:', err)
+    } catch {
       setToastMessage(tr('toastActivityAddFailed', 'Failed to add Activity.'))
       setToastType('fail')
     } finally {
@@ -671,8 +642,11 @@ alert(totalWithVat);
             {tr('labelCategories', 'Activity Categories')} <span style={{color:'red'}}>*</span>
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-            {fetchcategories.map((item) => (
-              <label key={item.CategoryID} style={{ width: '33.33%', marginBottom: 10, marginTop: 20, display: 'flex', alignItems: 'center' }}>
+            {fetchcategories.map((item, idx) => (
+              <label
+                key={`${item.CategoryID}-${idx}`}
+                style={{ width: '33.33%', marginBottom: 10, marginTop: 20, display: 'flex', alignItems: 'center' }}
+              >
                 <div style={{ marginLeft: 8, marginRight: 8 }}>
                   <input
                     type="checkbox"
@@ -763,10 +737,20 @@ alert(totalWithVat);
               <label className="vendor-label">
                 {tr('labelCountry', 'Country')} <span style={{color:'red'}}>*</span>
               </label>
-              <select name="ddactCountryID" value={ddactCountryID} onChange={(e) => setCountryID(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 4, border: '1px solid #ccc' }}>
+              <select
+                name="ddactCountryID"
+                value={ddactCountryID}
+                onChange={(e) => setCountryID(e.target.value)}
+                style={{ width: '100%', padding: 10, borderRadius: 4, border: '1px solid #ccc' }}
+              >
                 <option value="">{tr('optSelectCountry', 'Select a country')}</option>
-                {countries.map((country) => (
-                  <option key={country.CountryID} value={country.CountryID}>{country.EnCountryName}</option>
+                {countries.map((country, idx) => (
+                  <option
+                    key={`${country.CountryID}-${idx}`}       
+                    value={country.CountryID}
+                  >
+                    {country.EnCountryName}
+                  </option>
                 ))}
               </select>
               <ErrorText msg={errors.ddactCountryID} />
@@ -776,10 +760,20 @@ alert(totalWithVat);
               <label className="vendor-label">
                 {tr('labelCity', 'City')} <span style={{color:'red'}}>*</span>
               </label>
-              <select name="ddactCityID" className="admin-txt-box" value={ddactCityID} onChange={(e) => setSelectedCityID(e.target.value)}>
+              <select
+                name="ddactCityID"
+                className="admin-txt-box"
+                value={ddactCityID}
+                onChange={(e) => setSelectedCityID(e.target.value)}
+              >
                 <option value="">{tr('optSelectCity', 'Select City')}</option>
-                {cityList.map((city) => (
-                  <option key={city.CityID} value={city.CityID}>{city.EnCityName}</option>
+                {cityList.map((city, idx) => (
+                  <option
+                    key={`${city.CityID}-${idx}`}            
+                    value={city.CityID}
+                  >
+                    {city.EnCityName}
+                  </option>
                 ))}
               </select>
               <ErrorText msg={errors.ddactCityID} />
@@ -909,6 +903,7 @@ alert(totalWithVat);
 
         {priceRanges.map((item, index) => {
           const priceNum = Number(item.price || 0)
+          // ✅ VAT amount = price * vatRateValue (decimal)
           const vatAmount = priceNum * vatRateValue
 
           return (
@@ -925,7 +920,7 @@ alert(totalWithVat);
                 />
                 {index === 0 && <ErrorText msg={errors.price} />}
 
-                {/* ✅ VAT Amount pill under price */}
+                {/* ✅ VAT Amount pill */}
                 {priceNum > 0 && vatPercentValue > 0 && (
                   <div style={{ marginTop: 4, fontSize: 12 }}>
                     <span
@@ -1063,7 +1058,7 @@ alert(totalWithVat);
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
             <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
-            {/* NEW VAT column */}
+            {/* NEW: Food VAT header */}
             <CCol sm={2}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Food Image')}</CCol>}
@@ -1073,7 +1068,7 @@ alert(totalWithVat);
 
           {foods.map((item, index) => {
             const baseFoodPrice = item.include ? 0 : Number(item.price || 0)
-            const foodVat = baseFoodPrice * vatRateValue
+            const foodVat = baseFoodPrice * vatRateValue   // ✅ decimal rate
 
             return (
               <CRow key={index} className="mb-3 align-items-center">
@@ -1122,7 +1117,12 @@ alert(totalWithVat);
                 {/* Food Image column (hidden when HIDE_FOOD_IMAGE) */}
                 {!HIDE_FOOD_IMAGE && (
                   <CCol sm={1}>
-                    <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="w-100"
+                      onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])}
+                    />
                   </CCol>
                 )}
 
@@ -1283,7 +1283,7 @@ alert(totalWithVat);
             border: '3px solid #2e7d32',                // big green border
             borderRadius: 16,
             padding: '12px 16px',
-            backgroundColor: 'rgba(46, 125, 50, 0.15)', // rgba green
+            backgroundColor: 'rgba(46, 125, 50, 0.15)', // rgba green with ~0.5 feel
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, dspstatusv1, getAuthHeaders, IsVendorLoginIsValid } from '../../../utils/operation'
+import { DspToastMessage, dspstatusv1, getAuthHeaders, IsVendorLoginIsValid, getVatAmount } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import {
   getFileNameFromUrl,
@@ -59,6 +59,42 @@ const Vendor = () => {
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
+
+  // -------------------- VAT VALUES + SUMMARY (READ-ONLY) --------------------
+  // Use same VAT setup as Add Activity screen
+  const vatPercentValue = Number(getVatAmount() || 0)   // e.g. 15
+  const vatRateValue = vatPercentValue / 100           // e.g. 0.15
+
+  const priceList = ActivityData?.priceList || []
+  const foodList = ActivityData?.foodList || []
+
+  // Base trip price: first price row
+  const tripPriceBase = priceList.length > 0 ? Number(priceList[0].Price || 0) : 0
+  const tripVatAmount = tripPriceBase * vatRateValue
+
+  // Food base: sum of non-included food prices
+  const foodBaseAmount = foodList.reduce(
+    (sum, item) => sum + (item.Include ? 0 : Number(item.FoodPrice || 0)),
+    0
+  )
+  const foodVatAmount = foodBaseAmount * vatRateValue
+
+  const totalBaseAmount = tripPriceBase + foodBaseAmount
+  const totalVatAmount = tripVatAmount + foodVatAmount
+  const totalWithVat = totalBaseAmount + totalVatAmount
+
+  const vatPillStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    border: '1px solid #cf2037',
+    borderRadius: 999,
+    padding: '3px 10px',
+    backgroundColor: 'rgba(207, 32, 55, 0.15)',
+    color: '#cf2037',
+    fontSize: 12,
+    marginTop: 4,
+  }
+  // -------------------------------------------------------------------------
 
   const fetchActivity = async (ActivityIDVal) => {
     setLoading(true)
@@ -383,6 +419,23 @@ const Vendor = () => {
 
       <div className="txtsubtitle">
         {tr('sectionPricePerStudent', 'Price Per Student')}
+        {vatPercentValue > 0 && (
+          <span
+            style={{
+              marginInlineStart: 8,
+              fontSize: 13,
+              border: '1px solid #cf2037',
+              borderRadius: 999,
+              padding: '3px 10px',
+              backgroundColor: 'rgba(207, 32, 55, 0.15)',
+              color: '#cf2037',
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            {`+ VAT ${vatPercentValue.toFixed(2)}%`}
+          </span>
+        )}
       </div>
 
       <div className="divbox">
@@ -399,30 +452,48 @@ const Vendor = () => {
         </CRow>
 
         {/* Dynamic Form Rows */}
-        {ActivityData?.priceList?.map((priceItem, index) => (
-          <CRow className="align-items-center mb-2" key={index}>
-            <CCol sm={12}>
-              <div className="admin-lbl-box pink-shadow1 ">
-                <img
-                  src={moneyv1}
-                  alt="logo"
-                  style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-                />
-                {priceItem.Price}
-              </div>
-            </CCol>
-            <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
-              <div className="admin-lbl-box text-center pink-shadow2">
-                {priceItem.StudentRangeFrom}
-              </div>
-            </CCol>
-            <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
-              <div className="admin-lbl-box text-center pink-shadow3">
-                {priceItem.StudentRangeTo}
-              </div>
-            </CCol>
-          </CRow>
-        ))}
+        {ActivityData?.priceList?.map((priceItem, index) => {
+          const basePrice = Number(priceItem.Price || 0)
+          const vatAmount = basePrice * vatRateValue
+
+          return (
+            <CRow className="align-items-center mb-2" key={index}>
+              <CCol sm={12}>
+                <div className="admin-lbl-box pink-shadow1 ">
+                  <img
+                    src={moneyv1}
+                    alt="logo"
+                    style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
+                  />
+                  {priceItem.Price}
+                </div>
+
+                {/* VAT pill under price (read-only) */}
+                {basePrice > 0 && vatPercentValue > 0 && (
+                  <div>
+                    <span style={vatPillStyle}>
+                      {tr('labelVatAmount', 'VAT Amount')}{' '}
+                      ({vatPercentValue.toFixed(2)}%):{' '}
+                      <strong style={{ marginInlineStart: 4 }}>
+                        {vatAmount.toFixed(2)}
+                      </strong>
+                    </span>
+                  </div>
+                )}
+              </CCol>
+              <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
+                <div className="admin-lbl-box text-center pink-shadow2">
+                  {priceItem.StudentRangeFrom}
+                </div>
+              </CCol>
+              <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
+                <div className="admin-lbl-box text-center pink-shadow3">
+                  {priceItem.StudentRangeTo}
+                </div>
+              </CCol>
+            </CRow>
+          )
+        })}
       </div>
 
       <div className="txtsubtitle">
@@ -535,48 +606,200 @@ const Vendor = () => {
             <CCol sm={1}></CCol> {/* For remove button */}
           </CRow>
 
-          {ActivityData?.foodList?.map((foodItem, index) => (
-            <CRow key={index} className="mb-3 align-items-center">
-              {/* Food Name */}
-              <CCol sm={3}>
-                <div className="admin-lbl-box  ">{foodItem.FoodName}</div>
-              </CCol>
+          {ActivityData?.foodList?.map((foodItem, index) => {
+            const baseFoodPrice = foodItem.Include ? 0 : Number(foodItem.FoodPrice || 0)
+            const foodVat = baseFoodPrice * vatRateValue
 
-              {/* Price */}
-              <CCol sm={2}>
-                <div className="admin-lbl-box text-center">
-                  {foodItem.FoodPrice}
-                </div>
-              </CCol>
+            return (
+              <CRow key={index} className="mb-3 align-items-center">
+                {/* Food Name */}
+                <CCol sm={3}>
+                  <div className="admin-lbl-box  ">{foodItem.FoodName}</div>
+                </CCol>
 
-              {/* Notes */}
-              <CCol sm={3}>
-                <div className="admin-lbl-box text-center">
-                  {foodItem.FoodNotes}
-                </div>
-              </CCol>
-
-              {/* Image Preview (optional handling for blank image) */}
-              <CCol sm={2}>
-                {foodItem.FoodImage ? (
-                  <FilePreview file={foodItem.FoodImage} />
-                ) : (
+                {/* Price + VAT pill */}
+                <CCol sm={2}>
                   <div className="admin-lbl-box text-center">
-                    {tr('noImage', 'No Image')}
+                    {foodItem.FoodPrice}
                   </div>
-                )}
-              </CCol>
+                  {baseFoodPrice > 0 && vatPercentValue > 0 && (
+                    <span style={vatPillStyle}>
+                      {foodVat.toFixed(2)}
+                    </span>
+                  )}
+                </CCol>
 
-              {/* Include (displayed as Yes/No or Boolean) */}
-              <CCol sm={1} className="text-center">
-                <div className="admin-lbl-box text-center">
-                  {foodItem.Include ? tr('yes', 'Yes') : tr('no', 'No')}
-                </div>
-              </CCol>
-            </CRow>
-          ))}
+                {/* Notes */}
+                <CCol sm={3}>
+                  <div className="admin-lbl-box text-center">
+                    {foodItem.FoodNotes}
+                  </div>
+                </CCol>
+
+                {/* Image Preview (optional handling for blank image) */}
+                <CCol sm={2}>
+                  {foodItem.FoodImage ? (
+                    <FilePreview file={foodItem.FoodImage} />
+                  ) : (
+                    <div className="admin-lbl-box text-center">
+                      {tr('noImage', 'No Image')}
+                    </div>
+                  )}
+                </CCol>
+
+                {/* Include (displayed as Yes/No or Boolean) */}
+                <CCol sm={1} className="text-center">
+                  <div className="admin-lbl-box text-center">
+                    {foodItem.Include ? tr('yes', 'Yes') : tr('no', 'No')}
+                  </div>
+                </CCol>
+              </CRow>
+            )
+          })}
         </div>
       </div>
+
+      {/* -------------------- SUMMARY (BOTTOM, READ-ONLY) -------------------- */}
+      <div className="txtsubtitle">
+        {tr('sectionSummary', 'Summary')}
+      </div>
+      <div className="divbox">
+        {/* Main summary card: Trip / Food / Total */}
+        <div
+          style={{
+            maxWidth: 650,
+            margin: '0 auto',
+            border: '1px solid #ddd',
+            borderRadius: 12,
+            overflow: 'hidden',
+            fontSize: 14,
+          }}
+        >
+          {/* Header row */}
+          <div
+            style={{
+              display: 'flex',
+              background: '#f7f7f7',
+              fontWeight: 600,
+              padding: '8px 12px',
+            }}
+          >
+            <div style={{ flex: 0.5 }}>
+              {tr('summaryNo', '#')}
+            </div>
+            <div style={{ flex: 1.5 }}>
+              {tr('summaryDescription', 'Description')}
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              {tr('summaryAmount', 'Amount')}
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              {tr('summaryVat', 'VAT')}
+            </div>
+          </div>
+
+          {/* Body rows */}
+          <div style={{ padding: '8px 12px' }}>
+            {/* 1. Trip */}
+            <div
+              style={{
+                display: 'flex',
+                padding: '6px 0',
+                borderBottom: '1px solid #eee',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 0.5 }}>1.</div>
+              <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {tripPriceBase.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {tripVatAmount.toFixed(2)}
+              </div>
+            </div>
+
+            {/* 2. Food */}
+            <div
+              style={{
+                display: 'flex',
+                padding: '6px 0',
+                borderBottom: '1px solid #eee',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 0.5 }}>2.</div>
+              <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Food')}</div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {foodBaseAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {foodVatAmount.toFixed(2)}
+              </div>
+            </div>
+
+            {/* Total row */}
+            <div
+              style={{
+                display: 'flex',
+                padding: '8px 0 4px',
+                fontWeight: 700,
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 0.5 }}></div>
+              <div style={{ flex: 1.5 }}>
+                {tr('summaryTotal', 'Total')}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalBaseAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalVatAmount.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Final big Total Cost box */}
+        <div
+          style={{
+            maxWidth: 650,
+            margin: '16px auto 0',
+            border: '3px solid #2e7d32',
+            borderRadius: 16,
+            padding: '12px 16px',
+            backgroundColor: 'rgba(46, 125, 50, 0.15)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
+              {tr('summaryTotalCostInclVat', 'Your Total Cost Included VAT')}
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
+              {tr(
+                'summaryTotalCostEquation',
+                'Total Amount + Total VAT Amount'
+              )}
+            </div>
+          </div>
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 24,
+              color: '#1b5e20',
+              marginTop: 8,
+            }}
+          >
+            {totalWithVat.toFixed(2)}
+          </div>
+        </div>
+      </div>
+      {/* ----------------------------------------------------------- */}
 
       <div className="txtsubtitle">
         {tr('sectionTerms', 'Terms And Conditions')}

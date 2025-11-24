@@ -24,7 +24,7 @@ import enPack from '../../../i18n/enloc100.json'
 import arPack from '../../../i18n/arloc100.json'
 
 const Login = () => {
-   console.log(`${API_BASE_URL}/subadmin/signin`);
+  console.log(`${API_BASE_URL}/subadmin/signin`)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -46,19 +46,20 @@ const Login = () => {
 
   // keep <html dir/lang> + persist choice
   useEffect(() => {
-    try { localStorage.setItem('heroz_lang', lang) } catch {}
+    try {
+      localStorage.setItem('heroz_lang', lang)
+    } catch {}
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
       document.documentElement.setAttribute('lang', lang)
-        console.log(`${API_BASE_URL}/subadmin/signin`)
+      console.log(`${API_BASE_URL}/subadmin/signin`)
     }
   }, [lang])
 
   const handleLogin = async () => {
- 
-    console.log("username")
+    console.log('username')
     console.log(password)
-  console.log(`${API_BASE_URL}/subadmin/signin`)
+    console.log(`${API_BASE_URL}/subadmin/signin`)
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
         method: 'POST',
@@ -70,13 +71,13 @@ const Login = () => {
           password,
         }),
       })
-      
+
       const data = await response.json()
       console.log(`${API_BASE_URL}/subadmin/signin`)
-      console.log('API Response:', data)
+      console.log('API Response1:', data)
       console.log('data.data.token', data.data.token)
 
-      if (response.ok && data.data.token) {
+      if (response.ok && data.data && data.data.token) {
         // ✅ Save token to localStorage
         localStorage.setItem('allowedPages', JSON.stringify(data.allowedPages))
         localStorage.setItem('token', data.data.token)
@@ -85,12 +86,29 @@ const Login = () => {
         localStorage.setItem('prtuserid', data.data.prtuserid)
         localStorage.setItem('username', data.data.username)
         localStorage.setItem('usertype', data.data.usertype)
-        localStorage.setItem('loggedusername', data.data.loggedusername)
-        
-        if (data.data.usertype == 'ADMIN')  
-          navigate('/admin/dashboard') 
- 
-        if (data.data.usertype == 'VENDOR-SUBADMIN')  
+        localStorage.setItem('loggedusername', data.data.loggedusername);
+
+        // ✅ NEW: Save VatAmount from backend (tblloksetting) to localStorage
+        // supports both VatAmount and VatAmount keys just in case
+        if (
+          data.data.VatAmount !== undefined &&
+          data.data.VatAmount !== null
+        ) {
+           
+          localStorage.setItem('VatAmount', data.data.VatAmount.toString())
+          console.log('Saved VatAmount to localStorage:', data.data.VatAmount)
+        } else if (
+          data.data.VatAmount !== undefined &&
+          data.data.VatAmount !== null
+        ) {
+          localStorage.setItem('VatAmount', data.data.VatAmount.toString())
+          console.log('Saved VatAmount to localStorage (VatAmount):', data.data.VatAmount)
+        }
+
+        if (data.data.usertype == 'ADMIN')
+          navigate('/admin/dashboard')
+
+        if (data.data.usertype == 'VENDOR-SUBADMIN')
           navigate('/vendor/dashboard')
 
       } else {
@@ -136,7 +154,10 @@ const Login = () => {
           title="العربية"
           aria-label="العربية"
         >
-          <span role="img" aria-hidden>🌐</span> AR
+          <span role="img" aria-hidden>
+            🌐
+          </span>{' '}
+          AR
         </CButton>
         <CButton
           size="sm"
@@ -147,7 +168,10 @@ const Login = () => {
           title="English"
           aria-label="English"
         >
-          <span role="img" aria-hidden>🌐</span> EN
+          <span role="img" aria-hidden>
+            🌐
+          </span>{' '}
+          EN
         </CButton>
       </div>
 
@@ -221,7 +245,9 @@ const Login = () => {
                   backgroundPosition: 'center',
                 }}
               >
-                <CCardBody className="text-center">{/* You can remove the <img> now */}</CCardBody>
+                <CCardBody className="text-center">
+                  {/* You can remove the <img> now */}
+                </CCardBody>
               </CCard>
             </CCardGroup>
           </CCol>

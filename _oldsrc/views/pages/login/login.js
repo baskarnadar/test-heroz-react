@@ -60,6 +60,7 @@ const Login = () => {
     //console.log('username')
     //console.log(password)
    // console.log(`${API_BASE_URL}/subadmin/signin`)
+     
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
         method: 'POST',
@@ -76,7 +77,8 @@ const Login = () => {
      // console.log(`${API_BASE_URL}/subadmin/signin`)
      // console.log('API Response:', data)
       //console.log('data.data.token', data.data.token)
-
+    
+alert(data.data.VatAmount);
       if (response.ok && data.data.token) {
         // ✅ Save token to localStorage
         localStorage.setItem('allowedPages', JSON.stringify(data.allowedPages))
@@ -90,9 +92,10 @@ const Login = () => {
 
         // ✅ NEW: save vatamount if backend sends it
         // (change key name or property name if your API uses different naming)
-        if (data.data && data.data.vatamount != null) {
+         console.log('Saved vatamount to localStorage:', data.data.VatAmount)
+        if (data.data && data.data.VatAmount != null) {
           localStorage.setItem('vatamount', data.data.vatamount.toString())
-          console.log('Saved vatamount to localStorage:', data.data.vatamount)
+          console.log('Saved vatamount to localStorage:', data.data.VatAmount)
         }
 
         if (data.data.usertype == 'ADMIN') navigate('/admin/dashboard')
