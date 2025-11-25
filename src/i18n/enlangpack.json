@@ -30,6 +30,7 @@
   "baseTripCost": "Base Trip Cost",
   "included": "Included",
   "subtotal": "Subtotal",
+    "vatAmount": "VAT",
   "totalPayable": "Total Payable",
   "perStudent": "per student",
   "netPayableAmount": "Net Payable Amount ({count} kids)",

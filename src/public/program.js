@@ -137,6 +137,11 @@ const ProposalPage = () => {
   // Zero-cost modal
   const [showZeroCostModal, setShowZeroCostModal] = useState(false);
 
+  // 🔍 DEBUG: API / Payload / Result
+  const [debugApiUrl, setDebugApiUrl] = useState("");
+  const [debugPayload, setDebugPayload] = useState(null);
+  const [debugResult, setDebugResult] = useState(null);
+
   // 🌐 toggle language
   const toggleLang = () => {
     const next = lang === "ar" ? "en" : "ar";
@@ -236,6 +241,7 @@ const ProposalPage = () => {
           body: JSON.stringify({ RequestID }),
         }
       );
+
       if (!response.ok)
         throw new Error(`Request failed with status ${response.status}`);
       const data = await response.json();
@@ -350,7 +356,8 @@ const ProposalPage = () => {
   }, [ActivityData]);
 
   const activityImages = useMemo(
-    () => [txtactImageName1, txtactImageName2, txtactImageName3].filter(Boolean),
+    () =>
+      [txtactImageName1, txtactImageName2, txtactImageName3].filter(Boolean),
     [txtactImageName1, txtactImageName2, txtactImageName3]
   );
 
@@ -400,17 +407,51 @@ const ProposalPage = () => {
     }, 0);
   }, [ActivityData, checkedFoodItems, schoolPriceMap]);
 
-  // ----------------- TOTAL (NO VAT) -----------------
+  // ----------------- VAT CALCULATION -----------------
+  // VAT from base trip prices (per student)
+  const tripVatAmount = useMemo(() => {
+    const list = ActivityData?.priceList ?? [];
+    return list.reduce((sum, item) => {
+      const actVat = parseFloat(item?.actPriceVatAmount) || 0;
+      const herozVat = parseFloat(item?.HerozStudentPriceVatAmount) || 0;
+      const schoolVat= parseFloat(item?.RequestSchoolPriceVatAmount) || 0;
+      // (SchoolPriceVatAmount is ignored as per your formula)
+       console.log(actVat);
+        console.log(herozVat);
+         console.log(schoolVat);
+      return sum + actVat + herozVat+schoolVat;
+      
+    }, 0);
+  }, [ActivityData]);
+
+  // VAT from selected food items only (per student)
+  const foodVatAmount = useMemo(() => {
+    const list = ActivityData?.foodList ?? [];
+    return list.reduce((sum, item) => {
+      if (!checkedFoodItems[item.FoodID]) return sum;
+      const foodPriceVat = parseFloat(item?.FoodPriceVatAmount) || 0;
+      const foodHerozVat = parseFloat(item?.FoodHerozPriceVatAmount) || 0;
+       const foodSchoolVat = parseFloat(item?.RequestFoodSchoolPriceVatAmount) || 0;
+      // (FoodSchoolPriceVatAmount ignored as per your formula)
+      return sum + foodPriceVat + foodHerozVat+foodSchoolVat;
+    }, 0);
+  }, [ActivityData, checkedFoodItems]);
+
+  // Final VAT per student: act + heroz + food + food-heroz
+  const vatAmount = Number((tripVatAmount + foodVatAmount).toFixed(2));
+  // ---------------------------------------------------
+
+  // ----------------- TOTAL (NO VAT IN TOTALS YET) -----------------
   const grandTotal = priceTotal + foodTotal; // raw per-student subtotal (trip + food)
 
   // Subtotal per student (trip + food), rounded
   const perStudentSubTotal = Number((Number(grandTotal) || 0).toFixed(2));
 
-  // Total payable per student = subtotal (no VAT)
+  // Total payable per student = subtotal (NO VAT added into total for now)
   const perStudentTotal = perStudentSubTotal;
 
   // Keep your old variable names so the rest of the code still works
-  const taxAmount = 0; // no VAT
+  const taxAmount = 0; // backend tax field still 0.00 (display only)
   const grandTotalWithTax = perStudentTotal;
   // ---------------------------------------------------------------
 
@@ -514,7 +555,7 @@ const ProposalPage = () => {
       TripKidsGender: (row.gender || "").trim(),
       TripCost: perStudentSubTotal.toFixed(2), // subtotal (trip + food)
       TripFoodCost: foodTotal.toFixed(2),
-      TripTaxAmount: taxAmount.toFixed(2), // 0.00 (no VAT)
+      TripTaxAmount: taxAmount.toFixed(2), // 0.00 (no VAT to backend yet)
       TripFullAmount: grandTotalWithTax.toFixed(2), // same as subtotal
       PayStaus: "NEW",
       InvoiceNo: "0",
@@ -680,17 +721,25 @@ const ProposalPage = () => {
       return;
     }
     setSubmitting(true);
+
+    // 🔍 DEBUG: capture API + payload (kids info insert)
+    const endpoint = `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`;
+    setDebugApiUrl(endpoint);
+    setDebugPayload(pendingPayload);
+    let submitJson = null;
+
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(pendingPayload),
-        }
-      );
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pendingPayload),
+      });
       if (!response.ok) throw new Error("Failed to submit data");
-      await response.json();
+      submitJson = await response.json();
+
+      // store initial debug result with submit response
+      setDebugResult({ submitResponse: submitJson });
+
       setConfirmOpen(false);
 
       const schoolTotalTripCost = paymentAmount;
@@ -723,6 +772,13 @@ const ProposalPage = () => {
           redirect: true,
         });
         console.log(result);
+
+        // 🔍 DEBUG: attach payment result as well
+        setDebugResult((prev) => ({
+          ...(prev || {}),
+          paymentResult: result,
+        }));
+
         if (!result.ok) {
           showError(result.error || dict.errPaymentCouldNotStart);
         }
@@ -733,6 +789,12 @@ const ProposalPage = () => {
       console.error("Submit error:", err);
       setConfirmOpen(false);
       showError(dict.errSubmissionFailed);
+
+      // if error, also reflect it in debug
+      setDebugResult((prev) => ({
+        ...(prev || {}),
+        submitError: String(err),
+      }));
     } finally {
       setSubmitting(false);
     }
@@ -933,6 +995,15 @@ const ProposalPage = () => {
 
               <div className="divider" />
               <div className="summary">
+                {/* VAT row (per student) */}
+                <div className="summary-row">
+                  <span>{dict.vatAmount}</span>
+                  <span>
+                    {vatAmount.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                  </span>
+                </div>
+
+                {/* Subtotal row (trip + food, no VAT) */}
                 <div className="summary-row">
                   <span>{dict.subtotal}</span>
                   <span>
@@ -942,7 +1013,7 @@ const ProposalPage = () => {
                 </div>
               </div>
 
-              {/* Total Payable (per student) = subtotal (NO VAT) */}
+              {/* Total Payable (per student) = subtotal (NO VAT included yet) */}
               <div className="summary-row total trip-gradient-color">
                 <span>
                   <div>{dict.totalPayable}</div>
@@ -1055,11 +1126,7 @@ const ProposalPage = () => {
                         className="input"
                         value={row.name}
                         onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "name",
-                            e.target.value
-                          )
+                          handleInputChange(index, "name", e.target.value)
                         }
                       />
                     </div>
@@ -1096,11 +1163,7 @@ const ProposalPage = () => {
                         className="input"
                         value={row.gender}
                         onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "gender",
-                            e.target.value
-                          )
+                          handleInputChange(index, "gender", e.target.value)
                         }
                       >
                         <option value="">{dict.select}</option>
@@ -1196,14 +1259,12 @@ const ProposalPage = () => {
               <div className="terms">
                 <h4>{dict.schoolTerms}</h4>
                 <div className="terms-text">
-                  {TripData?.SchoolTerms?.split("\n").map(
-                    (line, index) => (
-                      <React.Fragment key={index}>
-                        {line}
-                        <br />
-                      </React.Fragment>
-                    )
-                  )}
+                  {TripData?.SchoolTerms?.split("\n").map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1314,6 +1375,47 @@ const ProposalPage = () => {
               window.location.href = PAYERROR_URL;
             }}
           />
+
+          {/* 🔍 DEBUG PANEL: API / Payload / Result */}
+          <section className="container" style={{ marginTop: 24 }}>
+            <div
+              className="card"
+              style={{
+                background: "#111",
+                color: "#0f0",
+                fontFamily: "monospace",
+                fontSize: 12,
+                maxHeight: 400,
+                overflow: "auto",
+              }}
+            >
+              <h4 style={{ marginBottom: 8 }}>
+                {lang === "ar"
+                  ? "منطقة تصحيح API (للاختبار فقط)"
+                  : "API Debug Panel (for testing)"}
+              </h4>
+              <div style={{ marginBottom: 8 }}>
+                <strong>API:</strong>{" "}
+                <span>{debugApiUrl || "(no API called yet)"}</span>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <strong>Payload:</strong>
+                <pre style={{ whiteSpace: "pre-wrap" }}>
+                  {debugPayload
+                    ? JSON.stringify(debugPayload, null, 2)
+                    : "(no payload yet)"}
+                </pre>
+              </div>
+              <div>
+                <strong>Result:</strong>
+                <pre style={{ whiteSpace: "pre-wrap" }}>
+                  {debugResult
+                    ? JSON.stringify(debugResult, null, 2)
+                    : "(no result yet)"}
+                </pre>
+              </div>
+            </div>
+          </section>
         </main>
 
         <ProgramFooter lang={lang} />
