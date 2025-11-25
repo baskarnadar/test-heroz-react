@@ -1377,7 +1377,7 @@ const ProposalPage = () => {
           />
 
           {/* 🔍 DEBUG PANEL: API / Payload / Result */}
-          <section className="container" style={{ marginTop: 24 }}>
+          {/* <section className="container" style={{ marginTop: 24 }}>
             <div
               className="card"
               style={{
@@ -1415,7 +1415,7 @@ const ProposalPage = () => {
                 </pre>
               </div>
             </div>
-          </section>
+          </section> */}
         </main>
 
         <ProgramFooter lang={lang} />
