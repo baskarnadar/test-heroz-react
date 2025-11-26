@@ -371,7 +371,7 @@ const ProposalPage = () => {
     return m;
   }, [TripData]);
 
-  // Trip price total (per student)
+  // Trip price total (per student) - BASE TRIP ONLY (NO FOOD)
   const filteredPriceList = (ActivityData?.priceList ?? []).filter((p) => {
     const vendor = parseFloat(p?.Price);
     const heroz = parseFloat(p?.HerozStudentPrice);
@@ -414,13 +414,12 @@ const ProposalPage = () => {
     return list.reduce((sum, item) => {
       const actVat = parseFloat(item?.actPriceVatAmount) || 0;
       const herozVat = parseFloat(item?.HerozStudentPriceVatAmount) || 0;
-      const schoolVat= parseFloat(item?.RequestSchoolPriceVatAmount) || 0;
+      const schoolVat = parseFloat(item?.RequestSchoolPriceVatAmount) || 0;
       // (SchoolPriceVatAmount is ignored as per your formula)
-       console.log(actVat);
-        console.log(herozVat);
-         console.log(schoolVat);
-      return sum + actVat + herozVat+schoolVat;
-      
+      console.log(actVat);
+      console.log(herozVat);
+      console.log(schoolVat);
+      return sum + actVat + herozVat + schoolVat;
     }, 0);
   }, [ActivityData]);
 
@@ -431,9 +430,10 @@ const ProposalPage = () => {
       if (!checkedFoodItems[item.FoodID]) return sum;
       const foodPriceVat = parseFloat(item?.FoodPriceVatAmount) || 0;
       const foodHerozVat = parseFloat(item?.FoodHerozPriceVatAmount) || 0;
-       const foodSchoolVat = parseFloat(item?.RequestFoodSchoolPriceVatAmount) || 0;
+      const foodSchoolVat =
+        parseFloat(item?.RequestFoodSchoolPriceVatAmount) || 0;
       // (FoodSchoolPriceVatAmount ignored as per your formula)
-      return sum + foodPriceVat + foodHerozVat+foodSchoolVat;
+      return sum + foodPriceVat + foodHerozVat + foodSchoolVat;
     }, 0);
   }, [ActivityData, checkedFoodItems]);
 
@@ -441,19 +441,22 @@ const ProposalPage = () => {
   const vatAmount = Number((tripVatAmount + foodVatAmount).toFixed(2));
   // ---------------------------------------------------
 
-  // ----------------- TOTAL (NO VAT IN TOTALS YET) -----------------
+  // ----------------- TOTALS (WITH VAT) -----------------
+  // Base + food (per student, before VAT)
   const grandTotal = priceTotal + foodTotal; // raw per-student subtotal (trip + food)
-
-  // Subtotal per student (trip + food), rounded
   const perStudentSubTotal = Number((Number(grandTotal) || 0).toFixed(2));
 
-  // Total payable per student = subtotal (NO VAT added into total for now)
+  // Subtotal per student (trip + food), rounded
   const perStudentTotal = perStudentSubTotal;
 
-  // Keep your old variable names so the rest of the code still works
-  const taxAmount = 0; // backend tax field still 0.00 (display only)
-  const grandTotalWithTax = perStudentTotal;
-  // ---------------------------------------------------------------
+  // VAT per student
+  const taxAmount = vatAmount;
+
+  // Total payable per student = subtotal + VAT
+  const grandTotalWithTax = Number(
+    (perStudentTotal + taxAmount).toFixed(2)
+  );
+  // ---------------------------------------------------
 
   // ---------- helpers ----------
   // Student ID OPTIONAL now: only name + className required
@@ -463,7 +466,7 @@ const ProposalPage = () => {
   const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
 
-  // ======= total amount to pass into PaymentMethodPicker =======
+  // ======= total amount to pass into PaymentMethodPicker (INCLUDES VAT) =======
   const paymentAmount = useMemo(() => {
     const count = validKidsCount > 0 ? validKidsCount : 1;
     return Number((grandTotalWithTax * count).toFixed(2));
@@ -553,10 +556,13 @@ const ProposalPage = () => {
       TripKidsName: row.name.trim(),
       tripKidsClassName: row.className.trim(),
       TripKidsGender: (row.gender || "").trim(),
-      TripCost: perStudentSubTotal.toFixed(2), // subtotal (trip + food)
+      // subtotal (trip + food) without VAT
+      TripCost: perStudentSubTotal.toFixed(2),
       TripFoodCost: foodTotal.toFixed(2),
-      TripTaxAmount: taxAmount.toFixed(2), // 0.00 (no VAT to backend yet)
-      TripFullAmount: grandTotalWithTax.toFixed(2), // same as subtotal
+      // VAT per student
+      TripTaxAmount: taxAmount.toFixed(2),
+      // full amount per student (trip + food + VAT)
+      TripFullAmount: grandTotalWithTax.toFixed(2),
       PayStaus: "NEW",
       InvoiceNo: "0",
       MyFatrooahRefNo: "0",
@@ -577,8 +583,10 @@ const ProposalPage = () => {
       })),
       paymentLabel,
       totals: {
-        baseTripPerStudent: perStudentSubTotal.toFixed(2),
+        // base trip only (no food, no VAT)
+        baseTripPerStudent: priceTotal.toFixed(2),
         foodPerStudent: foodTotal.toFixed(2),
+        // full per student including VAT
         grandPerStudent: grandTotalWithTax.toFixed(2),
         students: validKids.length,
         netAmount: (grandTotalWithTax * validKids.length).toFixed(2),
@@ -887,7 +895,8 @@ const ProposalPage = () => {
                       </div>
                     </div>
                     <div className="detail-value ">
-                      {perStudentSubTotal.toFixed(2)}{" "}
+                      {/* ✅ Base Trip Cost ONLY (no food) */}
+                      {priceTotal.toFixed(2)}{" "}
                       <img src={icon5} alt="HEROZ" />
                     </div>
                   </div>
@@ -976,7 +985,8 @@ const ProposalPage = () => {
                   {dict.baseTripCost}
                 </span>
                 <span className="price-value fontsize20">
-                  {perStudentSubTotal.toFixed(2)}{" "}
+                  {/* ✅ Base Trip Cost row: only trip base without food */}
+                  {priceTotal.toFixed(2)}{" "}
                   <img src={icon5} alt="HEROZ" />
                 </span>
               </div>
@@ -999,21 +1009,23 @@ const ProposalPage = () => {
                 <div className="summary-row">
                   <span>{dict.vatAmount}</span>
                   <span>
-                    {vatAmount.toFixed(2)} <img src={icon5} alt="HEROZ" />
+                    {vatAmount.toFixed(2)}{" "}
+                    <img src={icon5} alt="HEROZ" />
                   </span>
                 </div>
 
-                {/* Subtotal row (trip + food, no VAT) */}
+                {/* Subtotal row (Trip + Food + VAT) */}
                 <div className="summary-row">
                   <span>{dict.subtotal}</span>
                   <span>
-                    {perStudentSubTotal.toFixed(2)}{" "}
+                    {/* ✅ Subtotal now includes VAT */}
+                    {grandTotalWithTax.toFixed(2)}{" "}
                     <img src={icon5} alt="HEROZ" />
                   </span>
                 </div>
               </div>
 
-              {/* Total Payable (per student) = subtotal (NO VAT included yet) */}
+              {/* Total Payable (per student) = subtotal + VAT (same as grandTotalWithTax) */}
               <div className="summary-row total trip-gradient-color">
                 <span>
                   <div>{dict.totalPayable}</div>
