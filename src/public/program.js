@@ -441,7 +441,7 @@ const ProposalPage = () => {
   const vatAmount = Number((tripVatAmount + foodVatAmount).toFixed(2));
   // ---------------------------------------------------
 
-  // ----------------- TOTALS (WITH VAT) -----------------
+  // ----------------- TOTALS (WITH VAT / WITHOUT VAT) -----------------
   // Base + food (per student, before VAT)
   const grandTotal = priceTotal + foodTotal; // raw per-student subtotal (trip + food)
   const perStudentSubTotal = Number((Number(grandTotal) || 0).toFixed(2));
@@ -1014,12 +1014,12 @@ const ProposalPage = () => {
                   </span>
                 </div>
 
-                {/* Subtotal row (Trip + Food + VAT) */}
+                {/* Subtotal row (Trip + Food base amounts, no VAT) */}
                 <div className="summary-row">
                   <span>{dict.subtotal}</span>
                   <span>
-                    {/* ✅ Subtotal now includes VAT */}
-                    {grandTotalWithTax.toFixed(2)}{" "}
+                    {/* ✅ Subtotal = Base Trip Cost + All food base amounts (without VAT) */}
+                    {perStudentSubTotal.toFixed(2)}{" "}
                     <img src={icon5} alt="HEROZ" />
                   </span>
                 </div>
