@@ -1609,7 +1609,7 @@ alert(actPriceVatAmountVal);
       <div className="divbox">
         <CRow className="fw-bold   mb-2">
           <CCol sm={3}>
-            {tr('labelPrice', 'Price')}{' '}
+            {tr('colBasePricePerStudent', 'Price')}{' '}
             <span style={{ color: 'red' }}>*</span>
             {effectiveVatPercent > 0 && (
               <span
@@ -1938,7 +1938,7 @@ alert(actPriceVatAmountVal);
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
+            <CCol sm={2}>{tr('colBaseFoodPrice', 'Price')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>}
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>

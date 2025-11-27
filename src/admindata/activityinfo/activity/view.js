@@ -347,7 +347,7 @@ const Vendor = () => {
               alt="logo"
               style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
             />
-            Price
+            Vendor Base Price
           </CCol>
           <CCol sm={2}>
             <img
@@ -355,7 +355,7 @@ const Vendor = () => {
               alt="logo"
               style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
             />
-            Heroz Price
+            Heroz Profit
           </CCol>
           <CCol sm={2}>
             <img
@@ -508,9 +508,9 @@ const Vendor = () => {
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={2}>Food Name</CCol>
-            <CCol sm={1}>Price</CCol>
-            <CCol sm={1}>Heroz Price</CCol>
-            <CCol sm={1}>School Price</CCol>
+            <CCol sm={1}>Vendor Food Price</CCol>
+            <CCol sm={1}>Heroz Food profit </CCol>
+            <CCol sm={1}>School Food profit</CCol>
             <CCol sm={1}>Total Price</CCol>
             <CCol sm={2}>Notes</CCol>
             <CCol sm={2}>Food Image</CCol>

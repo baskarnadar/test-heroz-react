@@ -482,7 +482,18 @@ const Vendor = () => {
       setToastMessage('Activity updated successfully!')
       setToastType('success')
 
-      setTimeout(() => navigate('/admindata/activityinfo/activity/list'), 2000)
+      // ✅ NEW REDIRECT LOGIC:
+      // if we updated the status to APPROVED, go to view page with same ActivityID & VendorID
+      if (actStatusVal === 'APPROVED') {
+        setTimeout(() => {
+          navigate(
+            `/admindata/activityinfo/activity/view?ActivityID=${getActivityIDVal}&VendorID=${getVendorIDVal}`,
+          )
+        }, 2000)
+      } else {
+        // keep your original behavior for other statuses
+        setTimeout(() => navigate('/admindata/activityinfo/activity/list'), 2000)
+      }
     } catch (err) {
       console.error('Error updated Activity:', err)
       setToastMessage('Failed to updated Activity.')
@@ -720,6 +731,20 @@ const Vendor = () => {
     }
   }, [ActivityData])
 
+  // ✅ NEW: auto-redirect on load if actStatus is APPROVED
+  useEffect(() => {
+    const status = ActivityData?.actStatus
+    if (status === 'APPROVED' && getActivityIDVal && getVendorIDVal) {
+      const timer = setTimeout(() => {
+        navigate(
+          `/admindata/activityinfo/activity/view?ActivityID=${getActivityIDVal}&VendorID=${getVendorIDVal}`,
+        )
+      }, 2000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [ActivityData, getActivityIDVal, getVendorIDVal, navigate])
+
   useEffect(() => {
     const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get('ActivityID')
@@ -822,49 +847,48 @@ const Vendor = () => {
     return result.data?.key || result.data?.Key
   }
 
-const getFoodData = async () => {
-  const foodData = await Promise.all(
-    foods.map(async (item) => {
-      let uploadedImageKey = ''
-      if (item.image instanceof File) {
-        uploadedImageKey = await uploadFoodImage(item.image)
-      }
+  const getFoodData = async () => {
+    const foodData = await Promise.all(
+      foods.map(async (item) => {
+        let uploadedImageKey = ''
+        if (item.image instanceof File) {
+          uploadedImageKey = await uploadFoodImage(item.image)
+        }
 
-      // Guarantee price zeros if include is true
-      const priceOut = item.include ? '0' : item.price || ''
-      const herozOut = item.include ? '0' : item.herozprice || ''
+        // Guarantee price zeros if include is true
+        const priceOut = item.include ? '0' : item.price || ''
+        const herozOut = item.include ? '0' : item.herozprice || ''
 
-      // ⭐ VAT CALCULATIONS
-      const basePrice = Number(priceOut || 0)
-      const baseHeroz = Number(herozOut || 0)
+        // ⭐ VAT CALCULATIONS
+        const basePrice = Number(priceOut || 0)
+        const baseHeroz = Number(herozOut || 0)
 
-      const foodVat = basePrice * vatRateValue
-      const herozVat = baseHeroz * vatRateValue
+        const foodVat = basePrice * vatRateValue
+        const herozVat = baseHeroz * vatRateValue
 
-      return {
-        FoodID: item.FoodID || null,
-        FoodName: item.name || '',
-        FoodPrice: priceOut,
+        return {
+          FoodID: item.FoodID || null,
+          FoodName: item.name || '',
+          FoodPrice: priceOut,
 
-        // ⭐ NEW — FOOD VAT (Price)
-        FoodPriceVatPercentage: vatPercentValue,          // e.g., 15
-        FoodPriceVatAmount: foodVat.toFixed(2),           // price * VAT %
+          // ⭐ NEW — FOOD VAT (Price)
+          FoodPriceVatPercentage: vatPercentValue, // e.g., 15
+          FoodPriceVatAmount: foodVat.toFixed(2), // price * VAT %
 
-        // ⭐ EXISTING + VAT
-        FoodHerozPrice: herozOut,
-        FoodHerozPriceVatAmount: herozVat.toFixed(2),
+          // ⭐ EXISTING + VAT
+          FoodHerozPrice: herozOut,
+          FoodHerozPriceVatAmount: herozVat.toFixed(2),
 
-        FoodNotes: item.notes || '',
-        FoodImage: uploadedImageKey || '',
-        Include: item.include || false,
-        RemoveFood: item.ChkRemoveFood || false,
-      }
-    })
-  )
+          FoodNotes: item.notes || '',
+          FoodImage: uploadedImageKey || '',
+          Include: item.include || false,
+          RemoveFood: item.ChkRemoveFood || false,
+        }
+      }),
+    )
 
-  return foodData
-}
-
+    return foodData
+  }
 
   //price ------------------------------------
   const [priceRanges, setPriceRanges] = useState([
@@ -878,25 +902,24 @@ const getFoodData = async () => {
       return updated
     })
   }
-const getPriceData = () => {
-  return priceRanges.map((item) => {
-    const baseHeroz = Number(item.HerozStudentPrice || 0)
-    const herozVat = baseHeroz * vatRateValue   // ← VAT CALCULATION
+  const getPriceData = () => {
+    return priceRanges.map((item) => {
+      const baseHeroz = Number(item.HerozStudentPrice || 0)
+      const herozVat = baseHeroz * vatRateValue // ← VAT CALCULATION
 
-    return {
-      PriceID: item.PriceID || '',
-      Price: item.price || '',
-      HerozStudentPrice: item.HerozStudentPrice || '',
-      HerozStudentPriceVatAmount: herozVat.toFixed(2),   // ← ADDED HERE
+      return {
+        PriceID: item.PriceID || '',
+        Price: item.price || '',
+        HerozStudentPrice: item.HerozStudentPrice || '',
+        HerozStudentPriceVatAmount: herozVat.toFixed(2), // ← ADDED HERE
 
-      // keep these fields for backward compatibility
-      StudentRangeFrom: item.rangeFrom || '',
-      StudentRangeTo: item.rangeTo || '',
-      RemovePrice: item.ChkRemovePrice || false,
-    }
-  })
-}
-
+        // keep these fields for backward compatibility
+        StudentRangeFrom: item.rangeFrom || '',
+        StudentRangeTo: item.rangeTo || '',
+        RemovePrice: item.ChkRemovePrice || false,
+      }
+    })
+  }
 
   //Send to Admin Approval
   const handleSave = () => {
@@ -1524,9 +1547,9 @@ const getPriceData = () => {
       <div className="divbox">
         {/* Header: Only Price & Heroz Price (others hidden) */}
         <CRow className="fw-bold   mb-2">
-          <CCol sm={3}>Price</CCol>
+          <CCol sm={3}>Vendor Base Price</CCol>
           <CCol sm={3} style={{ backgroundColor: '#f8eaf3ff' }}>
-            Heroz Price
+            Heroz Profit
           </CCol>
         </CRow>
 
@@ -1751,9 +1774,9 @@ const getPriceData = () => {
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>Food Name</CCol>
-            <CCol sm={1}>Price</CCol>
+            <CCol sm={1}>Vendor Food Price</CCol>
             <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
-              Heroz Price
+              Heroz Food Profit
             </CCol>
             <CCol sm={3}>Notes</CCol>
             <CCol sm={2}>Food Image</CCol>
@@ -1942,18 +1965,10 @@ const getPriceData = () => {
           lineHeight: 1.6,
         }}
       >
-        Total Trip Cost (Incl. VAT) ={' '}
-        <span style={{ color: '#1b5e20' }}>
-          Total Cost (Incl. VAT) {to2(totalWithVat)}
-        </span>{' '}
-        +{' '}
-        <span style={{ color: '#1a237e' }}>
-          Heroz Cost (Incl. VAT) {to2(totalHerozWithVat)}
-        </span>{' '}
-        ={' '}
-        <span style={{ color: '#c62828' }}>
-          {to2(totalTripCost)}
-        </span>
+        School Price Including Food (Incl. VAT) ={' '}
+        <span style={{ color: '#1b5e20' }}>Total Cost (Incl. VAT) {to2(totalWithVat)}</span> +{' '}
+        <span style={{ color: '#1a237e' }}>Heroz Cost (Incl. VAT) {to2(totalHerozWithVat)}</span> ={' '}
+        <span style={{ color: '#c62828' }}>{to2(totalTripCost)}</span>
       </div>
 
       <div className="button-container">

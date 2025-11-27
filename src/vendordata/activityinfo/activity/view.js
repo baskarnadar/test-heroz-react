@@ -441,7 +441,7 @@ const Vendor = () => {
       <div className="divbox">
         {/* Table Header */}
         <CRow className="fw-bold  mb-2">
-          <CCol sm={3}>{tr('labelPrice', 'Price')}</CCol>
+          <CCol sm={3}>{tr('colBasePricePerStudent', 'Price')}</CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
           </CCol>
@@ -599,7 +599,7 @@ const Vendor = () => {
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
+            <CCol sm={2}>{tr('colBaseFoodPrice', 'Price')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>

@@ -103,6 +103,8 @@
   "btnAddMore": "Add More",
   "sectionFoodInfo": "Food Information",
   "colFoodName": "Food Name",
+      "colBaseFoodPrice": "Base Food Price",
+         "colBasePricePerStudent": "Base Price Per Student",
   "colPrice": "Price",
   "colNotes": "Notes",
   "colFoodImage": "Food Image",

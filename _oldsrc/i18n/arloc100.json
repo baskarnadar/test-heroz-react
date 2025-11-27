@@ -107,6 +107,8 @@
   "sectionFoodInfo": "معلومات الوجبات",
   "colFoodName": "اسم الوجبة",
   "colPrice": "السعر",
+    "colBaseFoodPrice": "السعر الأساسي للطعام",
+     "colBasePricePerStudent": "السعر الأساسي لكل طالب",
   "colNotes": "ملاحظات",
   "colFoodImage": "صورة الوجبة",
   "colInclude": "مشمولة",

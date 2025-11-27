@@ -896,7 +896,7 @@ alert(totalWithVat);
       <div className="divbox">
         <CRow className="fw-bold mb-2">
           <CCol sm={3}>
-            {tr('labelPrice', 'Price')} <span style={{color:'red'}}>*</span>
+            {tr('colBasePricePerStudent', 'Price')} <span style={{color:'red'}}>*</span>
           </CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -1062,7 +1062,7 @@ alert(totalWithVat);
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
+            <CCol sm={2}>{tr('colBaseFoodPrice', 'Price')}</CCol>
             {/* NEW VAT column */}
             <CCol sm={2}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
