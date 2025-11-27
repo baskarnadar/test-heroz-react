@@ -2,25 +2,33 @@ import React, { useEffect, useState } from "react";
 import { CCarousel, CCarouselItem } from "@coreui/react";
 import logo from "../assets/logo/default.png";
 
-/* ✅ Fonts / RTL helpers */
+/* Fonts / RTL helpers */
 import "../scss/arabic-font.css";
 
-/* ✅ i18n packs */
+/* i18n packs */
 import enPack from "../i18n/enlangpack.json";
 import arPack from "../i18n/arlangpack.json";
 
+// Backend "empty folder" URL
+const EMPTY_ACTIVITY_PREFIX =
+  "https://dev-heroz-assets.s3.me-central-1.amazonaws.com/activity/";
+
 /**
- * Props:
- * - schImageNameUrl: string | null
- * - schName: string
- * - schAddress1: string
- * - schAddress2: string
- * - activityName: string
- * - activityImages: string[]  (array of image URLs)
- * - carouselInterval?: number (ms, default 5000)
- * - lang?: "ar" | "en"    // optional controlled language
- * - onToggleLang?: () => void  // optional handler if parent controls language
+ * Returns TRUE only if the URL is a real image with filename.
  */
+const isValidImageUrl = (url) => {
+  if (!url) return false;
+  const trimmed = String(url).trim();
+  if (!trimmed) return false;
+  if (trimmed === EMPTY_ACTIVITY_PREFIX) return false;
+
+  const lastSeg = trimmed.split("/").pop();
+  if (!lastSeg) return false;
+  if (!lastSeg.includes(".")) return false; // require extension
+
+  return true;
+};
+
 const PrgSchHeader = ({
   schImageNameUrl,
   schName = "",
@@ -32,71 +40,70 @@ const PrgSchHeader = ({
   lang: langProp,
   onToggleLang,
 }) => {
-  // Read persisted language (self-managed if no lang prop)
+  // Load stored language
   const getStoredLang = () => {
-    if (typeof window === "undefined") return "en";
     const v = localStorage.getItem("heroz_lang");
     return v === "ar" || v === "en" ? v : "en";
   };
-
   const [langState, setLangState] = useState(getStoredLang());
   const lang = langProp || langState;
   const isArabic = lang === "ar";
   const dict = isArabic ? arPack : enPack;
 
-  // Keep document direction synced (self-managed only)
   useEffect(() => {
-    if (!langProp && typeof document !== "undefined") {
+    if (!langProp) {
       document.documentElement.setAttribute("dir", isArabic ? "rtl" : "ltr");
     }
-  }, [isArabic, langProp]);
+  }, [langProp, isArabic]);
 
-  // Optional local toggle (only used if parent didn't pass onToggleLang)
   const handleToggleLang = () => {
-    if (typeof onToggleLang === "function") {
-      onToggleLang();
-      return;
-    }
+    if (onToggleLang) return onToggleLang();
     const next = isArabic ? "en" : "ar";
-    if (typeof window !== "undefined") {
-      localStorage.setItem("heroz_lang", next);
-    }
-    if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("dir", next === "ar" ? "rtl" : "ltr");
-    }
+    localStorage.setItem("heroz_lang", next);
+    document.documentElement.setAttribute("dir", next === "ar" ? "rtl" : "ltr");
     setLangState(next);
   };
 
-  // Helpers for text with placeholders
   const format = (tpl, map) =>
-    (tpl || "").replace(/{(\w+)}/g, (_, k) => (map?.[k] ?? ""));
+    (tpl || "").replace(/{(\w+)}/g, (_, k) => map?.[k] ?? "");
 
   const introLine = format(dict.introReviewAndBook, {
     name: activityName || (isArabic ? "هذه" : "this"),
   });
 
+  // ⭐ Hero image fallback
+  const heroSrc = isValidImageUrl(schImageNameUrl) ? schImageNameUrl : logo;
+
+  // ⭐ Filter activity images
+  const validActivityImages = Array.isArray(activityImages)
+    ? activityImages.filter(isValidImageUrl)
+    : [];
+
+  const showCarouselControls = validActivityImages.length > 1; // ⭐ SHOW ARROWS ONLY IF >1 IMAGES
+
   return (
-    /* ✅ Arabic defaults + explicit dir (mirrors html[dir]) */
     <div className="use-arabic-font" dir={isArabic ? "rtl" : "ltr"}>
       {/* Hero */}
       <div className="hero-frame">
         <header className="hero">
           <img
-            src={schImageNameUrl || logo}
-            alt={schName || dict.brandName || "Heroz"}
+            src={heroSrc}
+            alt={schName || dict.brandName}
             className="hero-img"
+            onError={(e) => (e.target.src = logo)}
           />
+
           <div className="hero-overlay" />
           <div className="hero-content">
-            <h1 className="hero-title">{schName || dict.brandName || "Heroz"}</h1>
+            <h1 className="hero-title">
+              {schName || dict.brandName || "Heroz"}
+            </h1>
             {(schAddress1 || schAddress2) && (
               <p className="hero-sub">
                 {schAddress1 || ""} {schAddress2 || ""}
               </p>
             )}
           </div>
-
-            
         </header>
       </div>
 
@@ -109,27 +116,32 @@ const PrgSchHeader = ({
             gap: 8,
             alignItems: "center",
             justifyContent: "center",
-            textAlign: "center",
           }}
         >
-          <span role="img" aria-label="party">🎉</span>
-          <span className="trip-gradient-title">{dict.heroTripTitle}</span>
-          <span role="img" aria-label="party">🎉</span>
+          🎉 <span className="trip-gradient-title">{dict.heroTripTitle}</span> 🎉
         </h2>
         <p className="intro-sub">{introLine}</p>
       </section>
 
-      {/* Media */}
+      {/* Activity Images */}
       <section className="activity-media container">
-        {Array.isArray(activityImages) && activityImages.length > 0 ? (
-          <CCarousel controls interval={carouselInterval} dark>
-            {activityImages.map((src, idx) => (
+        {validActivityImages.length > 0 ? (
+          <CCarousel
+            controls={showCarouselControls} // ⭐ Only show arrows if >1
+            interval={carouselInterval}
+            dark
+          >
+            {validActivityImages.map((src, idx) => (
               <CCarouselItem key={idx}>
                 <img
                   className="activity-img"
                   src={src}
-                  alt={`${dict.activityImageAlt || "Activity image"} ${idx + 1}`}
+                  alt={`Activity Image ${idx + 1}`}
                   loading="lazy"
+                  onError={(e) => {
+                    e.target.style.opacity = 0.3;
+                    e.target.alt = "Image not found";
+                  }}
                 />
               </CCarouselItem>
             ))}
