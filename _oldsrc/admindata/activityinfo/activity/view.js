@@ -85,6 +85,58 @@ const Vendor = () => {
     }
   }, [])
 
+  // ==========================
+  // 🔢 SUMMARY CALCULATION
+  // ==========================
+  const VAT_PERCENT = 15
+
+  const safeNumber = (val) => {
+    const n = parseFloat(val)
+    return isNaN(n) ? 0 : n
+  }
+
+  let tripBaseStudent = 0 // full price per student (vendor + heroz + school)
+  let tripHerozBase = 0
+
+  let foodBaseStudent = 0
+  let foodHerozBase = 0
+
+  if (ActivityData) {
+    // Trip row -> take first priceList row
+    const firstPrice = ActivityData.priceList && ActivityData.priceList[0]
+    if (firstPrice) {
+      const vendorBase = safeNumber(firstPrice.Price)
+      const herozBase = safeNumber(firstPrice.HerozStudentPrice)
+      const schoolBase = safeNumber(firstPrice.SchoolPrice)
+
+      tripHerozBase = herozBase
+      tripBaseStudent = vendorBase + herozBase + schoolBase
+    }
+
+    // Food rows -> sum included foods
+    const includedFoods = (ActivityData.foodList || []).filter((f) => f.Include)
+    includedFoods.forEach((f) => {
+      const vendorFood = safeNumber(f.FoodPrice)
+      const herozFood = safeNumber(f.FoodHerozPrice)
+      const schoolFood = safeNumber(f.FoodSchoolPrice)
+
+      foodHerozBase += herozFood
+      foodBaseStudent += vendorFood + herozFood + schoolFood
+    })
+  }
+
+  const tripVat = (tripBaseStudent * VAT_PERCENT) / 100
+  const foodVat = (foodBaseStudent * VAT_PERCENT) / 100
+  const totalBaseStudent = tripBaseStudent + foodBaseStudent
+  const totalVatStudent = tripVat + foodVat
+  const totalCostInclVat = totalBaseStudent + totalVatStudent
+
+  const tripHerozVat = (tripHerozBase * VAT_PERCENT) / 100
+  const foodHerozVat = (foodHerozBase * VAT_PERCENT) / 100
+  const totalHerozBase = tripHerozBase + foodHerozBase
+  const totalHerozVat = tripHerozVat + foodHerozVat
+  const totalHerozInclVat = totalHerozBase + totalHerozVat
+
   return (
     <div>
       <div className="msgbox" style={{ marginBottom: '20px', marginTop: '20px' }}>
@@ -575,6 +627,205 @@ const Vendor = () => {
               </CRow>
             )
           })}
+        </div>
+      </div>
+
+      {/* ==========================
+          🟣 SUMMARY (LIKE SCREENSHOT)
+          ========================== */}
+      <div className="txtsubtitle">Summary</div>
+      <div className="divbox">
+        <div
+          style={{
+            display: 'flex',
+            gap: '20px',
+            flexWrap: 'wrap',
+            alignItems: 'stretch',
+          }}
+        >
+          {/* Vendor / School Summary */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontWeight: 'bold',
+                padding: '10px 14px',
+                borderRadius: '10px 10px 0 0',
+                backgroundColor: '#f4f0ff',
+              }}
+            >
+              Vendor (School) Summary
+            </div>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: '#fff',
+                borderRadius: '0 0 10px 10px',
+                overflow: 'hidden',
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: '#f9f9f9' }}>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                    Description
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Amount
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    VAT ({VAT_PERCENT.toFixed(2)}%)
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: 8 }}>Trip</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{tripBaseStudent.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{tripVat.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(tripBaseStudent + tripVat).toFixed(2)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8 }}>Food</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{foodBaseStudent.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{foodVat.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(foodBaseStudent + foodVat).toFixed(2)}
+                  </td>
+                </tr>
+                <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
+                  <td style={{ padding: 8 }}>Total</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalBaseStudent.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{totalVatStudent.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalCostInclVat.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Heroz Summary */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontWeight: 'bold',
+                padding: '10px 14px',
+                borderRadius: '10px 10px 0 0',
+                backgroundColor: '#f4f0ff',
+              }}
+            >
+              Heroz Summary
+            </div>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: '#fff',
+                borderRadius: '0 0 10px 10px',
+                overflow: 'hidden',
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: '#f9f9f9' }}>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                    Description
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Heroz Amount
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Heroz VAT ({VAT_PERCENT.toFixed(2)}%)
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: 8 }}>Trip</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{tripHerozBase.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{tripHerozVat.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(tripHerozBase + tripHerozVat).toFixed(2)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8 }}>Food</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{foodHerozBase.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{foodHerozVat.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(foodHerozBase + foodHerozVat).toFixed(2)}
+                  </td>
+                </tr>
+                <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
+                  <td style={{ padding: 8 }}>Total</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{totalHerozBase.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>{totalHerozVat.toFixed(2)}</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalHerozInclVat.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Total Cards */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '20px',
+            flexWrap: 'wrap',
+            marginTop: '20px',
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              backgroundColor: '#d5f5e3',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontWeight: 'bold',
+            }}
+          >
+            <div>
+              <div>Total Cost (Incl. VAT)</div>
+              <div style={{ fontSize: 12 }}>Amount + VAT</div>
+            </div>
+            <div style={{ fontSize: 26 }}>{totalCostInclVat.toFixed(2)}</div>
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              backgroundColor: '#e4ddff',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontWeight: 'bold',
+            }}
+          >
+            <div>
+              <div>Heroz Cost (Incl. VAT)</div>
+              <div style={{ fontSize: 12 }}>Heroz Amount + Heroz VAT</div>
+            </div>
+            <div style={{ fontSize: 26 }}>{totalHerozInclVat.toFixed(2)}</div>
+          </div>
         </div>
       </div>
 

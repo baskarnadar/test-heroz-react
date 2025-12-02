@@ -36,8 +36,8 @@ const Vendor = () => {
 
   // ================= VAT (same logic as Vendor Add form) =================
   // Assume getVatAmount() returns PERCENT (e.g. 15 for 15%)
-  const vatPercentValue = Number(getVatAmount() || 0) // 15
-  const vatRateValue = vatPercentValue / 100 // 0.15
+  const vatPercentValue = Number(getVatAmount() || 0) // e.g. 15
+  const vatRateValue = vatPercentValue / 100 // e.g. 0.15
 
   const vatPillStyle = {
     display: 'inline-flex',
@@ -50,7 +50,7 @@ const Vendor = () => {
     whiteSpace: 'nowrap',
   }
 
-  // --- SUMMARY values (Trip + Food) ---
+  // ---------------- SUMMARY values (Trip + Food) for Vendor/School ---------------
   const firstPriceRowBase =
     ActivityData?.priceList && ActivityData.priceList.length > 0
       ? Number(ActivityData.priceList[0].Price || 0)
@@ -83,6 +83,27 @@ const Vendor = () => {
     ActivityData?.actTotalAmountWithVat != null
       ? Number(ActivityData.actTotalAmountWithVat)
       : totalWithVatComputed
+
+  // ---------------- SUMMARY values for HEROZ -------------------------------------
+  const firstHerozPriceRowBase =
+    ActivityData?.priceList && ActivityData.priceList.length > 0
+      ? Number(ActivityData.priceList[0].HerozStudentPrice || 0)
+      : 0
+
+  const foodHerozBaseAmountComputed =
+    ActivityData?.foodList?.reduce((sum, item) => {
+      const base = item.Include ? 0 : Number(item.FoodHerozPrice || 0)
+      return sum + base
+    }, 0) || 0
+
+  const tripHerozVatAmountComputed = firstHerozPriceRowBase * vatRateValue
+  const foodHerozVatAmountComputed = foodHerozBaseAmountComputed * vatRateValue
+
+  const totalHerozBaseAmountComputed = firstHerozPriceRowBase + foodHerozBaseAmountComputed
+  const totalHerozVatAmountComputed =
+    tripHerozVatAmountComputed + foodHerozVatAmountComputed
+  const totalHerozWithVatComputed =
+    totalHerozBaseAmountComputed + totalHerozVatAmountComputed
   // =======================================================================
 
   const getSearchParams = () => {
@@ -689,131 +710,233 @@ const Vendor = () => {
       </div>
       {/* ======================================================================== */}
 
-      {/* ====================== SUMMARY (Trip + Food + VAT) ====================== */}
+      {/* ====================== SUMMARY (Vendor/School + Heroz like screenshot) ====================== */}
       <div className="txtsubtitle">Summary</div>
       <div className="divbox">
         <div
           style={{
-            maxWidth: 650,
-            margin: '0 auto',
-            border: '1px solid #ddd',
-            borderRadius: 12,
-            overflow: 'hidden',
-            fontSize: 14,
+            display: 'flex',
+            gap: '20px',
+            flexWrap: 'wrap',
+            alignItems: 'stretch',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              background: '#f7f7f7',
-              fontWeight: 600,
-              padding: '8px 12px',
-            }}
-          >
-            <div style={{ flex: 0.5 }}>#</div>
-            <div style={{ flex: 1.5 }}>Description</div>
-            <div style={{ flex: 1, textAlign: 'right' }}>Amount</div>
-            <div style={{ flex: 1, textAlign: 'right' }}>VAT</div>
-            <div style={{ flex: 1, textAlign: 'right' }}>Total</div>
+          {/* Vendor / School Summary */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontWeight: 'bold',
+                padding: '10px 14px',
+                borderRadius: '10px 10px 0 0',
+                backgroundColor: '#f4f0ff',
+              }}
+            >
+              Vendor (School) Summary
+            </div>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: '#fff',
+                borderRadius: '0 0 10px 10px',
+                overflow: 'hidden',
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: '#f9f9f9' }}>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                    Description
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Amount
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    VAT ({vatPercentValue.toFixed(2)}%)
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Trip row */}
+                <tr>
+                  <td style={{ padding: 8 }}>Trip</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {firstPriceRowBase.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {tripVatAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(firstPriceRowBase + tripVatAmountComputed).toFixed(2)}
+                  </td>
+                </tr>
+
+                {/* Food row */}
+                <tr>
+                  <td style={{ padding: 8 }}>Food</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {foodBaseAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {foodVatAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(foodBaseAmountComputed + foodVatAmountComputed).toFixed(2)}
+                  </td>
+                </tr>
+
+                {/* Total row */}
+                <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
+                  <td style={{ padding: 8 }}>Total</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalBaseAmount.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalVatAmount.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalWithVat.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <div style={{ padding: '8px 12px' }}>
+          {/* Heroz Summary */}
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                display: 'flex',
-                padding: '6px 0',
-                borderBottom: '1px solid #eee',
-                alignItems: 'center',
+                fontWeight: 'bold',
+                padding: '10px 14px',
+                borderRadius: '10px 10px 0 0',
+                backgroundColor: '#f4f0ff',
               }}
             >
-              <div style={{ flex: 0.5 }}>1.</div>
-              <div style={{ flex: 1.5 }}>Trip</div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {firstPriceRowBase.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripVatAmountComputed.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {(firstPriceRowBase + tripVatAmountComputed).toFixed(2)}
-              </div>
+              Heroz Summary
             </div>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: '#fff',
+                borderRadius: '0 0 10px 10px',
+                overflow: 'hidden',
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: '#f9f9f9' }}>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                    Description
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Heroz Amount
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Heroz VAT ({vatPercentValue.toFixed(2)}%)
+                  </th>
+                  <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Trip row */}
+                <tr>
+                  <td style={{ padding: 8 }}>Trip</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {firstHerozPriceRowBase.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {tripHerozVatAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(firstHerozPriceRowBase + tripHerozVatAmountComputed).toFixed(2)}
+                  </td>
+                </tr>
 
-            <div
-              style={{
-                display: 'flex',
-                padding: '6px 0',
-                borderBottom: '1px solid #eee',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ flex: 0.5 }}>2.</div>
-              <div style={{ flex: 1.5 }}>Food</div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodBaseAmountComputed.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodVatAmountComputed.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {(foodBaseAmountComputed + foodVatAmountComputed).toFixed(2)}
-              </div>
-            </div>
+                {/* Food row */}
+                <tr>
+                  <td style={{ padding: 8 }}>Food</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {foodHerozBaseAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {foodHerozVatAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {(foodHerozBaseAmountComputed + foodHerozVatAmountComputed).toFixed(2)}
+                  </td>
+                </tr>
 
-            <div
-              style={{
-                display: 'flex',
-                padding: '8px 0 4px',
-                fontWeight: 700,
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ flex: 0.5 }}></div>
-              <div style={{ flex: 1.5 }}>Total</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalBaseAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalVatAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalWithVat.toFixed(2)}
-              </div>
-            </div>
+                {/* Total row */}
+                <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
+                  <td style={{ padding: 8 }}>Total</td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalHerozBaseAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalHerozVatAmountComputed.toFixed(2)}
+                  </td>
+                  <td style={{ padding: 8, textAlign: 'right' }}>
+                    {totalHerozWithVatComputed.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
+        {/* Total cards (bottom) */}
         <div
           style={{
-            maxWidth: 650,
-            margin: '16px auto 0',
-            border: '3px solid #2e7d32',
-            borderRadius: 16,
-            padding: '12px 16px',
-            backgroundColor: 'rgba(46, 125, 50, 0.15)',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            gap: '20px',
             flexWrap: 'wrap',
+            marginTop: '20px',
           }}
         >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              Your Total Cost Included VAT
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
-              Total Amount + Total VAT Amount
-            </div>
-          </div>
+          {/* Total Cost (Incl. VAT) */}
           <div
             style={{
-              fontWeight: 800,
-              fontSize: 24,
-              color: '#1b5e20',
-              marginTop: 8,
+              flex: 1,
+              minWidth: 0,
+              backgroundColor: '#d5f5e3',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontWeight: 'bold',
             }}
           >
-            {totalWithVat.toFixed(2)}
+            <div>
+              <div>Total Cost (Incl. VAT)</div>
+              <div style={{ fontSize: 12 }}>Amount + VAT</div>
+            </div>
+            <div style={{ fontSize: 26 }}>{totalWithVat.toFixed(2)}</div>
+          </div>
+
+          {/* Heroz Cost (Incl. VAT) */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              backgroundColor: '#e4ddff',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontWeight: 'bold',
+            }}
+          >
+            <div>
+              <div>Heroz Cost (Incl. VAT)</div>
+              <div style={{ fontSize: 12 }}>Heroz Amount + Heroz VAT</div>
+            </div>
+            <div style={{ fontSize: 26 }}>{totalHerozWithVatComputed.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -838,4 +961,5 @@ const Vendor = () => {
     </div>
   )
 }
+
 export default Vendor
