@@ -14,6 +14,12 @@ const Register = React.lazy(() => import('./views/pages/register/Register'))
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
 
+// ✅ Public payment/program pages (no left menu)
+const PublicProgram = React.lazy(() => import('./public/program'))
+const PublicExpired = React.lazy(() => import('./public/expired'))
+const PublicPayError = React.lazy(() => import('./public/payerror'))
+const PublicPaySuccess = React.lazy(() => import('./public/paysuccess'))
+
 // --- Helpers to read query params on hash routes ---
 function useQuery() {
   const { search } = useLocation()
@@ -28,7 +34,9 @@ function PaySuccess() {
     <div style={{ padding: 24 }}>
       <h2>✅ Payment Successful</h2>
       {paymentId ? (
-        <p><strong>Reference:</strong> {paymentId}</p>
+        <p>
+          <strong>Reference:</strong> {paymentId}
+        </p>
       ) : (
         <p>Payment completed.</p>
       )}
@@ -45,7 +53,11 @@ function PayError() {
     <div style={{ padding: 24 }}>
       <h2>❌ Payment Error</h2>
       <p>{error}</p>
-      {paymentId && <p><strong>Reference:</strong> {paymentId}</p>}
+      {paymentId && (
+        <p>
+          <strong>Reference:</strong> {paymentId}
+        </p>
+      )}
       <p>Please try again or contact support if the issue persists.</p>
     </div>
   )
@@ -95,10 +107,15 @@ const App = () => {
         }
       >
         <Routes>
-       
-          {/* Auth pages */}
+          {/* 🔓 Public pages – NO admin/vendor layout */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Public program + payment result pages */}
+          <Route path="/public/program/:requestId" element={<PublicProgram />} />
+          <Route path="/public/expired" element={<PublicExpired />} />
+          <Route path="/public/payerror" element={<PublicPayError />} />
+          <Route path="/public/paysuccess" element={<PublicPaySuccess />} />
 
           {/* Error pages */}
           <Route path="/404" element={<Page404 />} />

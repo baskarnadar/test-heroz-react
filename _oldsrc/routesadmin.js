@@ -1,7 +1,9 @@
+//routeAdmin.js
 import React from 'react'
 const AdminDashboard = React.lazy(() => import('./admindata/dashboard/Dashboard'))
 const LoginPage = React.lazy(() => import('./views/pages/login/login.js'))
 const PublicProgram = React.lazy(() => import('./public/program.js'))
+const PublicExpired = React.lazy(() => import('./public/expired.js'))
 
 const PublicPayError = React.lazy(() => import('./public/payerror.js'))
 const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
@@ -302,8 +304,9 @@ const routes = [
   { path: '/mainmenu/modify', name: 'banner List', element: MainMenuModify },
   { path: '/rights/list', name: 'banner List', element: RightsList },
 
+  // ✅ Still keeping other public routes (Program / payerror / paysuccess)
   { path: '/public/program/:requestId', name: 'Program', element: PublicProgram },
-
+  // ⛔️ /public/expired route REMOVED as requested
   { path: '/public/payerror', name: 'Pay Error ', element: PublicPayError },
   { path: '/public/paysuccess', name: 'Pay Success ', element: PublicPaySuccess },
 

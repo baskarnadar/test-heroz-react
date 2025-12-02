@@ -1,7 +1,7 @@
 // program.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   CModal,
   CModalHeader,
@@ -80,6 +80,8 @@ const tripPaymentTypeIdFromId = (id) => {
 };
 
 const ProposalPage = () => {
+  const navigate = useNavigate(); // ✅ NEW
+
   // 🌐 language state (persist to localStorage) — DEFAULT ARABIC
   const initialLang = (() => {
     const stored = localStorage.getItem("heroz_lang");
@@ -257,7 +259,8 @@ const ProposalPage = () => {
         String(dueRaw).trim().toLowerCase() === "null";
 
       if (missingDue || isPaymentExpired(dueRaw)) {
-        window.location.hash = "#/public/payerror";
+        // window.location.hash = "public/expired";
+        navigate("/public/expired", { replace: true }); // ✅ UPDATED
         return;
       }
       setTripData(payload);
@@ -891,7 +894,7 @@ const ProposalPage = () => {
                           alt="HEROZ"
                           className="icon-tint-pink"
                         />
-                        <span> {dict.tripCost} {dict.ar_inc_vat}  </span> 
+                        <span> {dict.tripCost} {dict.ar_inc_vat}  </span>
                       </div>
                     </div>
                     <div className="detail-value ">

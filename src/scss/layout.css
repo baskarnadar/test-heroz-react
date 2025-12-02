@@ -1,0 +1,18 @@
+/* ==== Public simple pages (hide right HEROZ panel) ==== */
+.bodyimg-public-simple {
+  display: block !important;
+  max-width: 100% !important;
+}
+
+/* kill any extra right-side column / panel / pseudo-elements */
+.bodyimg-public-simple::before,
+.bodyimg-public-simple::after {
+  display: none !important;
+}
+
+/* if there is a dedicated right-side panel element, hide it here */
+.bodyimg-public-simple .right-panel,
+.bodyimg-public-simple .hero-right,
+.bodyimg-public-simple .public-right-brand {
+  display: none !important;
+}
