@@ -17,6 +17,33 @@ import arPack from '../../../i18n/arloc100.json'
 const ErrorText = ({ msg }) =>
   msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
 
+// 🔢 VAT helpers (shared by Per Student + Food)
+const VAT_RATE = 0.15 // 15%
+
+const vatPillStyle = {
+  display: 'inline-block',
+  padding: '2px 10px',
+  borderRadius: 999,
+  backgroundColor: '#fbe3ea',
+  color: '#cf2037',
+  fontWeight: 700,
+  minWidth: 50,
+  textAlign: 'center',
+}
+
+const calcVatAmount = (price) => {
+  const n = Number(price)
+  if (!Number.isFinite(n) || n <= 0) return 0
+  // round to 2 decimals
+  return Math.round(n * VAT_RATE * 100) / 100
+}
+
+const formatAmount = (amount) => {
+  const n = Number(amount)
+  if (!Number.isFinite(n)) return '0.00'
+  return n.toFixed(2)
+}
+
 const Vendor = () => {
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_ACTIVITY_RATING_UI = false   // actRating field visible
@@ -834,6 +861,18 @@ const Vendor = () => {
           </CRow>
         ))}
 
+        {/* VAT pill for main Per Student price */}
+        {HIDE_PRICE_RANGE_UI && (
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 12, marginBottom: 4, color: '#555' }}>
+              {tr('labelVatAmount', 'VAT Amount')} ({(VAT_RATE * 100).toFixed(2)}%):
+            </div>
+            <div style={vatPillStyle}>
+              {formatAmount(calcVatAmount(priceRanges[0]?.price ?? 0))}
+            </div>
+          </div>
+        )}
+
         <CRow className="mt-3" style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
           <CCol>
             <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
@@ -921,7 +960,10 @@ const Vendor = () => {
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
+            <CCol sm={2}>{tr('colPrice', 'Price')}
+
+             
+            </CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>}
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -951,6 +993,15 @@ const Vendor = () => {
                   step="0.01"
                   disabled={item.include}
                 />
+                {/* VAT pill per Food row */}
+                <div style={{ marginTop: 6, fontSize: 12 }}>
+                  <span style={{ marginRight: 6 }}>
+                    {tr('labelVatAmount', 'VAT Amount')} ({(VAT_RATE * 100).toFixed(2)}%):
+                  </span>
+                  <span style={vatPillStyle}>
+                    {formatAmount(calcVatAmount(item.include ? 0 : (item.price ?? 0)))}
+                  </span>
+                </div>
               </CCol>
 
               <CCol sm={3}>

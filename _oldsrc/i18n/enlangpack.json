@@ -20,14 +20,14 @@
 
   "tripInformation": "Trip Information",
   "aboutThisTrip": "About This Trip",
-  "tripCost": "Trip Cost",
+  "tripCost": "Trip Price",
   "date": "Date",
   "time": "Time",
   "location": "Location",
   "viewOnMap": "View on Map",
 
   "tripsPricing": "Trips Pricing",
-  "baseTripCost": "Base Trip Cost",
+  "baseTripCost": "Base Trip Price",
   "included": "Included",
   "subtotal": "Subtotal",
   "totalPayable": "Total Payable",

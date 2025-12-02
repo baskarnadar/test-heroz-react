@@ -987,6 +987,7 @@ const Vendor = () => {
     color: '#cf2037',
     fontSize: 12,
     marginTop: 4,
+    whiteSpace: 'nowrap',
   }
   // -----------------------------------------------------------------------
 
@@ -1537,6 +1538,7 @@ const Vendor = () => {
               color: '#cf2037',
               display: 'inline-flex',
               alignItems: 'center',
+              whiteSpace: 'nowrap',
             }}
           >
             + VAT {vatPercentValue.toFixed(2)}%
@@ -1579,13 +1581,10 @@ const Vendor = () => {
                     (index === 0 ? errors.price : '')
                   }
                 />
-                {/* VAT under Price */}
-                {vatPercentValue > 0 && basePrice > 0 && (
+                {/* VAT under Price - ONLY AMOUNT, always show (even 0.00) */}
+                {vatPercentValue > 0 && (
                   <div>
-                    <span style={vatPillStyle}>
-                      VAT {vatPercentValue.toFixed(2)}%:{' '}
-                      <strong style={{ marginLeft: 4 }}>{vatAmount.toFixed(2)}</strong>
-                    </span>
+                    <span style={vatPillStyle}>{vatAmount.toFixed(2)}</span>
                   </div>
                 )}
               </CCol>
@@ -1607,13 +1606,10 @@ const Vendor = () => {
                       : ''
                   }
                 />
-                {/* VAT under Heroz Price */}
-                {vatPercentValue > 0 && baseHerozPrice > 0 && (
+                {/* VAT under Heroz Price - ONLY AMOUNT, always show (even 0.00) */}
+                {vatPercentValue > 0 && (
                   <div>
-                    <span style={vatPillStyle}>
-                      VAT {vatPercentValue.toFixed(2)}%:{' '}
-                      <strong style={{ marginLeft: 4 }}>{vatHerozAmount.toFixed(2)}</strong>
-                    </span>
+                    <span style={vatPillStyle}>{vatHerozAmount.toFixed(2)}</span>
                   </div>
                 )}
               </CCol>
@@ -1766,7 +1762,27 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Food Information</div>
+      <div className="txtsubtitle">
+        Food Information
+        {vatPercentValue > 0 && (
+          <span
+            style={{
+              marginLeft: 8,
+              fontSize: 13,
+              border: '1px solid #cf2037',
+              borderRadius: 999,
+              padding: '3px 10px',
+              backgroundColor: 'rgba(207, 32, 55, 0.15)',
+              color: '#cf2037',
+              display: 'inline-flex',
+              alignItems: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            + VAT {vatPercentValue.toFixed(2)}%
+          </span>
+        )}
+      </div>
       {/* section-level error (if foods rule fails) */}
       <ErrorText msg={errors.foods} />
 
@@ -1811,8 +1827,8 @@ const Vendor = () => {
                     onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                     disabled={item.include === true}
                   />
-                  {/* VAT for food price */}
-                  {vatPercentValue > 0 && baseFoodPrice > 0 && (
+                  {/* VAT for food price - ONLY AMOUNT, always show (even 0.00) */}
+                  {vatPercentValue > 0 && (
                     <div>
                       <span style={vatPillStyle}>{foodVat.toFixed(2)}</span>
                     </div>
@@ -1828,8 +1844,8 @@ const Vendor = () => {
                     onChange={(e) => handleFoodChange(index, 'herozprice', e.target.value)}
                     disabled={item.include === true}
                   />
-                  {/* VAT for Heroz food price */}
-                  {vatPercentValue > 0 && baseFoodHerozPrice > 0 && (
+                  {/* VAT for Heroz food price - ONLY AMOUNT, always show (even 0.00) */}
+                  {vatPercentValue > 0 && (
                     <div>
                       <span style={vatPillStyle}>{foodHerozVat.toFixed(2)}</span>
                     </div>
@@ -1965,10 +1981,25 @@ const Vendor = () => {
           lineHeight: 1.6,
         }}
       >
+        {/* MAIN SCHOOL PRICE FORMULA */}
         School Price Including Food (Incl. VAT) ={' '}
         <span style={{ color: '#1b5e20' }}>Total Cost (Incl. VAT) {to2(totalWithVat)}</span> +{' '}
         <span style={{ color: '#1a237e' }}>Heroz Cost (Incl. VAT) {to2(totalHerozWithVat)}</span> ={' '}
         <span style={{ color: '#c62828' }}>{to2(totalTripCost)}</span>
+        {/* 🔴 EXTRA LINE: SUM OF RED COLUMNS (HEROZ AMOUNT + HEROZ VAT) */}
+        <div
+          style={{
+            marginTop: 12,
+            fontSize: 16,
+            fontWeight: 700,
+          }}
+        >
+          Heroz Amount (without VAT){' '}
+          <span style={{ color: '#d32f2f' }}>{to2(totalHerozBaseAmount)}</span> + Heroz VAT{' '}
+          <span style={{ color: '#d32f2f' }}>{to2(totalHerozVatAmount)}</span> = Heroz Cost (Incl.
+          VAT){' '}
+          <span style={{ color: '#283593' }}>{to2(totalHerozWithVat)}</span>
+        </div>
       </div>
 
       <div className="button-container">

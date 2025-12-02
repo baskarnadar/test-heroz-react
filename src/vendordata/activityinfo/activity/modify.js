@@ -531,8 +531,8 @@ const Vendor = () => {
     const firstPriceNum = Number(priceRanges[0]?.price || 0)
     const actPriceVatPercentageVal = effectiveVatPercent
     const actPriceVatAmountVal = dec(firstPriceNum * effectiveVatRate)
-alert(actPriceVatPercentageVal);
-alert(actPriceVatAmountVal);
+   // alert(actPriceVatPercentageVal)
+    //alert(actPriceVatAmountVal)
     // 🐞 Build and log final API payload
     const payload = {
       ActivityID: getActivityIDVal,
@@ -1056,6 +1056,10 @@ alert(actPriceVatAmountVal);
   const totalBaseAmount = tripPriceBase + foodBaseAmount
   const totalVatAmount = dec(tripVatAmount + foodVatAmount)
   const totalWithVat = dec(totalBaseAmount + totalVatAmount)
+
+  // NEW: per-row totals for summary
+  const tripTotalWithVat = dec(tripPriceBase + tripVatAmount)
+  const foodTotalWithVat = dec(foodBaseAmount + foodVatAmount)
   // -------------------------------------------------------------
 
   //Send to Admin Approval
@@ -1601,27 +1605,47 @@ alert(actPriceVatAmountVal);
         </div>
       </div>
 
-      <div className="txtsubtitle">
-        {tr('sectionPricePerStudent', 'Price Per Student')}{' '}
-        <span style={{ color: 'red' }}>*</span>
+      {/* 🔴 NEW HEADER STRIP WITH PINK VAT BADGE (LIKE YOUR SCREENSHOT) */}
+      <div
+        className="txtsubtitle"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          backgroundColor: '#fce4ef',
+          borderRadius: 16,
+          padding: '8px 12px',
+        }}
+      >
+        <div>
+          {tr('sectionPricePerStudent', 'Per Student (vendor Price)')}{' '}
+          <span style={{ color: 'red' }}>*</span>
+        </div>
+
+        {effectiveVatPercent > 0 && (
+          <div
+            style={{
+              padding: '4px 16px',
+              borderRadius: 999,
+              border: '1px solid #cf2037',
+              backgroundColor: '#ffffff',
+              color: '#cf2037',
+              fontSize: 12,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            + VAT {effectiveVatPercent.toFixed(2)}%
+          </div>
+        )}
       </div>
 
       <div className="divbox">
         <CRow className="fw-bold   mb-2">
           <CCol sm={3}>
-            {tr('colBasePricePerStudent', 'Price')}{' '}
+            {tr('colBasePricePerStudent', 'Price Per Student (Excl. VAT)')}{' '}
             <span style={{ color: 'red' }}>*</span>
-            {effectiveVatPercent > 0 && (
-              <span
-                style={{
-                  marginLeft: 8,
-                  fontSize: 12,
-                  color: '#cf2037',
-                }}
-              >
-                (+ VAT {effectiveVatPercent.toFixed(2)}%)
-              </span>
-            )}
           </CCol>
           <CCol
             sm={3}
@@ -1667,17 +1691,43 @@ alert(actPriceVatAmountVal);
                 {priceNum > 0 && effectiveVatPercent > 0 && (
                   <div
                     style={{
-                      fontSize: 12,
-                      marginTop: 4,
-                      color: '#555',
-                      lineHeight: 1.4,
+                      marginTop: 6,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      flexWrap: 'wrap',
                     }}
                   >
-                    {tr('labelVatShort', 'VAT')} ({effectiveVatPercent.toFixed(2)}%):{' '}
-                    <strong>{vatAmt.toFixed(2)}</strong>
-                    <br />
-                    {tr('labelPriceWithVat', 'Price incl. VAT')}:{' '}
-                    <strong>{totalWithVatRow.toFixed(2)}</strong>
+                    {/* VAT badge like screenshot (but smaller, under input) */}
+                    <div
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        border: '1px solid #cf2037',
+                        backgroundColor: '#ffe6eb',
+                        color: '#cf2037',
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {tr('labelVatAmount', 'VAT Amount')} (
+                      {effectiveVatPercent.toFixed(2)}%):{' '}
+                      <span style={{ fontWeight: 800 }}>
+                        {vatAmt.toFixed(2)}
+                      </span>
+                    </div>
+                    {/* Total with VAT */}
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#333',
+                      }}
+                    >
+                      {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
+                      <span>{totalWithVatRow.toFixed(2)}</span>
+                    </div>
                   </div>
                 )}
               </CCol>
@@ -1938,7 +1988,9 @@ alert(actPriceVatAmountVal);
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colBaseFoodPrice', 'Price')}</CCol>
+            <CCol sm={2}>
+              {tr('colBaseFoodPrice', 'Food Price (Excl. VAT)')}
+            </CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>}
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -1987,18 +2039,44 @@ alert(actPriceVatAmountVal);
                   {basePrice > 0 && effectiveVatPercent > 0 && (
                     <div
                       style={{
-                        fontSize: 12,
-                        marginTop: 4,
-                        color: '#555',
-                        lineHeight: 1.4,
+                        marginTop: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        flexWrap: 'wrap',
                       }}
                     >
-                      {tr('labelVatShort', 'VAT')} (
-                      {effectiveVatPercent.toFixed(2)}%):{' '}
-                      <strong>{foodVatAmount.toFixed(2)}</strong>
-                      <br />
-                      {tr('labelPriceWithVat', 'Price incl. VAT')}:{' '}
-                      <strong>{foodTotalWithVat.toFixed(2)}</strong>
+                      {/* VAT badge (matches your screenshot) */}
+                      <div
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: 20,
+                          border: '1px solid #cf2037',
+                          backgroundColor: '#ffe6eb',
+                          color: '#cf2037',
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {tr('labelVatAmount', 'VAT Amount')} (
+                        {effectiveVatPercent.toFixed(2)}%):{' '}
+                        <span style={{ fontWeight: 800 }}>
+                          {foodVatAmount.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {/* Total incl. VAT text */}
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#333',
+                        }}
+                      >
+                        {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
+                        <span>{foodTotalWithVat.toFixed(2)}</span>
+                      </div>
                     </div>
                   )}
                 </CCol>
@@ -2121,7 +2199,7 @@ alert(actPriceVatAmountVal);
         {tr('sectionSummary', 'Summary')}
       </div>
       <div className="divbox">
-        {/* Main summary card: 1. Description / Amount / VAT */}
+        {/* Main summary card: Description / Amount / VAT / Total */}
         <div
           style={{
             maxWidth: 650,
@@ -2150,8 +2228,11 @@ alert(actPriceVatAmountVal);
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryAmount', 'Amount')}
             </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
+            <div style={{ flex: 1, textAlign: 'right', color: '#cf2037' }}>
               {tr('summaryVat', 'VAT')}
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              {tr('summaryTotal', 'Total')}
             </div>
           </div>
 
@@ -2171,8 +2252,18 @@ alert(actPriceVatAmountVal);
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {tripPriceBase.toFixed(2)}
               </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+              <div
+                style={{
+                  flex: 1,
+                  textAlign: 'right',
+                  fontWeight: 600,
+                  color: '#cf2037',
+                }}
+              >
                 {tripVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
+                {tripTotalWithVat.toFixed(2)}
               </div>
             </div>
 
@@ -2190,8 +2281,18 @@ alert(actPriceVatAmountVal);
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {foodBaseAmount.toFixed(2)}
               </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+              <div
+                style={{
+                  flex: 1,
+                  textAlign: 'right',
+                  fontWeight: 600,
+                  color: '#cf2037',
+                }}
+              >
                 {foodVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
+                {foodTotalWithVat.toFixed(2)}
               </div>
             </div>
 
@@ -2211,14 +2312,23 @@ alert(actPriceVatAmountVal);
               <div style={{ flex: 1, textAlign: 'right' }}>
                 {totalBaseAmount.toFixed(2)}
               </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
+              <div
+                style={{
+                  flex: 1,
+                  textAlign: 'right',
+                  color: '#cf2037',
+                }}
+              >
                 {totalVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalWithVat.toFixed(2)}
               </div>
             </div>
           </div>
         </div>
 
-        {/* 🔶 Final big Total Cost box */}
+        {/* 🔶 Final big Total Cost box (green) */}
         <div
           style={{
             maxWidth: 650,

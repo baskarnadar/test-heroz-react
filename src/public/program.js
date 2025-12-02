@@ -472,7 +472,7 @@ const ProposalPage = () => {
     return Number((grandTotalWithTax * count).toFixed(2));
   }, [grandTotalWithTax, validKidsCount]);
 
-  // ======= AUTO-MODAL if trip cost is zero or less (no immediate redirect) =======
+  // ======= AUTO-MODAL if Trip Price is zero or less (no immediate redirect) =======
   useEffect(() => {
     if (!loading && ActivityData) {
       const perStudent = Number(grandTotalWithTax) || 0;
@@ -482,7 +482,7 @@ const ProposalPage = () => {
     }
   }, [loading, ActivityData, grandTotalWithTax, paymentAmount]);
 
-  // ✅ EXTRA: also open automatically if *base* trip cost itself is zero/less
+  // ✅ EXTRA: also open automatically if *base* Trip Price itself is zero/less
   useEffect(() => {
     if (!loading && ActivityData) {
       const baseTrip = Number(priceTotal) || 0;
@@ -701,7 +701,7 @@ const ProposalPage = () => {
       return;
     }
 
-    // ✅ EXTRA: block & open modal when base trip cost is zero/less
+    // ✅ EXTRA: block & open modal when base Trip Price is zero/less
     if ((Number(priceTotal) || 0) <= 0) {
       setShowZeroCostModal(true);
       return;
@@ -895,7 +895,7 @@ const ProposalPage = () => {
                       </div>
                     </div>
                     <div className="detail-value ">
-                      {/* ✅ Base Trip Cost ONLY (no food) */}
+                      {/* ✅ Base Trip Price ONLY (no food) */}
                       {priceTotal.toFixed(2)}{" "}
                       <img src={icon5} alt="HEROZ" />
                     </div>
@@ -985,7 +985,7 @@ const ProposalPage = () => {
                   {dict.baseTripCost}
                 </span>
                 <span className="price-value fontsize20">
-                  {/* ✅ Base Trip Cost row: only trip base without food */}
+                  {/* ✅ Base Trip Price row: only trip base without food */}
                   {priceTotal.toFixed(2)}{" "}
                   <img src={icon5} alt="HEROZ" />
                 </span>
@@ -1018,7 +1018,7 @@ const ProposalPage = () => {
                 <div className="summary-row">
                   <span>{dict.subtotal}</span>
                   <span>
-                    {/* ✅ Subtotal = Base Trip Cost + All food base amounts (without VAT) */}
+                    {/* ✅ Subtotal = Base Trip Price + All food base amounts (without VAT) */}
                     {perStudentSubTotal.toFixed(2)}{" "}
                     <img src={icon5} alt="HEROZ" />
                   </span>
@@ -1376,7 +1376,7 @@ const ProposalPage = () => {
             </CModalFooter>
           </CModal>
 
-          {/* Zero/negative trip cost modal (auto-redirects after Xs) */}
+          {/* Zero/negative Trip Price modal (auto-redirects after Xs) */}
           <TripCostZero
             visible={showZeroCostModal}
             seconds={30}

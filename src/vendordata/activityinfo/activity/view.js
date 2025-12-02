@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, dspstatusv1, getAuthHeaders, IsVendorLoginIsValid, getVatAmount } from '../../../utils/operation'
+import {
+  DspToastMessage,
+  dspstatusv1,
+  getAuthHeaders,
+  IsVendorLoginIsValid,
+  getVatAmount,
+} from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import {
   getFileNameFromUrl,
@@ -62,8 +68,8 @@ const Vendor = () => {
 
   // -------------------- VAT VALUES + SUMMARY (READ-ONLY) --------------------
   // Use same VAT setup as Add Activity screen
-  const vatPercentValue = Number(getVatAmount() || 0)   // e.g. 15
-  const vatRateValue = vatPercentValue / 100           // e.g. 0.15
+  const vatPercentValue = Number(getVatAmount() || 0) // e.g. 15
+  const vatRateValue = vatPercentValue / 100 // e.g. 0.15
 
   const priceList = ActivityData?.priceList || []
   const foodList = ActivityData?.foodList || []
@@ -75,13 +81,17 @@ const Vendor = () => {
   // Food base: sum of non-included food prices
   const foodBaseAmount = foodList.reduce(
     (sum, item) => sum + (item.Include ? 0 : Number(item.FoodPrice || 0)),
-    0
+    0,
   )
   const foodVatAmount = foodBaseAmount * vatRateValue
 
   const totalBaseAmount = tripPriceBase + foodBaseAmount
   const totalVatAmount = tripVatAmount + foodVatAmount
   const totalWithVat = totalBaseAmount + totalVatAmount
+
+  // Per-row totals (Trip + Food)
+  const tripTotalWithVat = tripPriceBase + tripVatAmount
+  const foodTotalWithVat = foodBaseAmount + foodVatAmount
 
   const vatPillStyle = {
     display: 'inline-flex',
@@ -99,11 +109,17 @@ const Vendor = () => {
   const fetchActivity = async (ActivityIDVal) => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: getCurrentLoggedUserID() }),
-      })
+      const response = await fetch(
+        `${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            ActivityID: ActivityIDVal,
+            VendorID: getCurrentLoggedUserID(),
+          }),
+        },
+      )
 
       if (!response.ok) throw new Error('Failed to fetch activities')
 
@@ -173,7 +189,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionActivityInfo', 'Activity Information')}</div>
+      <div className="txtsubtitle">
+        {tr('sectionActivityInfo', 'Activity Information')}
+      </div>
 
       <div className="divbox">
         <div className="form-group">
@@ -212,7 +230,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionActivityImages', 'Activity Images')} </div>
+      <div className="txtsubtitle">
+        {tr('sectionActivityImages', 'Activity Images')}{' '}
+      </div>
       <div className="divbox">
         <div
           style={{
@@ -243,7 +263,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionYouTube', 'Activity Youtube Videos')} </div>
+      <div className="txtsubtitle">
+        {tr('sectionYouTube', 'Activity Youtube Videos')}{' '}
+      </div>
       <div className="divbox">
         <div
           style={{
@@ -278,7 +300,9 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionLocation', 'Activity Location')} </div>
+      <div className="txtsubtitle">
+        {tr('sectionLocation', 'Activity Location')}{' '}
+      </div>
 
       <div className="divbox">
         <div className="vendor-container">
@@ -333,18 +357,24 @@ const Vendor = () => {
               <div className="admin-lbl-box"> {ActivityData?.EnCityName} </div>
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">{tr('labelLocation1', 'Address1')}</label>
+              <label className="vendor-label">
+                {tr('labelLocation1', 'Address1')}
+              </label>
               <div className="admin-lbl-box"> {ActivityData?.actAddress1} </div>
             </div>
             <div className="vendor-column">
-              <label className="vendor-label">{tr('labelAddress2', 'Address2')}</label>
+              <label className="vendor-label">
+                {tr('labelAddress2', 'Address2')}
+              </label>
               <div className="admin-lbl-box"> {ActivityData?.actAddress2} </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionAgeRange', ' Age Range ')}</div>
+      <div className="txtsubtitle">
+        {tr('sectionAgeRange', ' Age Range ')}
+      </div>
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">
@@ -455,6 +485,7 @@ const Vendor = () => {
         {ActivityData?.priceList?.map((priceItem, index) => {
           const basePrice = Number(priceItem.Price || 0)
           const vatAmount = basePrice * vatRateValue
+          const totalWithVatRow = basePrice + vatAmount
 
           return (
             <CRow className="align-items-center mb-2" key={index}>
@@ -468,9 +499,18 @@ const Vendor = () => {
                   {priceItem.Price}
                 </div>
 
-                {/* VAT pill under price (read-only) */}
+                {/* VAT pill + Total incl. VAT under price (read-only) */}
                 {basePrice > 0 && vatPercentValue > 0 && (
-                  <div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
                     <span style={vatPillStyle}>
                       {tr('labelVatAmount', 'VAT Amount')}{' '}
                       ({vatPercentValue.toFixed(2)}%):{' '}
@@ -478,6 +518,16 @@ const Vendor = () => {
                         {vatAmount.toFixed(2)}
                       </strong>
                     </span>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#333',
+                      }}
+                    >
+                      {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
+                      <span>{totalWithVatRow.toFixed(2)}</span>
+                    </div>
                   </div>
                 )}
               </CCol>
@@ -599,7 +649,9 @@ const Vendor = () => {
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colBaseFoodPrice', 'Price')}</CCol>
+            <CCol sm={2}>
+              {tr('colBaseFoodPrice', 'Food Price (Excl. VAT)')}
+            </CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -609,6 +661,7 @@ const Vendor = () => {
           {ActivityData?.foodList?.map((foodItem, index) => {
             const baseFoodPrice = foodItem.Include ? 0 : Number(foodItem.FoodPrice || 0)
             const foodVat = baseFoodPrice * vatRateValue
+            const foodTotalWithVatRow = baseFoodPrice + foodVat
 
             return (
               <CRow key={index} className="mb-3 align-items-center">
@@ -617,15 +670,40 @@ const Vendor = () => {
                   <div className="admin-lbl-box  ">{foodItem.FoodName}</div>
                 </CCol>
 
-                {/* Price + VAT pill */}
+                {/* Price + VAT pill + Total incl. VAT */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box text-center">
                     {foodItem.FoodPrice}
                   </div>
                   {baseFoodPrice > 0 && vatPercentValue > 0 && (
-                    <span style={vatPillStyle}>
-                      {foodVat.toFixed(2)}
-                    </span>
+                    <div
+                      style={{
+                        marginTop: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span style={vatPillStyle}>
+                        {tr('labelVatAmount', 'VAT Amount')}{' '}
+                        ({vatPercentValue.toFixed(2)}%):{' '}
+                        <strong style={{ marginInlineStart: 4 }}>
+                          {foodVat.toFixed(2)}
+                        </strong>
+                      </span>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#333',
+                        }}
+                      >
+                        {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
+                        <span>{foodTotalWithVatRow.toFixed(2)}</span>
+                      </div>
+                    </div>
                   )}
                 </CCol>
 
@@ -696,6 +774,9 @@ const Vendor = () => {
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryVat', 'VAT')}
             </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              {tr('summaryTotal', 'Total')}
+            </div>
           </div>
 
           {/* Body rows */}
@@ -717,6 +798,9 @@ const Vendor = () => {
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {tripVatAmount.toFixed(2)}
               </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
+                {tripTotalWithVat.toFixed(2)}
+              </div>
             </div>
 
             {/* 2. Food */}
@@ -735,6 +819,9 @@ const Vendor = () => {
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {foodVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
+                {foodTotalWithVat.toFixed(2)}
               </div>
             </div>
 
@@ -756,6 +843,9 @@ const Vendor = () => {
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
                 {totalVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalWithVat.toFixed(2)}
               </div>
             </div>
           </div>
@@ -783,7 +873,7 @@ const Vendor = () => {
             <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
               {tr(
                 'summaryTotalCostEquation',
-                'Total Amount + Total VAT Amount'
+                'Total Amount + Total VAT Amount',
               )}
             </div>
           </div>
@@ -807,9 +897,7 @@ const Vendor = () => {
       <div className="divbox">
         {/* // row start */}
         <div className="vendor-container">
-          <div className="admin-lbl-boxv1">
-            {ActivityData?.actAdminNotes}
-          </div>
+          <div className="admin-lbl-boxv1">{ActivityData?.actAdminNotes}</div>
         </div>
         {/* // row end */}
       </div>
@@ -817,9 +905,7 @@ const Vendor = () => {
         <button
           type="button"
           className="admin-buttonv1"
-          onClick={() =>
-            navigate('/vendordata/activityinfo/activity/list')
-          }
+          onClick={() => navigate('/vendordata/activityinfo/activity/list')}
         >
           {tr('btnReturn', 'Return')}
         </button>

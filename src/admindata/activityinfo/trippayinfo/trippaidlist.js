@@ -165,7 +165,7 @@ const TripPaidListWithModal = () => {
           <div className="modal-content">
             <h3>Payment Breakdown</h3>
             <p>
-              <b>Trip Cost:</b> {selectedPayment.TripCost ?? "N/A"}
+              <b>Trip Price:</b> {selectedPayment.TripCost ?? "N/A"}
             </p>
             <p>
               <b>Food Cost:</b> {selectedPayment.TripFoodCost ?? "N/A"}

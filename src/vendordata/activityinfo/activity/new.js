@@ -344,6 +344,10 @@ const Vendor = () => {
   const totalVatAmount = tripVatAmount + foodVatAmount          // Total VAT Amount
   const totalWithVat = totalBaseAmount + totalVatAmount         // Total Amount + Total VAT Amount
 
+  // per-row totals (Amount + VAT)
+  const tripTotalWithVatRow = tripPriceBase + tripVatAmount
+  const foodTotalWithVatRow = foodBaseAmount + foodVatAmount
+
   // values to send in payload for Activity-level price VAT
   const actPriceVatPercentageVal = vatPercentValue      // ✅ VAT %
   const actPriceVatAmountVal = tripVatAmount            // ✅ VAT amount on base activity price
@@ -495,14 +499,14 @@ const Vendor = () => {
     } catch {
       // ignore upload error here; validator ensures at least one if required
     }
-alert(actPriceVatPercentageVal);
-alert(actPriceVatAmountVal);
-alert(totalWithVat);
+
+ 
     const actfoodDataVal = await getFoodData()
     const actavailDaysHoursVal = getAvailDaysHoursData()
     const actPriceDataVal = getPriceData()
 
-    alert(totalVatAmount);
+    //alert(totalVatAmount);
+
     // 🔍 DEBUG: log VAT + payload
     const url = `${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`
     const payload = {
@@ -896,7 +900,7 @@ alert(totalWithVat);
       <div className="divbox">
         <CRow className="fw-bold mb-2">
           <CCol sm={3}>
-            {tr('colBasePricePerStudent', 'Price')} <span style={{color:'red'}}>*</span>
+            {tr('colBasePricePerStudent', 'Price Per Student (Excl. VAT)')} <span style={{color:'red'}}>*</span>
           </CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -928,17 +932,7 @@ alert(totalWithVat);
                 {/* ✅ VAT Amount pill under price */}
                 {priceNum > 0 && vatPercentValue > 0 && (
                   <div style={{ marginTop: 4, fontSize: 12 }}>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        border: '1px solid #cf2037',
-                        borderRadius: 999,
-                        padding: '3px 10px',
-                        backgroundColor: 'rgba(207, 32, 55, 0.15)',
-                        color: '#cf2037',
-                      }}
-                    >
+                    <span style={vatPillStyle}>
                       {tr('labelVatAmount', 'VAT Amount')}{' '}
                       ({vatPercentValue.toFixed(2)}%):{' '}
                       <strong style={{ marginInlineStart: 4 }}>{vatAmount.toFixed(2)}</strong>
@@ -1062,9 +1056,9 @@ alert(totalWithVat);
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colBaseFoodPrice', 'Price')}</CCol>
-            {/* NEW VAT column */}
-            <CCol sm={2}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
+            <CCol sm={2}>{tr('colBaseFoodPrice', 'Food Price (Excl. VAT)')}</CCol>
+            {/* VAT column */}
+            <CCol sm={3}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Food Image')}</CCol>}
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -1100,12 +1094,16 @@ alert(totalWithVat);
                   />
                 </CCol>
 
-                {/* NEW: Food VAT Amount pill */}
-                <CCol sm={2}>
+                {/* Food VAT Amount pill */}
+                <CCol sm={3}>
                   {baseFoodPrice > 0 && vatPercentValue > 0 && (
-                    <span style={vatPillStyle}>
-                      {foodVat.toFixed(2)}
-                    </span>
+                    <div style={{ fontSize: 12 }}>
+                      <span style={vatPillStyle}>
+                        {tr('labelVatAmount', 'VAT Amount')}{' '}
+                        ({vatPercentValue.toFixed(2)}%):{' '}
+                        <strong style={{ marginInlineStart: 4 }}>{foodVat.toFixed(2)}</strong>
+                      </span>
+                    </div>
                   )}
                 </CCol>
 
@@ -1178,7 +1176,7 @@ alert(totalWithVat);
         {tr('sectionSummary', 'Summary')}
       </div>
       <div className="divbox">
-        {/* Main summary card: 1. Description / Amount / VAT */}
+        {/* Main summary card: 1. Description / Amount / VAT / Total */}
         <div
           style={{
             maxWidth: 650,
@@ -1210,6 +1208,9 @@ alert(totalWithVat);
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryVat', 'VAT')}
             </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              {tr('summaryTotalInclVat', 'Total')}
+            </div>
           </div>
 
           {/* Body rows */}
@@ -1231,6 +1232,9 @@ alert(totalWithVat);
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {tripVatAmount.toFixed(2)}
               </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {tripTotalWithVatRow.toFixed(2)}
+              </div>
             </div>
 
             {/* 2. Food */}
@@ -1249,6 +1253,9 @@ alert(totalWithVat);
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {foodVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {foodTotalWithVatRow.toFixed(2)}
               </div>
             </div>
 
@@ -1270,6 +1277,9 @@ alert(totalWithVat);
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
                 {totalVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalWithVat.toFixed(2)}
               </div>
             </div>
           </div>

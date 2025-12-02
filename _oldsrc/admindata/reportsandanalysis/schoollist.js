@@ -192,7 +192,7 @@ const ProductListWithPagination = () => {
                 <th>Activity Name</th> 
                 <th>No Of Students</th> 
                 <th>Cost Per Student </th> 
-                <th>Total Trip Cost </th> 
+                <th>Total Trip Price </th> 
                 <th>Status </th>  
               </tr>
             </thead>

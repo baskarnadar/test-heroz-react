@@ -443,7 +443,7 @@ const ProposalPage = () => {
     return Number((grandTotalWithTax * count).toFixed(2));
   }, [grandTotalWithTax, validKidsCount]);
 
-  // ======= AUTO-MODAL if trip cost is zero or less (no immediate redirect) =======
+  // ======= AUTO-MODAL if Trip Price is zero or less (no immediate redirect) =======
   useEffect(() => {
     if (!loading && ActivityData) {
       const perStudent = Number(grandTotalWithTax) || 0;
@@ -453,7 +453,7 @@ const ProposalPage = () => {
     }
   }, [loading, ActivityData, grandTotalWithTax, paymentAmount]);
 
-  // ✅ EXTRA: also open automatically if *base* trip cost itself is zero/less
+  // ✅ EXTRA: also open automatically if *base* Trip Price itself is zero/less
   useEffect(() => {
     if (!loading && ActivityData) {
       const baseTrip = Number(priceTotal) || 0;
@@ -666,7 +666,7 @@ const ProposalPage = () => {
       return;
     }
 
-    // ✅ EXTRA: block & open modal when base trip cost is zero/less
+    // ✅ EXTRA: block & open modal when base Trip Price is zero/less
     if ((Number(priceTotal) || 0) <= 0) {
       setShowZeroCostModal(true);
       return;
@@ -1329,7 +1329,7 @@ const ProposalPage = () => {
             </CModalFooter>
           </CModal>
 
-          {/* Zero/negative trip cost modal (auto-redirects after Xs) */}
+          {/* Zero/negative Trip Price modal (auto-redirects after Xs) */}
           <TripCostZero
             visible={showZeroCostModal}
             seconds={30}

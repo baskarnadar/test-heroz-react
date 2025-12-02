@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, dspstatusv1, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
+import {
+  DspToastMessage,
+  dspstatusv1,
+  getAuthHeaders,
+  IsAdminLoginIsValid,
+  getVatAmount, // ✅ VAT helper
+} from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import {
   getFileNameFromUrl,
@@ -28,6 +34,57 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
+  // ================= VAT (same logic as Vendor Add form) =================
+  // Assume getVatAmount() returns PERCENT (e.g. 15 for 15%)
+  const vatPercentValue = Number(getVatAmount() || 0) // 15
+  const vatRateValue = vatPercentValue / 100 // 0.15
+
+  const vatPillStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    border: '1px solid #cf2037',
+    borderRadius: 999,
+    padding: '3px 10px',
+    backgroundColor: 'rgba(207, 32, 55, 0.15)',
+    color: '#cf2037',
+    whiteSpace: 'nowrap',
+  }
+
+  // --- SUMMARY values (Trip + Food) ---
+  const firstPriceRowBase =
+    ActivityData?.priceList && ActivityData.priceList.length > 0
+      ? Number(ActivityData.priceList[0].Price || 0)
+      : 0
+
+  const foodBaseAmountComputed =
+    ActivityData?.foodList?.reduce((sum, item) => {
+      const base = item.Include ? 0 : Number(item.FoodPrice || 0)
+      return sum + base
+    }, 0) || 0
+
+  const tripVatAmountComputed = firstPriceRowBase * vatRateValue
+  const foodVatAmountComputed = foodBaseAmountComputed * vatRateValue
+
+  const totalBaseAmountComputed = firstPriceRowBase + foodBaseAmountComputed
+  const totalVatAmountComputed = tripVatAmountComputed + foodVatAmountComputed
+  const totalWithVatComputed = totalBaseAmountComputed + totalVatAmountComputed
+
+  const totalBaseAmount =
+    ActivityData?.actTotalBaseAmount != null
+      ? Number(ActivityData.actTotalBaseAmount)
+      : totalBaseAmountComputed
+
+  const totalVatAmount =
+    ActivityData?.actTotalVatAmount != null
+      ? Number(ActivityData.actTotalVatAmount)
+      : totalVatAmountComputed
+
+  const totalWithVat =
+    ActivityData?.actTotalAmountWithVat != null
+      ? Number(ActivityData.actTotalAmountWithVat)
+      : totalWithVatComputed
+  // =======================================================================
+
   const getSearchParams = () => {
     const search =
       window.location.search ||
@@ -37,9 +94,9 @@ const Vendor = () => {
     return new URLSearchParams(search)
   }
 
-  // ✅ NEW: ADMIN LOGIN VALIDATION (as requested)
+  // ✅ NEW: ADMIN LOGIN VALIDATION
   useEffect(() => {
-    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+    IsAdminLoginIsValid()
   }, [])
 
   const fetchActivity = async (ActivityIDVal, VendorIDVal) => {
@@ -56,7 +113,7 @@ const Vendor = () => {
       const data = await response.json()
       setActivity(data.data || [])
 
-      setTotalPages(Math.ceil(data.totalCount / ActivityPerPage))
+      // setTotalPages(Math.ceil(data.totalCount / ActivityPerPage)) // original, not used
     } catch (error) {
       setError('Error fetching activities')
     } finally {
@@ -67,14 +124,12 @@ const Vendor = () => {
   useEffect(() => {
     if (!ActivityData) return
 
-    // Basic info
     setactImageName1(ActivityData.actImageName1Url || '')
     setactImageName2(ActivityData.actImageName2Url || '')
     setactImageName3(ActivityData.actImageName3Url || '')
   }, [ActivityData])
 
   useEffect(() => {
-    // 👇 Extract ActivityID from the URL
     const urlParams = getSearchParams()
     const ActivityIDVal = urlParams.get('ActivityID')
     const VendorIDVal = urlParams.get('VendorID')
@@ -96,10 +151,8 @@ const Vendor = () => {
         </div>
       </div>
       <div className="divhbg">
-        {/* Left side: Title */}
         <div className="txtheadertitle">View Activity</div>
 
-        {/* Right side: Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             type="button"
@@ -157,19 +210,16 @@ const Vendor = () => {
             marginBottom: '20px',
           }}
         >
-          {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 1</label>
             <FilePreview file={txtactImageName1} />
           </div>
 
-          {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 2</label>
             <FilePreview file={txtactImageName2} />
           </div>
 
-          {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 3</label>
             <FilePreview file={txtactImageName3} />
@@ -188,27 +238,19 @@ const Vendor = () => {
             marginBottom: '20px',
           }}
         >
-          {/* Video 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 1</label>
             <YouTubeEmbed videoId={ActivityData?.actYouTubeID1} />
-            <div></div>
           </div>
 
-          {/* Video 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 2</label>
-            <div>
-              <YouTubeEmbed videoId={ActivityData?.actYouTubeID2} />
-            </div>
+            <YouTubeEmbed videoId={ActivityData?.actYouTubeID2} />
           </div>
 
-          {/* Video 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 3</label>
-            <div>
-              <YouTubeEmbed videoId={ActivityData?.actYouTubeID3} />
-            </div>
+            <YouTubeEmbed videoId={ActivityData?.actYouTubeID3} />
           </div>
         </div>
       </div>
@@ -273,7 +315,6 @@ const Vendor = () => {
 
       <div className="txtsubtitle"> Age Range </div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
             <div
@@ -294,9 +335,7 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
 
-        {/* // row start */}
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label className="vendor-label">Gender</label>
@@ -305,13 +344,10 @@ const Vendor = () => {
             </label>
           </div>
         </div>
-        {/* // row end */}
       </div>
-      {/* // row end */}
 
       <div className="txtsubtitle">Capacity Information </div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
             <div
@@ -331,53 +367,124 @@ const Vendor = () => {
             </div>
           </div>
         </div>
-        {/* // row end */}
       </div>
 
-      <div className="txtsubtitle">Price Per Student</div>
+      {/* ================== PRICE PER STUDENT (with section VAT badge) ================== */}
+      <div className="txtsubtitle">
+        Price Per Student
+        {vatPercentValue > 0 && (
+          <span
+            style={{
+              marginInlineStart: 8,
+              fontSize: 13,
+              border: '1px solid #cf2037',
+              borderRadius: 999,
+              padding: '3px 10px',
+              backgroundColor: 'rgba(207, 32, 55, 0.15)',
+              color: '#cf2037',
+              display: 'inline-flex',
+              alignItems: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {`+ VAT ${vatPercentValue.toFixed(2)}%`}
+          </span>
+        )}
+      </div>
 
       <div className="divbox">
-        {/* Table Header */}
         <CRow className="fw-bold text-center mb-2">
           <CCol sm={2}>Student Range From</CCol>
           <CCol sm={2}>Student Range To</CCol>
+
+          {/* Vendor Base Price (logo + text) */}
           <CCol sm={2}>
-            <img
-              src={moneyv1}
-              alt="logo"
-              style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-            />
-            Vendor Base Price
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <img
+                src={moneyv1}
+                alt="logo"
+                style={{ width: '14px', verticalAlign: 'middle' }}
+              />
+              <span>Vendor Base Price</span>
+            </div>
           </CCol>
+
+          {/* Heroz Profit (logo + text) */}
           <CCol sm={2}>
-            <img
-              src={moneyv1}
-              alt="logo"
-              style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-            />
-            Heroz Profit
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <img
+                src={moneyv1}
+                alt="logo"
+                style={{ width: '14px', verticalAlign: 'middle' }}
+              />
+              <span>Heroz Profit</span>
+            </div>
           </CCol>
+
+          {/* School Price (logo + text) */}
           <CCol sm={2}>
-            <img
-              src={moneyv1}
-              alt="logo"
-              style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-            />
-            School Price
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <img
+                src={moneyv1}
+                alt="logo"
+                style={{ width: '14px', verticalAlign: 'middle' }}
+              />
+              <span>School Price</span>
+            </div>
           </CCol>
+
+          {/* Total Cost (logo + text) */}
           <CCol sm={2}>
-            {' '}
-            <img
-              src={moneyv1}
-              alt="logo"
-              style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-            />{' '}
-            Total Cost
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <img
+                src={moneyv1}
+                alt="logo"
+                style={{ width: '14px', verticalAlign: 'middle' }}
+              />
+              <span>Total Cost</span>
+            </div>
           </CCol>
         </CRow>
 
-        {/* Dynamic Form Rows */}
         {ActivityData?.priceList?.map((priceItem, index) => {
+          const vendorBase = Number(priceItem.Price || 0)
+          const herozBase = Number(priceItem.HerozStudentPrice || 0)
+          const schoolBase = Number(priceItem.SchoolPrice || 0)
+          const totalBase = vendorBase + herozBase + schoolBase
+
+          const vendorVat = vendorBase * vatRateValue
+          const herozVat = herozBase * vatRateValue
+          const schoolVat = schoolBase * vatRateValue
+          const totalVat = totalBase * vatRateValue
+
           const TotalPricePerStudent =
             (parseFloat(priceItem.HerozStudentPrice) || 0) +
             (parseFloat(priceItem.Price) || 0) +
@@ -395,138 +502,111 @@ const Vendor = () => {
                   {priceItem.StudentRangeTo}
                 </div>
               </CCol>
+
+              {/* Vendor price + VAT amount pill */}
               <CCol sm={2}>
                 <div className="admin-lbl-box pink-shadow6">{priceItem.Price}</div>
+                {vatPercentValue > 0 && (
+                  <div style={{ marginTop: 4, fontSize: 12 }}>
+                    <span style={vatPillStyle}>{vendorVat.toFixed(2)}</span>
+                  </div>
+                )}
               </CCol>
+
+              {/* Heroz profit + VAT amount pill */}
               <CCol sm={2}>
                 <div className="admin-lbl-box text-center pink-shadow7">
                   {priceItem.HerozStudentPrice}
                 </div>
+                {vatPercentValue > 0 && (
+                  <div style={{ marginTop: 4, fontSize: 12 }}>
+                    <span style={vatPillStyle}>{herozVat.toFixed(2)}</span>
+                  </div>
+                )}
               </CCol>
+
+              {/* School price + VAT amount pill */}
               <CCol sm={2}>
                 <div className="admin-lbl-box text-center pink-shadow8">
                   {priceItem.SchoolPrice}
                 </div>
+                {vatPercentValue > 0 && (
+                  <div style={{ marginTop: 4, fontSize: 12 }}>
+                    <span style={vatPillStyle}>{schoolVat.toFixed(2)}</span>
+                  </div>
+                )}
               </CCol>
+
+              {/* Total cost + VAT amount pill */}
               <CCol sm={2} className="text-end">
                 <div className="admin-lbl-box text-end pink-shadow" style={{ marginRight: '10px' }}>
                   {TotalPricePerStudent.toFixed(2)}
                 </div>
+                {vatPercentValue > 0 && (
+                  <div style={{ marginTop: 4, fontSize: 12, textAlign: 'right' }}>
+                    <span style={vatPillStyle}>{totalVat.toFixed(2)}</span>
+                  </div>
+                )}
               </CCol>
             </CRow>
           )
         })}
       </div>
+      {/* =================================================================== */}
 
-      <div className="txtsubtitle">Set Availability</div>
-      <div className="divbox">
-        <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-            .filter((day) => ActivityData?.availList?.some((item) => item.DayName === day))
-            .map((day) => {
-              const matchedEntries = ActivityData.availList.filter((item) => item.DayName === day)
-
-              return (
-                <div
-                  key={day}
-                  style={{
-                    marginBottom: '30px',
-                    padding: '20px',
-                    borderBottom: '1px solid #ccc',
-                    borderRadius: '10px',
-                    backgroundColor: '#f9f9f9',
-                  }}
-                >
-                  <label>
-                    <div
-                      className="admin-lbl-box pink-shadow1"
-                      style={{ fontWeight: 'bold', textTransform: 'capitalize' }}
-                    >
-                      {day} <input type="checkbox" checked readOnly /> Available
-                    </div>
-                  </label>
-
-                  <div style={{ marginTop: '10px' }}>
-                    {/* Header row */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 20,
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        fontWeight: 'bold',
-                        marginBottom: '8px',
-                      }}
-                    >
-                      <div style={{ width: '200px', textAlign: 'center' }}>Start Time</div>
-                      <div style={{ width: '200px', textAlign: 'center' }}>End Time</div>
-                      <div style={{ width: '200px', textAlign: 'center' }}>Note</div>
-                    </div>
-
-                    {/* Data rows */}
-                    {matchedEntries.map((slot, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          display: 'flex',
-                          gap: 20,
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          marginBottom: '6px',
-                        }}
-                      >
-                        <div
-                          className="admin-lbl-boxv1"
-                          style={{ width: '200px', textAlign: 'center' }}
-                        >
-                          {slot.StartTime || '--'}
-                        </div>
-                        <div
-                          className="admin-lbl-boxv1"
-                          style={{ width: '200px', textAlign: 'center' }}
-                        >
-                          {slot.EndTime || '--'}
-                        </div>
-                        <div
-                          className="admin-lbl-boxv1"
-                          style={{ width: '200px', textAlign: 'center' }}
-                        >
-                          {slot.Note || '--'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-        </div>
+      {/* ======================= FOOD INFORMATION (with VAT) ======================= */}
+      <div className="txtsubtitle">
+        Food Information
+        {vatPercentValue > 0 && (
+          <span
+            style={{
+              marginInlineStart: 8,
+              fontSize: 13,
+              border: '1px solid #cf2037',
+              borderRadius: 999,
+              padding: '3px 10px',
+              backgroundColor: 'rgba(207, 32, 55, 0.15)',
+              color: '#cf2037',
+              display: 'inline-flex',
+              alignItems: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {`+ VAT ${vatPercentValue.toFixed(2)}%`}
+          </span>
+        )}
       </div>
-
-      <div className="txtsubtitle">Food Information</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={2}>Food Name</CCol>
             <CCol sm={1}>Vendor Food Price</CCol>
-            <CCol sm={1}>Heroz Food profit </CCol>
+            <CCol sm={1}>Heroz Food profit</CCol>
             <CCol sm={1}>School Food profit</CCol>
             <CCol sm={1}>Total Price</CCol>
             <CCol sm={2}>Notes</CCol>
             <CCol sm={2}>Food Image</CCol>
             <CCol sm={1}>Include</CCol>
-            <CCol sm={1}></CCol> {/* For remove button */}
+            <CCol sm={1}></CCol>
           </CRow>
 
           {ActivityData?.foodList?.map((foodItem, index) => {
+            const vendorBase = Number(foodItem.FoodPrice || 0)
+            const herozBase = Number(foodItem.FoodHerozPrice || 0)
+            const schoolBase = Number(foodItem.FoodSchoolPrice || 0)
+            const totalBase = vendorBase + herozBase + schoolBase
+
+            const vendorVat = vendorBase * vatRateValue
+            const herozVat = herozBase * vatRateValue
+            const schoolVat = schoolBase * vatRateValue
+            const totalVat = totalBase * vatRateValue
+
             const TotalFoodPrice =
               (parseFloat(foodItem.FoodPrice) || 0) +
               (parseFloat(foodItem.FoodHerozPrice) || 0) +
               (parseFloat(foodItem.FoodSchoolPrice) || 0)
 
-            console.log(parseFloat(foodItem.FoodPrice))
-            console.log(parseFloat(foodItem.FoodHerozPrice))
-            console.log(parseFloat(foodItem.FoodSchoolPrice))
             return (
               <CRow key={index} className="mb-3 align-items-center">
                 {/* Food Name */}
@@ -534,24 +614,52 @@ const Vendor = () => {
                   <div className="admin-lbl-box">{foodItem.FoodName}</div>
                 </CCol>
 
-                {/* Prices */}
+                {/* Vendor Food Price + VAT amount pill (shows even when 0) */}
                 <CCol sm={1}>
-                  <div className="admin-lbl-box text-center pink-shadow6">{foodItem.FoodPrice}</div>
+                  <div className="admin-lbl-box text-center pink-shadow6">
+                    {foodItem.FoodPrice}
+                  </div>
+                  {vatPercentValue > 0 && (
+                    <div style={{ marginTop: 4, fontSize: 10 }}>
+                      <span style={vatPillStyle}>{vendorVat.toFixed(2)}</span>
+                    </div>
+                  )}
                 </CCol>
+
+                {/* Heroz Food profit + VAT amount pill (shows even when 0) */}
                 <CCol sm={1}>
                   <div className="admin-lbl-box text-center pink-shadow7">
                     {foodItem.FoodHerozPrice}
                   </div>
+                  {vatPercentValue > 0 && (
+                    <div style={{ marginTop: 4, fontSize: 10 }}>
+                      <span style={vatPillStyle}>{herozVat.toFixed(2)}</span>
+                    </div>
+                  )}
                 </CCol>
+
+                {/* School Food profit + VAT amount pill (shows 0.00 if price is 0) */}
                 <CCol sm={1}>
                   <div className="admin-lbl-box text-center pink-shadow8">
                     {foodItem.FoodSchoolPrice}
                   </div>
+                  {vatPercentValue > 0 && (
+                    <div style={{ marginTop: 4, fontSize: 10 }}>
+                      <span style={vatPillStyle}>{schoolVat.toFixed(2)}</span>
+                    </div>
+                  )}
                 </CCol>
 
-                {/* Total Price */}
+                {/* Total Price + VAT amount pill */}
                 <CCol sm={1}>
-                  <div className="admin-lbl-box text-center">{TotalFoodPrice.toFixed(2)}</div>
+                  <div className="admin-lbl-box text-center">
+                    {TotalFoodPrice.toFixed(2)}
+                  </div>
+                  {vatPercentValue > 0 && (
+                    <div style={{ marginTop: 4, fontSize: 10 }}>
+                      <span style={vatPillStyle}>{totalVat.toFixed(2)}</span>
+                    </div>
+                  )}
                 </CCol>
 
                 {/* Notes */}
@@ -570,21 +678,152 @@ const Vendor = () => {
 
                 {/* Include */}
                 <CCol sm={1} className="text-center">
-                  <div className="admin-lbl-box text-center">{foodItem.Include ? 'Yes' : 'No'}</div>
+                  <div className="admin-lbl-box text-center">
+                    {foodItem.Include ? 'Yes' : 'No'}
+                  </div>
                 </CCol>
               </CRow>
             )
           })}
         </div>
       </div>
+      {/* ======================================================================== */}
+
+      {/* ====================== SUMMARY (Trip + Food + VAT) ====================== */}
+      <div className="txtsubtitle">Summary</div>
+      <div className="divbox">
+        <div
+          style={{
+            maxWidth: 650,
+            margin: '0 auto',
+            border: '1px solid #ddd',
+            borderRadius: 12,
+            overflow: 'hidden',
+            fontSize: 14,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              background: '#f7f7f7',
+              fontWeight: 600,
+              padding: '8px 12px',
+            }}
+          >
+            <div style={{ flex: 0.5 }}>#</div>
+            <div style={{ flex: 1.5 }}>Description</div>
+            <div style={{ flex: 1, textAlign: 'right' }}>Amount</div>
+            <div style={{ flex: 1, textAlign: 'right' }}>VAT</div>
+            <div style={{ flex: 1, textAlign: 'right' }}>Total</div>
+          </div>
+
+          <div style={{ padding: '8px 12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                padding: '6px 0',
+                borderBottom: '1px solid #eee',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 0.5 }}>1.</div>
+              <div style={{ flex: 1.5 }}>Trip</div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {firstPriceRowBase.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {tripVatAmountComputed.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {(firstPriceRowBase + tripVatAmountComputed).toFixed(2)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                padding: '6px 0',
+                borderBottom: '1px solid #eee',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 0.5 }}>2.</div>
+              <div style={{ flex: 1.5 }}>Food</div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {foodBaseAmountComputed.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {foodVatAmountComputed.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
+                {(foodBaseAmountComputed + foodVatAmountComputed).toFixed(2)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                padding: '8px 0 4px',
+                fontWeight: 700,
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 0.5 }}></div>
+              <div style={{ flex: 1.5 }}>Total</div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalBaseAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalVatAmount.toFixed(2)}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                {totalWithVat.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            maxWidth: 650,
+            margin: '16px auto 0',
+            border: '3px solid #2e7d32',
+            borderRadius: 16,
+            padding: '12px 16px',
+            backgroundColor: 'rgba(46, 125, 50, 0.15)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
+              Your Total Cost Included VAT
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
+              Total Amount + Total VAT Amount
+            </div>
+          </div>
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 24,
+              color: '#1b5e20',
+              marginTop: 8,
+            }}
+          >
+            {totalWithVat.toFixed(2)}
+          </div>
+        </div>
+      </div>
+      {/* ======================================================================== */}
 
       <div className="txtsubtitle">Terms And Conditions</div>
       <div className="divbox">
-        {/* // row start */}
         <div className="vendor-container">
           <div className="admin-lbl-boxv1">{ActivityData?.actAdminNotes}</div>
         </div>
-        {/* // row end */}
       </div>
       <div className="button-container">
         <button

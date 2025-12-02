@@ -30,7 +30,7 @@
   "baseTripCost": "تكلفة الرحلة الأساسية",
   "included": "المشمول",
   "subtotal": "الإجمالي الفرعي",
-    "vatAmount": " حوض",
+    "vatAmount": " الضريبة",
   "totalPayable": "الإجمالي المستحق",
   "perStudent": "لكل طالب",
   "netPayableAmount": "الإجمالي المستحق ({count} طالب)",
