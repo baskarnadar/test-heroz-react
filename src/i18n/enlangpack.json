@@ -20,14 +20,14 @@
 
   "tripInformation": "Trip Information",
   "aboutThisTrip": "About This Trip",
-  "tripCost": "Trip Cost",
+  "tripCost": "Trip Price",
   "date": "Date",
   "time": "Time",
   "location": "Location",
   "viewOnMap": "View on Map",
 
   "tripsPricing": "Trips Pricing",
-  "baseTripCost": "Base Trip Cost",
+  "baseTripCost": " Trip Price",
   "included": "Included",
   "subtotal": "Subtotal",
     "vatAmount": "VAT",
@@ -136,5 +136,6 @@
   "food_extra": "Extra",
   "food_included_option": "Included option",
   "food_extra_option": "Extra option",
-  "ar_terms_agree" : " Paying through the platform is considered a form of consent for your child’s participation in the trip "
+  "ar_terms_agree" : " Paying through the platform is considered a form of consent for your child’s participation in the trip ",
+  "ar_inc_vat" : "Including VAT"
 }

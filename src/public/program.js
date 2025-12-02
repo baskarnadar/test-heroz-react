@@ -891,7 +891,7 @@ const ProposalPage = () => {
                           alt="HEROZ"
                           className="icon-tint-pink"
                         />
-                        <span> {dict.tripCost}</span>
+                        <span> {dict.tripCost} {dict.ar_inc_vat}  </span> 
                       </div>
                     </div>
                     <div className="detail-value ">
