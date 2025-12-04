@@ -104,6 +104,10 @@ const Vendor = () => {
     tripHerozVatAmountComputed + foodHerozVatAmountComputed
   const totalHerozWithVatComputed =
     totalHerozBaseAmountComputed + totalHerozVatAmountComputed
+
+  // ✅ FINAL TOTALS (same style as edit page)
+  const totalTripCost = totalWithVat + totalHerozWithVatComputed
+  const to2 = (v) => Number(v || 0).toFixed(2)
   // =======================================================================
 
   const getSearchParams = () => {
@@ -731,7 +735,7 @@ const Vendor = () => {
                 backgroundColor: '#f4f0ff',
               }}
             >
-              Vendor (School) Summary
+              Vendor Summary
             </div>
             <table
               style={{
@@ -948,6 +952,54 @@ const Vendor = () => {
           <div className="admin-lbl-boxv1">{ActivityData?.actAdminNotes}</div>
         </div>
       </div>
+
+      {/* ⭐ FINAL BIG TRIP COST SUMMARY (same as edit page) */}
+      <div
+        style={{
+          maxWidth: 800,
+          margin: '0 auto 24px',
+          border: '4px solid #512da8',
+          borderRadius: 20,
+          padding: '16px 24px',
+          backgroundColor: '#f3e5f5',
+          textAlign: 'center',
+          fontSize: 20,
+          fontWeight: 800,
+          lineHeight: 1.6,
+        }}
+      >
+        School Price Including Food (Incl. VAT) ={' '}
+        <span style={{ color: '#1b5e20' }}>
+          Total Cost (Incl. VAT) {to2(totalWithVat)}
+        </span>{' '}
+        +{' '}
+        <span style={{ color: '#1a237e' }}>
+          Heroz Cost (Incl. VAT) {to2(totalHerozWithVatComputed)}
+        </span>{' '}
+        ={' '}
+        <span style={{ color: '#c62828' }}>{to2(totalTripCost)}</span>
+        <div
+          style={{
+            marginTop: 12,
+            fontSize: 16,
+            fontWeight: 700,
+          }}
+        >
+          Heroz Amount (without VAT){' '}
+          <span style={{ color: '#d32f2f' }}>
+            {to2(totalHerozBaseAmountComputed)}
+          </span>{' '}
+          + Heroz VAT{' '}
+          <span style={{ color: '#d32f2f' }}>
+            {to2(totalHerozVatAmountComputed)}
+          </span>{' '}
+          = Heroz Cost (Incl. VAT){' '}
+          <span style={{ color: '#283593' }}>
+            {to2(totalHerozWithVatComputed)}
+          </span>
+        </div>
+      </div>
+
       <div className="button-container">
         <button
           type="button"

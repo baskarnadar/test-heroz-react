@@ -101,7 +101,7 @@ const TripSummaryVat = ({
       <div style={cardWrapperStyle}>
         {/* VENDOR / SCHOOL SIDE */}
         <div style={cardStyle}>
-          <div style={cardHeaderStyle}>Vendor (School) Summary</div>
+          <div style={cardHeaderStyle}>Vendor Summary</div>
 
           {/* Header row */}
           <div style={headerRowStyle}>

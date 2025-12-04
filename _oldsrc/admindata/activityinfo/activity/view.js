@@ -653,7 +653,7 @@ const Vendor = () => {
                 backgroundColor: '#f4f0ff',
               }}
             >
-              Vendor (School) Summary
+              Vendor Summary
             </div>
             <table
               style={{
