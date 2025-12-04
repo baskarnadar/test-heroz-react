@@ -9,7 +9,9 @@ const PublicPaySuccess = React.lazy(() => import('./public/paysuccess.js'))
 //adminschoolmgms
 const adminschoolmgmList = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/list'))
 const adminschoolmgmNew = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/new'))
-const adminschoolmgmModify = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/modify.js'))
+const adminschoolmgmModify = React.lazy(() =>
+  import('./admindata/schoolmgm/schoolinfo/modify.js'),
+)
 const adminschoolmgmView = React.lazy(() => import('./admindata/schoolmgm/schoolinfo/view'))
 const adminschoolmgmChangePwd = React.lazy(
   () => import('./admindata/schoolmgm/schoolinfo/changepwd'),
@@ -34,7 +36,9 @@ const classinfoView = React.lazy(() => import('./admindata/schoolmgm/classinfo/v
 //studentinfo
 const studentinfoList = React.lazy(() => import('./admindata/schoolmgm/studentinfo/list'))
 const studentinfoNew = React.lazy(() => import('./admindata/schoolmgm/studentinfo/new'))
-const studentinfoModify = React.lazy(() => import('./admindata/schoolmgm/studentinfo/modify.js'))
+const studentinfoModify = React.lazy(() =>
+  import('./admindata/schoolmgm/studentinfo/modify.js'),
+)
 const studentinfoView = React.lazy(() => import('./admindata/schoolmgm/studentinfo/view'))
 
 //staffinfo
@@ -58,7 +62,9 @@ const vendorchangepwd = React.lazy(() => import('./admindata/vendor/changepwd'))
 //vendorstaffinfo
 const vendorstaffinfoList = React.lazy(() => import('./admindata/vendor/staffinfo/list'))
 const vendorstaffinfoNew = React.lazy(() => import('./admindata/vendor/staffinfo/new'))
-const vendorstaffinfoModify = React.lazy(() => import('./admindata/vendor/staffinfo/modify.js'))
+const vendorstaffinfoModify = React.lazy(() =>
+  import('./admindata/vendor/staffinfo/modify.js'),
+)
 const vendorstaffinfoView = React.lazy(() => import('./admindata/vendor/staffinfo/view'))
 
 //Badge
@@ -74,7 +80,9 @@ const activityoversightList = React.lazy(() => import('./admindata/activityovers
 const reportsandanalysisList = React.lazy(
   () => import('./admindata/reportsandanalysis/providerlist'),
 )
-const reportsandanalysisNew = React.lazy(() => import('./admindata/reportsandanalysis/schoollist'))
+const reportsandanalysisNew = React.lazy(() =>
+  import('./admindata/reportsandanalysis/schoollist'),
+)
 
 //MemberShip List
 const MemberShipList = React.lazy(() => import('./admindata/membership/list'))
@@ -83,7 +91,7 @@ const MemberShipModify = React.lazy(() => import('./admindata/membership/modify'
 
 //Payment List
 const PaymentList = React.lazy(() => import('./admindata/payment/list'))
-//Payment List
+//Agreement
 const AgreementList = React.lazy(() => import('./admindata/agree/modify'))
 
 //City
@@ -104,7 +112,9 @@ const categoryModify = React.lazy(() => import('./admindata/lookupdata/category/
 //EducationLevel
 const SchEduLevelList = React.lazy(() => import('./admindata/lookupdata/schedulevel/list'))
 const SchEduLevelNew = React.lazy(() => import('./admindata/lookupdata/schedulevel/new'))
-const SchEduLevelModify = React.lazy(() => import('./admindata/lookupdata/schedulevel/modify'))
+const SchEduLevelModify = React.lazy(() =>
+  import('./admindata/lookupdata/schedulevel/modify'),
+)
 
 //SubAdmin
 const UserList = React.lazy(() => import('./admindata/subadmin/list'))
@@ -122,10 +132,15 @@ const AdminSetLink = React.lazy(() => import('./admindata/setlink/setlink'))
 
 const RightsList = React.lazy(() => import('./admindata/rights/list'))
 
+// ✅ Push notification send/list screen
+const PushSendList = React.lazy(() => import('./admindata/push/send'))
+
 //admin Activity
 const adminDataActivityView = React.lazy(() => import('./admindata/activityinfo/activity/view'))
 const adminDataActivityList = React.lazy(() => import('./admindata/activityinfo/activity/list'))
-const adminDataActivityModify = React.lazy(() => import('./admindata/activityinfo/activity/modify'))
+const adminDataActivityModify = React.lazy(() =>
+  import('./admindata/activityinfo/activity/modify'),
+)
 
 //parents
 const parentsList = React.lazy(() => import('./views/parents/list'))
@@ -143,7 +158,11 @@ const routes = [
     element: adminschoolmgmList,
   },
   { path: '/admindata/schoolmgm/schoolinfo/new', name: 'New', element: adminschoolmgmNew },
-  { path: '/admindata/schoolmgm/schoolinfo/modify', name: 'Modify', element: adminschoolmgmModify },
+  {
+    path: '/admindata/schoolmgm/schoolinfo/modify',
+    name: 'Modify',
+    element: adminschoolmgmModify,
+  },
   { path: '/admindata/schoolmgm/schoolinfo/view', name: 'View', element: adminschoolmgmView },
   {
     path: '/admindata/schoolmgm/schoolinfo/changepwd',
@@ -231,7 +250,11 @@ const routes = [
     element: vendorstaffinfoList,
   },
   { path: '/admindata/vendor/staffinfo/new', name: 'New', element: vendorstaffinfoNew },
-  { path: '/admindata/vendor/staffinfo/modify', name: 'Modify', element: vendorstaffinfoModify },
+  {
+    path: '/admindata/vendor/staffinfo/modify',
+    name: 'Modify',
+    element: vendorstaffinfoModify,
+  },
   { path: '/admindata/vendor/staffinfo/view', name: 'View', element: vendorstaffinfoView },
 
   //badge
@@ -286,7 +309,11 @@ const routes = [
   //Education Level
   { path: 'admindata/schedulevel/list', name: 'schedulevel List', element: SchEduLevelList },
   { path: 'admindata/schedulevel/new', name: 'New schedulevel', element: SchEduLevelNew },
-  { path: 'admindata/schedulevel/modify', name: 'Modify schedulevel', element: SchEduLevelModify },
+  {
+    path: 'admindata/schedulevel/modify',
+    name: 'Modify schedulevel',
+    element: SchEduLevelModify,
+  },
 
   //SubAdmin
   { path: '/admindata/subadmin/list', name: 'User List', element: UserList },
@@ -310,6 +337,9 @@ const routes = [
   //Notefication
   { path: '/admindata/note/list', name: 'banner List', element: NoteList },
   { path: '/admindata/setlink/setlink', name: 'Set Link', element: AdminSetLink },
+
+  // ✅ Push Notification (send / list)
+  { path: '/admindata/push/send', name: 'Push Notification', element: PushSendList },
 
   //Admin Activity
   {

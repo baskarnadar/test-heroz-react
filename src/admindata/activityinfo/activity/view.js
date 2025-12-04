@@ -479,7 +479,7 @@ const Vendor = () => {
             </div>
           </CCol>
 
-          {/* Total Cost (logo + text) */}
+          {/* Total Price (logo + text) */}
           <CCol sm={2}>
             <div
               style={{
@@ -494,7 +494,7 @@ const Vendor = () => {
                 alt="logo"
                 style={{ width: '14px', verticalAlign: 'middle' }}
               />
-              <span>Total Cost</span>
+              <span>Total Price</span>
             </div>
           </CCol>
         </CRow>
@@ -562,7 +562,7 @@ const Vendor = () => {
                 )}
               </CCol>
 
-              {/* Total cost + VAT amount pill */}
+              {/* Total Price + VAT amount pill */}
               <CCol sm={2} className="text-end">
                 <div className="admin-lbl-box text-end pink-shadow" style={{ marginRight: '10px' }}>
                   {TotalPricePerStudent.toFixed(2)}
@@ -752,7 +752,7 @@ const Vendor = () => {
                     Description
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                    Amount
+                    Base Price
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
                     VAT ({vatPercentValue.toFixed(2)}%)
@@ -835,7 +835,7 @@ const Vendor = () => {
                     Description
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                    Heroz Amount
+                    Heroz price
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
                     Heroz VAT ({vatPercentValue.toFixed(2)}%)
@@ -901,7 +901,7 @@ const Vendor = () => {
             marginTop: '20px',
           }}
         >
-          {/* Total Cost (Incl. VAT) */}
+          {/* Total Price (Incl. VAT) */}
           <div
             style={{
               flex: 1,
@@ -916,13 +916,13 @@ const Vendor = () => {
             }}
           >
             <div>
-              <div>Total Cost (Incl. VAT)</div>
+              <div> Vendor Profit (Inclusive)</div>
               <div style={{ fontSize: 12 }}>Amount + VAT</div>
             </div>
             <div style={{ fontSize: 26 }}>{totalWithVat.toFixed(2)}</div>
           </div>
 
-          {/* Heroz Cost (Incl. VAT) */}
+          {/* Heroz Price (Incl. VAT) */}
           <div
             style={{
               flex: 1,
@@ -937,7 +937,7 @@ const Vendor = () => {
             }}
           >
             <div>
-              <div>Heroz Cost (Incl. VAT)</div>
+              <div> Heroz Profit (Inclusive)</div>
               <div style={{ fontSize: 12 }}>Heroz Amount + Heroz VAT</div>
             </div>
             <div style={{ fontSize: 26 }}>{totalHerozWithVatComputed.toFixed(2)}</div>
@@ -970,11 +970,11 @@ const Vendor = () => {
       >
         School Price Including Food (Incl. VAT) ={' '}
         <span style={{ color: '#1b5e20' }}>
-          Total Cost (Incl. VAT) {to2(totalWithVat)}
+         Vendor Price (Inclusive) {to2(totalWithVat)}
         </span>{' '}
         +{' '}
         <span style={{ color: '#1a237e' }}>
-          Heroz Cost (Incl. VAT) {to2(totalHerozWithVatComputed)}
+          Heroz Profit (Inclusive) {to2(totalHerozWithVatComputed)}
         </span>{' '}
         ={' '}
         <span style={{ color: '#c62828' }}>{to2(totalTripCost)}</span>
@@ -985,18 +985,7 @@ const Vendor = () => {
             fontWeight: 700,
           }}
         >
-          Heroz Amount (without VAT){' '}
-          <span style={{ color: '#d32f2f' }}>
-            {to2(totalHerozBaseAmountComputed)}
-          </span>{' '}
-          + Heroz VAT{' '}
-          <span style={{ color: '#d32f2f' }}>
-            {to2(totalHerozVatAmountComputed)}
-          </span>{' '}
-          = Heroz Cost (Incl. VAT){' '}
-          <span style={{ color: '#283593' }}>
-            {to2(totalHerozWithVatComputed)}
-          </span>
+         
         </div>
       </div>
 

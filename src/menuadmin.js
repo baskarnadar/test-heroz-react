@@ -11,7 +11,7 @@ import {
   cilExcerpt,
   cilBasket,
 } from '@coreui/icons'
-import { CNavItem, CNavTitle } from '@coreui/react'
+import { CNavItem } from '@coreui/react'
 
 const adminmenu = [
   {
@@ -38,6 +38,15 @@ const adminmenu = [
     to: '/admindata/vendor/list',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
   },
+
+  // ✅ NEW POSITION: Send Push Notification (moved here before Badges)
+  {
+    component: CNavItem,
+    name: 'Send Push Notification',
+    to: '/admindata/push/send',
+    icon: <CIcon icon={cilExcerpt} customClassName="nav-icon" />,
+  },
+
   {
     component: CNavItem,
     name: 'Badges',
@@ -62,20 +71,15 @@ const adminmenu = [
     to: '/admindata/membership/list',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
   },
-    // ✅ NEW MENU ADDED HERE
+
+  // existing Trip menu
   {
     component: CNavItem,
     name: 'Trip tripdata',
     to: '/trip/tripdata',
     icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
   },
-  
-  // {
-  //   component: CNavItem,
-  //   name: 'Payment Management',
-  //   to: '/admindata/payment/list',
-  //   icon: <CIcon icon={cilExcerpt} customClassName="nav-icon" />,
-  // },
+
   {
     component: CNavItem,
     name: 'Agreement',
@@ -118,8 +122,6 @@ const adminmenu = [
     to: '/admindata/note/list',
     icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
   },
-
-
 ]
 
 export default adminmenu

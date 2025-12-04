@@ -456,7 +456,7 @@ const Vendor = () => {
                 verticalAlign: "middle",
               }}
             />{" "}
-            Total Cost
+            Total Price
           </CCol>
         </CRow>
 

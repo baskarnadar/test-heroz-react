@@ -1983,8 +1983,8 @@ const Vendor = () => {
       >
         {/* MAIN SCHOOL PRICE FORMULA */}
         School Price Including Food (Incl. VAT) ={' '}
-        <span style={{ color: '#1b5e20' }}>Total Cost (Incl. VAT) {to2(totalWithVat)}</span> +{' '}
-        <span style={{ color: '#1a237e' }}>Heroz Cost (Incl. VAT) {to2(totalHerozWithVat)}</span> ={' '}
+        <span style={{ color: '#1b5e20' }}>Vendor Price (inclusive ) {to2(totalWithVat)}</span> +{' '}
+        <span style={{ color: '#1a237e' }}>Heroz price (inclusive ) {to2(totalHerozWithVat)}</span> ={' '}
         <span style={{ color: '#c62828' }}>{to2(totalTripCost)}</span>
         {/* 🔴 EXTRA LINE: SUM OF RED COLUMNS (HEROZ AMOUNT + HEROZ VAT) */}
         <div
@@ -1994,11 +1994,7 @@ const Vendor = () => {
             fontWeight: 700,
           }}
         >
-          Heroz Amount (without VAT){' '}
-          <span style={{ color: '#d32f2f' }}>{to2(totalHerozBaseAmount)}</span> + Heroz VAT{' '}
-          <span style={{ color: '#d32f2f' }}>{to2(totalHerozVatAmount)}</span> = Heroz Cost (Incl.
-          VAT){' '}
-          <span style={{ color: '#283593' }}>{to2(totalHerozWithVat)}</span>
+        
         </div>
       </div>
 

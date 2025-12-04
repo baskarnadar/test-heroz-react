@@ -106,7 +106,7 @@ const TripSummaryVat = ({
           {/* Header row */}
           <div style={headerRowStyle}>
             <div>Description</div>
-            <div style={right}>Amount</div>
+            <div style={right}>Base price</div>
             <div style={right}>{`VAT${vatLabel}`}</div>
             <div style={right}>Total</div>
           </div>
@@ -143,7 +143,7 @@ const TripSummaryVat = ({
           {/* Header row */}
           <div style={headerRowStyle}>
             <div>Description</div>
-            <div style={right}>Heroz Amount</div>
+            <div style={right}>Heroz Profit</div>
             <div style={right}>{`Heroz VAT${vatLabel}`}</div>
             <div style={right}>Total</div>
           </div>
@@ -200,7 +200,7 @@ const TripSummaryVat = ({
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              Total Cost (Incl. VAT)
+              Vendor Price
             </div>
             <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>Amount + VAT</div>
           </div>
@@ -231,7 +231,7 @@ const TripSummaryVat = ({
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#1a237e' }}>
-              Heroz Cost (Incl. VAT)
+              Heroz Profit (inclusive )
             </div>
             <div style={{ fontSize: 12, opacity: 0.9, color: '#1a237e' }}>
               Heroz Amount + Heroz VAT

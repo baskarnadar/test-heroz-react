@@ -424,7 +424,7 @@ const Vendor = () => {
               alt="logo"
               style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
             />{' '}
-            Total Cost
+            Total Price
           </CCol>
         </CRow>
 
@@ -801,7 +801,7 @@ const Vendor = () => {
             }}
           >
             <div>
-              <div>Total Cost (Incl. VAT)</div>
+              <div>Total Price (Incl. VAT)</div>
               <div style={{ fontSize: 12 }}>Amount + VAT</div>
             </div>
             <div style={{ fontSize: 26 }}>{totalCostInclVat.toFixed(2)}</div>
@@ -821,7 +821,7 @@ const Vendor = () => {
             }}
           >
             <div>
-              <div>Heroz Cost (Incl. VAT)</div>
+              <div>Heroz Price (Incl. VAT)</div>
               <div style={{ fontSize: 12 }}>Heroz Amount + Heroz VAT</div>
             </div>
             <div style={{ fontSize: 26 }}>{totalHerozInclVat.toFixed(2)}</div>

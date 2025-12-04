@@ -1275,7 +1275,7 @@ const Vendor = () => {
           </div>
         </div>
 
-        {/* 🔶 Final big Total Cost box */}
+        {/* 🔶 Final big Total Price box */}
         <div
           style={{
             maxWidth: 650,
@@ -1292,7 +1292,7 @@ const Vendor = () => {
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              {tr('summaryTotalCostInclVat', 'Your Total Cost Included VAT')}
+              {tr('summaryTotalCostInclVat', 'Your Total Price Included VAT')}
             </div>
             <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
               {tr(
