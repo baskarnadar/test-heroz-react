@@ -92,6 +92,13 @@ const adminmenu = [
     to: '/admindata/city/list',
     icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
   },
+  // ✅ NEW — Outcome menu
+  {
+    component: CNavItem,
+    name: 'Outcome',
+    to: '/admindata/outcome/list',
+    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
+  },
   {
     component: CNavItem,
     name: 'Country',

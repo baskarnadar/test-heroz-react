@@ -144,6 +144,9 @@ const ProposalPage = () => {
   const [debugPayload, setDebugPayload] = useState(null);
   const [debugResult, setDebugResult] = useState(null);
 
+  // ✅ NEW: freeze "Trip Price Including VAT" once (base price + base VAT only)
+  const [initialTripPriceInclVat, setInitialTripPriceInclVat] = useState(null);
+
   // 🌐 toggle language
   const toggleLang = () => {
     const next = lang === "ar" ? "en" : "ar";
@@ -259,7 +262,6 @@ const ProposalPage = () => {
         String(dueRaw).trim().toLowerCase() === "null";
 
       if (missingDue || isPaymentExpired(dueRaw)) {
-        // window.location.hash = "public/expired";
         navigate("/public/expired", { replace: true }); // ✅ UPDATED
         return;
       }
@@ -426,6 +428,20 @@ const ProposalPage = () => {
     }, 0);
   }, [ActivityData]);
 
+  // ✅ NEW: freeze base trip price + base VAT once (no food VAT)
+  useEffect(() => {
+    if (
+      ActivityData &&
+      initialTripPriceInclVat === null &&
+      Number.isFinite(priceTotal) &&
+      Number.isFinite(tripVatAmount)
+    ) {
+      const base = Number(priceTotal) || 0;
+      const baseVat = Number(tripVatAmount) || 0;
+      setInitialTripPriceInclVat(base + baseVat); // e.g. 23 + 3.45 = 26.45
+    }
+  }, [ActivityData, priceTotal, tripVatAmount, initialTripPriceInclVat]);
+
   // VAT from selected food items only (per student)
   const foodVatAmount = useMemo(() => {
     const list = ActivityData?.foodList ?? [];
@@ -460,6 +476,10 @@ const ProposalPage = () => {
     (perStudentTotal + taxAmount).toFixed(2)
   );
   // ---------------------------------------------------
+
+  // ✅ NEW: value for "Trip Price Including VAT" (base trip + BASE VAT ONLY)
+  const tripBasePlusVat =
+    (initialTripPriceInclVat ?? priceTotal + tripVatAmount) || 0;
 
   // ---------- helpers ----------
   // Student ID OPTIONAL now: only name + className required
@@ -898,8 +918,8 @@ const ProposalPage = () => {
                       </div>
                     </div>
                     <div className="detail-value ">
-                      {/* ✅ Base Trip Price ONLY (no food) */}
-                      {priceTotal.toFixed(2)}{" "}
+                      {/* ✅ Trip Price Including BASE VAT only (frozen) */}
+                      {tripBasePlusVat.toFixed(2)}{" "}
                       <img src={icon5} alt="HEROZ" />
                     </div>
                   </div>
@@ -1391,46 +1411,8 @@ const ProposalPage = () => {
             }}
           />
 
-          {/* 🔍 DEBUG PANEL: API / Payload / Result */}
-          {/* <section className="container" style={{ marginTop: 24 }}>
-            <div
-              className="card"
-              style={{
-                background: "#111",
-                color: "#0f0",
-                fontFamily: "monospace",
-                fontSize: 12,
-                maxHeight: 400,
-                overflow: "auto",
-              }}
-            >
-              <h4 style={{ marginBottom: 8 }}>
-                {lang === "ar"
-                  ? "منطقة تصحيح API (للاختبار فقط)"
-                  : "API Debug Panel (for testing)"}
-              </h4>
-              <div style={{ marginBottom: 8 }}>
-                <strong>API:</strong>{" "}
-                <span>{debugApiUrl || "(no API called yet)"}</span>
-              </div>
-              <div style={{ marginBottom: 8 }}>
-                <strong>Payload:</strong>
-                <pre style={{ whiteSpace: "pre-wrap" }}>
-                  {debugPayload
-                    ? JSON.stringify(debugPayload, null, 2)
-                    : "(no payload yet)"}
-                </pre>
-              </div>
-              <div>
-                <strong>Result:</strong>
-                <pre style={{ whiteSpace: "pre-wrap" }}>
-                  {debugResult
-                    ? JSON.stringify(debugResult, null, 2)
-                    : "(no result yet)"}
-                </pre>
-              </div>
-            </div>
-          </section> */}
+          {/* 🔍 DEBUG PANEL (commented out) */}
+          {/* ... */}
         </main>
 
         <ProgramFooter lang={lang} />

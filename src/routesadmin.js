@@ -116,6 +116,11 @@ const SchEduLevelModify = React.lazy(() =>
   import('./admindata/lookupdata/schedulevel/modify'),
 )
 
+// ✅ Outcome (lookupdata/outcome)
+const OutcomeList = React.lazy(() => import('./admindata/lookupdata/outcome/list'))
+const OutcomeNew = React.lazy(() => import('./admindata/lookupdata/outcome/new'))
+const OutcomeModify = React.lazy(() => import('./admindata/lookupdata/outcome/modify'))
+
 //SubAdmin
 const UserList = React.lazy(() => import('./admindata/subadmin/list'))
 const UserNew = React.lazy(() => import('./admindata/subadmin/new'))
@@ -295,6 +300,11 @@ const routes = [
   { path: 'admindata/city/list', name: 'City List', element: CityList },
   { path: 'admindata/city/new', name: 'New City', element: CityNew },
   { path: 'admindata/city/modify', name: 'Modify City', element: CityModify },
+
+  // ✅ Outcome
+  { path: 'admindata/outcome/list', name: 'Outcome List', element: OutcomeList },
+  { path: 'admindata/outcome/new', name: 'New Outcome', element: OutcomeNew },
+  { path: 'admindata/outcome/modify', name: 'Modify Outcome', element: OutcomeModify },
 
   //Country
   { path: 'admindata/country/list', name: 'country List', element: countryList },
