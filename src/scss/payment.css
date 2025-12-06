@@ -867,6 +867,17 @@ body.no-chrome .page-wrapper {
   .trip-gradient-title {
     font-size: 20px; 
 }
+.site-footer
+{
+  padding: 10px;
+}
+.row-inline {
+   
+    font-size: 12px !important;
+}
+body {
+    font-size: 12px !important;
+}
 }
 
 @media (min-width: 992px) {

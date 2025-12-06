@@ -99,7 +99,8 @@ const Vendor = () => {
   const tripHerozVatAmountComputed = firstHerozPriceRowBase * vatRateValue
   const foodHerozVatAmountComputed = foodHerozBaseAmountComputed * vatRateValue
 
-  const totalHerozBaseAmountComputed = firstHerozPriceRowBase + foodHerozBaseAmountComputed
+  const totalHerozBaseAmountComputed =
+    firstHerozPriceRowBase + foodHerozBaseAmountComputed
   const totalHerozVatAmountComputed =
     tripHerozVatAmountComputed + foodHerozVatAmountComputed
   const totalHerozWithVatComputed =
@@ -127,11 +128,14 @@ const Vendor = () => {
   const fetchActivity = async (ActivityIDVal, VendorIDVal) => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal }),
-      })
+      const response = await fetch(
+        `${API_BASE_URL}/vendordata/activityinfo/activity/getActivity`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ ActivityID: ActivityIDVal, VendorID: VendorIDVal }),
+        },
+      )
 
       if (!response.ok) throw new Error('Failed to fetch activities')
 
@@ -394,7 +398,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ================== PRICE PER STUDENT (with section VAT badge) ================== */}
+      {/* ================== PRICE PER STUDENT (now same style as Food Information) ================== */}
       <div className="txtsubtitle">
         Price Per Student
         {vatPercentValue > 0 && (
@@ -418,12 +422,10 @@ const Vendor = () => {
       </div>
 
       <div className="divbox">
+        {/* Header: only Vendor Base, Heroz Profit, Total Price */}
         <CRow className="fw-bold text-center mb-2">
-          <CCol sm={2}>Student Range From</CCol>
-          <CCol sm={2}>Student Range To</CCol>
-
-          {/* Vendor Base Price (logo + text) */}
-          <CCol sm={2}>
+            <CCol sm={2}></CCol>
+          <CCol sm={3}>
             <div
               style={{
                 display: 'inline-flex',
@@ -441,8 +443,7 @@ const Vendor = () => {
             </div>
           </CCol>
 
-          {/* Heroz Profit (logo + text) */}
-          <CCol sm={2}>
+          <CCol sm={3}>
             <div
               style={{
                 display: 'inline-flex',
@@ -460,27 +461,7 @@ const Vendor = () => {
             </div>
           </CCol>
 
-          {/* School Price (logo + text) */}
-          <CCol sm={2}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <img
-                src={moneyv1}
-                alt="logo"
-                style={{ width: '14px', verticalAlign: 'middle' }}
-              />
-              <span>School Price</span>
-            </div>
-          </CCol>
-
-          {/* Total Price (logo + text) */}
-          <CCol sm={2}>
+          <CCol sm={3}>
             <div
               style={{
                 display: 'inline-flex',
@@ -507,7 +488,6 @@ const Vendor = () => {
 
           const vendorVat = vendorBase * vatRateValue
           const herozVat = herozBase * vatRateValue
-          const schoolVat = schoolBase * vatRateValue
           const totalVat = totalBase * vatRateValue
 
           const TotalPricePerStudent =
@@ -517,19 +497,9 @@ const Vendor = () => {
 
           return (
             <CRow className="align-items-center mb-2" key={index}>
-              <CCol sm={2}>
-                <div className="admin-lbl-box text-center pink-shadow2">
-                  {priceItem.StudentRangeFrom}
-                </div>
-              </CCol>
-              <CCol sm={2}>
-                <div className="admin-lbl-box text-center pink-shadow3">
-                  {priceItem.StudentRangeTo}
-                </div>
-              </CCol>
-
-              {/* Vendor price + VAT amount pill */}
-              <CCol sm={2}>
+              {/* Vendor price + VAT pill */}
+               <CCol sm={2}> </CCol>
+                 <CCol sm={3}>
                 <div className="admin-lbl-box pink-shadow6">{priceItem.Price}</div>
                 {vatPercentValue > 0 && (
                   <div style={{ marginTop: 4, fontSize: 12 }}>
@@ -538,8 +508,8 @@ const Vendor = () => {
                 )}
               </CCol>
 
-              {/* Heroz profit + VAT amount pill */}
-              <CCol sm={2}>
+              {/* Heroz profit + VAT pill */}
+              <CCol sm={3}>
                 <div className="admin-lbl-box text-center pink-shadow7">
                   {priceItem.HerozStudentPrice}
                 </div>
@@ -550,21 +520,12 @@ const Vendor = () => {
                 )}
               </CCol>
 
-              {/* School price + VAT amount pill */}
-              <CCol sm={2}>
-                <div className="admin-lbl-box text-center pink-shadow8">
-                  {priceItem.SchoolPrice}
-                </div>
-                {vatPercentValue > 0 && (
-                  <div style={{ marginTop: 4, fontSize: 12 }}>
-                    <span style={vatPillStyle}>{schoolVat.toFixed(2)}</span>
-                  </div>
-                )}
-              </CCol>
-
-              {/* Total Price + VAT amount pill */}
-              <CCol sm={2} className="text-end">
-                <div className="admin-lbl-box text-end pink-shadow" style={{ marginRight: '10px' }}>
+              {/* Total Price + VAT pill */}
+              <CCol sm={3} className="text-end">
+                <div
+                  className="admin-lbl-box text-end pink-shadow"
+                  style={{ marginRight: '10px' }}
+                >
                   {TotalPricePerStudent.toFixed(2)}
                 </div>
                 {vatPercentValue > 0 && (
@@ -579,7 +540,7 @@ const Vendor = () => {
       </div>
       {/* =================================================================== */}
 
-      {/* ======================= FOOD INFORMATION (with VAT) ======================= */}
+      {/* ======================= FOOD INFORMATION (School Food profit hidden) ======================= */}
       <div className="txtsubtitle">
         Food Information
         {vatPercentValue > 0 && (
@@ -603,17 +564,15 @@ const Vendor = () => {
       </div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          {/* Header Row */}
+          {/* Header Row – School Food profit HIDDEN */}
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={2}>Food Name</CCol>
-            <CCol sm={1}>Vendor Food Price</CCol>
-            <CCol sm={1}>Heroz Food profit</CCol>
-            <CCol sm={1}>School Food profit</CCol>
-            <CCol sm={1}>Total Price</CCol>
+            <CCol sm={2}>Vendor Food Price</CCol>
+            <CCol sm={2}>Heroz Food profit</CCol>
+            <CCol sm={2}>Total Price</CCol>
             <CCol sm={2}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
+            <CCol sm={1}>Food Image</CCol>
             <CCol sm={1}>Include</CCol>
-            <CCol sm={1}></CCol>
           </CRow>
 
           {ActivityData?.foodList?.map((foodItem, index) => {
@@ -624,7 +583,6 @@ const Vendor = () => {
 
             const vendorVat = vendorBase * vatRateValue
             const herozVat = herozBase * vatRateValue
-            const schoolVat = schoolBase * vatRateValue
             const totalVat = totalBase * vatRateValue
 
             const TotalFoodPrice =
@@ -639,8 +597,8 @@ const Vendor = () => {
                   <div className="admin-lbl-box">{foodItem.FoodName}</div>
                 </CCol>
 
-                {/* Vendor Food Price + VAT amount pill (shows even when 0) */}
-                <CCol sm={1}>
+                {/* Vendor Food Price + VAT pill */}
+                <CCol sm={2}>
                   <div className="admin-lbl-box text-center pink-shadow6">
                     {foodItem.FoodPrice}
                   </div>
@@ -651,8 +609,8 @@ const Vendor = () => {
                   )}
                 </CCol>
 
-                {/* Heroz Food profit + VAT amount pill (shows even when 0) */}
-                <CCol sm={1}>
+                {/* Heroz Food profit + VAT pill */}
+                <CCol sm={2}>
                   <div className="admin-lbl-box text-center pink-shadow7">
                     {foodItem.FoodHerozPrice}
                   </div>
@@ -663,20 +621,8 @@ const Vendor = () => {
                   )}
                 </CCol>
 
-                {/* School Food profit + VAT amount pill (shows 0.00 if price is 0) */}
-                <CCol sm={1}>
-                  <div className="admin-lbl-box text-center pink-shadow8">
-                    {foodItem.FoodSchoolPrice}
-                  </div>
-                  {vatPercentValue > 0 && (
-                    <div style={{ marginTop: 4, fontSize: 10 }}>
-                      <span style={vatPillStyle}>{schoolVat.toFixed(2)}</span>
-                    </div>
-                  )}
-                </CCol>
-
-                {/* Total Price + VAT amount pill */}
-                <CCol sm={1}>
+                {/* Total Price + VAT pill */}
+                <CCol sm={2}>
                   <div className="admin-lbl-box text-center">
                     {TotalFoodPrice.toFixed(2)}
                   </div>
@@ -693,7 +639,7 @@ const Vendor = () => {
                 </CCol>
 
                 {/* Image Preview */}
-                <CCol sm={2}>
+                <CCol sm={1}>
                   {foodItem.FoodImage ? (
                     <FilePreview file={foodItem.FoodImage} />
                   ) : (
@@ -970,7 +916,7 @@ const Vendor = () => {
       >
         School Price Including Food (Incl. VAT) ={' '}
         <span style={{ color: '#1b5e20' }}>
-         Vendor Price (Inclusive) {to2(totalWithVat)}
+          Vendor Price (Inclusive) {to2(totalWithVat)}
         </span>{' '}
         +{' '}
         <span style={{ color: '#1a237e' }}>
@@ -984,9 +930,7 @@ const Vendor = () => {
             fontSize: 16,
             fontWeight: 700,
           }}
-        >
-         
-        </div>
+        ></div>
       </div>
 
       <div className="button-container">

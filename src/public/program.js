@@ -140,7 +140,7 @@ const ProposalPage = () => {
   const [showZeroCostModal, setShowZeroCostModal] = useState(false);
 
   // 🔍 DEBUG: API / Payload / Result
-  const [debugApiUrl, setDebugApiUrl] = useState("");
+    const [debugApiUrl, setDebugApiUrl] = useState("");
   const [debugPayload, setDebugPayload] = useState(null);
   const [debugResult, setDebugResult] = useState(null);
 
@@ -595,6 +595,12 @@ const ProposalPage = () => {
 
     const paymentLabel = paymentLabelFromId(selectedMethodId);
 
+    // ✅ NEW: VAT totals for confirmation modal
+    const vatPerStudent = taxAmount.toFixed(2);
+    const totalVatAllStudents = (
+      taxAmount * (validKids.length || 1)
+    ).toFixed(2);
+
     const summary = {
       included: includedName || "-",
       extras: extraRows,
@@ -613,6 +619,9 @@ const ProposalPage = () => {
         grandPerStudent: grandTotalWithTax.toFixed(2),
         students: validKids.length,
         netAmount: (grandTotalWithTax * validKids.length).toFixed(2),
+        // ✅ VAT info
+        vatPerStudent,
+        totalVat: totalVatAllStudents,
       },
     };
 
@@ -1341,6 +1350,17 @@ const ProposalPage = () => {
                       <li>
                         {dict.grandPerStudent}:{" "}
                         {confirmSummary.totals.grandPerStudent}
+                      </li>
+                      {/* ✅ NEW: VAT per student */}
+                      <li>
+                        {(dict.vatPerStudentLabel ||
+                          "VAT (per student)")}{" "}
+                        : {confirmSummary.totals.vatPerStudent}
+                      </li>
+                      {/* ✅ NEW: Total VAT for all students */}
+                      <li>
+                        {(dict.totalVatLabel || "Total VAT")}{" "}
+                        : {confirmSummary.totals.totalVat}
                       </li>
                       <li>
                         {dict.studentsLabel}:{" "}
