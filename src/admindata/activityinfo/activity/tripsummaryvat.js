@@ -202,7 +202,7 @@ const TripSummaryVat = ({
             <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
               Vendor Price
             </div>
-            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>Amount + VAT</div>
+            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>Price + VAT</div>
           </div>
           <div
             style={{
@@ -234,7 +234,7 @@ const TripSummaryVat = ({
               Heroz Profit (inclusive )
             </div>
             <div style={{ fontSize: 12, opacity: 0.9, color: '#1a237e' }}>
-              Heroz Amount + Heroz VAT
+              Heroz Profit + Heroz VAT
             </div>
           </div>
           <div

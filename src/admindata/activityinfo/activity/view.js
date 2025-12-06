@@ -781,7 +781,7 @@ const Vendor = () => {
                     Description
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                    Heroz price
+                    Heroz Profit
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
                     Heroz VAT ({vatPercentValue.toFixed(2)}%)
@@ -862,8 +862,8 @@ const Vendor = () => {
             }}
           >
             <div>
-              <div> Vendor Profit (Inclusive)</div>
-              <div style={{ fontSize: 12 }}>Amount + VAT</div>
+              <div> Vendor Price (Inclusive)</div>
+              <div style={{ fontSize: 12 }}>Price + VAT</div>
             </div>
             <div style={{ fontSize: 26 }}>{totalWithVat.toFixed(2)}</div>
           </div>
@@ -884,7 +884,7 @@ const Vendor = () => {
           >
             <div>
               <div> Heroz Profit (Inclusive)</div>
-              <div style={{ fontSize: 12 }}>Heroz Amount + Heroz VAT</div>
+              <div style={{ fontSize: 12 }}>Heroz Profit + Heroz VAT</div>
             </div>
             <div style={{ fontSize: 26 }}>{totalHerozWithVatComputed.toFixed(2)}</div>
           </div>

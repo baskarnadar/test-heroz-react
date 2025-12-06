@@ -1347,15 +1347,16 @@ const ProposalPage = () => {
                         {dict.foodPerStudent}:{" "}
                         {confirmSummary.totals.foodPerStudent}
                       </li>
-                      <li>
-                        {dict.grandPerStudent}:{" "}
-                        {confirmSummary.totals.grandPerStudent}
-                      </li>
+                      
                       {/* ✅ NEW: VAT per student */}
                       <li>
                         {(dict.vatPerStudentLabel ||
                           "VAT (per student)")}{" "}
                         : {confirmSummary.totals.vatPerStudent}
+                      </li>
+                      <li>
+                        {dict.grandPerStudent}:{" "}
+                        {confirmSummary.totals.grandPerStudent}
                       </li>
                       {/* ✅ NEW: Total VAT for all students */}
                       <li>
