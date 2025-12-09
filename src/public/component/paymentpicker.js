@@ -1,9 +1,9 @@
 // PaymentMethodPicker.jsx
 import { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
-import { API_BASE_URL } from "../config";
-import enPack from "../i18n/enlangpack.json";
-import arPack from "../i18n/arlangpack.json";
+import { API_BASE_URL } from "../../config";
+import enPack from "../../i18n/enlangpack.json";
+import arPack from "../../i18n/arlangpack.json";
 /**
  * Props:
  * - amount:          number|string (required) — comes from parent

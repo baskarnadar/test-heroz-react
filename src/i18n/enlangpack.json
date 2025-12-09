@@ -137,5 +137,6 @@
   "food_included_option": "Included option",
   "food_extra_option": "Extra option",
   "ar_terms_agree" : " Paying through the platform is considered a form of consent for your child’s participation in the trip ",
-  "ar_inc_vat" : "Including VAT"
+  "ar_inc_vat" : "Inc VAT",
+     "are_you_ready_to_pay_trip" : "Would you like to finalize the payment for your child's trip now?"
 }

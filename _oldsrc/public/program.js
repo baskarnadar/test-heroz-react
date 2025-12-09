@@ -21,7 +21,7 @@ import icon6 from "../assets/icon/icon6.png";
 import ProgramFooter from "/src/public/prgfooter";
 import PrgHeader from "/src/public/Prgheader";
 import PrgSchHeader from "/src/public/prgschheader";
-import PaymentMethodPicker from "./paymentpicker";
+import PaymentMethodPicker from "../paymentpicker";
 import { executeMyFatoorahPayment } from "./payexcute";
 import TripCostZero from "./tripcostzero";
 

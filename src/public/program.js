@@ -17,23 +17,25 @@ import icon1 from "../assets/icon/icon1.png";
 import icon2 from "../assets/icon/icon2.png";
 import icon3 from "../assets/icon/icon3.png";
 import icon5 from "../assets/icon/icon5.png";
-import icon6 from "../assets/icon/icon6.png";
 import ProgramFooter from "/src/public/prgfooter";
 import PrgHeader from "/src/public/Prgheader";
 import PrgSchHeader from "/src/public/prgschheader";
-import PaymentMethodPicker from "./paymentpicker";
-import { executeMyFatoorahPayment } from "./payexcute";
 import TripCostZero from "./tripcostzero";
 
 import "../scss/payment.css";
 import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
-import FoodInfo from "./foodinfo";
 
 // 🔤 i18n packs
 import enPack from "../i18n/enlangpack.json";
 import arPack from "../i18n/arlangpack.json";
 
+// NEW: pricing section extracted
+import TrupSummary from "../public/component/tripsummary";
+// NEW: parent form extracted
+import ParentForm from "../public/component/parentform";
+
 const MOBILE_RE = /^05\d{8}$/; // starts with 05 and total 10 digits
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // simple email format check
 const PAYERROR_URL = "https://school.heroz.sa/public/payerror";
 
 // Map PaymentMethodId -> UI label
@@ -80,7 +82,7 @@ const tripPaymentTypeIdFromId = (id) => {
 };
 
 const ProposalPage = () => {
-  const navigate = useNavigate(); // ✅ NEW
+  const navigate = useNavigate();
 
   // 🌐 language state (persist to localStorage) — DEFAULT ARABIC
   const initialLang = (() => {
@@ -93,7 +95,7 @@ const ProposalPage = () => {
   const dict = lang === "ar" ? arPack : enPack;
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // Enforce <html> lang/dir (belt & suspenders)
+  // Enforce <html> lang/dir
   useEffect(() => {
     const html = document.documentElement;
     html.setAttribute("dir", dir);
@@ -101,7 +103,7 @@ const ProposalPage = () => {
     document.body.setAttribute("dir", dir);
   }, [dir, lang]);
 
-  // UI state (existing)
+  // UI state
   const [error, setError] = useState("");
   const [checkedFoodItems, setCheckedFoodItems] = useState({});
   const [TripData, setTripData] = useState([]);
@@ -111,15 +113,18 @@ const ProposalPage = () => {
   const [ActivityData, setActivity] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ➕ added gender to each row (kept your original fields)
+  // ➕ kids
   const [childRows, setChildRows] = useState([
     { schoolID: "", name: "", className: "", gender: "" },
   ]);
 
-  // Removed old selectedMethod radio; we rely only on PaymentMethodPicker
+  // 💡 food quantity per FoodID (for EXTRA items)
+  const [foodQty, setFoodQty] = useState({});
+
+  // MyFatoorah method
   const [selectedMethodId, setSelectedMethodId] = useState(null);
 
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // not used but kept
   const [isExpired, setIsExpired] = useState(false);
   const [requestId, setRequestId] = useState("");
   const [absoluteLogoUrl, setAbsoluteLogoUrl] = useState("");
@@ -140,19 +145,19 @@ const ProposalPage = () => {
   const [showZeroCostModal, setShowZeroCostModal] = useState(false);
 
   // 🔍 DEBUG: API / Payload / Result
-    const [debugApiUrl, setDebugApiUrl] = useState("");
+  const [debugApiUrl, setDebugApiUrl] = useState("");
   const [debugPayload, setDebugPayload] = useState(null);
   const [debugResult, setDebugResult] = useState(null);
 
-  // ✅ NEW: freeze "Trip Price Including VAT" once (base price + base VAT only)
-  const [initialTripPriceInclVat, setInitialTripPriceInclVat] = useState(null);
+  // ✅ freeze "Trip Price Including VAT" once (base price + base VAT only)
+  const [initialTripPriceInclVat, setInitialTripPriceInclVat] =
+    useState(null);
 
   // 🌐 toggle language
   const toggleLang = () => {
     const next = lang === "ar" ? "en" : "ar";
     setLang(next);
     localStorage.setItem("heroz_lang", next);
-    // Flip document direction immediately
     const html = document.documentElement;
     html.setAttribute("dir", next === "ar" ? "rtl" : "ltr");
     html.setAttribute("lang", next === "ar" ? "ar" : "en");
@@ -165,9 +170,10 @@ const ProposalPage = () => {
     setErrModalOpen(true);
   };
 
+  // ---- child rows handlers ----
   const handleAddRow = () =>
-    setChildRows([
-      ...childRows,
+    setChildRows((prev) => [
+      ...prev,
       { schoolID: "", name: "", className: "", gender: "" },
     ]);
 
@@ -223,6 +229,7 @@ const ProposalPage = () => {
     setCheckedFoodItems((prev) => {
       const next = { ...prev };
       if (inferredIncluded) {
+        // only one included item at a time
         (ActivityData?.foodList ?? [])
           .filter((f) => f.Include === true)
           .forEach((f) => (next[f.FoodID] = false));
@@ -232,6 +239,20 @@ const ProposalPage = () => {
       }
       return next;
     });
+  };
+
+  // NEW: when user changes qty of an EXTRA item (via + / -)
+  const handleExtraQtyChange = (FoodID, newQty) => {
+    const q = newQty < 1 ? 1 : newQty;
+    setFoodQty((prev) => ({
+      ...prev,
+      [FoodID]: q,
+    }));
+    // ensure extra is checked if user touches qty
+    setCheckedFoodItems((prev) => ({
+      ...prev,
+      [FoodID]: true,
+    }));
   };
 
   const fetchTripData = async (RequestID) => {
@@ -262,7 +283,7 @@ const ProposalPage = () => {
         String(dueRaw).trim().toLowerCase() === "null";
 
       if (missingDue || isPaymentExpired(dueRaw)) {
-        navigate("/public/expired", { replace: true }); // ✅ UPDATED
+        navigate("/public/expired", { replace: true });
         return;
       }
       setTripData(payload);
@@ -396,21 +417,26 @@ const ProposalPage = () => {
     return sum + perStudent;
   }, 0);
 
-  // Food total (checked items only)
+  // Food total (checked items only) ✅ multiplied by quantity
   const foodTotal = useMemo(() => {
     return (ActivityData?.foodList ?? []).reduce((sum, item) => {
-      if (checkedFoodItems[item.FoodID]) {
-        const school =
-          schoolPriceMap[item.FoodID] ??
-          (parseFloat(item?.RequestFoodSchoolPrice) || 0);
-        const vendor =
-          parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
-        const heroz = parseFloat(item?.FoodHerozPrice) || 0;
-        return sum + (school + vendor + heroz);
-      }
-      return sum;
+      if (!checkedFoodItems[item.FoodID]) return sum;
+
+      const qty =
+        foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0
+          ? Number(foodQty[item.FoodID])
+          : 1;
+
+      const school =
+        schoolPriceMap[item.FoodID] ??
+        (parseFloat(item?.RequestFoodSchoolPrice) || 0);
+      const vendor =
+        parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
+      const heroz = parseFloat(item?.FoodHerozPrice) || 0;
+
+      return sum + (school + vendor + heroz) * qty;
     }, 0);
-  }, [ActivityData, checkedFoodItems, schoolPriceMap]);
+  }, [ActivityData, checkedFoodItems, schoolPriceMap, foodQty]);
 
   // ----------------- VAT CALCULATION -----------------
   // VAT from base trip prices (per student)
@@ -420,15 +446,11 @@ const ProposalPage = () => {
       const actVat = parseFloat(item?.actPriceVatAmount) || 0;
       const herozVat = parseFloat(item?.HerozStudentPriceVatAmount) || 0;
       const schoolVat = parseFloat(item?.RequestSchoolPriceVatAmount) || 0;
-      // (SchoolPriceVatAmount is ignored as per your formula)
-      console.log(actVat);
-      console.log(herozVat);
-      console.log(schoolVat);
       return sum + actVat + herozVat + schoolVat;
     }, 0);
   }, [ActivityData]);
 
-  // ✅ NEW: freeze base trip price + base VAT once (no food VAT)
+  // ✅ freeze base trip price + base VAT once (no food VAT)
   useEffect(() => {
     if (
       ActivityData &&
@@ -438,74 +460,71 @@ const ProposalPage = () => {
     ) {
       const base = Number(priceTotal) || 0;
       const baseVat = Number(tripVatAmount) || 0;
-      setInitialTripPriceInclVat(base + baseVat); // e.g. 23 + 3.45 = 26.45
+      setInitialTripPriceInclVat(base + baseVat);
     }
   }, [ActivityData, priceTotal, tripVatAmount, initialTripPriceInclVat]);
 
-  // VAT from selected food items only (per student)
+  // VAT from selected food items only (per student) ✅ multiplied by quantity
   const foodVatAmount = useMemo(() => {
     const list = ActivityData?.foodList ?? [];
     return list.reduce((sum, item) => {
       if (!checkedFoodItems[item.FoodID]) return sum;
+
+      const qty =
+        foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0
+          ? Number(foodQty[item.FoodID])
+          : 1;
+
       const foodPriceVat = parseFloat(item?.FoodPriceVatAmount) || 0;
       const foodHerozVat = parseFloat(item?.FoodHerozPriceVatAmount) || 0;
       const foodSchoolVat =
         parseFloat(item?.RequestFoodSchoolPriceVatAmount) || 0;
-      // (FoodSchoolPriceVatAmount ignored as per your formula)
-      return sum + foodPriceVat + foodHerozVat + foodSchoolVat;
-    }, 0);
-  }, [ActivityData, checkedFoodItems]);
 
-  // Final VAT per student: act + heroz + food + food-heroz
+      return sum + (foodPriceVat + foodHerozVat + foodSchoolVat) * qty;
+    }, 0);
+  }, [ActivityData, checkedFoodItems, foodQty]);
+
+  // Final VAT per student: trip + food
   const vatAmount = Number((tripVatAmount + foodVatAmount).toFixed(2));
-  // ---------------------------------------------------
 
   // ----------------- TOTALS (WITH VAT / WITHOUT VAT) -----------------
-  // Base + food (per student, before VAT)
-  const grandTotal = priceTotal + foodTotal; // raw per-student subtotal (trip + food)
+  const grandTotal = priceTotal + foodTotal; // per-student subtotal (trip + food)
   const perStudentSubTotal = Number((Number(grandTotal) || 0).toFixed(2));
 
-  // Subtotal per student (trip + food), rounded
   const perStudentTotal = perStudentSubTotal;
-
-  // VAT per student
   const taxAmount = vatAmount;
 
-  // Total payable per student = subtotal + VAT
   const grandTotalWithTax = Number(
     (perStudentTotal + taxAmount).toFixed(2)
   );
-  // ---------------------------------------------------
 
-  // ✅ NEW: value for "Trip Price Including VAT" (base trip + BASE VAT ONLY)
+  // ✅ value for "Trip Price Including VAT" (base trip + BASE VAT ONLY)
   const tripBasePlusVat =
     (initialTripPriceInclVat ?? priceTotal + tripVatAmount) || 0;
 
   // ---------- helpers ----------
-  // Student ID OPTIONAL now: only name + className required
   const isValidKid = (row) =>
     (row.name || "").trim() && (row.className || "").trim();
 
   const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
 
-  // ======= total amount to pass into PaymentMethodPicker (INCLUDES VAT) =======
+  // total amount to pass into PaymentMethodPicker (INCLUDES VAT)
   const paymentAmount = useMemo(() => {
     const count = validKidsCount > 0 ? validKidsCount : 1;
     return Number((grandTotalWithTax * count).toFixed(2));
   }, [grandTotalWithTax, validKidsCount]);
 
-  // ======= AUTO-MODAL if Trip Price is zero or less (no immediate redirect) =======
+  // ======= AUTO-MODAL if Trip Price is zero or less =======
   useEffect(() => {
     if (!loading && ActivityData) {
       const perStudent = Number(grandTotalWithTax) || 0;
       if (perStudent <= 0 || paymentAmount <= 0) {
-        setShowZeroCostModal(true); // ✅ open modal automatically
+        setShowZeroCostModal(true);
       }
     }
   }, [loading, ActivityData, grandTotalWithTax, paymentAmount]);
 
-  // ✅ EXTRA: also open automatically if *base* Trip Price itself is zero/less
   useEffect(() => {
     if (!loading && ActivityData) {
       const baseTrip = Number(priceTotal) || 0;
@@ -533,43 +552,64 @@ const ProposalPage = () => {
     );
 
     const extraRows = extrasPicked.map((item) => {
+      const qty =
+        foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0
+          ? Number(foodQty[item.FoodID])
+          : 1;
+
       const school =
         schoolPriceMap[item.FoodID] ??
         (parseFloat(item?.RequestFoodSchoolPrice) || 0);
       const vendor =
         parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
       const heroz = parseFloat(item?.FoodHerozPrice) || 0;
+
       return {
         FoodID: item.FoodID,
         FoodName: item.FoodName,
         FoodSchoolPrice: school,
         FoodVendorPrice: vendor,
         FoodHerozPrice: heroz,
-        Total: school + vendor + heroz,
+        Quantity: qty,
+        Total: (school + vendor + heroz) * qty,
       };
     });
 
     // By Default
-    var userDefinedFieldVal =
+    let userDefinedFieldVal =
       TripData.actRequestRefNo +
       "-" +
       ActivityData.actName +
       "-" +
       getFormattedDateTime();
 
-    if (ActivityData.actRequestStatus == "TRIP-BOOKED")
+    if (ActivityData.actRequestStatus === "TRIP-BOOKED")
       userDefinedFieldVal =
         TripData.actRequestRefNo +
         "-" +
         ActivityData.actName +
         getFormattedDateTime();
 
-    var customerReferenceVal = RequestID + "-" + TripData.actRequestRefNo;
-    // Local Storage
+    const customerReferenceVal = RequestID + "-" + TripData.actRequestRefNo;
+
     const PayRefNoVal = generatePayRefNo();
     localStorage.setItem("PayRefNo", PayRefNoVal);
     localStorage.setItem("customerReference", customerReferenceVal);
     localStorage.setItem("userDefinedField", userDefinedFieldVal);
+
+    // 🔹 Read parent details from form fields (incl. email)
+    const parentName =
+      document
+        .querySelector('input[name="txtParentName"]')
+        ?.value.trim() || "";
+    const parentMobile =
+      document
+        .querySelector('input[name="tripParentsMobileNo"]')
+        ?.value.trim() || "";
+    const parentEmail =
+      document
+        .querySelector('input[name="tripParentsEmail"]')
+        ?.value.trim() || "";
 
     const kidsInfo = validKids.map((row) => ({
       RequestID,
@@ -579,12 +619,9 @@ const ProposalPage = () => {
       TripKidsName: row.name.trim(),
       tripKidsClassName: row.className.trim(),
       TripKidsGender: (row.gender || "").trim(),
-      // subtotal (trip + food) without VAT
       TripCost: perStudentSubTotal.toFixed(2),
       TripFoodCost: foodTotal.toFixed(2),
-      // VAT per student
       TripTaxAmount: taxAmount.toFixed(2),
-      // full amount per student (trip + food + VAT)
       TripFullAmount: grandTotalWithTax.toFixed(2),
       PayStaus: "NEW",
       InvoiceNo: "0",
@@ -595,7 +632,6 @@ const ProposalPage = () => {
 
     const paymentLabel = paymentLabelFromId(selectedMethodId);
 
-    // ✅ NEW: VAT totals for confirmation modal
     const vatPerStudent = taxAmount.toFixed(2);
     const totalVatAllStudents = (
       taxAmount * (validKids.length || 1)
@@ -612,14 +648,11 @@ const ProposalPage = () => {
       })),
       paymentLabel,
       totals: {
-        // base trip only (no food, no VAT)
         baseTripPerStudent: priceTotal.toFixed(2),
         foodPerStudent: foodTotal.toFixed(2),
-        // full per student including VAT
         grandPerStudent: grandTotalWithTax.toFixed(2),
         students: validKids.length,
         netAmount: (grandTotalWithTax * validKids.length).toFixed(2),
-        // ✅ VAT info
         vatPerStudent,
         totalVat: totalVatAllStudents,
       },
@@ -628,14 +661,9 @@ const ProposalPage = () => {
     const payload = {
       RequestID,
       ParentsID,
-      tripParentsName:
-        document
-          .querySelector('input[name="txtParentName"]')
-          ?.value.trim() || "",
-      tripParentsMobileNo:
-        document
-          .querySelector('input[name="tripParentsMobileNo"]')
-          ?.value.trim() || "",
+      tripParentsName: parentName,
+      tripParentsMobileNo: parentMobile,
+      tripParentsEmail: parentEmail, // 🔹 NEW: send parent email to API
       tripParentsNote:
         document
           .querySelector('textarea[name="txtParentsNote"]')
@@ -644,11 +672,18 @@ const ProposalPage = () => {
       kidsInfo,
       FoodIncluded: includedId ? [includedId] : [],
       FoodExtra: extraRows.map(
-        ({ FoodID, FoodSchoolPrice, FoodVendorPrice, FoodHerozPrice }) => ({
+        ({
           FoodID,
           FoodSchoolPrice,
           FoodVendorPrice,
           FoodHerozPrice,
+          Quantity,
+        }) => ({
+          FoodID,
+          FoodSchoolPrice,
+          FoodVendorPrice,
+          FoodHerozPrice,
+          Quantity,
         })
       ),
     };
@@ -682,6 +717,10 @@ const ProposalPage = () => {
       document
         .querySelector('input[name="tripParentsMobileNo"]')
         ?.value.trim() || "";
+    const parentEmail =
+      document
+        .querySelector('input[name="tripParentsEmail"]')
+        ?.value.trim() || "";
 
     if (!parentName) {
       showError(dict.errEnterParentName);
@@ -692,12 +731,22 @@ const ProposalPage = () => {
       return false;
     }
 
+    // 🔹 Email optional but if entered, must be valid format
+    if (parentEmail && !EMAIL_RE.test(parentEmail)) {
+      showError(
+        dict.errParentEmailFormat ||
+          (lang === "ar"
+            ? "الرجاء إدخال بريد إلكتروني صحيح."
+            : "Please enter a valid email address.")
+      );
+      return false;
+    }
+
     if (validKids.length === 0) {
       showError(dict.errEnterChildInfo);
       return false;
     }
 
-    // 🔐 NEW: child name length validation (minimum 10 characters)
     for (const kid of validKids) {
       if (kid.name.trim().length < 10) {
         showError(
@@ -733,7 +782,6 @@ const ProposalPage = () => {
       return;
     }
 
-    // ✅ EXTRA: block & open modal when base Trip Price is zero/less
     if ((Number(priceTotal) || 0) <= 0) {
       setShowZeroCostModal(true);
       return;
@@ -741,7 +789,7 @@ const ProposalPage = () => {
 
     const perStudent = Number(grandTotalWithTax) || 0;
     if (perStudent <= 0 || paymentAmount <= 0) {
-      setShowZeroCostModal(true); // ✅ show modal instead of redirecting immediately
+      setShowZeroCostModal(true);
       return;
     }
 
@@ -762,7 +810,6 @@ const ProposalPage = () => {
     }
     setSubmitting(true);
 
-    // 🔍 DEBUG: capture API + payload (kids info insert)
     const endpoint = `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`;
     setDebugApiUrl(endpoint);
     setDebugPayload(pendingPayload);
@@ -777,12 +824,12 @@ const ProposalPage = () => {
       if (!response.ok) throw new Error("Failed to submit data");
       submitJson = await response.json();
 
-      // store initial debug result with submit response
       setDebugResult({ submitResponse: submitJson });
 
       setConfirmOpen(false);
 
       const schoolTotalTripCost = paymentAmount;
+
       const parentName =
         document
           .querySelector('input[name="txtParentName"]')
@@ -790,6 +837,10 @@ const ProposalPage = () => {
       const parentMobile =
         document
           .querySelector('input[name="tripParentsMobileNo"]')
+          ?.value.trim() || "";
+      const parentEmail =
+        document
+          .querySelector('input[name="tripParentsEmail"]')
           ?.value.trim() || "";
 
       if (!selectedMethodId) {
@@ -799,12 +850,12 @@ const ProposalPage = () => {
       }
 
       try {
-        const result = await executeMyFatoorahPayment({
+        const result = await window.executeMyFatoorahPayment({
           amount: schoolTotalTripCost,
           paymentMethodId: selectedMethodId,
           customer: {
             name: parentName,
-            email: "no-reply@heroz.sa",
+            email: parentEmail || "no-reply@heroz.sa", // 🔹 send real email if provided
             mobile: parentMobile,
           },
           language: lang === "ar" ? "AR" : "EN",
@@ -813,7 +864,6 @@ const ProposalPage = () => {
         });
         console.log(result);
 
-        // 🔍 DEBUG: attach payment result as well
         setDebugResult((prev) => ({
           ...(prev || {}),
           paymentResult: result,
@@ -830,7 +880,6 @@ const ProposalPage = () => {
       setConfirmOpen(false);
       showError(dict.errSubmissionFailed);
 
-      // if error, also reflect it in debug
       setDebugResult((prev) => ({
         ...(prev || {}),
         submitError: String(err),
@@ -858,7 +907,6 @@ const ProposalPage = () => {
 
   return (
     <>
-      {/* Also set <html> attributes via Helmet for SSR correctness */}
       <Helmet htmlAttributes={{ lang: lang === "ar" ? "ar" : "en", dir }}>
         <title>{program.title}</title>
         <meta property="og:title" content={program.title} />
@@ -923,11 +971,13 @@ const ProposalPage = () => {
                           alt="HEROZ"
                           className="icon-tint-pink"
                         />
-                        <span> {dict.tripCost} {dict.ar_inc_vat}  </span>
+                        <span>
+                          {" "}
+                          {dict.tripCost} {dict.ar_inc_vat}{" "}
+                        </span>
                       </div>
                     </div>
                     <div className="detail-value ">
-                      {/* ✅ Trip Price Including BASE VAT only (frozen) */}
                       {tripBasePlusVat.toFixed(2)}{" "}
                       <img src={icon5} alt="HEROZ" />
                     </div>
@@ -1006,312 +1056,37 @@ const ProposalPage = () => {
 
           {/* Pricing + Booking */}
           <section className="container twocol">
-            {/* Pricing */}
-            <div className="card pricing">
-              <h3 className="card-title trip-gradient-color fontsize40">
-                {dict.tripsPricing}
-              </h3>
+            {/* Pricing (separate component) */}
+            <TrupSummary
+              dict={dict}
+              priceTotal={priceTotal}
+              grandTotalWithTax={grandTotalWithTax}
+              validKidsCount={validKidsCount}
+              ActivityData={ActivityData}
+              TripData={TripData}
+              checkedFoodItems={checkedFoodItems}
+              handleCheckboxChange={handleCheckboxChange}
+              foodQty={foodQty}
+              handleExtraQtyChange={handleExtraQtyChange}
+              lang={lang}
+              paymentAmount={paymentAmount}
+              apiBase={API_BASE_URL}
+              onPaymentMethodSelect={(id, method) =>
+                setSelectedMethodId(id)
+              }
+              onSubmit={handleSubmit}
+            />
 
-              <div className="price-row">
-                <span className="price-label fontsize20">
-                  {dict.baseTripCost}
-                </span>
-                <span className="price-value fontsize20">
-                  {/* ✅ Base Trip Price row: only trip base without food */}
-                  {priceTotal.toFixed(2)}{" "}
-                  <img src={icon5} alt="HEROZ" />
-                </span>
-              </div>
-
-              <div className="divider" />
-              <div className="price-subtitle">{dict.included}</div>
-              <div className="divider" />
-              <div className="food-wrap">
-                <FoodInfo
-                  ActivityData={ActivityData}
-                  checkedFoodItems={checkedFoodItems}
-                  handleCheckboxChange={handleCheckboxChange}
-                  schoolReqFoodPrice={TripData?.schoolreqfoodprice ?? []}
-                />
-              </div>
-
-              <div className="divider" />
-              <div className="summary">
-                {/* VAT row (per student) */}
-                <div className="summary-row">
-                  <span>{dict.vatAmount}</span>
-                  <span>
-                    {vatAmount.toFixed(2)}{" "}
-                    <img src={icon5} alt="HEROZ" />
-                  </span>
-                </div>
-
-                {/* Subtotal row (Trip + Food base amounts, no VAT) */}
-                <div className="summary-row">
-                  <span>{dict.subtotal}</span>
-                  <span>
-                    {/* ✅ Subtotal = Base Trip Price + All food base amounts (without VAT) */}
-                    {perStudentSubTotal.toFixed(2)}{" "}
-                    <img src={icon5} alt="HEROZ" />
-                  </span>
-                </div>
-              </div>
-
-              {/* Total Payable (per student) = subtotal + VAT (same as grandTotalWithTax) */}
-              <div className="summary-row total trip-gradient-color">
-                <span>
-                  <div>{dict.totalPayable}</div>
-                  <div>({dict.perStudent})</div>
-                </span>
-                <span>
-                  {grandTotalWithTax.toFixed(2)}{" "}
-                  <img src={icon5} alt="HEROZ" />
-                </span>
-              </div>
-
-              {/* Net payable only if more than 1 kid */}
-              {validKidsCount > 1 && (
-                <div className="summary-row total net-payable trip-gradient-color">
-                  <span>
-                    {dict.netPayableAmount.replace(
-                      "{count}",
-                      validKidsCount
-                    )}
-                  </span>
-                  <span>
-                    {(grandTotalWithTax * validKidsCount).toFixed(2)}{" "}
-                    <img src={icon5} alt="HEROZ" />
-                  </span>
-                </div>
-              )}
-
-              {/* ===== MyFatoorah: Initiate + Choose (reusable picker) ===== */}
-              <div style={{ marginTop: 16 }}>
-                <PaymentMethodPicker
-                  amount={paymentAmount}
-                  apiBase={API_BASE_URL}
-                  currency="SAR"
-                  onSelect={(id, method) => setSelectedMethodId(id)}
-                  autoFetch
-                  lang={lang}
-                />
-              </div>
-
-              <div className="divider" />
-
-              {/* Removed hardcoded radios. Only the picker remains. */}
-              <div className="payment-group">
-                <button className="btn-primary" onClick={handleSubmit}>
-                  {dict.continueToPayment}
-                </button>
-              </div>
-            </div>
-
-            {/* Booking form */}
-            <div className="card booking">
-              <h3 className="card-title trip-gradient-color fontsize40">
-                {dict.childInfoBooking}
-              </h3>
-
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>
-                    {dict.parentNameReq}
-                    <span
-                      style={{ color: "red", fontSize: "25px" }}
-                    >
-                      {" "}
-                      *
-                    </span>
-                  </label>
-                  <input name="txtParentName" className="input" />
-                </div>
-                <div className="form-group">
-                  <label>
-                    {dict.parentPhoneReq}
-                    <span
-                      style={{ color: "red", fontSize: "25px" }}
-                    >
-                      {" "}
-                      *
-                    </span>
-                  </label>
-                  <input
-                    name="tripParentsMobileNo"
-                    className="input"
-                    inputMode="numeric"
-                    pattern="^05\\d{8}$"
-                    maxLength={10}
-                    placeholder="05XXXXXXXX"
-                    onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 10);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {childRows.map((row, index) => (
-                <div className="kid-card" key={index}>
-                  <div className="form-grid">
-                    <div className="form-group">
-                      <label>
-                        {dict.childNameReq}
-                        <span
-                          style={{ color: "red", fontSize: "25px" }}
-                        >
-                          {" "}
-                          *
-                        </span>
-                      </label>
-                      <input
-                        name="txtKidsName"
-                        className="input"
-                        value={row.name}
-                        onChange={(e) =>
-                          handleInputChange(index, "name", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>
-                        {dict.gradeClassReq}
-                        <span
-                          style={{ color: "red", fontSize: "25px" }}
-                        >
-                          {" "}
-                          *
-                        </span>
-                      </label>
-                      <input
-                        name="txtKidsClassName"
-                        className="input"
-                        value={row.className}
-                        onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "className",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {/* ➕ Gender select */}
-                  <div className="form-grid">
-                    <div className="form-group">
-                      <label>{dict.gender}</label>
-                      <select
-                        className="input"
-                        value={row.gender}
-                        onChange={(e) =>
-                          handleInputChange(index, "gender", e.target.value)
-                        }
-                      >
-                        <option value="">{dict.select}</option>
-                        <option value="Male">{dict.male}</option>
-                        <option value="Female">{dict.female}</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>{dict.childSchoolIdOptional}</label>
-                      <input
-                        name="txtKidsSchoolID"
-                        className="input"
-                        value={row.schoolID}
-                        onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "schoolID",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {childRows.length > 1 && (
-                    <button
-                      type="button"
-                      className="btn-remove"
-                      onClick={() => handleRemoveRow(index)}
-                    >
-                      {dict.remove}
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              <div className="btn-row-left">
-                <button
-                  type="button"
-                  className="btn-link"
-                  onClick={handleAddRow}
-                >
-                  <span className="trip-gradient-color">
-                    <div className="row-inline">
-                      <img
-                        src={icon6}
-                        alt="HEROZ"
-                        className="icon-tint-pink"
-                      />
-                      <span> {dict.addMoreChild}</span>
-                    </div>
-                  </span>
-                </button>
-              </div>
-
-              <div className="form-group">
-                <label>{dict.parentsNote}</label>
-                <textarea
-                  name="txtParentsNote"
-                  className="input"
-                  rows={4}
-                  placeholder={dict.parentsNotePlaceholder}
-                />
-              </div>
-
-              <div className="terms">
-                <h4>{dict.proposalMessage}</h4>
-                <div className="terms-text">
-                  {TripData?.ProposalMessage?.split("\n").map(
-                    (line, index) => (
-                      <React.Fragment key={index}>
-                        {line}
-                        <br />
-                      </React.Fragment>
-                    )
-                  )}
-                </div>
-              </div>
-
-              <div className="terms">
-                <h4>{dict.vendorTerms}</h4>
-                <div className="terms-text">
-                  {ActivityData?.actAdminNotes
-                    ?.split("\n")
-                    .map((line, index) => (
-                      <React.Fragment key={index}>
-                        {line}
-                        <br />
-                      </React.Fragment>
-                    ))}
-                </div>
-              </div>
-              <div className="terms">
-                <h4>{dict.schoolTerms}</h4>
-                <div className="terms-text">
-                  {TripData?.SchoolTerms?.split("\n").map((line, index) => (
-                    <React.Fragment key={index}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Booking form (separate component) */}
+            <ParentForm
+              dict={dict}
+              TripData={TripData}
+              ActivityData={ActivityData}
+              childRows={childRows}
+              onAddRow={handleAddRow}
+              onRemoveRow={handleRemoveRow}
+              onInputChange={handleInputChange}
+            />
           </section>
 
           {/* Confirm Modal */}
@@ -1324,61 +1099,16 @@ const ProposalPage = () => {
               <CModalTitle>{dict.confirmSelections}</CModalTitle>
             </CModalHeader>
             <CModalBody>
-              {confirmSummary ? (
-                <div className="confirm-summary">
-                  <div style={{ marginBottom: 12 }}>
-                    <strong>{dict.includedFood}</strong>{" "}
-                    {confirmSummary.included}
-                  </div>
-
-                  <div style={{ marginBottom: 12 }}>
-                    <strong>{dict.paymentMethod}</strong>{" "}
-                    {confirmSummary.paymentLabel}
-                  </div>
-
-                  <div>
-                    <strong>{dict.totals}</strong>
-                    <ul style={{ marginTop: 6 }}>
-                      <li>
-                        {dict.baseTripPerStudent}:{" "}
-                        {confirmSummary.totals.baseTripPerStudent}
-                      </li>
-                      <li>
-                        {dict.foodPerStudent}:{" "}
-                        {confirmSummary.totals.foodPerStudent}
-                      </li>
-                      
-                      {/* ✅ NEW: VAT per student */}
-                      <li>
-                        {(dict.vatPerStudentLabel ||
-                          "VAT (per student)")}{" "}
-                        : {confirmSummary.totals.vatPerStudent}
-                      </li>
-                      <li>
-                        {dict.grandPerStudent}:{" "}
-                        {confirmSummary.totals.grandPerStudent}
-                      </li>
-                      {/* ✅ NEW: Total VAT for all students */}
-                      <li>
-                        {(dict.totalVatLabel || "Total VAT")}{" "}
-                        : {confirmSummary.totals.totalVat}
-                      </li>
-                      <li>
-                        {dict.studentsLabel}:{" "}
-                        {confirmSummary.totals.students} —{" "}
-                        {dict.netAmountLabel}:{" "}
-                        {confirmSummary.totals.netAmount}
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div style={{ marginTop: 6 }}>
-                    {dict.areYouSureSubmit}
-                  </div>
-                </div>
-              ) : (
-                <div>{dict.loadingSummary}</div>
-              )}
+              <p
+                style={{
+                  margin: 0,
+                  textAlign: lang === "ar" ? "right" : "left",
+                  fontSize: "1.1rem",
+                  fontWeight: 500,
+                }}
+              >
+                {dict.are_you_ready_to_pay_trip}
+              </p>
             </CModalBody>
             <CModalFooter>
               <CButton
@@ -1420,7 +1150,6 @@ const ProposalPage = () => {
             </CModalFooter>
           </CModal>
 
-          {/* Zero/negative Trip Price modal (auto-redirects after Xs) */}
           <TripCostZero
             visible={showZeroCostModal}
             seconds={30}
@@ -1431,9 +1160,6 @@ const ProposalPage = () => {
               window.location.href = PAYERROR_URL;
             }}
           />
-
-          {/* 🔍 DEBUG PANEL (commented out) */}
-          {/* ... */}
         </main>
 
         <ProgramFooter lang={lang} />
