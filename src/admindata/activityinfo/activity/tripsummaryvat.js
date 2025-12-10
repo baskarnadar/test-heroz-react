@@ -36,6 +36,11 @@ const TripSummaryVat = ({
 
   const vatLabel = vatPercentValue ? ` (${to2(vatPercentValue)}%)` : ''
 
+  // --------- SCHOOL PRICE (EXCLUDING FOOD – TRIP ONLY) ----------
+  const vendorPriceForSchool = tripTotalVendor // trip only (incl. VAT)
+  const herozPriceForSchool = tripTotalHeroz // trip only (incl. VAT)
+  const schoolFinalPrice = vendorPriceForSchool + herozPriceForSchool
+
   // --------- SHARED STYLES ----------
   const cardWrapperStyle = {
     maxWidth: 900,
@@ -93,6 +98,19 @@ const TripSummaryVat = ({
     color: '#000',
     textAlign: 'right',
     fontWeight: 700,
+  }
+
+  const schoolBoxStyle = {
+    maxWidth: 900,
+    margin: '20px auto 0',
+    padding: '18px 24px',
+    borderRadius: 24,
+    border: '4px solid #6a1b9a',
+    backgroundColor: 'rgba(234, 209, 255, 0.7)',
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 700,
+    lineHeight: 1.6,
   }
 
   return (
@@ -247,6 +265,24 @@ const TripSummaryVat = ({
             {to2(totalHerozWithVat || overallHerozTotal)}
           </div>
         </div>
+      </div>
+
+      {/* ========== FINAL SCHOOL PRICE (EXCLUDING FOOD) ========== */}
+      <div style={schoolBoxStyle}>
+        <span>School Price (Incl. VAT, excluding food)</span>
+        <br />
+        <span>
+          ={' '}
+          <span style={{ color: '#1b5e20' }}>
+            Vendor Price (inclusive ) {to2(vendorPriceForSchool)}
+          </span>{' '}
+          +{' '}
+          <span style={{ color: '#1a237e' }}>
+            Heroz price (inclusive ) {to2(herozPriceForSchool)}
+          </span>{' '}
+          ={' '}
+          <span style={{ color: '#c62828' }}>{to2(schoolFinalPrice)}</span>
+        </span>
       </div>
     </div>
   )
