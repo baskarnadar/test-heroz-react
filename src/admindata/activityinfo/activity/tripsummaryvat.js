@@ -406,7 +406,7 @@ const TripSummaryVat = ({
           </div>
 
           {/* Row 3: Final total */}
-          <div
+          {/* <div
             style={{
               padding: '10px 10px',
               borderRadius: 12,
@@ -439,7 +439,7 @@ const TripSummaryVat = ({
             }}
           >
             {to2(schoolFinalWithFood)}
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

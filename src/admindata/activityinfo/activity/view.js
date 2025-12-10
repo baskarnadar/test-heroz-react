@@ -1030,7 +1030,7 @@ const Vendor = () => {
               fontWeight: 700,
             }}
           >
-            Food (Incl. VAT)
+            Additional Item (Incl. VAT)
           </div>
           <div
             style={{
@@ -1061,7 +1061,7 @@ const Vendor = () => {
           </div>
 
           {/* Row 3: Final total */}
-          <div
+          {/* <div
             style={{
               padding: '10px 10px',
               borderRadius: 12,
@@ -1094,7 +1094,7 @@ const Vendor = () => {
             }}
           >
             {to2(schoolPriceWithFood)}
-          </div>
+          </div> */}
         </div>
       </div>
 
