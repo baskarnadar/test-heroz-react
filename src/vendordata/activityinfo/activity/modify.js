@@ -2353,7 +2353,7 @@ const Vendor = () => {
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              {tr('summaryTotalCostInclVat', 'Your Total Price Included VAT')}
+              {tr('summaryTotalCostInclVat', 'Your Total Price Including VAT')}
             </div>
             <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
               {tr(
