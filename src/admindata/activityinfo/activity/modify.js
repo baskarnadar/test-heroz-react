@@ -1967,6 +1967,9 @@ const Vendor = () => {
       </div>
 
       {/* ⭐ FINAL BIG TRIP COST SUMMARY (BELOW TERMS & CONDITIONS) */}
+     
+      
+         {/*
       <div
         style={{
           maxWidth: 800,
@@ -1982,12 +1985,12 @@ const Vendor = () => {
         }}
       >
         {/* MAIN SCHOOL PRICE FORMULA */}
-        School Price Including Food (Incl. VAT) ={' '}
+          {/*  School Price Including Food (Incl. VAT) ={' '}
         <span style={{ color: '#1b5e20' }}>Vendor Price (inclusive ) {to2(totalWithVat)}</span> +{' '}
         <span style={{ color: '#1a237e' }}>Heroz price (inclusive ) {to2(totalHerozWithVat)}</span> ={' '}
         <span style={{ color: '#c62828' }}>{to2(totalTripCost)}</span>
         {/* 🔴 EXTRA LINE: SUM OF RED COLUMNS (HEROZ AMOUNT + HEROZ VAT) */}
-        <div
+         {/*   <div
           style={{
             marginTop: 12,
             fontSize: 16,
@@ -1996,7 +1999,9 @@ const Vendor = () => {
         >
         
         </div>
-      </div>
+      </div> 
+      */}
+     
 
       <div className="button-container">
         <button

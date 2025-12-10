@@ -36,10 +36,16 @@ const TripSummaryVat = ({
 
   const vatLabel = vatPercentValue ? ` (${to2(vatPercentValue)}%)` : ''
 
-  // --------- SCHOOL PRICE (EXCLUDING FOOD – TRIP ONLY) ----------
-  const vendorPriceForSchool = tripTotalVendor // trip only (incl. VAT)
-  const herozPriceForSchool = tripTotalHeroz // trip only (incl. VAT)
-  const schoolFinalPrice = vendorPriceForSchool + herozPriceForSchool
+  // --------- SCHOOL PRICE (TRIP ONLY, FOOD ONLY, FINAL) ----------
+  const vendorTripForSchool = tripTotalVendor // trip only (incl. VAT)
+  const herozTripForSchool = tripTotalHeroz // trip only (incl. VAT)
+  const schoolTripOnly = vendorTripForSchool + herozTripForSchool
+
+  const vendorFoodForSchool = foodTotalVendor // food only (incl. VAT)
+  const herozFoodForSchool = foodTotalHeroz // food only (incl. VAT)
+  const schoolFoodOnly = vendorFoodForSchool + herozFoodForSchool
+
+  const schoolFinalWithFood = schoolTripOnly + schoolFoodOnly
 
   // --------- SHARED STYLES ----------
   const cardWrapperStyle = {
@@ -100,17 +106,15 @@ const TripSummaryVat = ({
     fontWeight: 700,
   }
 
-  const schoolBoxStyle = {
+  const schoolBoxWrapper = {
     maxWidth: 900,
     margin: '20px auto 0',
     padding: '18px 24px',
     borderRadius: 24,
     border: '4px solid #6a1b9a',
     backgroundColor: 'rgba(234, 209, 255, 0.7)',
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: 700,
-    lineHeight: 1.6,
+    fontSize: 16,
+    fontWeight: 600,
   }
 
   return (
@@ -192,7 +196,7 @@ const TripSummaryVat = ({
         </div>
       </div>
 
-      {/* ========== FINAL BIG TOTAL BOXES (SAME AS BEFORE) ========== */}
+      {/* ========== FINAL BIG TOTAL BOXES (Vendor & Heroz) ========== */}
       <div
         style={{
           maxWidth: 900,
@@ -203,7 +207,7 @@ const TripSummaryVat = ({
         }}
       >
         {/* Vendor total box */}
-        <div
+        {/* <div
           style={{
             flex: 1,
             minWidth: 260,
@@ -231,10 +235,10 @@ const TripSummaryVat = ({
           >
             {to2(totalWithVat || overallVendorTotal)}
           </div>
-        </div>
+        </div> */}
 
         {/* Heroz total box */}
-        <div
+        {/* <div
           style={{
             flex: 1,
             minWidth: 260,
@@ -264,25 +268,179 @@ const TripSummaryVat = ({
           >
             {to2(totalHerozWithVat || overallHerozTotal)}
           </div>
-        </div>
+        </div> */}
       </div>
 
-      {/* ========== FINAL SCHOOL PRICE (EXCLUDING FOOD) ========== */}
-      <div style={schoolBoxStyle}>
-        <span>School Price (Incl. VAT, excluding food)</span>
-        <br />
-        <span>
-          ={' '}
-          <span style={{ color: '#1b5e20' }}>
-            Vendor Price (inclusive ) {to2(vendorPriceForSchool)}
-          </span>{' '}
-          +{' '}
-          <span style={{ color: '#1a237e' }}>
-            Heroz price (inclusive ) {to2(herozPriceForSchool)}
-          </span>{' '}
-          ={' '}
-          <span style={{ color: '#c62828' }}>{to2(schoolFinalPrice)}</span>
-        </span>
+      {/* ========== FINAL SCHOOL PRICE GRID (TRIP + FOOD + FINAL) ========== */}
+      <div style={schoolBoxWrapper}>
+        <div
+          style={{
+            marginBottom: 10,
+            fontSize: 18,
+            fontWeight: 800,
+            textAlign: 'center',
+            color: '#311b92',
+          }}
+        >
+          School Price Summary (Incl. VAT)
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '2.2fr 4fr 1.3fr',
+            rowGap: 10,
+            columnGap: 16,
+            alignItems: 'center',
+          }}
+        >
+          {/* Header row */}
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#d1c4e9',
+              fontWeight: 700,
+            }}
+          >
+            Name
+          </div>
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#d1c4e9',
+              fontWeight: 700,
+            }}
+          >
+            Description (Vendor Price+Heroz Profit)
+          </div>
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#d1c4e9',
+              fontWeight: 700,
+              textAlign: 'right',
+            }}
+          >
+            Total
+          </div>
+
+          {/* Row 1: Trip only */}
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#ede7f6',
+              fontWeight: 700,
+            }}
+          >
+            School Price (Incl. VAT)
+          </div>
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#ede7f6',
+            }}
+          >
+            <span style={{ color: '#1b5e20' }}>
+               {to2(vendorTripForSchool)}
+            </span>{' '}
+            +{' '}
+            <span style={{ color: '#1a237e' }}>
+               {to2(herozTripForSchool)}
+            </span>
+          </div>
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#ede7f6',
+              textAlign: 'right',
+              fontWeight: 800,
+              color: '#c62828',
+            }}
+          >
+            {to2(schoolTripOnly)}
+          </div>
+
+          {/* Row 2: Food only */}
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#f8eaf6',
+              fontWeight: 700,
+            }}
+          >
+            Food (Incl. VAT)
+          </div>
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#f8eaf6',
+            }}
+          >
+            <span style={{ color: '#1b5e20' }}>
+            {to2(vendorFoodForSchool)}
+            </span>{' '}
+            +{' '}
+            <span style={{ color: '#1a237e' }}>
+              {to2(herozFoodForSchool)}
+            </span>
+          </div>
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: 12,
+              backgroundColor: '#f8eaf6',
+              textAlign: 'right',
+              fontWeight: 800,
+              color: '#c62828',
+            }}
+          >
+            {to2(schoolFoodOnly)}
+          </div>
+
+          {/* Row 3: Final total */}
+          <div
+            style={{
+              padding: '10px 10px',
+              borderRadius: 12,
+              backgroundColor: '#d500f9',
+              fontWeight: 800,
+              color: '#ffffff',
+            }}
+          >
+            Final School Price Including Food (Incl. VAT)
+          </div>
+          <div
+            style={{
+              padding: '10px 10px',
+              borderRadius: 12,
+              backgroundColor: '#e040fb',
+              color: '#ffffff',
+            }}
+          >
+            {to2(schoolTripOnly)} + {to2(schoolFoodOnly)}
+          </div>
+          <div
+            style={{
+              padding: '10px 10px',
+              borderRadius: 12,
+              backgroundColor: '#aa00ff',
+              textAlign: 'right',
+              fontWeight: 900,
+              color: '#ffffff',
+              fontSize: 20,
+            }}
+          >
+            {to2(schoolFinalWithFood)}
+          </div>
+        </div>
       </div>
     </div>
   )
