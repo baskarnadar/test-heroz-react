@@ -34,6 +34,9 @@ import TrupSummary from "../public/component/tripsummary";
 // NEW: parent form extracted
 import ParentForm from "../public/component/parentform";
 
+// 🔹 NEW: import MyFatoorah helper (this replaces window.executeMyFatoorahPayment)
+import { executeMyFatoorahPayment } from "../public/payexcute";
+
 const MOBILE_RE = /^05\d{8}$/; // starts with 05 and total 10 digits
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // simple email format check
 const PAYERROR_URL = "https://school.heroz.sa/public/payerror";
@@ -850,12 +853,13 @@ const ProposalPage = () => {
       }
 
       try {
-        const result = await window.executeMyFatoorahPayment({
+        // 🔹 USE IMPORTED HELPER HERE (no more window.*)
+        const result = await executeMyFatoorahPayment({
           amount: schoolTotalTripCost,
           paymentMethodId: selectedMethodId,
           customer: {
             name: parentName,
-            email: parentEmail || "no-reply@heroz.sa", // 🔹 send real email if provided
+            email: parentEmail || "no-reply@heroz.sa",
             mobile: parentMobile,
           },
           language: lang === "ar" ? "AR" : "EN",
