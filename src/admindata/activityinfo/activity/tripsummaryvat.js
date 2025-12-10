@@ -375,7 +375,7 @@ const TripSummaryVat = ({
               fontWeight: 700,
             }}
           >
-            Food (Incl. VAT)
+            Additional Items (Incl. VAT)
           </div>
           <div
             style={{

@@ -1030,7 +1030,7 @@ const Vendor = () => {
               fontWeight: 700,
             }}
           >
-            Additional Item (Incl. VAT)
+            Additional Items (Incl. VAT)
           </div>
           <div
             style={{
