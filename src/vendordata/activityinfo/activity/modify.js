@@ -6,7 +6,15 @@ import { DspToastMessage, getAuthHeaders, getVatAmount } from '../../../utils/op
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
-
+  const vatPillStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    border: '1px solid #cf2037',
+    borderRadius: 999,
+    padding: '3px 10px',
+    backgroundColor: 'rgba(207, 32, 55, 0.15)',
+    color: '#cf2037',
+  }
 // ✅ Import the shared validator (returns { ok, errors, message? })
 import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
 
@@ -2226,10 +2234,10 @@ const Vendor = () => {
               {tr('summaryDescription', 'Description')}
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryAmount', 'Amount')}
+              {tr('summaryAmount', 'Amount')} 
             </div>
-            <div style={{ flex: 1, textAlign: 'right', color: '#cf2037' }}>
-              {tr('summaryVat', 'VAT')}
+            <div style={{ flex: 1.7, textAlign: 'right', color: '#cf2037' }}>
+              {tr('summaryVat', 'VAT')} <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryTotal', 'Total')}

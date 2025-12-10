@@ -772,8 +772,11 @@ const Vendor = () => {
               {tr('summaryAmount', 'Amount')}
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryVat', 'VAT')}
-            </div>
+              {tr('summaryVat', 'VAT')}   
+
+          <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
+
+            </div> 
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryTotal', 'Total')}
             </div>
@@ -796,7 +799,7 @@ const Vendor = () => {
                 {tripPriceBase.toFixed(2)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripVatAmount.toFixed(2)}
+                {tripVatAmount.toFixed(2)} 
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
                 {tripTotalWithVat.toFixed(2)}
@@ -818,7 +821,7 @@ const Vendor = () => {
                 {foodBaseAmount.toFixed(2)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodVatAmount.toFixed(2)}
+                {foodVatAmount.toFixed(2)}  
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
                 {foodTotalWithVat.toFixed(2)}

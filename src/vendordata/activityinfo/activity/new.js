@@ -1202,8 +1202,8 @@ const Vendor = () => {
             <div style={{ flex: 1.5 }}>
               {tr('summaryDescription', 'Description')}
             </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryAmount', 'Amount')}
+            <div style={{ flex: 1.5, textAlign: 'right' }}>
+              {tr('summaryAmount', 'Amount')}  <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryVat', 'VAT')}
