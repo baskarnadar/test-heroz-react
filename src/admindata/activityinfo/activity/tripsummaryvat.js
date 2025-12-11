@@ -18,7 +18,16 @@ const TripSummaryVat = ({
   totalWithVat = 0,
   totalHerozWithVat = 0,
 }) => {
-  const to2 = (v) => Number(v || 0).toFixed(2)
+  // --------- ROUNDING HELPER (financial style) ----------
+  // Example:
+  //   2.447 -> 2.45
+  //   2.444 -> 2.44
+  const to2 = (v) => {
+    const n = Number(v || 0)
+    if (!Number.isFinite(n)) return '0.00'
+    const scaled = Math.round((n + Number.EPSILON) * 100) // avoid binary issues
+    return (scaled / 100).toFixed(2)
+  }
 
   // --------- VENDOR / SCHOOL SIDE TOTALS ----------
   const tripTotalVendor = Number(tripBasePrice || 0) + Number(tripVatAmount || 0)
@@ -206,69 +215,7 @@ const TripSummaryVat = ({
           flexWrap: 'wrap',
         }}
       >
-        {/* Vendor total box */}
-        {/* <div
-          style={{
-            flex: 1,
-            minWidth: 260,
-            border: '3px solid #2e7d32',
-            borderRadius: 16,
-            padding: '12px 16px',
-            backgroundColor: 'rgba(46, 125, 50, 0.15)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              Vendor Price
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>Price + VAT</div>
-          </div>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 24,
-              color: '#1b5e20',
-            }}
-          >
-            {to2(totalWithVat || overallVendorTotal)}
-          </div>
-        </div> */}
-
-        {/* Heroz total box */}
-        {/* <div
-          style={{
-            flex: 1,
-            minWidth: 260,
-            border: '3px solid #283593',
-            borderRadius: 16,
-            padding: '12px 16px',
-            backgroundColor: 'rgba(40, 53, 147, 0.15)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1a237e' }}>
-              Heroz Profit (inclusive )
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.9, color: '#1a237e' }}>
-              Heroz Profit + Heroz VAT
-            </div>
-          </div>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 24,
-              color: '#1a237e',
-            }}
-          >
-            {to2(totalHerozWithVat || overallHerozTotal)}
-          </div>
-        </div> */}
+        {/* Vendor / Heroz total boxes are commented out (kept for future) */}
       </div>
 
       {/* ========== FINAL SCHOOL PRICE GRID (TRIP + FOOD + FINAL) ========== */}
@@ -345,13 +292,9 @@ const TripSummaryVat = ({
               backgroundColor: '#ede7f6',
             }}
           >
-            <span style={{ color: '#1b5e20' }}>
-               {to2(vendorTripForSchool)}
-            </span>{' '}
+            <span style={{ color: '#1b5e20' }}>{to2(vendorTripForSchool)}</span>{' '}
             +{' '}
-            <span style={{ color: '#1a237e' }}>
-               {to2(herozTripForSchool)}
-            </span>
+            <span style={{ color: '#1a237e' }}>{to2(herozTripForSchool)}</span>
           </div>
           <div
             style={{
@@ -384,13 +327,9 @@ const TripSummaryVat = ({
               backgroundColor: '#f8eaf6',
             }}
           >
-            <span style={{ color: '#1b5e20' }}>
-            {to2(vendorFoodForSchool)}
-            </span>{' '}
+            <span style={{ color: '#1b5e20' }}>{to2(vendorFoodForSchool)}</span>{' '}
             +{' '}
-            <span style={{ color: '#1a237e' }}>
-              {to2(herozFoodForSchool)}
-            </span>
+            <span style={{ color: '#1a237e' }}>{to2(herozFoodForSchool)}</span>
           </div>
           <div
             style={{
@@ -405,41 +344,7 @@ const TripSummaryVat = ({
             {to2(schoolFoodOnly)}
           </div>
 
-          {/* Row 3: Final total */}
-          {/* <div
-            style={{
-              padding: '10px 10px',
-              borderRadius: 12,
-              backgroundColor: '#d500f9',
-              fontWeight: 800,
-              color: '#ffffff',
-            }}
-          >
-            Final School Price Including Food (Incl. VAT)
-          </div>
-          <div
-            style={{
-              padding: '10px 10px',
-              borderRadius: 12,
-              backgroundColor: '#e040fb',
-              color: '#ffffff',
-            }}
-          >
-            {to2(schoolTripOnly)} + {to2(schoolFoodOnly)}
-          </div>
-          <div
-            style={{
-              padding: '10px 10px',
-              borderRadius: 12,
-              backgroundColor: '#aa00ff',
-              textAlign: 'right',
-              fontWeight: 900,
-              color: '#ffffff',
-              fontSize: 20,
-            }}
-          >
-            {to2(schoolFinalWithFood)}
-          </div> */}
+          {/* Row 3: Final total (commented out, kept for future) */}
         </div>
       </div>
     </div>

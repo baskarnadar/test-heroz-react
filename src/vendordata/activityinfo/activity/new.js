@@ -32,6 +32,13 @@ const Vendor = () => {
   const vatPercentValue = Number(getVatAmount() || 0)   // 15
   const vatRateValue = vatPercentValue / 100           // 0.15
 
+  // ⭐ Standard money rounding (2.447 → 2.45, etc.)
+  const to2 = (v) => {
+    const n = Number(v || 0)
+    if (!Number.isFinite(n)) return '0.00'
+    return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2)
+  }
+
   const [showModal, setShowModal] = useState(false)
   const [txtactImageName1, setactImageName1] = useState(null)
   const [txtactImageName2, setactImageName2] = useState(null)
@@ -505,8 +512,6 @@ const Vendor = () => {
     const actavailDaysHoursVal = getAvailDaysHoursData()
     const actPriceDataVal = getPriceData()
 
-    //alert(totalVatAmount);
-
     // 🔍 DEBUG: log VAT + payload
     const url = `${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`
     const payload = {
@@ -891,7 +896,7 @@ const Vendor = () => {
               alignItems: 'center',
             }}
           >
-            {`+ VAT ${vatPercentValue.toFixed(2)}%`}
+            {`+ VAT ${to2(vatPercentValue)}%`}
           </span>
         )}
         <span style={{color:'red'}}>*</span>
@@ -934,8 +939,8 @@ const Vendor = () => {
                   <div style={{ marginTop: 4, fontSize: 12 }}>
                     <span style={vatPillStyle}>
                       {tr('labelVatAmount', 'VAT Amount')}{' '}
-                      ({vatPercentValue.toFixed(2)}%):{' '}
-                      <strong style={{ marginInlineStart: 4 }}>{vatAmount.toFixed(2)}</strong>
+                      ({to2(vatPercentValue)}%):{' '}
+                      <strong style={{ marginInlineStart: 4 }}>{to2(vatAmount)}</strong>
                     </span>
                   </div>
                 )}
@@ -1100,8 +1105,8 @@ const Vendor = () => {
                     <div style={{ fontSize: 12 }}>
                       <span style={vatPillStyle}>
                         {tr('labelVatAmount', 'VAT Amount')}{' '}
-                        ({vatPercentValue.toFixed(2)}%):{' '}
-                        <strong style={{ marginInlineStart: 4 }}>{foodVat.toFixed(2)}</strong>
+                        ({to2(vatPercentValue)}%):{' '}
+                        <strong style={{ marginInlineStart: 4 }}>{to2(foodVat)}</strong>
                       </span>
                     </div>
                   )}
@@ -1203,7 +1208,8 @@ const Vendor = () => {
               {tr('summaryDescription', 'Description')}
             </div>
             <div style={{ flex: 1.5, textAlign: 'right' }}>
-              {tr('summaryAmount', 'Amount')}  <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
+              {tr('summaryAmount', 'Amount')}{' '}
+              <span style={vatPillStyle}>({to2(vatPercentValue)}%)</span>
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryVat', 'VAT')}
@@ -1227,13 +1233,13 @@ const Vendor = () => {
               <div style={{ flex: 0.5 }}>1.</div>
               <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripPriceBase.toFixed(2)}
+                {to2(tripPriceBase)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripVatAmount.toFixed(2)}
+                {to2(tripVatAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripTotalWithVatRow.toFixed(2)}
+                {to2(tripTotalWithVatRow)}
               </div>
             </div>
 
@@ -1249,13 +1255,13 @@ const Vendor = () => {
               <div style={{ flex: 0.5 }}>2.</div>
               <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Food')}</div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodBaseAmount.toFixed(2)}
+                {to2(foodBaseAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodVatAmount.toFixed(2)}
+                {to2(foodVatAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodTotalWithVatRow.toFixed(2)}
+                {to2(foodTotalWithVatRow)}
               </div>
             </div>
 
@@ -1273,13 +1279,13 @@ const Vendor = () => {
                 {tr('summaryTotal', 'Total')}
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalBaseAmount.toFixed(2)}
+                {to2(totalBaseAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalVatAmount.toFixed(2)}
+                {to2(totalVatAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalWithVat.toFixed(2)}
+                {to2(totalWithVat)}
               </div>
             </div>
           </div>
@@ -1319,7 +1325,7 @@ const Vendor = () => {
               marginTop: 8,
             }}
           >
-            {totalWithVat.toFixed(2)}
+            {to2(totalWithVat)}
           </div>
         </div>
       </div>

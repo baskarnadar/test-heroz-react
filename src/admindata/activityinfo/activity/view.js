@@ -50,6 +50,13 @@ const Vendor = () => {
     whiteSpace: 'nowrap',
   }
 
+  // ⭐ FIXED FINANCIAL ROUNDING (2.447 → 2.45, etc.)
+  const to2 = (v) => {
+    const n = Number(v || 0)
+    if (!Number.isFinite(n)) return '0.00'
+    return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2)
+  }
+
   // ---------------- SUMMARY values (Trip + Food) for Vendor/School ---------------
   const firstPriceRowBase =
     ActivityData?.priceList && ActivityData.priceList.length > 0
@@ -111,9 +118,18 @@ const Vendor = () => {
   const overallHerozWithFood = totalHerozWithVatComputed
 
   // ✅ TRIP-ONLY TOTALS (exclude food) for School Price box
-  const tripTotalVendorOnly = firstPriceRowBase + tripVatAmountComputed
-  const tripTotalHerozOnly = firstHerozPriceRowBase + tripHerozVatAmountComputed
-  const schoolPriceTripOnly = tripTotalVendorOnly + tripTotalHerozOnly
+  const tripTotalVendorOnly = firstPriceRowBase + tripHerozVatAmountComputed / vatRateValue * vatRateValue // (keep as derived from base+VAT)
+  // Actually, simpler: vendor-only: base + its VAT:
+  // but we already have:
+  // const tripVatAmountComputed = firstPriceRowBase * vatRateValue
+  // So:
+  // const tripTotalVendorOnly = firstPriceRowBase + tripVatAmountComputed
+  // I'll use that directly:
+  const _tripTotalVendorOnly = firstPriceRowBase + tripVatAmountComputed
+
+  const tripTotalHerozOnly =
+    firstHerozPriceRowBase + tripHerozVatAmountComputed
+  const schoolPriceTripOnly = _tripTotalVendorOnly + tripTotalHerozOnly
 
   // ✅ FOOD-ONLY TOTALS (exclude trip) for School Price box
   const foodTotalVendorOnly = foodBaseAmountComputed + foodVatAmountComputed
@@ -123,9 +139,6 @@ const Vendor = () => {
 
   // ✅ FINAL TOTAL FOR SCHOOL (Trip + Food)
   const schoolPriceWithFood = schoolPriceTripOnly + schoolFoodOnly
-
-  const to2 = (v) => Number(v || 0).toFixed(2)
-  // =======================================================================
 
   const getSearchParams = () => {
     const search =
@@ -432,7 +445,7 @@ const Vendor = () => {
               whiteSpace: 'nowrap',
             }}
           >
-            {`+ VAT ${vatPercentValue.toFixed(2)}%`}
+            {`+ VAT ${to2(vatPercentValue)}%`}
           </span>
         )}
       </div>
@@ -516,10 +529,10 @@ const Vendor = () => {
               {/* Vendor price + VAT pill */}
               <CCol sm={2}> </CCol>
               <CCol sm={3}>
-                <div className="admin-lbl-box pink-shadow6">{priceItem.Price}</div>
+                <div className="admin-lbl-box pink-shadow6">{to2(priceItem.Price)}</div>
                 {vatPercentValue > 0 && (
                   <div style={{ marginTop: 4, fontSize: 12 }}>
-                    <span style={vatPillStyle}>{vendorVat.toFixed(2)}</span>
+                    <span style={vatPillStyle}>{to2(vendorVat)}</span>
                   </div>
                 )}
               </CCol>
@@ -527,11 +540,11 @@ const Vendor = () => {
               {/* Heroz profit + VAT pill */}
               <CCol sm={3}>
                 <div className="admin-lbl-box text-center pink-shadow7">
-                  {priceItem.HerozStudentPrice}
+                  {to2(priceItem.HerozStudentPrice)}
                 </div>
                 {vatPercentValue > 0 && (
                   <div style={{ marginTop: 4, fontSize: 12 }}>
-                    <span style={vatPillStyle}>{herozVat.toFixed(2)}</span>
+                    <span style={vatPillStyle}>{to2(herozVat)}</span>
                   </div>
                 )}
               </CCol>
@@ -542,11 +555,11 @@ const Vendor = () => {
                   className="admin-lbl-box text-end pink-shadow"
                   style={{ marginRight: '10px' }}
                 >
-                  {TotalPricePerStudent.toFixed(2)}
+                  {to2(TotalPricePerStudent)}
                 </div>
                 {vatPercentValue > 0 && (
                   <div style={{ marginTop: 4, fontSize: 12, textAlign: 'right' }}>
-                    <span style={vatPillStyle}>{totalVat.toFixed(2)}</span>
+                    <span style={vatPillStyle}>{to2(totalVat)}</span>
                   </div>
                 )}
               </CCol>
@@ -574,7 +587,7 @@ const Vendor = () => {
               whiteSpace: 'nowrap',
             }}
           >
-            {`+ VAT ${vatPercentValue.toFixed(2)}%`}
+            {`+ VAT ${to2(vatPercentValue)}%`}
           </span>
         )}
       </div>
@@ -616,11 +629,11 @@ const Vendor = () => {
                 {/* Vendor Extra Price + VAT pill */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box text-center pink-shadow6">
-                    {foodItem.FoodPrice}
+                    {to2(foodItem.FoodPrice)}
                   </div>
                   {vatPercentValue > 0 && (
                     <div style={{ marginTop: 4, fontSize: 10 }}>
-                      <span style={vatPillStyle}>{vendorVat.toFixed(2)}</span>
+                      <span style={vatPillStyle}>{to2(vendorVat)}</span>
                     </div>
                   )}
                 </CCol>
@@ -628,11 +641,11 @@ const Vendor = () => {
                 {/* Heroz Extra  profit + VAT pill */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box text-center pink-shadow7">
-                    {foodItem.FoodHerozPrice}
+                    {to2(foodItem.FoodHerozPrice)}
                   </div>
                   {vatPercentValue > 0 && (
                     <div style={{ marginTop: 4, fontSize: 10 }}>
-                      <span style={vatPillStyle}>{herozVat.toFixed(2)}</span>
+                      <span style={vatPillStyle}>{to2(herozVat)}</span>
                     </div>
                   )}
                 </CCol>
@@ -640,11 +653,11 @@ const Vendor = () => {
                 {/* Total Price + VAT pill */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box text-center">
-                    {TotalFoodPrice.toFixed(2)}
+                    {to2(TotalFoodPrice)}
                   </div>
                   {vatPercentValue > 0 && (
                     <div style={{ marginTop: 4, fontSize: 10 }}>
-                      <span style={vatPillStyle}>{totalVat.toFixed(2)}</span>
+                      <span style={vatPillStyle}>{to2(totalVat)}</span>
                     </div>
                   )}
                 </CCol>
@@ -717,7 +730,7 @@ const Vendor = () => {
                     Base Price
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                    VAT ({vatPercentValue.toFixed(2)}%)
+                    VAT ({to2(vatPercentValue)}%)
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
                     Total
@@ -729,13 +742,13 @@ const Vendor = () => {
                 <tr>
                   <td style={{ padding: 8 }}>Trip</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {firstPriceRowBase.toFixed(2)}
+                    {to2(firstPriceRowBase)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {tripVatAmountComputed.toFixed(2)}
+                    {to2(tripVatAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {(firstPriceRowBase + tripVatAmountComputed).toFixed(2)}
+                    {to2(firstPriceRowBase + tripVatAmountComputed)}
                   </td>
                 </tr>
 
@@ -743,13 +756,13 @@ const Vendor = () => {
                 <tr>
                   <td style={{ padding: 8 }}>Extra</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {foodBaseAmountComputed.toFixed(2)}
+                    {to2(foodBaseAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {foodVatAmountComputed.toFixed(2)}
+                    {to2(foodVatAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {(foodBaseAmountComputed + foodVatAmountComputed).toFixed(2)}
+                    {to2(foodBaseAmountComputed + foodVatAmountComputed)}
                   </td>
                 </tr>
 
@@ -757,13 +770,13 @@ const Vendor = () => {
                 <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
                   <td style={{ padding: 8 }}>Total</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {totalBaseAmount.toFixed(2)}
+                    {to2(totalBaseAmount)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {totalVatAmount.toFixed(2)}
+                    {to2(totalVatAmount)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {totalWithVat.toFixed(2)}
+                    {to2(totalWithVat)}
                   </td>
                 </tr>
               </tbody>
@@ -800,7 +813,7 @@ const Vendor = () => {
                     Heroz Profit
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                    Heroz VAT ({vatPercentValue.toFixed(2)}%)
+                    Heroz VAT ({to2(vatPercentValue)}%)
                   </th>
                   <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
                     Total
@@ -812,13 +825,13 @@ const Vendor = () => {
                 <tr>
                   <td style={{ padding: 8 }}>Trip</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {firstHerozPriceRowBase.toFixed(2)}
+                    {to2(firstHerozPriceRowBase)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {tripHerozVatAmountComputed.toFixed(2)}
+                    {to2(tripHerozVatAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {(firstHerozPriceRowBase + tripHerozVatAmountComputed).toFixed(2)}
+                    {to2(firstHerozPriceRowBase + tripHerozVatAmountComputed)}
                   </td>
                 </tr>
 
@@ -826,13 +839,13 @@ const Vendor = () => {
                 <tr>
                   <td style={{ padding: 8 }}>Extra</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {foodHerozBaseAmountComputed.toFixed(2)}
+                    {to2(foodHerozBaseAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {foodHerozVatAmountComputed.toFixed(2)}
+                    {to2(foodHerozVatAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {(foodHerozBaseAmountComputed + foodHerozVatAmountComputed).toFixed(2)}
+                    {to2(foodHerozBaseAmountComputed + foodHerozVatAmountComputed)}
                   </td>
                 </tr>
 
@@ -840,13 +853,13 @@ const Vendor = () => {
                 <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
                   <td style={{ padding: 8 }}>Total</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {totalHerozBaseAmountComputed.toFixed(2)}
+                    {to2(totalHerozBaseAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {totalHerozVatAmountComputed.toFixed(2)}
+                    {to2(totalHerozVatAmountComputed)}
                   </td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
-                    {totalHerozWithVatComputed.toFixed(2)}
+                    {to2(totalHerozWithVatComputed)}
                   </td>
                 </tr>
               </tbody>
@@ -854,57 +867,7 @@ const Vendor = () => {
           </div>
         </div>
 
-        {/* Total cards (bottom) */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '20px',
-            flexWrap: 'wrap',
-            marginTop: '20px',
-          }}
-        >
-          {/* Total Price (Incl. VAT) */}
-          {/* <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              backgroundColor: '#d5f5e3',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontWeight: 'bold',
-            }}
-          >
-            <div>
-              <div> Vendor Price (Inclusive)</div>
-              <div style={{ fontSize: 12 }}>Price + VAT</div>
-            </div>
-            <div style={{ fontSize: 26 }}>{overallVendorWithFood.toFixed(2)}</div>
-          </div> */}
-
-          {/* Heroz Price (Incl. VAT) */}
-          {/* <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              backgroundColor: '#e4ddff',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontWeight: 'bold',
-            }}
-          >
-            <div>
-              <div> Heroz Profit (Inclusive)</div>
-              <div style={{ fontSize: 12 }}>Heroz Profit + Heroz VAT</div>
-            </div>
-            <div style={{ fontSize: 26 }}>{overallHerozWithFood.toFixed(2)}</div>
-          </div> */}
-        </div>
+        {/* Total cards (bottom) – still commented */}
       </div>
       {/* ======================================================================== */}
 
@@ -1001,11 +964,11 @@ const Vendor = () => {
             }}
           >
             <span style={{ color: '#1b5e20' }}>
-               {to2(tripTotalVendorOnly)}
+              {to2(_tripTotalVendorOnly)}
             </span>{' '}
             +{' '}
             <span style={{ color: '#1a237e' }}>
-               {to2(tripTotalHerozOnly)}
+              {to2(tripTotalHerozOnly)}
             </span>
           </div>
           <div
@@ -1040,7 +1003,7 @@ const Vendor = () => {
             }}
           >
             <span style={{ color: '#1b5e20' }}>
-               {to2(foodTotalVendorOnly)}
+              {to2(foodTotalVendorOnly)}
             </span>{' '}
             +{' '}
             <span style={{ color: '#1a237e' }}>
@@ -1060,41 +1023,7 @@ const Vendor = () => {
             {to2(schoolFoodOnly)}
           </div>
 
-          {/* Row 3: Final total */}
-          {/* <div
-            style={{
-              padding: '10px 10px',
-              borderRadius: 12,
-              backgroundColor: '#d500f9',
-              fontWeight: 800,
-              color: '#ffffff',
-            }}
-          >
-            Final School Price Including Food  
-          </div>
-          <div
-            style={{
-              padding: '10px 10px',
-              borderRadius: 12,
-              backgroundColor: '#e040fb',
-              color: '#ffffff',
-            }}
-          >
-            {to2(schoolPriceTripOnly)} + {to2(schoolFoodOnly)}
-          </div>
-          <div
-            style={{
-              padding: '10px 10px',
-              borderRadius: 12,
-              backgroundColor: '#aa00ff',
-              textAlign: 'right',
-              fontWeight: 900,
-              color: '#ffffff',
-              fontSize: 20,
-            }}
-          >
-            {to2(schoolPriceWithFood)}
-          </div> */}
+          {/* Row 3 (final school price) is still commented out */}
         </div>
       </div>
 

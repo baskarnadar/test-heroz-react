@@ -975,7 +975,13 @@ const Vendor = () => {
   const totalHerozWithVat = totalHerozBaseAmount + totalHerozVatAmount
 
   const totalTripCost = totalWithVat + totalHerozWithVat
-  const to2 = (v) => Number(v || 0).toFixed(2)
+
+  // ⭐ FIXED FINANCIAL ROUNDING (2.447 → 2.45, etc.)
+  const to2 = (v) => {
+    const n = Number(v || 0)
+    if (!Number.isFinite(n)) return '0.00'
+    return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2)
+  }
 
   const vatPillStyle = {
     display: 'inline-flex',
@@ -1967,9 +1973,7 @@ const Vendor = () => {
       </div>
 
       {/* ⭐ FINAL BIG TRIP COST SUMMARY (BELOW TERMS & CONDITIONS) */}
-     
-      
-         {/*
+      {/*
       <div
         style={{
           maxWidth: 800,

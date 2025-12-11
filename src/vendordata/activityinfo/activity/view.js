@@ -74,6 +74,13 @@ const Vendor = () => {
   const priceList = ActivityData?.priceList || []
   const foodList = ActivityData?.foodList || []
 
+  // ⭐ Standard money rounding (2.447 → 2.45, etc.)
+  const to2 = (v) => {
+    const n = Number(v || 0)
+    if (!Number.isFinite(n)) return '0.00'
+    return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2)
+  }
+
   // Base trip price: first price row
   const tripPriceBase = priceList.length > 0 ? Number(priceList[0].Price || 0) : 0
   const tripVatAmount = tripPriceBase * vatRateValue
@@ -463,7 +470,7 @@ const Vendor = () => {
               alignItems: 'center',
             }}
           >
-            {`+ VAT ${vatPercentValue.toFixed(2)}%`}
+            {`+ VAT ${to2(vatPercentValue)}%`}
           </span>
         )}
       </div>
@@ -496,7 +503,7 @@ const Vendor = () => {
                     alt="logo"
                     style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
                   />
-                  {priceItem.Price}
+                  {to2(priceItem.Price)}
                 </div>
 
                 {/* VAT pill + Total incl. VAT under price (read-only) */}
@@ -513,9 +520,9 @@ const Vendor = () => {
                   >
                     <span style={vatPillStyle}>
                       {tr('labelVatAmount', 'VAT Amount')}{' '}
-                      ({vatPercentValue.toFixed(2)}%):{' '}
+                      ({to2(vatPercentValue)}%):{' '}
                       <strong style={{ marginInlineStart: 4 }}>
-                        {vatAmount.toFixed(2)}
+                        {to2(vatAmount)}
                       </strong>
                     </span>
                     <div
@@ -526,7 +533,7 @@ const Vendor = () => {
                       }}
                     >
                       {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
-                      <span>{totalWithVatRow.toFixed(2)}</span>
+                      <span>{to2(totalWithVatRow)}</span>
                     </div>
                   </div>
                 )}
@@ -667,13 +674,13 @@ const Vendor = () => {
               <CRow key={index} className="mb-3 align-items-center">
                 {/* Extra Name */}
                 <CCol sm={3}>
-                  <div className="admin-lbl-box  ">{foodItem.FoodName}</div>
+                  <div className="admin-lbl-box">{foodItem.FoodName}</div>
                 </CCol>
 
                 {/* Price + VAT pill + Total incl. VAT */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box text-center">
-                    {foodItem.FoodPrice}
+                    {to2(foodItem.FoodPrice)}
                   </div>
                   {baseFoodPrice > 0 && vatPercentValue > 0 && (
                     <div
@@ -688,9 +695,9 @@ const Vendor = () => {
                     >
                       <span style={vatPillStyle}>
                         {tr('labelVatAmount', 'VAT Amount')}{' '}
-                        ({vatPercentValue.toFixed(2)}%):{' '}
+                        ({to2(vatPercentValue)}%):{' '}
                         <strong style={{ marginInlineStart: 4 }}>
-                          {foodVat.toFixed(2)}
+                          {to2(foodVat)}
                         </strong>
                       </span>
                       <div
@@ -701,7 +708,7 @@ const Vendor = () => {
                         }}
                       >
                         {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
-                        <span>{foodTotalWithVatRow.toFixed(2)}</span>
+                        <span>{to2(foodTotalWithVatRow)}</span>
                       </div>
                     </div>
                   )}
@@ -772,11 +779,9 @@ const Vendor = () => {
               {tr('summaryAmount', 'Amount')}
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryVat', 'VAT')}   
-
-          <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
-
-            </div> 
+              {tr('summaryVat', 'VAT')}{' '}
+              <span style={vatPillStyle}>({to2(vatPercentValue)}%)</span>
+            </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryTotal', 'Total')}
             </div>
@@ -796,13 +801,13 @@ const Vendor = () => {
               <div style={{ flex: 0.5 }}>1.</div>
               <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripPriceBase.toFixed(2)}
+                {to2(tripPriceBase)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripVatAmount.toFixed(2)} 
+                {to2(tripVatAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {tripTotalWithVat.toFixed(2)}
+                {to2(tripTotalWithVat)}
               </div>
             </div>
 
@@ -811,20 +816,21 @@ const Vendor = () => {
               style={{
                 display: 'flex',
                 padding: '6px 0',
-                borderBottom: '1px solid #eee',
+                borderBottom: '1px solid ' +
+                  '#eee',
                 alignItems: 'center',
               }}
             >
               <div style={{ flex: 0.5 }}>2.</div>
               <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Food')}</div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodBaseAmount.toFixed(2)}
+                {to2(foodBaseAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodVatAmount.toFixed(2)}  
+                {to2(foodVatAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {foodTotalWithVat.toFixed(2)}
+                {to2(foodTotalWithVat)}
               </div>
             </div>
 
@@ -842,13 +848,13 @@ const Vendor = () => {
                 {tr('summaryTotal', 'Total')}
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalBaseAmount.toFixed(2)}
+                {to2(totalBaseAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalVatAmount.toFixed(2)}
+                {to2(totalVatAmount)}
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalWithVat.toFixed(2)}
+                {to2(totalWithVat)}
               </div>
             </div>
           </div>
@@ -888,7 +894,7 @@ const Vendor = () => {
               marginTop: 8,
             }}
           >
-            {totalWithVat.toFixed(2)}
+            {to2(totalWithVat)}
           </div>
         </div>
       </div>
