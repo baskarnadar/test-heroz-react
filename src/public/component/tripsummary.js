@@ -7,6 +7,7 @@ import FoodInfo from "../component/foodinfo";
 const TrupSummary = ({
   dict,
   priceTotal,
+  // NOW: totalPayablePerOrder = tripPriceInclVat + extraPriceInclVat
   grandTotalWithTax,
   validKidsCount,
   ActivityData,
@@ -20,8 +21,18 @@ const TrupSummary = ({
   apiBase,
   onPaymentMethodSelect,
   onSubmit,
+  // per-student trip (Inc VAT)
+  tripPriceInclVat = 0,
+  // total extra for order (Inc VAT)
+  extraPriceInclVat = 0,
 }) => {
-  // ✅ Only show food block if there is any food at all
+  const to2 = (v) => {
+    const n = Number(v || 0);
+    if (!Number.isFinite(n)) return "0.00";
+    const scaled = Math.round((n + Number.EPSILON) * 100);
+    return (scaled / 100).toFixed(2);
+  };
+
   const hasAnyFood = useMemo(
     () =>
       Array.isArray(ActivityData?.foodList) &&
@@ -29,25 +40,39 @@ const TrupSummary = ({
     [ActivityData]
   );
 
+  const basePerStudent = Number(tripPriceInclVat) || 0;
+  const extraTotal = Number(extraPriceInclVat) || 0;
+  const totalPayable = Number(grandTotalWithTax) || basePerStudent + extraTotal;
+
+  // Net payable all kids = trip per student * kids + extra once
+  const netForKids =
+    validKidsCount > 0
+      ? basePerStudent * validKidsCount + extraTotal
+      : totalPayable;
+
+  const extraTotalLabel = dict.extraTotalLabel  ;
+
+  const tripPriceDisplay = basePerStudent;
+
   return (
     <div className="card pricing">
       <h3 className="card-title trip-gradient-color fontsize40">
         {dict.tripsPricing}
       </h3>
 
-      {/* Base Trip Cost */}
+      {/* Trip Price (ONE amount INCLUDING VAT per student) */}
       <div className="price-row">
         <span className="price-label fontsize20">
           {dict.baseTripCost}
         </span>
         <span className="price-value fontsize20">
-          {priceTotal.toFixed(2)} <img src={icon5} alt="HEROZ" />
+          {to2(tripPriceDisplay)} <img src={icon5} alt="HEROZ" />
         </span>
       </div>
 
       <div className="divider" />
 
-      {/* ✅ Food block (Included / Extra) comes fully from FoodInfo */}
+      {/* Food block */}
       {hasAnyFood && (
         <>
           <div className="food-wrap">
@@ -61,33 +86,46 @@ const TrupSummary = ({
               lang={lang}
             />
           </div>
+
+          {/* Extra total INCLUDING VAT (whole order) */}
+          {extraTotal > 0 && (
+            <div
+              style={{
+                marginTop: 6,
+                textAlign: "right",
+                fontSize: 13,
+                fontWeight: 600,
+                opacity: 0.9,
+              }}
+            >
+             
+            </div>
+          )}
+
           <div className="divider" />
         </>
       )}
 
-      {/* ❌ VAT + Subtotal HIDDEN – as requested */}
-
-      {/* Total (per student) */}
+      {/* Total Payable – trip (1 kid) + ALL extras (Inc VAT) */}
       <div className="summary-row total trip-gradient-color">
         <span>
           <div>{dict.totalPayable}</div>
           <div>({dict.ar_inc_vat})</div>
         </span>
         <span>
-          {grandTotalWithTax.toFixed(2)}{" "}
-          <img src={icon5} alt="HEROZ" />
+          {to2(totalPayable)} <img src={icon5} alt="HEROZ" />
         </span>
       </div>
 
-      {/* Net payable for multiple kids */}
+      {/* Net payable for multiple kids – trip * kids + extra once */}
       {validKidsCount > 1 && (
         <div className="summary-row total net-payable trip-gradient-color">
           <span>
-            {dict.netPayableAmount.replace("{count}", validKidsCount)}  <div>({dict.ar_inc_vat})</div>
+            {dict.netPayableAmount.replace("{count}", validKidsCount)}{" "}
+            <div>({dict.ar_inc_vat})</div>
           </span>
           <span>
-            {(grandTotalWithTax * validKidsCount).toFixed(2)}{" "}
-            <img src={icon5} alt="HEROZ" />
+            {to2(netForKids)} <img src={icon5} alt="HEROZ" />
           </span>
         </div>
       )}

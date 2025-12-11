@@ -15,6 +15,15 @@ const FoodInfo = ({
   foodQty = {},
   onQtyChange,
 }) => {
+  // ---------- helpers ----------
+  const round2 = (v) => {
+    const n = Number(v || 0);
+    if (!Number.isFinite(n)) return 0;
+    const scaled = Math.round((n + Number.EPSILON) * 100);
+    return scaled / 100;
+  };
+  const to2 = (v) => round2(v).toFixed(2);
+
   // language + dict selection
   const currentLang = useMemo(() => {
     try {
@@ -60,7 +69,7 @@ const FoodInfo = ({
     return null;
   }
 
-  // ---------- helpers ----------
+  // ---------- price + VAT helper ----------
   const getPrices = (foodItem) => {
     const schoolPrice =
       schoolPriceMap[foodItem.FoodID] ??
@@ -71,11 +80,27 @@ const FoodInfo = ({
 
     const herozPrice = parseFloat(foodItem?.FoodHerozPrice) || 0;
 
+    const totalBase = schoolPrice + vendorPrice + herozPrice;
+
+    // VAT parts
+    const schoolVat =
+      parseFloat(foodItem?.RequestFoodSchoolPriceVatAmount) || 0;
+    const vendorVat = parseFloat(foodItem?.FoodPriceVatAmount) || 0;
+    const herozVat = parseFloat(foodItem?.FoodHerozPriceVatAmount) || 0;
+
+    const totalVat = schoolVat + vendorVat + herozVat;
+    const totalWithVat = totalBase + totalVat;
+
     return {
       schoolPrice,
       vendorPrice,
       herozPrice,
-      totalBase: schoolPrice + vendorPrice + herozPrice,
+      totalBase,
+      schoolVat,
+      vendorVat,
+      herozVat,
+      totalVat,
+      totalWithVat,
     };
   };
 
@@ -93,7 +118,7 @@ const FoodInfo = ({
     background: "linear-gradient(90deg,#7c3aed,#c026d3)",
     color: "#fff",
     fontSize: "22px",
-    display: "flex", // full clickable box
+    display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
@@ -102,8 +127,6 @@ const FoodInfo = ({
     boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
     userSelect: "none",
     lineHeight: "40px",
-
-    // make sure button is above anything else (like Total cell)
     position: "relative",
     zIndex: 10,
     pointerEvents: "auto",
@@ -147,8 +170,12 @@ const FoodInfo = ({
   // ---------- rows for included items ----------
   const renderFreeRows = (list) =>
     list.map((foodItem, index) => {
-      const { schoolPrice, vendorPrice, herozPrice, totalBase } =
-        getPrices(foodItem);
+      const {
+        schoolPrice,
+        vendorPrice,
+        herozPrice,
+        totalWithVat,
+      } = getPrices(foodItem);
       const displayName = getDisplayName(foodItem);
 
       return (
@@ -170,21 +197,22 @@ const FoodInfo = ({
 
           {/* hidden price columns */}
           <CCol sm={2} xs={2} style={{ display: "none" }} className="text-end">
-            {schoolPrice.toFixed(2)}
+            {to2(schoolPrice)}
           </CCol>
           <CCol sm={2} xs={2} style={{ display: "none" }} className="text-end">
-            {vendorPrice.toFixed(2)}
+            {to2(vendorPrice)}
           </CCol>
           <CCol sm={2} xs={2} style={{ display: "none" }} className="text-end">
-            {herozPrice.toFixed(2)}
+            {to2(herozPrice)}
           </CCol>
 
           <CCol sm={9} xs={6}>
             <div>{displayName}</div>
           </CCol>
 
+          {/* ONE amount INCLUDING VAT (no VAT text) */}
           <CCol sm={2} xs={5} className="text-end">
-            {totalBase.toFixed(2)}
+            {to2(totalWithVat)}
           </CCol>
         </CRow>
       );
@@ -197,25 +225,17 @@ const FoodInfo = ({
         schoolPrice,
         vendorPrice,
         herozPrice,
-        totalBase: unitTotal,
+        totalWithVat: unitIncVat,
       } = getPrices(foodItem);
       const displayName = getDisplayName(foodItem);
 
       const isChecked = !!checkedFoodItems[foodItem.FoodID];
       const rawQty = Number(foodQty?.[foodItem.FoodID]) || 0;
 
-      // Qty rules:
-      // - unchecked => display 0
-      // - checked & rawQty<=0 => display 1
-      // - checked & rawQty>0  => that number
       const qty = isChecked ? (rawQty > 0 ? rawQty : 1) : 0;
 
-      // Total rules:
-      // - unchecked => just unit price (20.00)
-      // - checked   => unit * qty
-      const lineTotal = isChecked
-        ? (unitTotal * qty).toFixed(2)
-        : unitTotal.toFixed(2);
+      // Total INCLUDING VAT for this extra line (per booking)
+      const lineIncVat = isChecked ? unitIncVat * qty : unitIncVat;
 
       const handleQtyButton = (delta) => {
         if (!onQtyChange) return;
@@ -262,13 +282,13 @@ const FoodInfo = ({
 
           {/* hidden price columns */}
           <CCol sm={2} xs={2} style={{ display: "none" }} className="text-end">
-            {schoolPrice.toFixed(2)}
+            {to2(schoolPrice)}
           </CCol>
           <CCol sm={2} xs={2} style={{ display: "none" }} className="text-end">
-            {vendorPrice.toFixed(2)}
+            {to2(vendorPrice)}
           </CCol>
           <CCol sm={2} xs={2} style={{ display: "none" }} className="text-end">
-            {herozPrice.toFixed(2)}
+            {to2(herozPrice)}
           </CCol>
 
           {/* Name */}
@@ -316,14 +336,14 @@ const FoodInfo = ({
             </div>
           </CCol>
 
-          {/* Line total */}
+          {/* Line total INCLUDING VAT only (no VAT text) */}
           <CCol
             sm={3}
             xs={4}
             className="text-end"
             style={{ position: "relative", zIndex: 1 }}
           >
-            {lineTotal}
+            {to2(lineIncVat)}
           </CCol>
         </CRow>
       );
