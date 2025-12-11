@@ -617,13 +617,13 @@ const Vendor = () => {
         <div style={{ margin: "20px auto", fontFamily: "Arial, sans-serif" }}>
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={2}>Food Name</CCol>
+            <CCol sm={2}>Extra Name</CCol>
             <CCol sm={1}>Price</CCol>
             <CCol sm={1}>Heroz Price</CCol>
             <CCol sm={1}>School Price</CCol>
             <CCol sm={1}>Total Price</CCol>
             <CCol sm={2}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
+            <CCol sm={2}>Extra Image</CCol>
             <CCol sm={1}>Include</CCol>
             <CCol sm={1}></CCol> {/* For remove button */}
           </CRow>
@@ -639,7 +639,7 @@ const Vendor = () => {
             console.log(parseFloat(foodItem.RequestFoodSchoolPrice));
             return (
               <CRow key={index} className="mb-3 align-items-center">
-                {/* Food Name */}
+                {/* Extra Name */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box">{foodItem.FoodName}</div>
                 </CCol>

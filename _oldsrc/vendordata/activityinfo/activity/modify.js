@@ -21,7 +21,7 @@ const ErrorText = ({ msg }) =>
 const Vendor = () => {
   // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
-  const HIDE_FOOD_IMAGE = true // ⬅️ Hide Food Image everywhere (UI + payload)
+  const HIDE_FOOD_IMAGE = true // ⬅️ Hide Extra Image everywhere (UI + payload)
 
   // ---- i18n helpers (non-destructive) ----
   const getStoredLang = () => {
@@ -1626,14 +1626,14 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Food Information')}</div>
+      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Extra Information')}</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
+            <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
             <CCol sm={2}>{tr('colPrice', 'Price')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
-            {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>}
+            {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>}
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
             <CCol sm={1}>{tr('colDelete', 'Delete')}</CCol>
           </CRow>
@@ -1673,7 +1673,7 @@ const Vendor = () => {
                 />
               </CCol>
 
-              {/* Food Image column (hidden when HIDE_FOOD_IMAGE) */}
+              {/* Extra Image column (hidden when HIDE_FOOD_IMAGE) */}
               {!HIDE_FOOD_IMAGE && (
                 <CCol sm={2}>
                   <input

@@ -20,7 +20,7 @@ const ErrorText = ({ msg }) =>
 const Vendor = () => {
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_ACTIVITY_RATING_UI = false   // actRating field visible
-  const HIDE_FOOD_IMAGE = true            // 👈 hide Food Image everywhere
+  const HIDE_FOOD_IMAGE = true            // 👈 hide Extra Image everywhere
 
   // ✅ Vendor login guard: runs once when this page mounts
   useEffect(() => {
@@ -1051,16 +1051,16 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Food Information')}</div>
+      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Extra Information')}</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
-            <CCol sm={2}>{tr('colBaseFoodPrice', 'Food Price (Excl. VAT)')}</CCol>
+            <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
+            <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
             {/* VAT column */}
             <CCol sm={3}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
-            {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Food Image')}</CCol>}
+            {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Extra Image')}</CCol>}
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
             <CCol sm={1}></CCol>
           </CRow>
@@ -1117,7 +1117,7 @@ const Vendor = () => {
                   />
                 </CCol>
 
-                {/* Food Image column (hidden when HIDE_FOOD_IMAGE) */}
+                {/* Extra Image column (hidden when HIDE_ExtraIMAGE) */}
                 {!HIDE_FOOD_IMAGE && (
                   <CCol sm={1}>
                     <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />

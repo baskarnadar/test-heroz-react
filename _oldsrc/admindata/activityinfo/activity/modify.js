@@ -1604,20 +1604,20 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Food Information</div>
+      <div className="txtsubtitle">Extra Information</div>
       {/* section-level error (if foods rule fails) */}
       <ErrorText msg={errors.foods} />
 
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>Food Name</CCol>
+            <CCol sm={3}>Extra Name</CCol>
             <CCol sm={1}>Price</CCol>
             <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
               Heroz Price
             </CCol>
             <CCol sm={3}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
+            <CCol sm={2}>Exta Image</CCol>
             <CCol sm={1}>Include</CCol>
             <CCol sm={1}>Delete</CCol>
           </CRow>

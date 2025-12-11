@@ -143,7 +143,7 @@ const TripSummaryVat = ({
 
           {/* Food row */}
           <div style={rowStyle}>
-            <div>Food</div>
+            <div>Extra</div>
             <div style={right}>{to2(foodBaseAmount)}</div>
             <div style={right}>{to2(foodVatAmount)}</div>
             <div style={pinkTotalCell}>{to2(foodTotalVendor)}</div>

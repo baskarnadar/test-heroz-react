@@ -1763,7 +1763,7 @@ const Vendor = () => {
       </div>
 
       <div className="txtsubtitle">
-        Food Information
+        Extra Information
         {vatPercentValue > 0 && (
           <span
             style={{
@@ -1789,13 +1789,13 @@ const Vendor = () => {
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>Food Name</CCol>
-            <CCol sm={1}>Vendor Food Price</CCol>
+            <CCol sm={3}>Extra Name</CCol>
+            <CCol sm={1}>Vendor Extra Price</CCol>
             <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
-              Heroz Food Profit
+              Heroz Extra Profit
             </CCol>
             <CCol sm={3}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
+            <CCol sm={2}>Extra Image</CCol>
             <CCol sm={1}>Include</CCol>
             <CCol sm={1}>Delete</CCol>
           </CRow>
@@ -1827,7 +1827,7 @@ const Vendor = () => {
                     onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                     disabled={item.include === true}
                   />
-                  {/* VAT for food price - ONLY AMOUNT, always show (even 0.00) */}
+                  {/* VAT for Extra price - ONLY AMOUNT, always show (even 0.00) */}
                   {vatPercentValue > 0 && (
                     <div>
                       <span style={vatPillStyle}>{foodVat.toFixed(2)}</span>
@@ -1844,7 +1844,7 @@ const Vendor = () => {
                     onChange={(e) => handleFoodChange(index, 'herozprice', e.target.value)}
                     disabled={item.include === true}
                   />
-                  {/* VAT for Heroz food price - ONLY AMOUNT, always show (even 0.00) */}
+                  {/* VAT for Heroz Extra price - ONLY AMOUNT, always show (even 0.00) */}
                   {vatPercentValue > 0 && (
                     <div>
                       <span style={vatPillStyle}>{foodHerozVat.toFixed(2)}</span>

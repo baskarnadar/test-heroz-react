@@ -1506,18 +1506,18 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">Food Information</div>
+      <div className="txtsubtitle">Extra Information</div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>Food Name</CCol>
+            <CCol sm={3}>Extra Name</CCol>
             <CCol sm={1}>Price</CCol>
             <CCol sm={1} style={{ backgroundColor: '#f8eaf3ff' }}>
               Heroz Price
             </CCol>
             <CCol sm={3}>Notes</CCol>
-            <CCol sm={2}>Food Image</CCol>
+            <CCol sm={2}>Extra Image</CCol>
             <CCol sm={1}>Include</CCol>
             <CCol sm={1}>Delete</CCol> {/* For remove button */}
           </CRow>
@@ -1525,7 +1525,7 @@ const Vendor = () => {
           {/* Dynamic Rows */}
           {foods.map((item, index) => (
             <CRow key={index} className="mb-3 align-items-center">
-              {/* Food Name */}
+              {/* Extra Name */}
               <CCol sm={3}>
                 <input
                   type="text"

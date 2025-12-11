@@ -210,7 +210,7 @@ export function validateActivityForm(payload) {
     if (f.include === true) {
       foods[i].price = 0;
     } else if (f.price != null && Number(f.price) < 0) {
-      errors.foods = 'Food price cannot be negative.';
+      errors.foods = 'Extra price cannot be negative.';
       break;
     }
   }

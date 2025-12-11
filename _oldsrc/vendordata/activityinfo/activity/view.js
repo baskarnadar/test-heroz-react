@@ -521,23 +521,23 @@ const Vendor = () => {
       </div>
 
       <div className="txtsubtitle">
-        {tr('sectionFoodInfo', 'Food Information')}
+        {tr('sectionFoodInfo', 'Extra Information')}
       </div>
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {/* Header Row */}
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>{tr('colFoodName', 'Food Name')}</CCol>
+            <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
             <CCol sm={2}>{tr('colPrice', 'Price')}{vatLabelWithPercent}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
-            <CCol sm={2}>{tr('colFoodImage', 'Food Image')}</CCol>
+            <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>
             <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
             <CCol sm={1}></CCol> {/* For remove button */}
           </CRow>
 
           {ActivityData?.foodList?.map((foodItem, index) => (
             <CRow key={index} className="mb-3 align-items-center">
-              {/* Food Name */}
+              {/* Extra Name */}
               <CCol sm={3}>
                 <div className="admin-lbl-box  ">{foodItem.FoodName}</div>
               </CCol>

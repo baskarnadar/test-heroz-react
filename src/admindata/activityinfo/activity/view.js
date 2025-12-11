@@ -414,7 +414,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ================== PRICE PER STUDENT (now same style as Food Information) ================== */}
+      {/* ================== PRICE PER STUDENT (now same style as Extra Information) ================== */}
       <div className="txtsubtitle">
         Price Per Student
         {vatPercentValue > 0 && (
@@ -556,9 +556,9 @@ const Vendor = () => {
       </div>
       {/* =================================================================== */}
 
-      {/* ======================= FOOD INFORMATION (School Food profit hidden) ======================= */}
+      {/* ======================= Extra INFORMATION (School Food profit hidden) ======================= */}
       <div className="txtsubtitle">
-        Food Information
+        Extra Information
         {vatPercentValue > 0 && (
           <span
             style={{
@@ -582,12 +582,12 @@ const Vendor = () => {
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
           {/* Header Row – School Food profit HIDDEN */}
           <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={2}>Food Name</CCol>
-            <CCol sm={2}>Vendor Food Price</CCol>
-            <CCol sm={2}>Heroz Food profit</CCol>
+            <CCol sm={2}>Extra Name</CCol>
+            <CCol sm={2}>Vendor Extra Price</CCol>
+            <CCol sm={2}>Heroz Extra profit</CCol>
             <CCol sm={2}>Total Price</CCol>
             <CCol sm={2}>Notes</CCol>
-            <CCol sm={1}>Food Image</CCol>
+            <CCol sm={1}>Extra Image</CCol>
             <CCol sm={1}>Include</CCol>
           </CRow>
 
@@ -608,12 +608,12 @@ const Vendor = () => {
 
             return (
               <CRow key={index} className="mb-3 align-items-center">
-                {/* Food Name */}
+                {/* Extra Name */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box">{foodItem.FoodName}</div>
                 </CCol>
 
-                {/* Vendor Food Price + VAT pill */}
+                {/* Vendor Extra Price + VAT pill */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box text-center pink-shadow6">
                     {foodItem.FoodPrice}
@@ -625,7 +625,7 @@ const Vendor = () => {
                   )}
                 </CCol>
 
-                {/* Heroz Food profit + VAT pill */}
+                {/* Heroz Extra  profit + VAT pill */}
                 <CCol sm={2}>
                   <div className="admin-lbl-box text-center pink-shadow7">
                     {foodItem.FoodHerozPrice}
@@ -741,7 +741,7 @@ const Vendor = () => {
 
                 {/* Food row */}
                 <tr>
-                  <td style={{ padding: 8 }}>Food</td>
+                  <td style={{ padding: 8 }}>Extra</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
                     {foodBaseAmountComputed.toFixed(2)}
                   </td>
@@ -824,7 +824,7 @@ const Vendor = () => {
 
                 {/* Food row */}
                 <tr>
-                  <td style={{ padding: 8 }}>Food</td>
+                  <td style={{ padding: 8 }}>Extra</td>
                   <td style={{ padding: 8, textAlign: 'right' }}>
                     {foodHerozBaseAmountComputed.toFixed(2)}
                   </td>
