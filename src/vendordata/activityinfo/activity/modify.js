@@ -2285,7 +2285,7 @@ const Vendor = () => {
               }}
             >
               <div style={{ flex: 0.5 }}>2.</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Food')}</div>
+              <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Extra')}</div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {foodBaseAmount.toFixed(2)}
               </div>
