@@ -86,6 +86,16 @@ const tripPaymentTypeIdFromId = (id) => {
   }
 };
 
+// ✅ NEW: template formatter that replaces {KEY} tokens
+const formatTemplate = (template, vars = {}) => {
+  const t = String(template ?? "");
+  return t.replace(/\{([A-Z0-9_]+)\}/gi, (match, key) => {
+    const k = String(key || "").toUpperCase();
+    const val = vars[k];
+    return val == null ? match : String(val);
+  });
+};
+
 const ProposalPage = () => {
   const navigate = useNavigate();
 
@@ -144,8 +154,7 @@ const ProposalPage = () => {
   const [debugResult, setDebugResult] = useState(null);
 
   // freeze base trip price + VAT (per student) once
-  const [initialTripPriceInclVat, setInitialTripPriceInclVat] =
-    useState(null);
+  const [initialTripPriceInclVat, setInitialTripPriceInclVat] = useState(null);
 
   const toggleLang = () => {
     const next = lang === "ar" ? "en" : "ar";
@@ -477,7 +486,6 @@ const ProposalPage = () => {
   }, [ActivityData, checkedFoodItems, foodQty, schoolPriceMap]);
 
   // -------- TOTALS (UI + PAYMENT) ----------
-  // Total payable shown on "Total Payable (Inc VAT)" row
   const totalPayablePerOrder = round2(tripPriceInclVat + extraPriceInclVat);
 
   // helpers for kid rows
@@ -486,6 +494,18 @@ const ProposalPage = () => {
 
   const validKids = useMemo(() => childRows.filter(isValidKid), [childRows]);
   const validKidsCount = validKids.length;
+
+  // ✅ NEW: build child name text for modal (1 kid or many)
+  const childNameText = useMemo(() => {
+    const names = (validKids || [])
+      .map((k) => (k.name || "").trim())
+      .filter(Boolean);
+
+    if (names.length === 0) return "";
+
+    const joiner = lang === "ar" ? "، " : ", ";
+    return names.join(joiner);
+  }, [validKids, lang]);
 
   // Net amount for ALL kids (trip per student * kids + extra once)
   const paymentAmount = useMemo(() => {
@@ -601,8 +621,8 @@ const ProposalPage = () => {
       TripKidsName: row.name.trim(),
       tripKidsClassName: row.className.trim(),
       TripKidsGender: (row.gender || "").trim(),
-      TripCost: tripCostPerStudent.toFixed(2), // base trip per student
-      TripFoodCost: tripFoodCostPerStudent.toFixed(2), // 0, extras separate
+      TripCost: tripCostPerStudent.toFixed(2),
+      TripFoodCost: tripFoodCostPerStudent.toFixed(2),
       TripTaxAmount: tripTaxPerStudent.toFixed(2),
       TripFullAmount: tripFullPerStudent.toFixed(2),
       PayStaus: "NEW",
@@ -631,7 +651,7 @@ const ProposalPage = () => {
       paymentLabel,
       totals: {
         baseTripPerStudent: tripPriceInclVat.toFixed(2),
-        foodPerStudent: extraPriceInclVat.toFixed(2), // total extra (order)
+        foodPerStudent: extraPriceInclVat.toFixed(2),
         grandPerStudent: totalPayablePerOrder.toFixed(2),
         students: validKids.length,
         netAmount: round2(
@@ -884,6 +904,20 @@ const ProposalPage = () => {
     return { title, description, imageUrl };
   }, [ActivityData, absoluteLogoUrl, dict]);
 
+  // ✅ NEW: compute the final confirm message with {CHILDNAME} replaced
+  const confirmPayMessage = useMemo(() => {
+    const fallback =
+      lang === "ar"
+        ? "هل ترغب في إتمام الدفع لرحلة طفلك الآن؟"
+        : "Would you like to finalize the payment for your child's trip now?";
+
+    const template = dict.are_you_ready_to_pay_trip || fallback;
+
+    // if you want special wording for multiple kids, you can change here later
+    const nameToShow = childNameText || "";
+    return formatTemplate(template, { CHILDNAME: nameToShow });
+  }, [dict, childNameText, lang]);
+
   return (
     <>
       <Helmet htmlAttributes={{ lang: lang === "ar" ? "ar" : "en", dir }}>
@@ -1038,7 +1072,6 @@ const ProposalPage = () => {
             <TrupSummary
               dict={dict}
               priceTotal={priceTotal}
-              // 👇 now: total trip+extra (Inc VAT) for UI
               grandTotalWithTax={totalPayablePerOrder}
               validKidsCount={validKidsCount}
               ActivityData={ActivityData}
@@ -1050,9 +1083,7 @@ const ProposalPage = () => {
               lang={lang}
               paymentAmount={paymentAmount}
               apiBase={API_BASE_URL}
-              onPaymentMethodSelect={(id, method) =>
-                setSelectedMethodId(id)
-              }
+              onPaymentMethodSelect={(id, method) => setSelectedMethodId(id)}
               onSubmit={handleSubmit}
               tripPriceInclVat={tripPriceInclVat}
               extraPriceInclVat={extraPriceInclVat}
@@ -1087,14 +1118,12 @@ const ProposalPage = () => {
                   fontWeight: 500,
                 }}
               >
-                {dict.are_you_ready_to_pay_trip}
+                {/* ✅ HERE: {CHILDNAME} replaced with real kid name(s) */}
+                {confirmPayMessage}
               </p>
             </CModalBody>
             <CModalFooter>
-              <CButton
-                color="secondary"
-                onClick={() => setConfirmOpen(false)}
-              >
+              <CButton color="secondary" onClick={() => setConfirmOpen(false)}>
                 {dict.cancel}
               </CButton>
               <CButton
@@ -1121,10 +1150,7 @@ const ProposalPage = () => {
               <p>{errModalMsg}</p>
             </CModalBody>
             <CModalFooter>
-              <CButton
-                color="secondary"
-                onClick={() => setErrModalOpen(false)}
-              >
+              <CButton color="secondary" onClick={() => setErrModalOpen(false)}>
                 {dict.close}
               </CButton>
             </CModalFooter>
