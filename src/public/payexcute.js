@@ -1,10 +1,14 @@
-// src/services/myfatoorah.js
+//payexcute.js
 import { API_BASE_URL } from "../config";
 
 // Minimal helper to parse JSON safely
 async function safeParse(response) {
   const text = await response.text();
-  try { return JSON.parse(text); } catch { return { raw: text }; }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
 }
 
 // --- NEW: tiny helper to send PayLogData without affecting flow ---
@@ -17,7 +21,11 @@ function sendPayLog(PayLogData) {
       navigator.sendBeacon(url, blob);
     } else {
       // fire-and-forget
-      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body }).catch(() => {});
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }).catch(() => {});
     }
   } catch (_) {
     // swallow logging errors
@@ -26,20 +34,10 @@ function sendPayLog(PayLogData) {
 
 /**
  * Execute MyFatoorah payment (create invoice -> PaymentURL).
- * Simple version: no extra validation or normalization.
- *
- * @param {Object} opts
- * @param {string} opts.apiBase
- * @param {number} opts.amount
- * @param {number|string} opts.paymentMethodId
- * @param {{name:string, email:string, mobile:string}} opts.customer
- * @param {string} [opts.language="EN"]
- * @param {string} [opts.displayCurrency="SAR"]
- * @param {boolean} [opts.redirect=true]
  *
  * @returns {Promise<{ ok: boolean, data: any, error?: string, paymentUrl?: string }>}
  */
-export async function executeMyFatoorahPayment({ 
+export async function executeMyFatoorahPayment({
   amount,
   paymentMethodId,
   customer,
@@ -47,22 +45,24 @@ export async function executeMyFatoorahPayment({
   displayCurrency = "SAR",
   redirect = true,
 }) {
-
   const customerReferenceVal = localStorage.getItem("customerReference") || "";
   const userDefinedFieldVal = localStorage.getItem("userDefinedField") || "";
+
+  // ✅ FIX: normalize methodId
+  const methodIdNum = Number(paymentMethodId);
 
   const payload = {
     amount,
     currency: "SAR",
-    paymentMethodId,
-    customer,          // pass through as-is
+    paymentMethodId: Number.isFinite(methodIdNum) ? methodIdNum : paymentMethodId,
+    customer,
     language,
     displayCurrency,
-    customerReference: customerReferenceVal, 
-    userDefinedField: userDefinedFieldVal
+    customerReference: customerReferenceVal,
+    userDefinedField: userDefinedFieldVal,
   };
 
-  const apiUrl = `${API_BASE_URL}/myfatrooahdata/pay/execute-session`; // <--- NEW keep the called URL
+  const apiUrl = `${API_BASE_URL}/myfatrooahdata/pay/execute-session`;
   const r = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -71,7 +71,7 @@ export async function executeMyFatoorahPayment({
 
   const data = await safeParse(r);
 
-  // --- NEW: log success/error response with API URL + payload + response ---
+  // --- log request/response
   try {
     sendPayLog({
       apiUrl,
@@ -80,8 +80,10 @@ export async function executeMyFatoorahPayment({
       responseStatus: r.status,
       responseOk: r.ok,
       apiResponse: data,
-      // a bit of client context can help later; harmless to include
-      client: { href: typeof window !== "undefined" ? window.location.href : "", ua: typeof navigator !== "undefined" ? navigator.userAgent : "" }
+      client: {
+        href: typeof window !== "undefined" ? window.location.href : "",
+        ua: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      },
     });
   } catch (_) {}
 
@@ -89,7 +91,7 @@ export async function executeMyFatoorahPayment({
     const error =
       data?.Message ||
       (Array.isArray(data?.ValidationErrors) && data.ValidationErrors.length
-        ? data.ValidationErrors.map(v => `${v?.Name}: ${v?.Error}`).join(", ")
+        ? data.ValidationErrors.map((v) => `${v?.Name}: ${v?.Error}`).join(", ")
         : null) ||
       data?.error?.Message ||
       JSON.stringify(data).slice(0, 800);
@@ -102,8 +104,19 @@ export async function executeMyFatoorahPayment({
     return { ok: false, data, error: "No PaymentURL in response." };
   }
 
+  // ✅ VERY IMPORTANT: store method + amount before redirect so callback can verify misclassification
+  try {
+    localStorage.setItem(
+      "mf_last_method_id",
+      String(Number.isFinite(methodIdNum) ? methodIdNum : payload.paymentMethodId)
+    );
+    localStorage.setItem("mf_last_amount", String(Number(amount || 0)));
+    localStorage.setItem("mf_last_customerReference", customerReferenceVal || "");
+    localStorage.setItem("mf_last_userDefinedField", userDefinedFieldVal || "");
+    localStorage.setItem("mf_last_started_at", new Date().toISOString());
+  } catch (_) {}
+
   if (redirect) {
-    // redirect after sending log (sendBeacon ensures it still posts during unload)
     window.location.href = paymentUrl;
   }
 

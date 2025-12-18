@@ -156,6 +156,9 @@ const ProposalPage = () => {
   // freeze base trip price + VAT (per student) once
   const [initialTripPriceInclVat, setInitialTripPriceInclVat] = useState(null);
 
+  // ✅ NEW: keep last selected method stable + numeric (prevents misclassification / wrong redirect)
+  const lastMethodIdRef = React.useRef(null);
+
   const toggleLang = () => {
     const next = lang === "ar" ? "en" : "ar";
     setLang(next);
@@ -673,6 +676,9 @@ const ProposalPage = () => {
           .querySelector('textarea[name="txtParentsNote"]')
           ?.value.trim() || "",
       tripPaymentTypeID: tripPaymentTypeIdFromId(selectedMethodId),
+      // ✅ NEW (non-breaking): keep MF method id + label for backend debugging (won't break if backend ignores)
+      tripPaymentMethodId: selectedMethodId != null ? Number(selectedMethodId) : null,
+      tripPaymentMethodLabel: paymentLabelFromId(selectedMethodId),
       kidsInfo,
       FoodIncluded: includedId ? [includedId] : [],
       FoodExtra: extraRows.map(
@@ -760,7 +766,9 @@ const ProposalPage = () => {
       }
     }
 
-    if (!selectedMethodId) {
+    // ✅ NEW: validate numeric payment method id
+    const mid = Number(selectedMethodId);
+    if (!Number.isFinite(mid) || mid <= 0) {
       showError(dict.errChoosePaymentMethod);
       return false;
     }
@@ -843,16 +851,33 @@ const ProposalPage = () => {
           .querySelector('input[name="tripParentsEmail"]')
           ?.value.trim() || "";
 
-      if (!selectedMethodId) {
+      // ✅ NEW: always normalize method id to Number (prevents wrong redirect / misclassification)
+      const methodId = Number(selectedMethodId);
+      if (!Number.isFinite(methodId) || methodId <= 0) {
         showError(dict.errChoosePaymentMethod);
         setSubmitting(false);
         return;
       }
 
+      // ✅ NEW: store a stable ref (avoid any late state mismatch)
+      lastMethodIdRef.current = methodId;
+
       try {
+        // ✅ NEW: extra client-side debug log (visible in console + helpful for MF disputes)
+        try {
+          console.log("MF_CLIENT_METHOD_SELECTED", {
+            selectedMethodIdRaw: selectedMethodId,
+            methodIdNormalized: methodId,
+            label: paymentLabelFromId(methodId),
+            amount: schoolTotalTripCost,
+            requestId: TripData?.RequestID,
+            actRequestRefNo: TripData?.actRequestRefNo,
+          });
+        } catch (_) {}
+
         const result = await executeMyFatoorahPayment({
           amount: schoolTotalTripCost,
-          paymentMethodId: selectedMethodId,
+          paymentMethodId: methodId, // ✅ FIX: always send Number
           customer: {
             name: parentName,
             email: parentEmail || "no-reply@heroz.sa",
@@ -1083,7 +1108,12 @@ const ProposalPage = () => {
               lang={lang}
               paymentAmount={paymentAmount}
               apiBase={API_BASE_URL}
-              onPaymentMethodSelect={(id, method) => setSelectedMethodId(id)}
+              // ✅ FIX: keep your code, only normalize id to Number (prevents MF misclassification)
+              onPaymentMethodSelect={(id, method) => {
+                const nid = Number(id);
+                setSelectedMethodId(Number.isFinite(nid) ? nid : id);
+                lastMethodIdRef.current = Number.isFinite(nid) ? nid : id;
+              }}
               onSubmit={handleSubmit}
               tripPriceInclVat={tripPriceInclVat}
               extraPriceInclVat={extraPriceInclVat}
@@ -1128,7 +1158,7 @@ const ProposalPage = () => {
               </CButton>
               <CButton
                 color="primary"
-                disabled={submitting}
+                disabled={submitting || !selectedMethodId} // ✅ small safety
                 onClick={submitConfirmed}
                 style={{ backgroundColor: "green" }}
               >

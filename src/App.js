@@ -20,13 +20,16 @@ const PublicExpired = React.lazy(() => import('./public/expired'))
 const PublicPayError = React.lazy(() => import('./public/payerror'))
 const PublicPaySuccess = React.lazy(() => import('./public/paysuccess'))
 
-// --- Helpers to read query params on hash routes ---
+// ✅ NEW: Callback verification page (calls Node: /get-payment-status)
+const PublicPayCallback = React.lazy(() => import('./public/paycallback'))
+
+// --- Helpers to read query params ---
 function useQuery() {
   const { search } = useLocation()
   return new URLSearchParams(search)
 }
 
-// --- Inline Success/Error pages (can be moved to separate files later) ---
+// --- Inline Success/Error pages (kept, but NOT used in routes; your real pages are imported above) ---
 function PaySuccess() {
   const q = useQuery()
   const paymentId = q.get('paymentId') || q.get('PaymentId') || q.get('Id') || q.get('InvoiceId')
@@ -64,9 +67,8 @@ function PayError() {
 }
 
 const App = () => {
-  const { isColorModeSet, setColorMode, colorMode } =
-    useColorModes('coreui-free-react-admin-template-theme')
-  const storedTheme = useSelector((state) => state.theme)
+  const { setColorMode, colorMode } = useColorModes('coreui-free-react-admin-template-theme')
+  useSelector((state) => state.theme) // keep your existing selector (even if not used)
 
   useEffect(() => {
     // 🛑 Always force LIGHT mode on first mount
@@ -81,12 +83,8 @@ const App = () => {
         setColorMode('light')
       }
     } catch {
-      // ignore storage errors (Safari privacy, etc.)
+      // ignore storage errors
     }
-
-    // Ignore ?theme=... in URL and any redux-stored theme; keep LIGHT only.
-    // If someone tries to switch later, the effect below will snap it back.
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -114,6 +112,11 @@ const App = () => {
           {/* Public program + payment result pages */}
           <Route path="/public/program/:requestId" element={<PublicProgram />} />
           <Route path="/public/expired" element={<PublicExpired />} />
+
+          {/* ✅ NEW: MF callback verification route (CALLBACK_URL should point here) */}
+          <Route path="/public/paycallback" element={<PublicPayCallback />} />
+
+          {/* Existing result pages */}
           <Route path="/public/payerror" element={<PublicPayError />} />
           <Route path="/public/paysuccess" element={<PublicPaySuccess />} />
 
