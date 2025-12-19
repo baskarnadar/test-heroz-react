@@ -6,7 +6,7 @@ import { API_BASE_URL } from "../../config";
 
 // Apple Pay Method IDs (as MyFatoorah support says: unique ids)
 const MF_APPLEPAY_VISA_MASTER_ID = 11; // Apple Pay (Visa/Master)
-const MF_APPLEPAY_MADA_ID = 13;        // Apple Pay (Mada)
+const MF_APPLEPAY_MADA_ID = 13; // Apple Pay (Mada)
 
 // Other common method IDs you already use
 const MF_VISA_MASTER_ID = 2;
@@ -42,7 +42,8 @@ const TrupSummary = ({
   };
 
   const hasAnyFood = useMemo(
-    () => Array.isArray(ActivityData?.foodList) && ActivityData.foodList.length > 0,
+    () =>
+      Array.isArray(ActivityData?.foodList) && ActivityData.foodList.length > 0,
     [ActivityData]
   );
 
@@ -51,7 +52,9 @@ const TrupSummary = ({
   const totalPayable = Number(grandTotalWithTax) || basePerStudent + extraTotal;
 
   const netForKids =
-    validKidsCount > 0 ? basePerStudent * validKidsCount + extraTotal : totalPayable;
+    validKidsCount > 0
+      ? basePerStudent * validKidsCount + extraTotal
+      : totalPayable;
 
   const tripPriceDisplay = basePerStudent;
 
@@ -82,11 +85,17 @@ const TrupSummary = ({
       const myReqId = ++reqIdRef.current;
 
       try {
-        const r = await fetch(`${apiBase || API_BASE_URL}/myfatrooahdata/pay/initiate-payment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: Number(paymentAmount) || 0, currency: "SAR" }),
-        });
+        const r = await fetch(
+          `${apiBase || API_BASE_URL}/myfatrooahdata/pay/initiate-payment`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: Number(paymentAmount) || 0,
+              currency: "SAR",
+            }),
+          }
+        );
 
         const data = await safeParse(r);
         if (myReqId !== reqIdRef.current) return;
@@ -95,14 +104,21 @@ const TrupSummary = ({
           setMethodsErr(
             data?.Message ||
               data?.error?.Message ||
-              (typeof data === "string" ? data : JSON.stringify(data)).slice(0, 500)
+              (typeof data === "string" ? data : JSON.stringify(data)).slice(
+                0,
+                500
+              )
           );
           setAvailableIds(new Set());
           return;
         }
 
         const list = data?.Data?.PaymentMethods || [];
-        const ids = new Set(list.map((m) => Number(m?.PaymentMethodId)).filter((x) => Number.isFinite(x)));
+        const ids = new Set(
+          list
+            .map((m) => Number(m?.PaymentMethodId))
+            .filter((x) => Number.isFinite(x))
+        );
         setAvailableIds(ids);
 
         // ✅ default selection (prefer Mada -> Visa/Master -> STC)
@@ -136,43 +152,36 @@ const TrupSummary = ({
     onPaymentMethodSelect?.(nid, { PaymentMethodId: nid });
   };
 
-  // ✅ ONE Apple Pay button handler:
-  // Ask the user 1 question so fees are correct:
-  // Mada => 13, Visa/Master => 11
+  // ✅ ONE Apple Pay button handler (NO DIALOG)
+  // Auto-select:
+  // 1) Apple Pay Mada (13) if available
+  // 2) Apple Pay Visa/Master (11) if available
+  // 3) show error if none
   const handleApplePayClick = () => {
-    // If one of them is not available, fall back to the available one automatically
     const hasMada = availableIds.has(MF_APPLEPAY_MADA_ID);
     const hasVisa = availableIds.has(MF_APPLEPAY_VISA_MASTER_ID);
 
-    if (!hasMada && !hasVisa) {
-      setMethodsErr(isArabic ? "Apple Pay غير متاح حالياً." : "Apple Pay is not available right now.");
-      return;
-    }
-
-    // If only one is available, use it without asking
-    if (hasMada && !hasVisa) {
+    if (hasMada) {
       selectMethod(MF_APPLEPAY_MADA_ID);
       return;
     }
-    if (!hasMada && hasVisa) {
+    if (hasVisa) {
       selectMethod(MF_APPLEPAY_VISA_MASTER_ID);
       return;
     }
 
-    // Both exist => ask user
-    const msg = isArabic
-      ? "هل بطاقة Apple Pay الخاصة بك (مدى)؟\n\nموافق = Apple Pay مدى (رسوم أقل)\nإلغاء = Apple Pay فيزا/ماستر"
-      : "Is your Apple Pay card MADA?\n\nOK = Apple Pay MADA (lower fee)\nCancel = Apple Pay Visa/Master";
-
-    const isMada = window.confirm(msg);
-    selectMethod(isMada ? MF_APPLEPAY_MADA_ID : MF_APPLEPAY_VISA_MASTER_ID);
+    setMethodsErr(
+      isArabic ? "Apple Pay غير متاح حالياً." : "Apple Pay is not available right now."
+    );
   };
 
   const showMethod = (id) => availableIds.size === 0 || availableIds.has(id);
 
   return (
     <div className="card pricing">
-      <h3 className="card-title trip-gradient-color fontsize40">{dict.tripsPricing}</h3>
+      <h3 className="card-title trip-gradient-color fontsize40">
+        {dict.tripsPricing}
+      </h3>
 
       {/* Trip Price (ONE amount INCLUDING VAT per student) */}
       <div className="price-row">
@@ -218,7 +227,8 @@ const TrupSummary = ({
       {validKidsCount > 1 && (
         <div className="summary-row total net-payable trip-gradient-color">
           <span>
-            {dict.netPayableAmount.replace("{count}", validKidsCount)} <div>({dict.ar_inc_vat})</div>
+            {dict.netPayableAmount.replace("{count}", validKidsCount)}{" "}
+            <div>({dict.ar_inc_vat})</div>
           </span>
           <span>
             {to2(netForKids)} <img src={icon5} alt="HEROZ" />
@@ -231,8 +241,11 @@ const TrupSummary = ({
       {/* ✅ Payment methods (simple, clean) */}
       <div style={{ marginTop: 12 }}>
         <div style={{ fontWeight: 700, marginBottom: 8 }}>
-          {dict.ar_choose_method || (isArabic ? "اختر طريقة الدفع:" : "Choose payment method:")}
-          <span style={{ color: "red", fontSize: 22, marginInlineStart: 6 }}>*</span>
+          {dict.ar_choose_method ||
+            (isArabic ? "اختر طريقة الدفع:" : "Choose payment method:")}
+          <span style={{ color: "red", fontSize: 22, marginInlineStart: 6 }}>
+            *
+          </span>
         </div>
 
         {loadingMethods && (
@@ -259,7 +272,10 @@ const TrupSummary = ({
           }}
         >
           {isArabic ? "Apple Pay" : "Apple Pay"}
-          {selectedId === MF_APPLEPAY_MADA_ID || selectedId === MF_APPLEPAY_VISA_MASTER_ID ? " ✅" : ""}
+          {selectedId === MF_APPLEPAY_MADA_ID ||
+          selectedId === MF_APPLEPAY_VISA_MASTER_ID
+            ? " ✅"
+            : ""}
         </button>
 
         {/* Other methods as radios */}
@@ -272,7 +288,10 @@ const TrupSummary = ({
                 gap: 10,
                 padding: 10,
                 borderRadius: 8,
-                border: selectedId === MF_MADA_ID ? "2px solid #1976d2" : "1px solid #ccc",
+                border:
+                  selectedId === MF_MADA_ID
+                    ? "2px solid #1976d2"
+                    : "1px solid #ccc",
                 cursor: "pointer",
               }}
             >
@@ -294,7 +313,10 @@ const TrupSummary = ({
                 gap: 10,
                 padding: 10,
                 borderRadius: 8,
-                border: selectedId === MF_VISA_MASTER_ID ? "2px solid #1976d2" : "1px solid #ccc",
+                border:
+                  selectedId === MF_VISA_MASTER_ID
+                    ? "2px solid #1976d2"
+                    : "1px solid #ccc",
                 cursor: "pointer",
               }}
             >
@@ -316,7 +338,10 @@ const TrupSummary = ({
                 gap: 10,
                 padding: 10,
                 borderRadius: 8,
-                border: selectedId === MF_STC_ID ? "2px solid #1976d2" : "1px solid #ccc",
+                border:
+                  selectedId === MF_STC_ID
+                    ? "2px solid #1976d2"
+                    : "1px solid #ccc",
                 cursor: "pointer",
               }}
             >
@@ -345,9 +370,16 @@ const TrupSummary = ({
           }}
         >
           <span style={{ color: "red", fontSize: 22 }}>*</span>
-          <input type="checkbox" id="termsAgree" style={{ width: 18, height: 18 }} />
+          <input
+            type="checkbox"
+            id="termsAgree"
+            style={{ width: 18, height: 18 }}
+          />
           <label htmlFor="termsAgree" style={{ margin: 0, cursor: "pointer" }}>
-            {dict.ar_terms_agree || (isArabic ? "أوافق على الشروط والأحكام" : "I agree to terms & conditions")}
+            {dict.ar_terms_agree ||
+              (isArabic
+                ? "أوافق على الشروط والأحكام"
+                : "I agree to terms & conditions")}
           </label>
         </div>
 
