@@ -1,4 +1,4 @@
-//payexcute.js
+// src/public/payexcute.js
 import { API_BASE_URL } from "../config";
 
 // Minimal helper to parse JSON safely
@@ -11,7 +11,7 @@ async function safeParse(response) {
   }
 }
 
-// --- NEW: tiny helper to send PayLogData without affecting flow ---
+// --- tiny helper to send PayLogData without affecting flow ---
 function sendPayLog(PayLogData) {
   const url = `${API_BASE_URL}/myfatrooahdata/pay/paylog`;
   try {
@@ -20,7 +20,6 @@ function sendPayLog(PayLogData) {
       const blob = new Blob([body], { type: "application/json" });
       navigator.sendBeacon(url, blob);
     } else {
-      // fire-and-forget
       fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,7 +32,52 @@ function sendPayLog(PayLogData) {
 }
 
 /**
- * Execute MyFatoorah payment (create invoice -> PaymentURL).
+ * ✅ Embedded Integration step:
+ * Call backend to get SessionId (valid for ONE payment).
+ * Backend route: POST /myfatrooahdata/pay/initiate-session
+ */
+async function initiateEmbeddedSession() {
+  const apiUrl = `${API_BASE_URL}/myfatrooahdata/pay/initiate-session`;
+
+  const r = await fetch(apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}), // MF allows empty body
+  });
+
+  const data = await safeParse(r);
+
+  // log
+  try {
+    sendPayLog({
+      apiUrl,
+      requestTs: new Date().toISOString(),
+      sentPayload: {},
+      responseStatus: r.status,
+      responseOk: r.ok,
+      apiResponse: data,
+      step: "InitiateSession",
+    });
+  } catch (_) {}
+
+  if (!r.ok) {
+    const error =
+      data?.Message ||
+      data?.error?.Message ||
+      JSON.stringify(data).slice(0, 800);
+    return { ok: false, data, error };
+  }
+
+  const sessionId = data?.Data?.SessionId;
+  if (!sessionId) {
+    return { ok: false, data, error: "No SessionId returned from InitiateSession." };
+  }
+
+  return { ok: true, data, sessionId };
+}
+
+/**
+ * Execute MyFatoorah payment (Embedded Integration -> ExecutePayment with SessionId).
  *
  * @returns {Promise<{ ok: boolean, data: any, error?: string, paymentUrl?: string }>}
  */
@@ -48,13 +92,20 @@ export async function executeMyFatoorahPayment({
   const customerReferenceVal = localStorage.getItem("customerReference") || "";
   const userDefinedFieldVal = localStorage.getItem("userDefinedField") || "";
 
-  // ✅ FIX: normalize methodId
+  // normalize methodId
   const methodIdNum = Number(paymentMethodId);
+
+  // ✅ 1) Initiate Session (Embedded)
+  const ses = await initiateEmbeddedSession();
+  if (!ses.ok) {
+    return { ok: false, data: ses.data, error: ses.error || "Failed to initiate embedded session." };
+  }
 
   const payload = {
     amount,
     currency: "SAR",
     paymentMethodId: Number.isFinite(methodIdNum) ? methodIdNum : paymentMethodId,
+    sessionId: ses.sessionId, // ✅ NEW: embedded session id
     customer,
     language,
     displayCurrency,
@@ -71,7 +122,7 @@ export async function executeMyFatoorahPayment({
 
   const data = await safeParse(r);
 
-  // --- log request/response
+  // log request/response
   try {
     sendPayLog({
       apiUrl,
@@ -99,12 +150,13 @@ export async function executeMyFatoorahPayment({
     return { ok: false, data, error };
   }
 
+  // MF returns PaymentURL (still used to complete the payment)
   const paymentUrl = data?.Data?.PaymentURL;
   if (!paymentUrl) {
     return { ok: false, data, error: "No PaymentURL in response." };
   }
 
-  // ✅ VERY IMPORTANT: store method + amount before redirect so callback can verify misclassification
+  // store method + amount before redirect
   try {
     localStorage.setItem(
       "mf_last_method_id",
@@ -114,6 +166,7 @@ export async function executeMyFatoorahPayment({
     localStorage.setItem("mf_last_customerReference", customerReferenceVal || "");
     localStorage.setItem("mf_last_userDefinedField", userDefinedFieldVal || "");
     localStorage.setItem("mf_last_started_at", new Date().toISOString());
+    localStorage.setItem("mf_last_session_id", String(ses.sessionId || ""));
   } catch (_) {}
 
   if (redirect) {
