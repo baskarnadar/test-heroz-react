@@ -100,28 +100,6 @@ const formatTemplate = (template, vars = {}) => {
   });
 };
 
-// ✅ parse helper
-async function safeParse(response) {
-  const text = await response.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { raw: text };
-  }
-}
-
-// ✅ detect Apple Pay / Mada by name (MyFatoorah returns names)
-const isApplePay = (m) => {
-  const en = String(m?.PaymentMethodEn || "");
-  const ar = String(m?.PaymentMethodAr || "");
-  return /apple\s*pay/i.test(en) || /ابل\s*باي|آبل\s*باي/i.test(ar);
-};
-const isMada = (m) => {
-  const en = String(m?.PaymentMethodEn || "");
-  const ar = String(m?.PaymentMethodAr || "");
-  return /mada/i.test(en) || /مدى/i.test(ar);
-};
-
 const ProposalPage = () => {
   const navigate = useNavigate();
 
@@ -184,10 +162,6 @@ const ProposalPage = () => {
 
   // ✅ keep last selected method stable + numeric
   const lastMethodIdRef = useRef(null);
-
-  // ✅ ONE Apple Pay button: we resolve best ApplePay method id here
-  const [applePayResolvedId, setApplePayResolvedId] = useState(null);
-  const [applePayResolving, setApplePayResolving] = useState(false);
 
   const toggleLang = () => {
     const next = lang === "ar" ? "en" : "ar";
@@ -474,9 +448,7 @@ const ProposalPage = () => {
       if (!checkedFoodItems[item.FoodID]) continue;
 
       const qty =
-        foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0
-          ? Number(foodQty[item.FoodID])
-          : 1;
+        foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0 ? Number(foodQty[item.FoodID]) : 1;
 
       const school = schoolPriceMap[item.FoodID] ?? (parseFloat(item?.RequestFoodSchoolPrice) || 0);
       const vendor = parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
@@ -516,50 +488,7 @@ const ProposalPage = () => {
     return round2(total);
   }, [validKidsCount, tripPriceInclVat, extraPriceInclVat]);
 
-  // ✅ Resolve ApplePay methodId for ONE BUTTON UX (prefer ApplePay Mada)
-  const resolveApplePayMethodId = async () => {
-    setApplePayResolving(true);
-    try {
-      const r = await fetch(`${API_BASE_URL}/myfatrooahdata/pay/initiate-payment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Number(paymentAmount) || 0, currency: "SAR" }),
-      });
-      const data = await safeParse(r);
-
-      const methods = data?.Data?.PaymentMethods || [];
-      const appleOnly = methods.filter((m) => isApplePay(m));
-
-      // Prefer ApplePay Mada (by name)
-      const apMada = appleOnly.find((m) => isMada(m));
-      if (apMada?.PaymentMethodId) return Number(apMada.PaymentMethodId);
-
-      // Else any ApplePay
-      const ap = appleOnly[0];
-      if (ap?.PaymentMethodId) return Number(ap.PaymentMethodId);
-
-      return null;
-    } catch (e) {
-      console.error("resolveApplePayMethodId error:", e);
-      return null;
-    } finally {
-      setApplePayResolving(false);
-    }
-  };
-
-  // Auto refresh ApplePay resolution when amount changes
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const id = await resolveApplePayMethodId();
-      if (!cancelled) setApplePayResolvedId(id);
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentAmount]);
-
+  // ======= AUTO-MODAL if Trip Price is zero or less =======
   useEffect(() => {
     if (!loading && ActivityData) {
       const perStudent = Number(tripPriceInclVat) || 0;
@@ -722,10 +651,7 @@ const ProposalPage = () => {
       return false;
     }
     if (parentEmail && !EMAIL_RE.test(parentEmail)) {
-      showError(
-        dict.errParentEmailFormat ||
-          (lang === "ar" ? "الرجاء إدخال بريد إلكتروني صحيح." : "Please enter a valid email address.")
-      );
+      showError(dict.errParentEmailFormat || (lang === "ar" ? "الرجاء إدخال بريد إلكتروني صحيح." : "Please enter a valid email address."));
       return false;
     }
 
@@ -824,15 +750,6 @@ const ProposalPage = () => {
       lastMethodIdRef.current = methodId;
 
       try {
-        console.log("MF_CLIENT_METHOD_SELECTED", {
-          selectedMethodIdRaw: selectedMethodId,
-          methodIdNormalized: methodId,
-          label: paymentLabelFromId(methodId),
-          amount: schoolTotalTripCost,
-          requestId: TripData?.RequestID,
-          actRequestRefNo: TripData?.actRequestRefNo,
-        });
-
         const result = await executeMyFatoorahPayment({
           amount: schoolTotalTripCost,
           paymentMethodId: methodId,
@@ -871,10 +788,6 @@ const ProposalPage = () => {
     }
   };
 
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(
-    `${dict.brandName} – ${dict.shareTripText}: ${shareUrl}`
-  )}`;
-
   const canonicalUrl = shareUrl || `${window.location.origin}${window.location.pathname}`;
 
   const program = useMemo(() => {
@@ -895,29 +808,6 @@ const ProposalPage = () => {
     const nameToShow = childNameText || "";
     return formatTemplate(template, { CHILDNAME: nameToShow });
   }, [dict, childNameText, lang]);
-
-  // ✅ ONE Apple Pay button click:
-  // Choose resolved apple method if available, else fallback to 13 then 11.
-  const handleOneApplePayClick = async () => {
-    let mid = applePayResolvedId;
-
-    if (!mid) {
-      mid = await resolveApplePayMethodId();
-      setApplePayResolvedId(mid);
-    }
-
-    const fallback = 13; // prefer Mada
-    const useId = Number(mid || fallback);
-
-    setSelectedMethodId(useId);
-    lastMethodIdRef.current = useId;
-
-    console.log("MF_APPLEPAY_ONE_BUTTON_SELECTED", {
-      applePayResolvedId: mid,
-      chosenId: useId,
-      label: paymentLabelFromId(useId),
-    });
-  };
 
   return (
     <>
@@ -1043,37 +933,6 @@ const ProposalPage = () => {
 
           {/* Pricing + Booking */}
           <section className="container twocol">
-            {/* ✅ ONE Apple Pay button UX (no duplicate Apple Pay choices) */}
-            <div style={{ marginBottom: 12 }}>
-              <button
-                type="button"
-                onClick={handleOneApplePayClick}
-                disabled={submitting || loading || applePayResolving}
-                style={{
-                  width: "100%",
-                  height: 48,
-                  borderRadius: 12,
-                  border: "1px solid #ddd",
-                  fontWeight: 800,
-                  cursor: submitting || loading || applePayResolving ? "not-allowed" : "pointer",
-                }}
-              >
-                {lang === "ar"
-                  ? applePayResolving
-                    ? "جاري التحضير…"
-                    : " Pay"
-                  : applePayResolving
-                  ? "Preparing…"
-                  : " Pay"}
-              </button>
-
-              <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
-                {lang === "ar"
-                  ? "زر واحد لـ Apple Pay (سيتم اختيار الطريقة تلقائياً)."
-                  : "One Apple Pay button (method selected automatically)."}
-              </div>
-            </div>
-
             <TrupSummary
               dict={dict}
               priceTotal={priceTotal}
@@ -1116,14 +975,7 @@ const ProposalPage = () => {
               <CModalTitle>{dict.confirmSelections}</CModalTitle>
             </CModalHeader>
             <CModalBody>
-              <p
-                style={{
-                  margin: 0,
-                  textAlign: lang === "ar" ? "right" : "left",
-                  fontSize: "1.1rem",
-                  fontWeight: 500,
-                }}
-              >
+              <p style={{ margin: 0, textAlign: lang === "ar" ? "right" : "left", fontSize: "1.1rem", fontWeight: 500 }}>
                 {confirmPayMessage}
               </p>
             </CModalBody>
@@ -1131,12 +983,7 @@ const ProposalPage = () => {
               <CButton color="secondary" onClick={() => setConfirmOpen(false)}>
                 {dict.cancel}
               </CButton>
-              <CButton
-                color="primary"
-                disabled={submitting || !selectedMethodId}
-                onClick={submitConfirmed}
-                style={{ backgroundColor: "green" }}
-              >
+              <CButton color="primary" disabled={submitting || !selectedMethodId} onClick={submitConfirmed} style={{ backgroundColor: "green" }}>
                 {submitting ? dict.submitting : dict.yesSubmit}
               </CButton>
             </CModalFooter>

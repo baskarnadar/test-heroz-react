@@ -13,6 +13,23 @@ const MF_VISA_MASTER_ID = 2;
 const MF_STC_ID = 14;
 const MF_MADA_ID = 6;
 
+// ✅ Tiny Apple SVG (works on Windows + all browsers)
+const AppleIcon = ({ size = 18 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 384 512"
+    aria-hidden="true"
+    focusable="false"
+    style={{ display: "block" }}
+  >
+    <path
+      fill="currentColor"
+      d="M318.7 268.7c.3 34.9 15.6 61.9 46.3 80.5-5.9 17.1-13.6 33.4-23 48.9-12.8 21.1-26.1 42.2-46.9 42.6-20.3.4-26.8-12.1-49.9-12.1-23.1 0-30.3 11.8-49.4 12.5-20.1.8-35.4-20.2-48.3-41.2-26.3-42.7-46.4-120.7-19.4-173.5 13.4-26.3 37.3-42.9 63.4-43.3 19.8-.4 38.6 13.3 50.8 13.3 12.2 0 35.1-16.4 59.2-14 10.1.4 38.4 4.1 56.6 30.9-1.5.9-33.8 19.7-33.4 58.4zM259.4 74.8c10.7-13 17.9-31.2 15.9-49.8-15.4.6-34.1 10.3-45.1 23.2-9.9 11.5-18.5 29.8-16.2 47.4 17.2 1.3 34.7-8.7 45.4-20.8z"
+    />
+  </svg>
+);
+
 const TrupSummary = ({
   dict,
   priceTotal,
@@ -31,6 +48,7 @@ const TrupSummary = ({
   onSubmit,
   tripPriceInclVat = 0,
   extraPriceInclVat = 0,
+  selectedMethodId, // optional if passed (ignored safely)
 }) => {
   const isArabic = lang === "ar";
 
@@ -144,28 +162,27 @@ const TrupSummary = ({
     onPaymentMethodSelect?.(nid, { PaymentMethodId: nid });
   };
 
-  // ✅ ONE Apple Pay button handler (NO DIALOG)
-  // Auto-select:
-  // 1) Apple Pay Mada (13) if available
-  // 2) Apple Pay Visa/Master (11) if available
-  // 3) show error if none
-  const handleApplePayClick = () => {
+  // ✅ Apple Pay radio logic:
+  // select 13 if available else 11
+  const selectApplePay = () => {
     const hasMada = availableIds.has(MF_APPLEPAY_MADA_ID);
     const hasVisa = availableIds.has(MF_APPLEPAY_VISA_MASTER_ID);
 
-    if (hasMada) {
-      selectMethod(MF_APPLEPAY_MADA_ID);
-      return;
-    }
-    if (hasVisa) {
-      selectMethod(MF_APPLEPAY_VISA_MASTER_ID);
-      return;
-    }
+    if (hasMada) return selectMethod(MF_APPLEPAY_MADA_ID);
+    if (hasVisa) return selectMethod(MF_APPLEPAY_VISA_MASTER_ID);
 
     setMethodsErr(isArabic ? "Apple Pay غير متاح حالياً." : "Apple Pay is not available right now.");
   };
 
   const showMethod = (id) => availableIds.size === 0 || availableIds.has(id);
+
+  const isApplePaySelected =
+    selectedId === MF_APPLEPAY_MADA_ID || selectedId === MF_APPLEPAY_VISA_MASTER_ID;
+
+  const canShowApplePay =
+    availableIds.size === 0 ||
+    availableIds.has(MF_APPLEPAY_MADA_ID) ||
+    availableIds.has(MF_APPLEPAY_VISA_MASTER_ID);
 
   return (
     <div className="card pricing">
@@ -195,6 +212,7 @@ const TrupSummary = ({
               lang={lang}
             />
           </div>
+
           <div className="divider" />
         </>
       )}
@@ -237,29 +255,59 @@ const TrupSummary = ({
           </div>
         )}
 
-        {/* ✅ ONE Apple Pay button (NO POPUP) */}
-        <button
-          type="button"
-          onClick={handleApplePayClick}
-          disabled={loadingMethods}
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            borderRadius: 10,
-            border: "1px solid #000",
-            background: "#000",
-            color: "#fff",
-            fontWeight: 700,
-            cursor: loadingMethods ? "not-allowed" : "pointer",
-            marginBottom: 10,
-          }}
-        >
-          {isArabic ? "Apple Pay" : "Apple Pay"}
-          {selectedId === MF_APPLEPAY_MADA_ID || selectedId === MF_APPLEPAY_VISA_MASTER_ID ? " ✅" : ""}
-        </button>
-
-        {/* Other methods as radios */}
+        {/* ✅ ALL methods as radios (Apple Pay is BLACK row with icon) */}
         <div style={{ display: "grid", gap: 8 }}>
+          {canShowApplePay && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 14px",
+                borderRadius: 10,
+                border: isApplePaySelected ? "2px solid #1976d2" : "1px solid #000",
+                cursor: loadingMethods ? "not-allowed" : "pointer",
+                backgroundColor: "#000",
+                color: "#fff",
+                userSelect: "none",
+              }}
+              onClick={(e) => {
+                if (loadingMethods) return;
+                if (e.target?.tagName?.toLowerCase() !== "input") selectApplePay();
+              }}
+            >
+              <input
+                type="radio"
+                name="mf-method-simple"
+                checked={isApplePaySelected}
+                onChange={selectApplePay}
+                disabled={loadingMethods}
+                style={{ width: 18, height: 18, accentColor: "#fff" }}
+              />
+
+              {/* Icon + text (forced white, overrides any global css) */}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  color: "#fff",
+                  fontWeight: 900,
+                  fontSize: 16,
+                }}
+              >
+                <span style={{ color: "#fff" }}>
+                  <AppleIcon size={18} />
+                </span>
+                <span style={{ color: "#fff" }}>Pay</span>
+              </span>
+
+              <span style={{ marginInlineStart: "auto", fontWeight: 800, color: "#fff" }}>
+                {isApplePaySelected ? "✓" : ""}
+              </span>
+            </label>
+          )}
+
           {showMethod(MF_MADA_ID) && (
             <label
               style={{
@@ -278,7 +326,7 @@ const TrupSummary = ({
                 checked={selectedId === MF_MADA_ID}
                 onChange={() => selectMethod(MF_MADA_ID)}
               />
-              <span>{isArabic ? "مدى" : "MADA"}</span>
+              <span style={{ fontWeight: 700 }}>{isArabic ? "مدى" : "MADA"}</span>
             </label>
           )}
 
@@ -300,7 +348,7 @@ const TrupSummary = ({
                 checked={selectedId === MF_VISA_MASTER_ID}
                 onChange={() => selectMethod(MF_VISA_MASTER_ID)}
               />
-              <span>{isArabic ? "فيزا / ماستر" : "VISA / MasterCard"}</span>
+              <span style={{ fontWeight: 700 }}>{isArabic ? "فيزا / ماستر" : "VISA / MasterCard"}</span>
             </label>
           )}
 
@@ -322,7 +370,7 @@ const TrupSummary = ({
                 checked={selectedId === MF_STC_ID}
                 onChange={() => selectMethod(MF_STC_ID)}
               />
-              <span>{isArabic ? "STC Pay" : "STC Pay"}</span>
+              <span style={{ fontWeight: 700 }}>{isArabic ? "STC Pay" : "STC Pay"}</span>
             </label>
           )}
         </div>
