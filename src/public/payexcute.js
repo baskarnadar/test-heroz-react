@@ -1,7 +1,7 @@
 // src/public/payexcute.js
 import { API_BASE_URL } from "../config";
 
-// Minimal helper to parse JSON safely
+// Small helper: parse JSON safely
 async function safeParse(response) {
   const text = await response.text();
   try {
@@ -11,167 +11,129 @@ async function safeParse(response) {
   }
 }
 
-// --- tiny helper to send PayLogData without affecting flow ---
-function sendPayLog(PayLogData) {
-  const url = `${API_BASE_URL}/myfatrooahdata/pay/paylog`;
+// ------------------------------
+// (A) Initiate Embedded Session
+// ------------------------------
+export async function initiateEmbeddedSession({ amount, currencyCode = "SAR" } = {}) {
   try {
-    const body = JSON.stringify({ PayLogData });
-    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-      const blob = new Blob([body], { type: "application/json" });
-      navigator.sendBeacon(url, blob);
-    } else {
-      fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-      }).catch(() => {});
-    }
-  } catch (_) {
-    // swallow logging errors
-  }
-}
+    const url = `${API_BASE_URL}/myfatrooahdata/pay/initiate-session`;
 
-/**
- * ✅ Embedded Integration step:
- * Call backend to get SessionId (valid for ONE payment).
- * Backend route: POST /myfatrooahdata/pay/initiate-session
- */
-async function initiateEmbeddedSession() {
-  const apiUrl = `${API_BASE_URL}/myfatrooahdata/pay/initiate-session`;
-
-  const r = await fetch(apiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}), // MF allows empty body
-  });
-
-  const data = await safeParse(r);
-
-  // log
-  try {
-    sendPayLog({
-      apiUrl,
-      requestTs: new Date().toISOString(),
-      sentPayload: {},
-      responseStatus: r.status,
-      responseOk: r.ok,
-      apiResponse: data,
-      step: "InitiateSession",
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // MF InitiateSession doesn't require amount, but you can keep it for debugging
+      body: JSON.stringify({
+        amount: Number(amount || 0),
+        currencyCode,
+      }),
     });
-  } catch (_) {}
 
-  if (!r.ok) {
-    const error =
-      data?.Message ||
-      data?.error?.Message ||
-      JSON.stringify(data).slice(0, 800);
-    return { ok: false, data, error };
+    const json = await safeParse(res);
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error:
+          json?.Message ||
+          json?.error?.Message ||
+          json?.error ||
+          json?.message ||
+          `InitiateSession failed (${res.status})`,
+        raw: json,
+      };
+    }
+
+    // MyFatoorah returns: { IsSuccess, Data: { SessionId, CountryCode }, Message }
+    const sessionId = json?.Data?.SessionId || json?.Data?.SessionID || "";
+    const countryCode = json?.Data?.CountryCode || "";
+
+    if (!sessionId || !countryCode) {
+      return {
+        ok: false,
+        error: "Invalid InitiateSession response (missing SessionId/CountryCode).",
+        raw: json,
+      };
+    }
+
+    return { ok: true, sessionId, countryCode, raw: json };
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e), raw: null };
   }
-
-  const sessionId = data?.Data?.SessionId;
-  if (!sessionId) {
-    return { ok: false, data, error: "No SessionId returned from InitiateSession." };
-  }
-
-  return { ok: true, data, sessionId };
 }
 
-/**
- * Execute MyFatoorah payment (Embedded Integration -> ExecutePayment with SessionId).
- *
- * @returns {Promise<{ ok: boolean, data: any, error?: string, paymentUrl?: string }>}
- */
-export async function executeMyFatoorahPayment({
-  amount,
-  paymentMethodId,
-  customer,
+// ------------------------------------------
+// (B) Execute Payment using Session (Embedded)
+// ✅ IMPORTANT: SessionId ONLY (NO PaymentMethodId)
+// ------------------------------------------
+export async function executePaymentBySession({
+  sessionId,
+  invoiceValue, // from program.jsx
+  amount, // optional alias
+  customer = {},
   language = "EN",
   displayCurrency = "SAR",
-  redirect = true,
-}) {
-  const customerReferenceVal = localStorage.getItem("customerReference") || "";
-  const userDefinedFieldVal = localStorage.getItem("userDefinedField") || "";
-
-  // normalize methodId
-  const methodIdNum = Number(paymentMethodId);
-
-  // ✅ 1) Initiate Session (Embedded)
-  const ses = await initiateEmbeddedSession();
-  if (!ses.ok) {
-    return { ok: false, data: ses.data, error: ses.error || "Failed to initiate embedded session." };
-  }
-
-  const payload = {
-    amount,
-    currency: "SAR",
-    paymentMethodId: Number.isFinite(methodIdNum) ? methodIdNum : paymentMethodId,
-    sessionId: ses.sessionId, // ✅ NEW: embedded session id
-    customer,
-    language,
-    displayCurrency,
-    customerReference: customerReferenceVal,
-    userDefinedField: userDefinedFieldVal,
-  };
-
-  const apiUrl = `${API_BASE_URL}/myfatrooahdata/pay/execute-session`;
-  const r = await fetch(apiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await safeParse(r);
-
-  // log request/response
+  userDefinedField,
+  customerReference,
+} = {}) {
   try {
-    sendPayLog({
-      apiUrl,
-      requestTs: new Date().toISOString(),
-      sentPayload: payload,
-      responseStatus: r.status,
-      responseOk: r.ok,
-      apiResponse: data,
-      client: {
-        href: typeof window !== "undefined" ? window.location.href : "",
-        ua: typeof navigator !== "undefined" ? navigator.userAgent : "",
+    const url = `${API_BASE_URL}/myfatrooahdata/pay/execute-session`;
+
+    const finalAmount = Number(amount ?? invoiceValue ?? 0);
+
+    if (!finalAmount || finalAmount <= 0) {
+      return { ok: false, error: "Front-end: amount must be > 0", sent: { finalAmount } };
+    }
+    if (!sessionId) {
+      return { ok: false, error: "Front-end: sessionId is missing" };
+    }
+
+    // ✅ Backend (fixed) accepts these keys:
+    const body = {
+      SessionId: String(sessionId),
+      InvoiceValue: finalAmount,
+
+      // optional (your backend uses these)
+      customer: {
+        name: customer?.name || "Guest",
+        email: customer?.email || "",
+        mobile: customer?.mobile || "",
       },
+      language,
+      displayCurrency,
+      userDefinedField: userDefinedField || "",
+      customerReference: customerReference || "",
+    };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
-  } catch (_) {}
 
-  if (!r.ok) {
-    const error =
-      data?.Message ||
-      (Array.isArray(data?.ValidationErrors) && data.ValidationErrors.length
-        ? data.ValidationErrors.map((v) => `${v?.Name}: ${v?.Error}`).join(", ")
-        : null) ||
-      data?.error?.Message ||
-      JSON.stringify(data).slice(0, 800);
+    const json = await safeParse(res);
 
-    return { ok: false, data, error };
+    if (!res.ok) {
+      return {
+        ok: false,
+        error:
+          json?.Message ||
+          json?.error?.Message ||
+          json?.error ||
+          json?.message ||
+          `ExecutePayment failed (${res.status})`,
+        raw: json,
+        sent: body,
+      };
+    }
+
+    const paymentUrl =
+      json?.Data?.PaymentURL ||
+      json?.Data?.PaymentUrl ||
+      json?.Data?.PaymentURL?.toString?.() ||
+      "";
+
+    return { ok: true, raw: json, paymentUrl };
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e), raw: null };
   }
-
-  // MF returns PaymentURL (still used to complete the payment)
-  const paymentUrl = data?.Data?.PaymentURL;
-  if (!paymentUrl) {
-    return { ok: false, data, error: "No PaymentURL in response." };
-  }
-
-  // store method + amount before redirect
-  try {
-    localStorage.setItem(
-      "mf_last_method_id",
-      String(Number.isFinite(methodIdNum) ? methodIdNum : payload.paymentMethodId)
-    );
-    localStorage.setItem("mf_last_amount", String(Number(amount || 0)));
-    localStorage.setItem("mf_last_customerReference", customerReferenceVal || "");
-    localStorage.setItem("mf_last_userDefinedField", userDefinedFieldVal || "");
-    localStorage.setItem("mf_last_started_at", new Date().toISOString());
-    localStorage.setItem("mf_last_session_id", String(ses.sessionId || ""));
-  } catch (_) {}
-
-  if (redirect) {
-    window.location.href = paymentUrl;
-  }
-
-  return { ok: true, data, paymentUrl };
 }

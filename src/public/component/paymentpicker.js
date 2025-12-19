@@ -1,12 +1,14 @@
-// paymentpicker.js
-import { useState, useEffect, useRef } from "react";
+// src/public/component/paymentpicker.js
+import { useState, useEffect, useRef, useMemo } from "react";
 import PropTypes from "prop-types";
 import { API_BASE_URL } from "../../config";
 import enPack from "../../i18n/enlangpack.json";
 import arPack from "../../i18n/arlangpack.json";
 
 // ✅ We will NOT show ApplePay methods here
+// Common MyFatoorah IDs (KSA): 2=VISA/MC, 6=MADA, 14=STC Pay, 11/13=Apple Pay (varies)
 const ALLOWED_METHOD_IDS = [2, 6, 14]; // Visa/Master, Mada, STC
+const HIDE_METHOD_IDS = [11, 13]; // Apple Pay (hide from this picker)
 const USE_STRICT_METHOD_IDS = true;
 
 export default function PaymentMethodPicker({
@@ -29,7 +31,11 @@ export default function PaymentMethodPicker({
 
   const parse = async (r) => {
     const txt = await r.text();
-    try { return JSON.parse(txt); } catch { return { raw: txt }; }
+    try {
+      return JSON.parse(txt);
+    } catch {
+      return { raw: txt };
+    }
   };
 
   const displayName = (m) => {
@@ -45,46 +51,71 @@ export default function PaymentMethodPicker({
   };
 
   const filterAndOrder = (list) => {
-    if (!USE_STRICT_METHOD_IDS) return Array.isArray(list) ? list : [];
-    const byId = new Map((list || []).map((m) => [Number(m.PaymentMethodId), m]));
+    const arr = Array.isArray(list) ? list : [];
+
+    // Always hide ApplePay IDs from this picker
+    const withoutHidden = arr.filter(
+      (m) => !HIDE_METHOD_IDS.includes(Number(m.PaymentMethodId))
+    );
+
+    // If not strict -> return all except hidden
+    if (!USE_STRICT_METHOD_IDS) return withoutHidden;
+
+    // Strict: only show ALLOWED_METHOD_IDS in the same order
+    const byId = new Map(withoutHidden.map((m) => [Number(m.PaymentMethodId), m]));
     const filtered = [];
     for (const id of ALLOWED_METHOD_IDS) {
       const item = byId.get(id);
       if (item) filtered.push(item);
     }
-    return filtered;
+
+    // ✅ Fallback: if strict list is empty, show all (except hidden)
+    return filtered.length ? filtered : withoutHidden;
   };
 
   const pickDefaultMethod = (list) => {
     const arr = Array.isArray(list) ? list : [];
     if (!arr.length) return null;
+
     // Prefer Mada, else Visa/Master, else first
     const mada = arr.find((m) => Number(m.PaymentMethodId) === 6);
     if (mada) return mada;
+
     const visa = arr.find((m) => Number(m.PaymentMethodId) === 2);
     if (visa) return visa;
+
     return arr[0];
   };
+
+  const amountNumber = useMemo(() => {
+    const n = Number(amount);
+    return Number.isFinite(n) ? n : NaN;
+  }, [amount]);
 
   const fetchMethods = async () => {
     setErr("");
     setLoading(true);
     setMethods([]);
-    setSelected(null);
 
     const myReqId = ++reqIdRef.current;
+
     try {
       const r = await fetch(`${apiBase}/myfatrooahdata/pay/initiate-payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Number(amount) || 0, currency }),
+        body: JSON.stringify({ amount: Number(amountNumber) || 0, currency }),
       });
 
       const data = await parse(r);
       if (myReqId !== reqIdRef.current) return;
 
       if (!r.ok) {
-        setErr(data?.Message || data?.error?.Message || JSON.stringify(data).slice(0, 500));
+        setErr(
+          data?.Message ||
+            data?.error?.Message ||
+            (typeof data?.raw === "string" ? data.raw : JSON.stringify(data)).slice(0, 500)
+        );
+        setSelected(null);
         return;
       }
 
@@ -93,19 +124,36 @@ export default function PaymentMethodPicker({
 
       if (!filtered.length) {
         setErr(dict.noMethods || "No payment methods were returned.");
+        setSelected(null);
         return;
       }
 
       setMethods(filtered);
 
+      // ✅ Keep current selection if it still exists
+      const stillThere =
+        selected != null && filtered.some((m) => Number(m.PaymentMethodId) === Number(selected));
+
+      if (stillThere) {
+        const m = filtered.find((x) => Number(x.PaymentMethodId) === Number(selected));
+        if (m) onSelect?.(Number(selected), m);
+        return;
+      }
+
+      // Else pick default
       const def = pickDefaultMethod(filtered);
       if (def) {
         const defId = Number(def.PaymentMethodId);
         setSelected(defId);
         onSelect?.(defId, def);
+      } else {
+        setSelected(null);
       }
     } catch (e) {
-      if (myReqId === reqIdRef.current) setErr(String(e));
+      if (myReqId === reqIdRef.current) {
+        setErr(String(e));
+        setSelected(null);
+      }
     } finally {
       if (myReqId === reqIdRef.current) setLoading(false);
     }
@@ -113,16 +161,17 @@ export default function PaymentMethodPicker({
 
   useEffect(() => {
     if (!autoFetch) return;
-    const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt < 0) {
+
+    if (!Number.isFinite(amountNumber) || amountNumber < 0) {
       setErr(dict.errInvalidAmount || "Amount is invalid.");
       setMethods([]);
       setSelected(null);
       return;
     }
+
     fetchMethods();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amount, currency, apiBase, autoFetch]);
+  }, [amountNumber, currency, apiBase, autoFetch]);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -151,13 +200,15 @@ export default function PaymentMethodPicker({
                   padding: 10,
                   borderRadius: 8,
                   border: selected === mid ? "2px solid #1976d2" : "1px solid #ccc",
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
                 }}
               >
                 <input
                   type="radio"
                   name="mf-method"
                   checked={selected === mid}
+                  disabled={loading}
                   onChange={() => choose(m)}
                 />
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -169,6 +220,7 @@ export default function PaymentMethodPicker({
         </div>
       </div>
 
+      {/* ✅ Terms checkbox (used by program.jsx validateBeforeSubmit) */}
       <div
         style={{
           padding: 10,

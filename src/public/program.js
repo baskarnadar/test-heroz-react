@@ -1,5 +1,5 @@
 // src/public/program.jsx
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -31,52 +31,20 @@ import arPack from "../i18n/arlangpack.json";
 
 import TrupSummary from "../public/component/tripsummary";
 import ParentForm from "../public/component/parentform";
-import { executeMyFatoorahPayment } from "../public/payexcute";
+
+// ✅ Embedded payment helpers
+import { initiateEmbeddedSession, executePaymentBySession } from "../public/payexcute";
+import MyFatoorahEmbeddedCheckout from "../public/component/MyFatoorahEmbeddedModal";
 
 const MOBILE_RE = /^05\d{8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PAYERROR_URL = "https://school.heroz.sa/public/payerror";
 
-// rounding helper
 const round2 = (v) => {
   const n = Number(v || 0);
   if (!Number.isFinite(n)) return 0;
   const scaled = Math.round((n + Number.EPSILON) * 100);
   return scaled / 100;
-};
-
-// ✅ Apple Pay label (both 11 and 13 => "Apple Pay" for user)
-const paymentLabelFromId = (id) => {
-  switch (Number(id)) {
-    case 13:
-    case 11:
-      return "Apple Pay";
-    case 2:
-      return "VISA / MasterCard";
-    case 14:
-      return "STC Pay";
-    case 6:
-      return "MADA";
-    default:
-      return `Method ${id}`;
-  }
-};
-
-// ✅ both 11/13 treated as APPLE-PAY in your trip system
-const tripPaymentTypeIdFromId = (id) => {
-  switch (Number(id)) {
-    case 13:
-    case 11:
-      return "APPLE-PAY";
-    case 2:
-      return "CREDIT-CARD";
-    case 14:
-      return "STC-PAY";
-    case 6:
-      return "MADA";
-    default:
-      return "ONLINE";
-  }
 };
 
 const getFormattedDateTime = () => {
@@ -90,7 +58,6 @@ const getFormattedDateTime = () => {
   return `${dd}-${mm}-${yyyy} : ${hh}:${min}:${ss}`;
 };
 
-// ✅ template formatter that replaces {KEY} tokens
 const formatTemplate = (template, vars = {}) => {
   const t = String(template ?? "");
   return t.replace(/\{([A-Z0-9_]+)\}/gi, (match, key) => {
@@ -98,6 +65,15 @@ const formatTemplate = (template, vars = {}) => {
     const val = vars[k];
     return val == null ? match : String(val);
   });
+};
+
+// ✅ small safe stringify for debug UI
+const safeStringify = (obj) => {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch (e) {
+    return String(e?.message || e);
+  }
 };
 
 const ProposalPage = () => {
@@ -130,12 +106,8 @@ const ProposalPage = () => {
   const [ActivityData, setActivity] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const [childRows, setChildRows] = useState([
-    { schoolID: "", name: "", className: "", gender: "" },
-  ]);
-
+  const [childRows, setChildRows] = useState([{ schoolID: "", name: "", className: "", gender: "" }]);
   const [foodQty, setFoodQty] = useState({});
-  const [selectedMethodId, setSelectedMethodId] = useState(null);
 
   const [isExpired, setIsExpired] = useState(false);
   const [requestId, setRequestId] = useState("");
@@ -153,15 +125,52 @@ const ProposalPage = () => {
 
   const [showZeroCostModal, setShowZeroCostModal] = useState(false);
 
+  // ✅ existing debug (keep)
   const [debugApiUrl, setDebugApiUrl] = useState("");
   const [debugPayload, setDebugPayload] = useState(null);
   const [debugResult, setDebugResult] = useState(null);
 
-  // freeze base trip price + VAT (per student) once
   const [initialTripPriceInclVat, setInitialTripPriceInclVat] = useState(null);
 
-  // ✅ keep last selected method stable + numeric
-  const lastMethodIdRef = useRef(null);
+  // ✅ EMBEDDED PAYMENT UI MODAL
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [mfSessionId, setMfSessionId] = useState("");
+  const [mfCountryCode, setMfCountryCode] = useState("");
+  const [mfInitLoading, setMfInitLoading] = useState(false);
+  const [mfInitErr, setMfInitErr] = useState("");
+
+  // ✅ OTP iframe
+  const [otpUrl, setOtpUrl] = useState("");
+  const [otpOpen, setOtpOpen] = useState(false);
+
+  // ✅ NEW: debug panel state
+  const [dbgOpen, setDbgOpen] = useState(true);
+  const [dbgLastAction, setDbgLastAction] = useState("");
+  const [dbgPayErrorReason, setDbgPayErrorReason] = useState("");
+
+  const dbg = (...args) => {
+    // console
+    // eslint-disable-next-line no-console
+    console.log("[PAY-DEBUG]", ...args);
+  };
+
+  const setApiDebug = ({ action, url, payload, response, errorObj }) => {
+    setDbgLastAction(action || "");
+    if (url) setDebugApiUrl(url);
+    if (payload !== undefined) setDebugPayload(payload);
+    setDebugResult((prev) => ({
+      ...(prev || {}),
+      [action || "action"]: {
+        time: new Date().toISOString(),
+        url,
+        payload,
+        response,
+        error: errorObj ? String(errorObj?.message || errorObj) : null,
+        stack: errorObj?.stack || null,
+      },
+    }));
+    dbg(action, { url, payload, response, errorObj });
+  };
 
   const toggleLang = () => {
     const next = lang === "ar" ? "en" : "ar";
@@ -177,17 +186,12 @@ const ProposalPage = () => {
     setErrModalTitle(title);
     setErrModalMsg(msg);
     setErrModalOpen(true);
+    setApiDebug({ action: "UI_ERROR_MODAL", url: "", payload: { title, msg }, response: null, errorObj: null });
   };
 
   const handleAddRow = () =>
-    setChildRows((prev) => [
-      ...prev,
-      { schoolID: "", name: "", className: "", gender: "" },
-    ]);
-
-  const handleRemoveRow = (idx) =>
-    setChildRows((prev) => prev.filter((_, i) => i !== idx));
-
+    setChildRows((prev) => [...prev, { schoolID: "", name: "", className: "", gender: "" }]);
+  const handleRemoveRow = (idx) => setChildRows((prev) => prev.filter((_, i) => i !== idx));
   const handleInputChange = (index, field, value) => {
     const updated = [...childRows];
     updated[index][field] = value;
@@ -202,26 +206,32 @@ const ProposalPage = () => {
 
   const fetchActivity = async (ActivityIDVal, VendorIDVal, RequestIDVal) => {
     setLoading(true);
+    const url = `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`;
+    const payload = { ActivityID: ActivityIDVal, VendorID: VendorIDVal, RequestID: RequestIDVal };
+    setApiDebug({ action: "FETCH_ACTIVITY_REQUEST", url, payload, response: null });
+
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/admindata/activityinfo/trip/gettripview`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ActivityID: ActivityIDVal,
-            VendorID: VendorIDVal,
-            RequestID: RequestIDVal,
-          }),
-        }
-      );
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await response.json().catch(() => null);
+
+      setApiDebug({
+        action: "FETCH_ACTIVITY_RESPONSE",
+        url,
+        payload,
+        response: { ok: response.ok, status: response.status, json },
+      });
+
       if (!response.ok) throw new Error("Failed to fetch activities");
-      const data = await response.json();
-      setActivity(data.data || null);
+      setActivity(json?.data || null);
     } catch (err) {
       setError("Error fetching activities");
       console.error(err);
       showError(dict.errCouldNotLoadActivity);
+      setApiDebug({ action: "FETCH_ACTIVITY_ERROR", url, payload, response: null, errorObj: err });
     } finally {
       setLoading(false);
     }
@@ -229,15 +239,12 @@ const ProposalPage = () => {
 
   const handleCheckboxChange = (FoodID, isIncludedArg) => {
     const inferredIncluded =
-      isIncludedArg ??
-      (ActivityData?.foodList?.find((f) => f.FoodID === FoodID)?.Include === true);
+      isIncludedArg ?? (ActivityData?.foodList?.find((f) => f.FoodID === FoodID)?.Include === true);
 
     setCheckedFoodItems((prev) => {
       const next = { ...prev };
       if (inferredIncluded) {
-        (ActivityData?.foodList ?? [])
-          .filter((f) => f.Include === true)
-          .forEach((f) => (next[f.FoodID] = false));
+        (ActivityData?.foodList ?? []).filter((f) => f.Include === true).forEach((f) => (next[f.FoodID] = false));
         next[FoodID] = true;
       } else {
         next[FoodID] = !Boolean(prev[FoodID]);
@@ -248,14 +255,8 @@ const ProposalPage = () => {
 
   const handleExtraQtyChange = (FoodID, newQty) => {
     const q = newQty < 1 ? 1 : newQty;
-    setFoodQty((prev) => ({
-      ...prev,
-      [FoodID]: q,
-    }));
-    setCheckedFoodItems((prev) => ({
-      ...prev,
-      [FoodID]: true,
-    }));
+    setFoodQty((prev) => ({ ...prev, [FoodID]: q }));
+    setCheckedFoodItems((prev) => ({ ...prev, [FoodID]: true }));
   };
 
   const hasRealDueDate = (raw) => {
@@ -288,21 +289,32 @@ const ProposalPage = () => {
   const fetchTripData = async (RequestID) => {
     setLoading(true);
     setError("");
+    const url = `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`;
+    const payload = { RequestID };
+    setApiDebug({ action: "FETCH_TRIP_REQUEST", url, payload, response: null });
+
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/admindata/activityinfo/trip/gettrip`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ RequestID }),
-        }
-      );
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await response.json().catch(() => null);
+
+      setApiDebug({
+        action: "FETCH_TRIP_RESPONSE",
+        url,
+        payload,
+        response: { ok: response.ok, status: response.status, json },
+      });
 
       if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-      const data = await response.json();
-      const payload = Array.isArray(data?.data) ? data.data[0] ?? null : data?.data ?? null;
 
-      const dueRaw = payload?.PaymentDueDate;
+      const data = json;
+      const payloadTrip = Array.isArray(data?.data) ? data.data[0] ?? null : data?.data ?? null;
+
+      const dueRaw = payloadTrip?.PaymentDueDate;
       const missingDue =
         dueRaw == null ||
         String(dueRaw).trim() === "" ||
@@ -310,19 +322,26 @@ const ProposalPage = () => {
         String(dueRaw).trim().toLowerCase() === "null";
 
       if (missingDue || isPaymentExpired(dueRaw)) {
+        setApiDebug({
+          action: "NAV_EXPIRED",
+          url: "/public/expired",
+          payload: { missingDue, dueRaw },
+          response: null,
+        });
         navigate("/public/expired", { replace: true });
         return;
       }
 
-      setTripData(payload);
+      setTripData(payloadTrip);
 
-      const ActivityIDVal = payload?.ActivityID;
-      const VendorIDVal = payload?.VendorID;
+      const ActivityIDVal = payloadTrip?.ActivityID;
+      const VendorIDVal = payloadTrip?.VendorID;
       if (ActivityIDVal && VendorIDVal) fetchActivity(ActivityIDVal, VendorIDVal, RequestID);
     } catch (err) {
       console.error("Error fetching trip data:", err);
       setError(err.message || "Error fetching trip data");
       showError(dict.errCouldNotLoadTrip);
+      setApiDebug({ action: "FETCH_TRIP_ERROR", url, payload, response: null, errorObj: err });
     } finally {
       setLoading(false);
     }
@@ -349,6 +368,7 @@ const ProposalPage = () => {
     } else {
       setError("RequestID is missing in URL");
       showError(dict.errRequestIdMissing);
+      setApiDebug({ action: "ERR_MISSING_REQUEST_ID", url: window.location.href, payload: null, response: null });
     }
 
     try {
@@ -393,7 +413,6 @@ const ProposalPage = () => {
     return m;
   }, [TripData]);
 
-  // -------- BASE TRIP PRICE (PER STUDENT) – EXCL VAT ----------
   const filteredPriceList = (ActivityData?.priceList ?? []).filter((p) => {
     const vendor = parseFloat(p?.Price);
     const heroz = parseFloat(p?.HerozStudentPrice);
@@ -410,7 +429,6 @@ const ProposalPage = () => {
   }, 0);
   const priceTotal = round2(priceTotalRaw);
 
-  // -------- TRIP VAT (PER STUDENT) ----------
   const tripVatAmount = useMemo(() => {
     const list = ActivityData?.priceList ?? [];
     const total = list.reduce((sum, item) => {
@@ -435,10 +453,8 @@ const ProposalPage = () => {
     }
   }, [ActivityData, priceTotal, tripVatAmount, initialTripPriceInclVat, tripPerStudentIncVat]);
 
-  const tripPriceInclVat =
-    initialTripPriceInclVat != null ? initialTripPriceInclVat : tripPerStudentIncVat;
+  const tripPriceInclVat = initialTripPriceInclVat != null ? initialTripPriceInclVat : tripPerStudentIncVat;
 
-  // -------- EXTRA ITEMS TOTAL (Inc VAT, WHOLE ORDER, NOT PER KID) ----------
   const extraPriceInclVat = useMemo(() => {
     const list = ActivityData?.foodList ?? [];
     let total = 0;
@@ -447,8 +463,7 @@ const ProposalPage = () => {
       if (item.Include === true) continue;
       if (!checkedFoodItems[item.FoodID]) continue;
 
-      const qty =
-        foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0 ? Number(foodQty[item.FoodID]) : 1;
+      const qty = foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0 ? Number(foodQty[item.FoodID]) : 1;
 
       const school = schoolPriceMap[item.FoodID] ?? (parseFloat(item?.RequestFoodSchoolPrice) || 0);
       const vendor = parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
@@ -458,10 +473,7 @@ const ProposalPage = () => {
       const vendorVat = parseFloat(item?.FoodPriceVatAmount) || 0;
       const herozVat = parseFloat(item?.FoodHerozPriceVatAmount) || 0;
 
-      const unitBase = school + vendor + heroz;
-      const unitVat = schoolVat + vendorVat + herozVat;
-
-      total += (unitBase + unitVat) * qty;
+      total += (school + vendor + heroz + schoolVat + vendorVat + herozVat) * qty;
     }
 
     return round2(total);
@@ -474,9 +486,7 @@ const ProposalPage = () => {
   const validKidsCount = validKids.length;
 
   const childNameText = useMemo(() => {
-    const names = (validKids || [])
-      .map((k) => (k.name || "").trim())
-      .filter(Boolean);
+    const names = (validKids || []).map((k) => (k.name || "").trim()).filter(Boolean);
     if (names.length === 0) return "";
     const joiner = lang === "ar" ? "، " : ", ";
     return names.join(joiner);
@@ -488,19 +498,66 @@ const ProposalPage = () => {
     return round2(total);
   }, [validKidsCount, tripPriceInclVat, extraPriceInclVat]);
 
-  // ======= AUTO-MODAL if Trip Price is zero or less =======
+  // ✅ Identify why we triggered TripCostZero
+  const computeZeroReason = () => {
+    const baseTrip = Number(priceTotal) || 0;
+    const perStudent = Number(tripPriceInclVat) || 0;
+    const payAmt = Number(paymentAmount) || 0;
+
+    if (baseTrip <= 0) return `priceTotal <= 0 (priceTotal=${baseTrip})`;
+    if (perStudent <= 0) return `tripPriceInclVat <= 0 (tripPriceInclVat=${perStudent})`;
+    if (payAmt <= 0) return `paymentAmount <= 0 (paymentAmount=${payAmt})`;
+    return "";
+  };
+
   useEffect(() => {
     if (!loading && ActivityData) {
       const perStudent = Number(tripPriceInclVat) || 0;
-      if (perStudent <= 0 || paymentAmount <= 0) setShowZeroCostModal(true);
+      if (perStudent <= 0 || paymentAmount <= 0) {
+        const reason = computeZeroReason() || "perStudent/paymentAmount invalid";
+        setDbgPayErrorReason(`TripCostZero modal shown: ${reason}`);
+        setApiDebug({
+          action: "TRIPCOSTZERO_TRIGGER_1",
+          url: "TripCostZero",
+          payload: {
+            priceTotal,
+            tripPriceInclVat,
+            extraPriceInclVat,
+            paymentAmount,
+            validKidsCount,
+            reason,
+          },
+          response: null,
+        });
+        setShowZeroCostModal(true);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, ActivityData, tripPriceInclVat, paymentAmount]);
 
   useEffect(() => {
     if (!loading && ActivityData) {
       const baseTrip = Number(priceTotal) || 0;
-      if (baseTrip <= 0) setShowZeroCostModal(true);
+      if (baseTrip <= 0) {
+        const reason = computeZeroReason() || "baseTrip invalid";
+        setDbgPayErrorReason(`TripCostZero modal shown: ${reason}`);
+        setApiDebug({
+          action: "TRIPCOSTZERO_TRIGGER_2",
+          url: "TripCostZero",
+          payload: {
+            priceTotal,
+            tripPriceInclVat,
+            extraPriceInclVat,
+            paymentAmount,
+            validKidsCount,
+            reason,
+          },
+          response: null,
+        });
+        setShowZeroCostModal(true);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, ActivityData, priceTotal]);
 
   const tripCostPerStudent = round2(priceTotal);
@@ -518,9 +575,7 @@ const ProposalPage = () => {
 
     const includedName = (ActivityData?.foodList ?? []).find((f) => f.FoodID === includedId)?.FoodName;
 
-    const extrasPicked = (ActivityData?.foodList ?? []).filter(
-      (f) => f.Include !== true && checkedFoodItems[f.FoodID]
-    );
+    const extrasPicked = (ActivityData?.foodList ?? []).filter((f) => f.Include !== true && checkedFoodItems[f.FoodID]);
 
     const extraRows = extrasPicked.map((item) => {
       const qty = foodQty[item.FoodID] && Number(foodQty[item.FoodID]) > 0 ? Number(foodQty[item.FoodID]) : 1;
@@ -540,9 +595,7 @@ const ProposalPage = () => {
       };
     });
 
-    let userDefinedFieldVal =
-      TripData.actRequestRefNo + "-" + ActivityData.actName + "-" + getFormattedDateTime();
-
+    let userDefinedFieldVal = TripData.actRequestRefNo + "-" + ActivityData.actName + "-" + getFormattedDateTime();
     if (ActivityData.actRequestStatus === "TRIP-BOOKED")
       userDefinedFieldVal = TripData.actRequestRefNo + "-" + ActivityData.actName + getFormattedDateTime();
 
@@ -576,11 +629,6 @@ const ProposalPage = () => {
       PayTypeID: "ONLINE",
     }));
 
-    const paymentLabel = paymentLabelFromId(selectedMethodId);
-
-    const vatPerStudent = round2(tripTaxPerStudent).toFixed(2);
-    const totalVatAllStudents = round2(tripTaxPerStudent * (validKids.length || 1)).toFixed(2);
-
     const summary = {
       included: includedName || "-",
       extras: extraRows,
@@ -590,15 +638,13 @@ const ProposalPage = () => {
         schoolID: (k.schoolID || "").trim(),
         gender: (k.gender || "").trim(),
       })),
-      paymentLabel,
+      paymentLabel: "MyFatoorah Embedded",
       totals: {
         baseTripPerStudent: tripPriceInclVat.toFixed(2),
         foodPerStudent: extraPriceInclVat.toFixed(2),
         grandPerStudent: totalPayablePerOrder.toFixed(2),
         students: validKids.length,
         netAmount: round2(tripPriceInclVat * validKids.length + extraPriceInclVat).toFixed(2),
-        vatPerStudent,
-        totalVat: totalVatAllStudents,
       },
     };
 
@@ -609,9 +655,9 @@ const ProposalPage = () => {
       tripParentsMobileNo: parentMobile,
       tripParentsEmail: parentEmail,
       tripParentsNote: document.querySelector('textarea[name="txtParentsNote"]')?.value.trim() || "",
-      tripPaymentTypeID: tripPaymentTypeIdFromId(selectedMethodId),
-      tripPaymentMethodId: selectedMethodId != null ? Number(selectedMethodId) : null,
-      tripPaymentMethodLabel: paymentLabelFromId(selectedMethodId),
+      tripPaymentTypeID: "ONLINE",
+      tripPaymentMethodId: null,
+      tripPaymentMethodLabel: "MyFatoorah Embedded",
       kidsInfo,
       FoodIncluded: includedId ? [includedId] : [],
       FoodExtra: extraRows.map(({ FoodID, FoodSchoolPrice, FoodVendorPrice, FoodHerozPrice, Quantity }) => ({
@@ -622,6 +668,13 @@ const ProposalPage = () => {
         Quantity,
       })),
     };
+
+    setApiDebug({
+      action: "BUILD_PAYLOAD",
+      url: "buildSelectionSummaryAndPayload",
+      payload,
+      response: summary,
+    });
 
     return { payload, summary };
   };
@@ -642,23 +695,17 @@ const ProposalPage = () => {
     const parentMobile = document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
     const parentEmail = document.querySelector('input[name="tripParentsEmail"]')?.value.trim() || "";
 
-    if (!parentName) {
-      showError(dict.errEnterParentName);
-      return false;
-    }
-    if (!MOBILE_RE.test(parentMobile)) {
-      showError(dict.errParentPhoneFormat);
-      return false;
-    }
+    if (!parentName) return showError(dict.errEnterParentName), false;
+    if (!MOBILE_RE.test(parentMobile)) return showError(dict.errParentPhoneFormat), false;
     if (parentEmail && !EMAIL_RE.test(parentEmail)) {
-      showError(dict.errParentEmailFormat || (lang === "ar" ? "الرجاء إدخال بريد إلكتروني صحيح." : "Please enter a valid email address."));
+      showError(
+        dict.errParentEmailFormat ||
+          (lang === "ar" ? "الرجاء إدخال بريد إلكتروني صحيح." : "Please enter a valid email address.")
+      );
       return false;
     }
 
-    if (validKids.length === 0) {
-      showError(dict.errEnterChildInfo);
-      return false;
-    }
+    if (validKids.length === 0) return showError(dict.errEnterChildInfo), false;
 
     for (const kid of validKids) {
       if (kid.name.trim().length < 10) {
@@ -667,16 +714,9 @@ const ProposalPage = () => {
       }
     }
 
-    const mid = Number(selectedMethodId);
-    if (!Number.isFinite(mid) || mid <= 0) {
-      showError(dict.errChoosePaymentMethod);
-      return false;
-    }
-
     const termsCheckbox = document.getElementById("termsAgree");
     if (!termsCheckbox || !termsCheckbox.checked) {
-      showError(dict.errAgreeTerms || "Please agree to the terms and conditions.");
-      return false;
+      return showError(dict.errAgreeTerms || "Please agree to the terms and conditions."), false;
     }
 
     return true;
@@ -686,16 +726,26 @@ const ProposalPage = () => {
     if (TripData?.PaymentDueDate && isPaymentExpired(TripData.PaymentDueDate)) {
       setIsExpired(true);
       showError(dict.errDueDateFinished);
+      setApiDebug({
+        action: "SUBMIT_BLOCKED_DUE_DATE",
+        url: "",
+        payload: { PaymentDueDate: TripData?.PaymentDueDate },
+        response: null,
+      });
       return;
     }
 
     if ((Number(priceTotal) || 0) <= 0) {
+      const reason = computeZeroReason() || "priceTotal <= 0";
+      setDbgPayErrorReason(`handleSubmit: TripCostZero -> ${reason}`);
       setShowZeroCostModal(true);
       return;
     }
 
     const perStudent = Number(tripPriceInclVat) || 0;
     if (perStudent <= 0 || paymentAmount <= 0) {
+      const reason = computeZeroReason() || "perStudent/paymentAmount <= 0";
+      setDbgPayErrorReason(`handleSubmit: TripCostZero -> ${reason}`);
       setShowZeroCostModal(true);
       return;
     }
@@ -720,6 +770,7 @@ const ProposalPage = () => {
     const endpoint = `${API_BASE_URL}/admindata/activityinfo/trip/tripAddParentsKidsInfo`;
     setDebugApiUrl(endpoint);
     setDebugPayload(pendingPayload);
+    setApiDebug({ action: "TRIPADD_REQUEST", url: endpoint, payload: pendingPayload, response: null });
 
     try {
       const response = await fetch(endpoint, {
@@ -728,65 +779,147 @@ const ProposalPage = () => {
         body: JSON.stringify(pendingPayload),
       });
 
-      if (!response.ok) throw new Error("Failed to submit data");
-      const submitJson = await response.json();
+      const submitJson = await response.json().catch(() => null);
 
-      setDebugResult({ submitResponse: submitJson });
+      setApiDebug({
+        action: "TRIPADD_RESPONSE",
+        url: endpoint,
+        payload: pendingPayload,
+        response: { ok: response.ok, status: response.status, json: submitJson },
+      });
+
+      if (!response.ok) throw new Error("Failed to submit data");
+
       setConfirmOpen(false);
 
-      const schoolTotalTripCost = paymentAmount;
+      // open embedded modal
+      setPayModalOpen(true);
+      setMfInitErr("");
+      setMfSessionId("");
+      setMfCountryCode("");
+      setOtpUrl("");
+      setOtpOpen(false);
+
+      setMfInitLoading(true);
+
+      // Initiate embedded session
+      const ses = await initiateEmbeddedSession({ amount: paymentAmount, currencyCode: "SAR" });
+
+      setApiDebug({
+        action: "MF_INITIATE_SESSION_RESULT",
+        url: `${API_BASE_URL}/myfatrooahdata/pay/initiate-session`,
+        payload: { amount: paymentAmount, currencyCode: "SAR" },
+        response: ses,
+      });
+
+      setMfInitLoading(false);
+
+      if (!ses.ok) {
+        setMfInitErr(ses.error || "Failed to initiate embedded session.");
+        return;
+      }
+
+      setMfSessionId(ses.sessionId);
+      setMfCountryCode(ses.countryCode);
+    } catch (err) {
+      console.error("Submit error:", err);
+      setConfirmOpen(false);
+      showError(dict.errSubmissionFailed);
+      setApiDebug({ action: "TRIPADD_ERROR", url: endpoint, payload: pendingPayload, response: null, errorObj: err });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEmbeddedCallback = async (mfResponse) => {
+    try {
+      if (!mfResponse) return;
+
+      setApiDebug({ action: "MF_WIDGET_CALLBACK_RAW", url: "myfatoorah.init callback", payload: mfResponse, response: null });
+
+      if (!mfResponse.isSuccess) {
+        setApiDebug({ action: "MF_WIDGET_CALLBACK_NOT_SUCCESS", url: "", payload: mfResponse, response: null });
+        return;
+      }
+
+      const callbackSessionId =
+        mfResponse?.sessionId ||
+        mfResponse?.SessionId ||
+        mfResponse?.data?.SessionId ||
+        mfResponse?.Data?.SessionId ||
+        mfSessionId;
+
+      if (!callbackSessionId) {
+        showError(
+          lang === "ar"
+            ? "لم يتم العثور على SessionId من بوابة الدفع. الرجاء المحاولة مرة أخرى."
+            : "SessionId was not found from the payment widget callback. Please try again."
+        );
+        setApiDebug({ action: "MF_CALLBACK_SESSIONID_MISSING", url: "", payload: mfResponse, response: null });
+        return;
+      }
 
       const parentName = document.querySelector('input[name="txtParentName"]')?.value.trim() || "";
       const parentMobile = document.querySelector('input[name="tripParentsMobileNo"]')?.value.trim() || "";
       const parentEmail = document.querySelector('input[name="tripParentsEmail"]')?.value.trim() || "";
 
-      const methodId = Number(selectedMethodId);
-      if (!Number.isFinite(methodId) || methodId <= 0) {
-        showError(dict.errChoosePaymentMethod);
-        setSubmitting(false);
+      const sentBody = {
+        sessionId: callbackSessionId,
+        invoiceValue: paymentAmount,
+        customer: { name: parentName, mobile: parentMobile, email: parentEmail || "no-reply@heroz.sa" },
+        language: lang === "ar" ? "AR" : "EN",
+        displayCurrency: "SAR",
+      };
+
+      setApiDebug({
+        action: "MF_EXECUTE_SESSION_FRONTEND_SENT",
+        url: `${API_BASE_URL}/myfatrooahdata/pay/execute-session`,
+        payload: sentBody,
+        response: null,
+      });
+
+      const exec = await executePaymentBySession(sentBody);
+
+      setApiDebug({
+        action: "MF_EXECUTE_SESSION_FRONTEND_RESULT",
+        url: `${API_BASE_URL}/myfatrooahdata/pay/execute-session`,
+        payload: sentBody,
+        response: exec,
+      });
+
+      if (!exec.ok) {
+        showError(exec.error || "ExecutePayment failed.");
         return;
       }
 
-      lastMethodIdRef.current = methodId;
-
-      try {
-        const result = await executeMyFatoorahPayment({
-          amount: schoolTotalTripCost,
-          paymentMethodId: methodId,
-          customer: {
-            name: parentName,
-            email: parentEmail || "no-reply@heroz.sa",
-            mobile: parentMobile,
-          },
-          language: lang === "ar" ? "AR" : "EN",
-          displayCurrency: "SAR",
-          redirect: true,
-        });
-
-        setDebugResult((prev) => ({
-          ...(prev || {}),
-          paymentResult: result,
-        }));
-
-        if (!result.ok) {
-          showError(result.error || dict.errPaymentCouldNotStart);
-        }
-      } catch (e) {
-        showError(String(e));
+      if (!exec.paymentUrl) {
+        showError(lang === "ar" ? "لم يتم إرجاع رابط الدفع (PaymentURL)." : "PaymentURL was not returned.");
+        return;
       }
-    } catch (err) {
-      console.error("Submit error:", err);
-      setConfirmOpen(false);
-      showError(dict.errSubmissionFailed);
 
-      setDebugResult((prev) => ({
-        ...(prev || {}),
-        submitError: String(err),
-      }));
-    } finally {
-      setSubmitting(false);
+      setOtpUrl(exec.paymentUrl);
+      setOtpOpen(true);
+    } catch (e) {
+      showError(String(e));
+      setApiDebug({ action: "MF_EXECUTE_SESSION_EXCEPTION", url: "", payload: null, response: null, errorObj: e });
     }
   };
+
+  useEffect(() => {
+    function onMessage(event) {
+      if (!event?.data) return;
+      try {
+        const message = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (message?.sender === "MF-3DSecure" && message?.url) {
+          setApiDebug({ action: "MF_3DS_MESSAGE_REDIRECT", url: message.url, payload: message, response: null });
+          window.location.href = message.url;
+        }
+      } catch (_) {}
+    }
+
+    window.addEventListener("message", onMessage, false);
+    return () => window.removeEventListener("message", onMessage, false);
+  }, []);
 
   const canonicalUrl = shareUrl || `${window.location.origin}${window.location.pathname}`;
 
@@ -800,10 +933,7 @@ const ProposalPage = () => {
   }, [ActivityData, absoluteLogoUrl, dict]);
 
   const confirmPayMessage = useMemo(() => {
-    const fallback =
-      lang === "ar"
-        ? "هل ترغب في إتمام الدفع لرحلة طفلك الآن؟"
-        : "Would you like to finalize the payment for your child's trip now?";
+    const fallback = lang === "ar" ? "هل ترغب في إتمام الدفع لرحلة طفلك الآن؟" : "Would you like to finalize the payment for your child's trip now?";
     const template = dict.are_you_ready_to_pay_trip || fallback;
     const nameToShow = childNameText || "";
     return formatTemplate(template, { CHILDNAME: nameToShow });
@@ -860,10 +990,12 @@ const ProposalPage = () => {
               <div className="about-right">
                 <div className="detail-row">
                   <div className="detail">
-                    <div className="detail-label trip-gradient-color  fontsize30">
+                    <div className="detail-label trip-gradient-color fontsize30">
                       <div className="row-inline">
                         <img src={icon5} alt="HEROZ" className="icon-tint-pink" />
-                        <span> {dict.tripCost} {dict.ar_inc_vat} </span>
+                        <span>
+                          {dict.tripCost} {dict.ar_inc_vat}
+                        </span>
                       </div>
                     </div>
                     <div className="detail-value ">
@@ -874,7 +1006,7 @@ const ProposalPage = () => {
 
                 <div className="detail-row">
                   <div className="detail">
-                    <div className="detail-label trip-gradient-color  fontsize30">
+                    <div className="detail-label trip-gradient-color fontsize30">
                       <div className="row-inline">
                         <img src={icon1} alt="HEROZ" />
                         <span>{dict.date}</span>
@@ -886,7 +1018,7 @@ const ProposalPage = () => {
 
                 <div className="detail-row">
                   <div className="detail">
-                    <div className="detail-label trip-gradient-color  fontsize30">
+                    <div className="detail-label trip-gradient-color fontsize30">
                       <div className="row-inline">
                         <img src={icon2} alt="HEROZ" />
                         <span>{dict.time}</span>
@@ -898,7 +1030,7 @@ const ProposalPage = () => {
 
                 <div className="detail-row">
                   <div className="detail">
-                    <div className="detail-label trip-gradient-color  fontsize30">
+                    <div className="detail-label trip-gradient-color fontsize30">
                       <div className="row-inline">
                         <img src={icon3} alt="HEROZ" />
                         <span>{dict.location}</span>
@@ -946,16 +1078,10 @@ const ProposalPage = () => {
               handleExtraQtyChange={handleExtraQtyChange}
               lang={lang}
               paymentAmount={paymentAmount}
-              apiBase={API_BASE_URL}
-              onPaymentMethodSelect={(id) => {
-                const nid = Number(id);
-                setSelectedMethodId(Number.isFinite(nid) ? nid : id);
-                lastMethodIdRef.current = Number.isFinite(nid) ? nid : id;
-              }}
               onSubmit={handleSubmit}
               tripPriceInclVat={tripPriceInclVat}
               extraPriceInclVat={extraPriceInclVat}
-              selectedMethodId={selectedMethodId}
+              hidePaymentPicker={true}
             />
 
             <ParentForm
@@ -969,13 +1095,90 @@ const ProposalPage = () => {
             />
           </section>
 
+          {/* ✅ Embedded Payment Modal */}
+          <CModal
+            visible={payModalOpen}
+            onClose={() => setPayModalOpen(false)}
+            alignment="center"
+            size="xl"
+            backdrop="static"
+          >
+            <CModalHeader onClose={() => setPayModalOpen(false)}>
+              <CModalTitle>{lang === "ar" ? "الدفع" : "Payment"}</CModalTitle>
+            </CModalHeader>
+            <CModalBody>
+              {mfInitLoading && (
+                <div style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10 }}>
+                  {lang === "ar" ? "جاري تجهيز الدفع..." : "Preparing payment..."}
+                </div>
+              )}
+
+              {!!mfInitErr && (
+                <div style={{ padding: 12, border: "1px solid #f5a9a9", background: "#ffe6e6", borderRadius: 10 }}>
+                  <b>{lang === "ar" ? "خطأ:" : "Error:"}</b> {mfInitErr}
+                </div>
+              )}
+
+              {!mfInitLoading && !!mfSessionId && !!mfCountryCode && (
+                <MyFatoorahEmbeddedCheckout
+                  lang={lang}
+                  sessionId={mfSessionId}
+                  countryCode={mfCountryCode}
+                  currencyCode={"SAR"}
+                  amount={paymentAmount}
+                  containerId="embedded-payment"
+                  paymentOptions={["ApplePay", "GooglePay", "Card", "STCPay"]}
+                  environment={"KSA_LIVE"}
+                  onCallback={handleEmbeddedCallback}
+                  onError={(msg) => setMfInitErr(msg)}
+                />
+              )}
+
+              {otpOpen && !!otpUrl && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                    {lang === "ar" ? "التحقق (OTP / 3D Secure)" : "Verification (OTP / 3D Secure)"}
+                  </div>
+                  <div
+                    style={{
+                      height: "70vh",
+                      minHeight: 520,
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      border: "1px solid #e6e6e6",
+                    }}
+                  >
+                    <iframe
+                      title="MF-3DS"
+                      src={otpUrl}
+                      style={{ width: "100%", height: "100%", border: 0 }}
+                      allow="payment *; fullscreen *"
+                    />
+                  </div>
+                </div>
+              )}
+            </CModalBody>
+            <CModalFooter>
+              <CButton color="secondary" onClick={() => setPayModalOpen(false)}>
+                {lang === "ar" ? "إغلاق" : "Close"}
+              </CButton>
+            </CModalFooter>
+          </CModal>
+
           {/* Confirm Modal */}
           <CModal visible={confirmOpen} onClose={() => setConfirmOpen(false)} alignment="center">
             <CModalHeader onClose={() => setConfirmOpen(false)}>
               <CModalTitle>{dict.confirmSelections}</CModalTitle>
             </CModalHeader>
             <CModalBody>
-              <p style={{ margin: 0, textAlign: lang === "ar" ? "right" : "left", fontSize: "1.1rem", fontWeight: 500 }}>
+              <p
+                style={{
+                  margin: 0,
+                  textAlign: lang === "ar" ? "right" : "left",
+                  fontSize: "1.1rem",
+                  fontWeight: 500,
+                }}
+              >
                 {confirmPayMessage}
               </p>
             </CModalBody>
@@ -983,7 +1186,12 @@ const ProposalPage = () => {
               <CButton color="secondary" onClick={() => setConfirmOpen(false)}>
                 {dict.cancel}
               </CButton>
-              <CButton color="primary" disabled={submitting || !selectedMethodId} onClick={submitConfirmed} style={{ backgroundColor: "green" }}>
+              <CButton
+                color="primary"
+                disabled={submitting}
+                onClick={submitConfirmed}
+                style={{ backgroundColor: "green" }}
+              >
                 {submitting ? dict.submitting : dict.yesSubmit}
               </CButton>
             </CModalFooter>
@@ -1010,6 +1218,23 @@ const ProposalPage = () => {
             url={PAYERROR_URL}
             lang={lang}
             onClose={() => {
+              const reason = computeZeroReason() || "TripCostZero onClose redirect";
+              setDbgPayErrorReason(`Redirect to PAYERROR_URL because TripCostZero closed: ${reason}`);
+
+              setApiDebug({
+                action: "TRIPCOSTZERO_REDIRECT_PAYERROR",
+                url: PAYERROR_URL,
+                payload: {
+                  reason,
+                  priceTotal,
+                  tripPriceInclVat,
+                  extraPriceInclVat,
+                  paymentAmount,
+                  validKidsCount,
+                },
+                response: null,
+              });
+
               setShowZeroCostModal(false);
               window.location.href = PAYERROR_URL;
             }}
@@ -1017,6 +1242,95 @@ const ProposalPage = () => {
         </main>
 
         <ProgramFooter lang={lang} />
+      </div>
+
+      {/* ✅ DEBUG PANEL */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 10,
+          left: 10,
+          right: 10,
+          zIndex: 999999,
+          fontFamily: "monospace",
+        }}
+      >
+        <div
+          style={{
+            background: "#111",
+            color: "#fff",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.2)",
+            overflow: "hidden",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+          }}
+        >
+          <div style={{ padding: 10, display: "flex", gap: 10, alignItems: "center" }}>
+            <b style={{ fontSize: 14 }}>PAY DEBUG</b>
+            <button
+              onClick={() => setDbgOpen((v) => !v)}
+              style={{
+                marginLeft: "auto",
+                padding: "4px 10px",
+                borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.25)",
+                background: "transparent",
+                color: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              {dbgOpen ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          {dbgOpen && (
+            <div style={{ padding: 10, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Last Action</div>
+                  <div style={{ color: "#9be7ff" }}>{dbgLastAction || "-"}</div>
+
+                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>PayError Reason</div>
+                  <div style={{ color: "#ff9b9b", whiteSpace: "pre-wrap" }}>{dbgPayErrorReason || "-"}</div>
+
+                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>Values</div>
+                  <div style={{ whiteSpace: "pre-wrap", color: "#ddd" }}>
+                    {safeStringify({
+                      requestId,
+                      priceTotal,
+                      tripVatAmount,
+                      tripPriceInclVat,
+                      extraPriceInclVat,
+                      totalPayablePerOrder,
+                      paymentAmount,
+                      validKidsCount,
+                      showZeroCostModal,
+                      payModalOpen,
+                      otpOpen,
+                      mfSessionId,
+                      mfCountryCode,
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>API URL</div>
+                  <div style={{ color: "#a9ffb5", wordBreak: "break-word" }}>{debugApiUrl || "-"}</div>
+
+                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>API Payload</div>
+                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "#ddd" }}>
+                    {safeStringify(debugPayload)}
+                  </pre>
+
+                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>API Response (latest)</div>
+                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "#ddd", maxHeight: 220, overflow: "auto" }}>
+                    {safeStringify(debugResult)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
