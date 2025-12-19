@@ -42,8 +42,7 @@ const TrupSummary = ({
   };
 
   const hasAnyFood = useMemo(
-    () =>
-      Array.isArray(ActivityData?.foodList) && ActivityData.foodList.length > 0,
+    () => Array.isArray(ActivityData?.foodList) && ActivityData.foodList.length > 0,
     [ActivityData]
   );
 
@@ -52,9 +51,7 @@ const TrupSummary = ({
   const totalPayable = Number(grandTotalWithTax) || basePerStudent + extraTotal;
 
   const netForKids =
-    validKidsCount > 0
-      ? basePerStudent * validKidsCount + extraTotal
-      : totalPayable;
+    validKidsCount > 0 ? basePerStudent * validKidsCount + extraTotal : totalPayable;
 
   const tripPriceDisplay = basePerStudent;
 
@@ -104,10 +101,7 @@ const TrupSummary = ({
           setMethodsErr(
             data?.Message ||
               data?.error?.Message ||
-              (typeof data === "string" ? data : JSON.stringify(data)).slice(
-                0,
-                500
-              )
+              (typeof data === "string" ? data : JSON.stringify(data)).slice(0, 500)
           );
           setAvailableIds(new Set());
           return;
@@ -115,9 +109,7 @@ const TrupSummary = ({
 
         const list = data?.Data?.PaymentMethods || [];
         const ids = new Set(
-          list
-            .map((m) => Number(m?.PaymentMethodId))
-            .filter((x) => Number.isFinite(x))
+          list.map((m) => Number(m?.PaymentMethodId)).filter((x) => Number.isFinite(x))
         );
         setAvailableIds(ids);
 
@@ -170,18 +162,14 @@ const TrupSummary = ({
       return;
     }
 
-    setMethodsErr(
-      isArabic ? "Apple Pay غير متاح حالياً." : "Apple Pay is not available right now."
-    );
+    setMethodsErr(isArabic ? "Apple Pay غير متاح حالياً." : "Apple Pay is not available right now.");
   };
 
   const showMethod = (id) => availableIds.size === 0 || availableIds.has(id);
 
   return (
     <div className="card pricing">
-      <h3 className="card-title trip-gradient-color fontsize40">
-        {dict.tripsPricing}
-      </h3>
+      <h3 className="card-title trip-gradient-color fontsize40">{dict.tripsPricing}</h3>
 
       {/* Trip Price (ONE amount INCLUDING VAT per student) */}
       <div className="price-row">
@@ -207,7 +195,6 @@ const TrupSummary = ({
               lang={lang}
             />
           </div>
-
           <div className="divider" />
         </>
       )}
@@ -227,8 +214,7 @@ const TrupSummary = ({
       {validKidsCount > 1 && (
         <div className="summary-row total net-payable trip-gradient-color">
           <span>
-            {dict.netPayableAmount.replace("{count}", validKidsCount)}{" "}
-            <div>({dict.ar_inc_vat})</div>
+            {dict.netPayableAmount.replace("{count}", validKidsCount)} <div>({dict.ar_inc_vat})</div>
           </span>
           <span>
             {to2(netForKids)} <img src={icon5} alt="HEROZ" />
@@ -238,14 +224,11 @@ const TrupSummary = ({
 
       <div className="divider" />
 
-      {/* ✅ Payment methods (simple, clean) */}
+      {/* ✅ Payment methods */}
       <div style={{ marginTop: 12 }}>
         <div style={{ fontWeight: 700, marginBottom: 8 }}>
-          {dict.ar_choose_method ||
-            (isArabic ? "اختر طريقة الدفع:" : "Choose payment method:")}
-          <span style={{ color: "red", fontSize: 22, marginInlineStart: 6 }}>
-            *
-          </span>
+          {dict.ar_choose_method || (isArabic ? "اختر طريقة الدفع:" : "Choose payment method:")}
+          <span style={{ color: "red", fontSize: 22, marginInlineStart: 6 }}>*</span>
         </div>
 
         {loadingMethods && (
@@ -254,7 +237,7 @@ const TrupSummary = ({
           </div>
         )}
 
-        {/* ✅ ONE Apple Pay button */}
+        {/* ✅ ONE Apple Pay button (NO POPUP) */}
         <button
           type="button"
           onClick={handleApplePayClick}
@@ -272,10 +255,7 @@ const TrupSummary = ({
           }}
         >
           {isArabic ? "Apple Pay" : "Apple Pay"}
-          {selectedId === MF_APPLEPAY_MADA_ID ||
-          selectedId === MF_APPLEPAY_VISA_MASTER_ID
-            ? " ✅"
-            : ""}
+          {selectedId === MF_APPLEPAY_MADA_ID || selectedId === MF_APPLEPAY_VISA_MASTER_ID ? " ✅" : ""}
         </button>
 
         {/* Other methods as radios */}
@@ -288,10 +268,7 @@ const TrupSummary = ({
                 gap: 10,
                 padding: 10,
                 borderRadius: 8,
-                border:
-                  selectedId === MF_MADA_ID
-                    ? "2px solid #1976d2"
-                    : "1px solid #ccc",
+                border: selectedId === MF_MADA_ID ? "2px solid #1976d2" : "1px solid #ccc",
                 cursor: "pointer",
               }}
             >
@@ -313,10 +290,7 @@ const TrupSummary = ({
                 gap: 10,
                 padding: 10,
                 borderRadius: 8,
-                border:
-                  selectedId === MF_VISA_MASTER_ID
-                    ? "2px solid #1976d2"
-                    : "1px solid #ccc",
+                border: selectedId === MF_VISA_MASTER_ID ? "2px solid #1976d2" : "1px solid #ccc",
                 cursor: "pointer",
               }}
             >
@@ -338,10 +312,7 @@ const TrupSummary = ({
                 gap: 10,
                 padding: 10,
                 borderRadius: 8,
-                border:
-                  selectedId === MF_STC_ID
-                    ? "2px solid #1976d2"
-                    : "1px solid #ccc",
+                border: selectedId === MF_STC_ID ? "2px solid #1976d2" : "1px solid #ccc",
                 cursor: "pointer",
               }}
             >
@@ -370,16 +341,10 @@ const TrupSummary = ({
           }}
         >
           <span style={{ color: "red", fontSize: 22 }}>*</span>
-          <input
-            type="checkbox"
-            id="termsAgree"
-            style={{ width: 18, height: 18 }}
-          />
+          <input type="checkbox" id="termsAgree" style={{ width: 18, height: 18 }} />
           <label htmlFor="termsAgree" style={{ margin: 0, cursor: "pointer" }}>
             {dict.ar_terms_agree ||
-              (isArabic
-                ? "أوافق على الشروط والأحكام"
-                : "I agree to terms & conditions")}
+              (isArabic ? "أوافق على الشروط والأحكام" : "I agree to terms & conditions")}
           </label>
         </div>
 
