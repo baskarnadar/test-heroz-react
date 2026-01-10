@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../../config'
 import { checkLogin } from '../../utils/auth'
 import {
   getCurrentLoggedUserType,
+  getCurrentLoggedUserID,
   formatDate,
   dspstatus,
   DspToastMessage,
@@ -45,30 +46,33 @@ const SchoolList = () => {
     }
     return range
   }
+ const fetchNoteInfo = async () => {
+  setLoading(true)
+  try {
+    const response = await fetch(`${API_BASE_URL}/note/getnoteList`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        noteTo: getCurrentLoggedUserType(),
+        VendorID: getCurrentLoggedUserID(), // 👈 pass VendorID here
+      }),
+    })
 
-  const fetchNoteInfo = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch(`${API_BASE_URL}/note/getnoteList`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ noteTo: getCurrentLoggedUserType() }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch notification')
-      }
-
-      const data = await response.json()
-      console.log(data)
-      setNoteInfo(data.data || [])
-      setTotalPages(Math.ceil(data.totalCount / NoteInfoPerPage))
-    } catch (err) {
-      setError('Error fetching notification')
-    } finally {
-      setLoading(false)
+    if (!response.ok) {
+      throw new Error('Failed to fetch notification')
     }
+
+    const data = await response.json()
+    console.log(data)
+
+    setNoteInfo(data.data || [])
+    setTotalPages(Math.ceil((data.totalCount || 0) / NoteInfoPerPage))
+  } catch (err) {
+    setError('Error fetching notification')
+  } finally {
+    setLoading(false)
   }
+}
 
   useEffect(() => {
     const token = localStorage.getItem('token')

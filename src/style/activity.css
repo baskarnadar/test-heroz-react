@@ -1,0 +1,378 @@
+/* activity.css */
+
+.act-hide {
+  display: none !important;
+}
+
+.act-required {
+  color: red;
+}
+
+.act-requiredLabel {
+  display: inline-block;
+}
+
+.act-errorText {
+  color: #cf2037;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Header actions */
+.act-headerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Field label spacing */
+.act-fieldLabelSpacing {
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+
+/* Activity type */
+.act-typeRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.act-typePill {
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+/* Rating */
+.act-ratingWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.act-ratingLabel {
+  margin: 0;
+}
+
+/* Categories */
+.act-categoriesWrap {
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+
+.act-categoriesLabel {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.act-categoriesGrid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.act-categoryItem {
+  width: 33.33%;
+  margin-bottom: 10px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.act-categoryCheckWrap {
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.act-categoryCheckbox {
+  margin-right: 8px;
+  transform: scale(2);
+  cursor: pointer;
+  accent-color: red;
+}
+
+/* Upload note (red border + yellow 0.5 rgba background) */
+.act-uploadNote {
+  display: inline-block;
+  margin-inline-start: 10px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 1px solid #cf2037;
+  border-radius: 8px;
+  background-color: rgba(255, 235, 59, 0.5);
+  color: #111;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Images row */
+.act-imagesRow {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+.act-imageCol {
+  flex: 1;
+}
+
+.act-imageCol .admin-txt-box {
+  height: 50px;
+  width: 100%;
+}
+
+/* Select styling */
+.act-select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* Two columns rows */
+.act-twoColRow {
+  display: flex;
+  gap: 20px;
+}
+
+/* Gender */
+.act-genderContainer {
+  margin-top: 10px;
+}
+
+.act-genderRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.act-genderOption {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.act-genderRadio {
+  width: 24px;
+  height: 24px;
+}
+
+/* VAT percent pill near title */
+.act-vatPercentPill {
+  margin-inline-start: 8px;
+  font-size: 13px;
+  border: 1px solid #cf2037;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background-color: rgba(207, 32, 55, 0.15);
+  color: #cf2037;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* VAT pill under inputs */
+.act-vatPillWrap {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.act-vatPill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cf2037;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background-color: rgba(207, 32, 55, 0.15);
+  color: #cf2037;
+}
+
+.act-vatStrong {
+  margin-inline-start: 4px;
+}
+
+/* Availability section */
+.act-availabilityWrap {
+  margin: 20px auto;
+  font-family: Arial, sans-serif;
+}
+
+.act-dayRow {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.act-dayGrow {
+  flex-grow: 1;
+}
+
+.act-dayHeader {
+  font-weight: bold;
+  text-transform: capitalize;
+  margin-bottom: 8px;
+}
+
+.act-dayTimesWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.act-timeRow {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.act-timeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.act-rangeHours {
+  white-space: nowrap;
+}
+
+.act-removeTimeBtn {
+  background: tomato;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.act-addMoreWrap {
+  margin-top: 10px;
+}
+
+/* Food section */
+.act-foodWrap {
+  margin: 20px auto;
+  font-family: Arial, sans-serif;
+}
+
+.act-foodVatCell {
+  font-size: 12px;
+}
+
+.act-includeCheckbox {
+  transform: scale(1.5);
+  accent-color: red;
+  cursor: pointer;
+}
+
+/* Summary card */
+.act-summaryCard {
+  max-width: 650px;
+  margin: 0 auto;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.act-summaryHeader {
+  display: flex;
+  background: #f7f7f7;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+.act-summaryBody {
+  padding: 8px 12px;
+}
+
+.act-summaryRow {
+  display: flex;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+}
+
+.act-summaryTotalRow {
+  display: flex;
+  padding: 8px 0 4px;
+  font-weight: 700;
+  align-items: center;
+}
+
+.act-summaryNo {
+  flex: 0.5;
+}
+
+.act-summaryDesc {
+  flex: 1.5;
+}
+
+.act-summaryAmount {
+  flex: 1.5;
+  text-align: right;
+}
+
+.act-summaryVat {
+  flex: 1;
+  text-align: right;
+}
+
+.act-summaryTotal {
+  flex: 1;
+  text-align: right;
+}
+
+.act-summaryAmountVal {
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+}
+
+.act-summaryVatVal {
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+}
+
+.act-summaryTotalVal {
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Final big total box */
+.act-totalGreenBox {
+  max-width: 650px;
+  margin: 16px auto 0;
+  border: 3px solid #2e7d32;
+  border-radius: 16px;
+  padding: 12px 16px;
+  background-color: rgba(46, 125, 50, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.act-totalGreenTitle {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1b5e20;
+}
+
+.act-totalGreenSub {
+  font-size: 12px;
+  opacity: 0.9;
+  color: #1b5e20;
+}
+
+.act-totalGreenValue {
+  font-weight: 800;
+  font-size: 24px;
+  color: #1b5e20;
+  margin-top: 8px;
+}

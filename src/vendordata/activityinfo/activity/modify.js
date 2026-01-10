@@ -6,15 +6,15 @@ import { DspToastMessage, getAuthHeaders, getVatAmount } from '../../../utils/op
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
-  const vatPillStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    border: '1px solid #cf2037',
-    borderRadius: 999,
-    padding: '3px 10px',
-    backgroundColor: 'rgba(207, 32, 55, 0.15)',
-    color: '#cf2037',
-  }
+const vatPillStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  border: '1px solid #cf2037',
+  borderRadius: 999,
+  padding: '3px 10px',
+  backgroundColor: 'rgba(207, 32, 55, 0.15)',
+  color: '#cf2037',
+}
 // ✅ Import the shared validator (returns { ok, errors, message? })
 import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
 
@@ -80,6 +80,14 @@ const Vendor = () => {
   const [txtactImageName1, setactImageName1] = useState(null)
   const [txtactImageName2, setactImageName2] = useState(null)
   const [txtactImageName3, setactImageName3] = useState(null)
+
+  // ✅ NEW: image validation message + red border on invalid (DO NOT REMOVE ANY CODE)
+  const [imgErr1, setImgErr1] = useState('')
+  const [imgErr2, setImgErr2] = useState('')
+  const [imgErr3, setImgErr3] = useState('')
+  const [imgInvalid1, setImgInvalid1] = useState(false)
+  const [imgInvalid2, setImgInvalid2] = useState(false)
+  const [imgInvalid3, setImgInvalid3] = useState(false)
 
   const navigate = useNavigate()
   const [fetchedCategories, setFetchedCategories] = useState([])
@@ -360,6 +368,82 @@ const Vendor = () => {
     }
   }
 
+  // ✅ NEW: Validate file ext/type for activity images (jpg/jpeg/png only)
+  const isAllowedImageFile = (file) => {
+    if (!file) return false
+    const name = String(file.name || '').toLowerCase()
+    const ext = name.includes('.') ? name.split('.').pop() : ''
+    const allowedExt = ['jpg', 'jpeg', 'png']
+    const mime = String(file.type || '').toLowerCase() // image/jpeg, image/png
+    const allowedMime = ['image/jpeg', 'image/png']
+    // allow jpeg covers both .jpg/.jpeg
+    return allowedExt.includes(ext) && (allowedMime.includes(mime) || mime === 'image/jpg')
+  }
+
+  // ✅ NEW: wrapper to validate + set red border + message (keeps your existing code)
+  const handleActivityImageUpload = (imgIndex, setter) => (e) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
+
+    // reset if user cancels selection
+    if (!file) {
+      setter(null)
+      if (imgIndex === 1) {
+        setImgErr1('')
+        setImgInvalid1(false)
+      } else if (imgIndex === 2) {
+        setImgErr2('')
+        setImgInvalid2(false)
+      } else if (imgIndex === 3) {
+        setImgErr3('')
+        setImgInvalid3(false)
+      }
+      return
+    }
+
+    // validate
+    const ok = isAllowedImageFile(file)
+    if (!ok) {
+      const msg = tr('errInvalidImageType', 'Invalid file. Only JPG/JPEG/PNG allowed.')
+      if (imgIndex === 1) {
+        setImgErr1(msg)
+        setImgInvalid1(true)
+      } else if (imgIndex === 2) {
+        setImgErr2(msg)
+        setImgInvalid2(true)
+      } else if (imgIndex === 3) {
+        setImgErr3(msg)
+        setImgInvalid3(true)
+      }
+
+      // clear selected file
+      setter(null)
+
+      // also surface toast
+      setToastMessage(msg)
+      setToastType('fail')
+
+      // important: clear the input value so re-selecting same file triggers onChange
+      try {
+        e.target.value = ''
+      } catch {}
+      return
+    }
+
+    // valid file
+    if (imgIndex === 1) {
+      setImgErr1('')
+      setImgInvalid1(false)
+    } else if (imgIndex === 2) {
+      setImgErr2('')
+      setImgInvalid2(false)
+    } else if (imgIndex === 3) {
+      setImgErr3('')
+      setImgInvalid3(false)
+    }
+
+    setter(file)
+  }
+
   const handleFileUpload = (setter) => async (e) => {
     const file = e.target.files[0]
     if (file) setter(file)
@@ -379,6 +463,13 @@ const Vendor = () => {
 
   const handleSubmit = async (actStatusVal, e) => {
     if (e && e.preventDefault) e.preventDefault()
+
+    // ✅ NEW: block submit if any invalid image selected
+    if (imgInvalid1 || imgInvalid2 || imgInvalid3) {
+      setToastMessage(tr('errFixImages', 'Please fix Activity Images (JPG/JPEG/PNG only).'))
+      setToastType('fail')
+      return
+    }
 
     // ❗ Enforce Activity Rating 1..5 (decimals allowed)
     if (!isValidActRating(actRating)) {
@@ -539,7 +630,7 @@ const Vendor = () => {
     const firstPriceNum = Number(priceRanges[0]?.price || 0)
     const actPriceVatPercentageVal = effectiveVatPercent
     const actPriceVatAmountVal = dec(firstPriceNum * effectiveVatRate)
-   // alert(actPriceVatPercentageVal)
+    // alert(actPriceVatPercentageVal)
     //alert(actPriceVatAmountVal)
     // 🐞 Build and log final API payload
     const payload = {
@@ -1279,6 +1370,22 @@ const Vendor = () => {
         <span style={{ color: 'red' }}>*</span>
       </div>
       <div className="divbox">
+        {/* ✅ NEW: upload hint text with red border */}
+        <div
+          style={{
+            border: '1px solid #cf2037',
+            borderRadius: 10,
+            padding: '10px 12px',
+            background: 'rgba(207, 32, 55, 0.06)',
+            color: '#cf2037',
+            fontWeight: 700,
+            marginTop: 10,
+            marginBottom: 10,
+          }}
+        >
+          {tr('uploadImage', 'Upload image')} (JPG / JPEG / PNG)
+        </div>
+
         <div
           style={{
             display: 'flex',
@@ -1296,10 +1403,16 @@ const Vendor = () => {
               className="admin-txt-box"
               placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
               type="file"
-              onChange={handleFileUpload(setactImageName1)}
-              style={{ height: 50, width: '100%' }}
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={handleActivityImageUpload(1, setactImageName1)}
+              style={{
+                height: 50,
+                width: '100%',
+                border: imgInvalid1 ? '2px solid #cf2037' : undefined,
+              }}
             />
             <FilePreview file={txtactImageName1} />
+            <ErrorText msg={imgErr1} />
           </div>
 
           {/* Image 2 */}
@@ -1310,10 +1423,16 @@ const Vendor = () => {
               className="admin-txt-box"
               placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
               type="file"
-              onChange={handleFileUpload(setactImageName2)}
-              style={{ height: 50, width: '100%' }}
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={handleActivityImageUpload(2, setactImageName2)}
+              style={{
+                height: 50,
+                width: '100%',
+                border: imgInvalid2 ? '2px solid #cf2037' : undefined,
+              }}
             />
             <FilePreview file={txtactImageName2} />
+            <ErrorText msg={imgErr2} />
           </div>
 
           {/* Image 3 */}
@@ -1324,10 +1443,16 @@ const Vendor = () => {
               className="admin-txt-box"
               placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
               type="file"
-              onChange={handleFileUpload(setactImageName3)}
-              style={{ height: 50, width: '100%' }}
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={handleActivityImageUpload(3, setactImageName3)}
+              style={{
+                height: 50,
+                width: '100%',
+                border: imgInvalid3 ? '2px solid #cf2037' : undefined,
+              }}
             />
             <FilePreview file={txtactImageName3} />
+            <ErrorText msg={imgErr3} />
           </div>
         </div>
         <ErrorText msg={errors.images} />
@@ -2413,7 +2538,7 @@ const Vendor = () => {
           </div>
         </div>
       )}
-
+      Upload image 
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   )
