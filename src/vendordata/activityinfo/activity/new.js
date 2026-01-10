@@ -120,14 +120,39 @@ const Vendor = () => {
       return 'ar'
     }
   }
+
+  const setStoredLang = (nextLang) => {
+    const safe = nextLang === 'en' ? 'en' : 'ar'
+    try {
+      localStorage.setItem('heroz_lang', safe)
+    } catch {}
+    // update local state
+    setLang(safe)
+    // let other components know
+    try {
+      window.dispatchEvent(new Event('heroz_lang_changed'))
+    } catch {}
+  }
+
   const [lang, setLang] = useState(getStoredLang())
   const dict = lang === 'ar' ? arPack : enPack
   const tr = (key, fallback) => (dict && dict[key]) || fallback
+
+  // ✅ Sync when other parts change language
   useEffect(() => {
     const onChange = () => setLang(getStoredLang())
     window.addEventListener('heroz_lang_changed', onChange)
     return () => window.removeEventListener('heroz_lang_changed', onChange)
   }, [])
+
+  // ✅ Apply <html dir> + <html lang> on every lang change (same i18n concept)
+  useEffect(() => {
+    try {
+      const html = document.documentElement
+      html.setAttribute('lang', lang)
+      html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
+    } catch {}
+  }, [lang])
   // ----------------------
 
   // utils
@@ -657,12 +682,19 @@ const Vendor = () => {
   // UI
   const dayLabel = (d) => tr(`day_${d}`, d)
 
+  const toggleLang = () => setStoredLang(lang === 'ar' ? 'en' : 'ar')
+
   return (
     <div>
       <div className="divhbg">
         <div className="txtheadertitle">{tr('actAddTitle', 'Add New Activity')}</div>
 
         <div className="act-headerActions">
+          {/* ✅ EN/AR toggle (shows opposite language) */}
+          <button type="button" className="admin-buttonv1" onClick={toggleLang} title={tr('toggleLang', 'Switch language')}>
+            {lang === 'ar' ? 'EN' : 'AR'}
+          </button>
+
           <button className="admin-buttonv1" onClick={() => setShowModal(true)}>
             {tr('btnSendToAdmin', 'Send To Admin Approval')}
           </button>
@@ -807,6 +839,51 @@ const Vendor = () => {
 
         <ErrorText msg={errors.images} />
       </div>
+
+<div className="txtsubtitle">
+  {tr('sectionYoutube', 'YouTube Videos (Optional)')}
+</div>
+
+<div className="divbox">
+  <div className="form-group">
+    <label className="vendor-label">
+      {tr('labelYoutube1', 'YouTube Video 1')}
+    </label>
+    <input
+      type="text"
+      className="vendor-input"
+      placeholder="Ydgkndgf"
+      value={txtactYouTubeID1}
+      onChange={(e) => setYouTube1(e.target.value)}
+    />
+  </div>
+
+  <div className="form-group">
+    <label className="vendor-label">
+      {tr('labelYoutube2', 'YouTube Video 2')}
+    </label>
+    <input
+      type="text"
+      className="vendor-input"
+      placeholder="Ydgkndgf"
+      value={txtactYouTubeID2}
+      onChange={(e) => setYouTube2(e.target.value)}
+    />
+  </div>
+
+  <div className="form-group">
+    <label className="vendor-label">
+      {tr('labelYoutube3', 'YouTube Video 3')}
+    </label>
+    <input
+      type="text"
+      className="vendor-input"
+      placeholder="Ydgkndgf"
+      value={txtactYouTubeID3}
+      onChange={(e) => setYouTube3(e.target.value)}
+    />
+  </div>
+</div>
 
       <div className="txtsubtitle">
         {tr('sectionLocation', 'Activity Location')} <span className="act-required">*</span>
