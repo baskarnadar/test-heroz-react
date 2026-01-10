@@ -21,7 +21,7 @@ import { cilBell, cilContrast, cilMenu, cilMoon, cilSun } from '@coreui/icons'
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
 
-import { getCurrentLoggedUserType, getAuthHeadersV1 } from '../utils/operation'
+import { getCurrentLoggedUserType, getAuthHeadersV1,getCurrentLoggedUserID } from '../utils/operation'
 import { API_BASE_URL } from '../config'
 
 const UserRoleLabel = () => {
@@ -106,29 +106,54 @@ const AppHeader = () => {
     document.addEventListener('scroll', handleScroll)
 
     const fetchNotification = async () => {
-      setLoading(true)
-      try {
-        const noteResponse = await fetch(`${API_BASE_URL}/common/totnote`, {
-          method: 'POST',
-          headers: getAuthHeadersV1(),
-          body: JSON.stringify({ noteTo: getCurrentLoggedUserType() }),
-        })
+  setLoading(true)
+  try {
+    setError('') // ✅ clear old error
 
-        if (noteResponse.ok) {
-          const noteData = await noteResponse.json()
-          const total = noteData?.data?.totalCount ?? 0
-          setTotalCountVal(total)
-          console.log('Total New Notifications:', total)
-        } else {
-          console.warn('Failed to fetch total notifications')
-        }
-      } catch (error) {
-        setError('Error fetching notifications')
-        console.error(error)
-      } finally {
-        setLoading(false)
-      }
+    const payload = {
+      noteTo: getCurrentLoggedUserType(),
+      VendorID: getCurrentLoggedUserID(),
     }
+
+    const noteResponse = await fetch(`${API_BASE_URL}/common/totnote`, {
+      method: 'POST',
+      headers: getAuthHeadersV1(),
+      body: JSON.stringify(payload),
+    })
+
+    // ✅ Safely read response (JSON or text)
+    const contentType = noteResponse.headers.get('content-type') || ''
+    let noteData = null
+
+    if (contentType.includes('application/json')) {
+      noteData = await noteResponse.json()
+    } else {
+      const rawText = await noteResponse.text()
+      console.warn('totnote returned non-JSON response:', rawText)
+      noteData = null
+    }
+
+    if (noteResponse.ok) {
+      const total = Number(noteData?.data?.totalCount ?? 0) || 0
+
+      
+      setTotalCountVal(total)
+      console.log('Total New Notifications:', total)
+    } else {
+      console.warn('Failed to fetch total notifications:', noteResponse.status, noteData)
+      // ✅ show API message if exists, else fallback
+      setError(noteData?.message || 'Failed to fetch total notifications')
+      setTotalCountVal(0)
+    }
+  } catch (error) {
+    setError('Error fetching notifications')
+    console.error('fetchNotification error:', error)
+    setTotalCountVal(0)
+  } finally {
+    setLoading(false)
+  }
+}
+
 
     fetchNotification()
     return () => document.removeEventListener('scroll', handleScroll)
