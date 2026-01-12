@@ -776,14 +776,14 @@ const Vendor = () => {
               {tr('summaryDescription', 'Description')}
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryAmount', 'Amount')}
+              {tr('summaryAmount', 'Amount Exc VAT')}
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
               {tr('summaryVat', 'VAT')}{' '}
-              <span style={vatPillStyle}>({to2(vatPercentValue)}%)</span>
+              <span style={vatPillStyle}>({(vatPercentValue)}%)</span>
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryTotal', 'Total')}
+              {tr('summaryTotal', 'Total Inc Vat')}
             </div>
           </div>
 
