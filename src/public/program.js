@@ -143,10 +143,35 @@ const ProposalPage = () => {
   const [otpUrl, setOtpUrl] = useState("");
   const [otpOpen, setOtpOpen] = useState(false);
 
-  // ✅ NEW: debug panel state
+  // ✅ NEW: debug panel state (keep, but we will HIDE UI rendering)
   const [dbgOpen, setDbgOpen] = useState(true);
   const [dbgLastAction, setDbgLastAction] = useState("");
   const [dbgPayErrorReason, setDbgPayErrorReason] = useState("");
+
+  // ✅ NEW: hard toggle to hide ALL debug window (keeps code + logs)
+  // - default: hidden
+  // - enable by adding ?debug=1 OR localStorage "heroz_pay_debug" = "1"
+  const [showDebugUI, setShowDebugUI] = useState(() => {
+    try {
+      const qs = window.location.search || "";
+      const p = new URLSearchParams(qs);
+      const qDebug = p.get("debug");
+      if (qDebug === "1" || qDebug === "true") return true;
+      if (localStorage.getItem("heroz_pay_debug") === "1") return true;
+      return false; // ✅ default hidden
+    } catch {
+      return false;
+    }
+  });
+
+  // Optional: allow turning it OFF via localStorage flag at runtime
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("heroz_pay_debug");
+      if (v === "1") setShowDebugUI(true);
+      if (v === "0") setShowDebugUI(false);
+    } catch {}
+  }, []);
 
   const dbg = (...args) => {
     // console
@@ -1244,94 +1269,96 @@ const ProposalPage = () => {
         <ProgramFooter lang={lang} />
       </div>
 
-      {/* ✅ DEBUG PANEL */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 10,
-          left: 10,
-          right: 10,
-          zIndex: 999999,
-          fontFamily: "monospace",
-        }}
-      >
+      {/* ✅ DEBUG PANEL (HIDDEN by default, code kept) */}
+      {showDebugUI && (
         <div
           style={{
-            background: "#111",
-            color: "#fff",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.2)",
-            overflow: "hidden",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+            position: "fixed",
+            bottom: 10,
+            left: 10,
+            right: 10,
+            zIndex: 999999,
+            fontFamily: "monospace",
           }}
         >
-          <div style={{ padding: 10, display: "flex", gap: 10, alignItems: "center" }}>
-            <b style={{ fontSize: 14 }}>PAY DEBUG</b>
-            <button
-              onClick={() => setDbgOpen((v) => !v)}
-              style={{
-                marginLeft: "auto",
-                padding: "4px 10px",
-                borderRadius: 8,
-                border: "1px solid rgba(255,255,255,0.25)",
-                background: "transparent",
-                color: "#fff",
-                cursor: "pointer",
-              }}
-            >
-              {dbgOpen ? "Hide" : "Show"}
-            </button>
-          </div>
+          <div
+            style={{
+              background: "#111",
+              color: "#fff",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.2)",
+              overflow: "hidden",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div style={{ padding: 10, display: "flex", gap: 10, alignItems: "center" }}>
+              <b style={{ fontSize: 14 }}>PAY DEBUG</b>
+              <button
+                onClick={() => setDbgOpen((v) => !v)}
+                style={{
+                  marginLeft: "auto",
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "transparent",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                {dbgOpen ? "Hide" : "Show"}
+              </button>
+            </div>
 
-          {dbgOpen && (
-            <div style={{ padding: 10, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Last Action</div>
-                  <div style={{ color: "#9be7ff" }}>{dbgLastAction || "-"}</div>
+            {dbgOpen && (
+              <div style={{ padding: 10, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Last Action</div>
+                    <div style={{ color: "#9be7ff" }}>{dbgLastAction || "-"}</div>
 
-                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>PayError Reason</div>
-                  <div style={{ color: "#ff9b9b", whiteSpace: "pre-wrap" }}>{dbgPayErrorReason || "-"}</div>
+                    <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>PayError Reason</div>
+                    <div style={{ color: "#ff9b9b", whiteSpace: "pre-wrap" }}>{dbgPayErrorReason || "-"}</div>
 
-                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>Values</div>
-                  <div style={{ whiteSpace: "pre-wrap", color: "#ddd" }}>
-                    {safeStringify({
-                      requestId,
-                      priceTotal,
-                      tripVatAmount,
-                      tripPriceInclVat,
-                      extraPriceInclVat,
-                      totalPayablePerOrder,
-                      paymentAmount,
-                      validKidsCount,
-                      showZeroCostModal,
-                      payModalOpen,
-                      otpOpen,
-                      mfSessionId,
-                      mfCountryCode,
-                    })}
+                    <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>Values</div>
+                    <div style={{ whiteSpace: "pre-wrap", color: "#ddd" }}>
+                      {safeStringify({
+                        requestId,
+                        priceTotal,
+                        tripVatAmount,
+                        tripPriceInclVat,
+                        extraPriceInclVat,
+                        totalPayablePerOrder,
+                        paymentAmount,
+                        validKidsCount,
+                        showZeroCostModal,
+                        payModalOpen,
+                        otpOpen,
+                        mfSessionId,
+                        mfCountryCode,
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>API URL</div>
+                    <div style={{ color: "#a9ffb5", wordBreak: "break-word" }}>{debugApiUrl || "-"}</div>
+
+                    <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>API Payload</div>
+                    <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "#ddd" }}>
+                      {safeStringify(debugPayload)}
+                    </pre>
+
+                    <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>API Response (latest)</div>
+                    <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "#ddd", maxHeight: 220, overflow: "auto" }}>
+                      {safeStringify(debugResult)}
+                    </pre>
                   </div>
                 </div>
-
-                <div style={{ padding: 10, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>API URL</div>
-                  <div style={{ color: "#a9ffb5", wordBreak: "break-word" }}>{debugApiUrl || "-"}</div>
-
-                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>API Payload</div>
-                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "#ddd" }}>
-                    {safeStringify(debugPayload)}
-                  </pre>
-
-                  <div style={{ fontWeight: 700, marginTop: 10, marginBottom: 6 }}>API Response (latest)</div>
-                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "#ddd", maxHeight: 220, overflow: "auto" }}>
-                    {safeStringify(debugResult)}
-                  </pre>
-                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
