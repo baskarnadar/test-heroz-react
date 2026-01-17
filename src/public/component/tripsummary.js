@@ -1,4 +1,4 @@
-// src/public/component/tripsummary.js
+ // src/public/component/tripsummary.js
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import icon5 from "../../assets/icon/icon5.png";
 import FoodInfo from "../component/foodinfo";
@@ -49,6 +49,9 @@ const TrupSummary = ({
   tripPriceInclVat = 0,
   extraPriceInclVat = 0,
   selectedMethodId, // optional if passed (ignored safely)
+
+  // ✅ FIX: support hidePaymentPicker from program.jsx
+  hidePaymentPicker = false,
 }) => {
   const isArabic = lang === "ar";
 
@@ -74,7 +77,7 @@ const TrupSummary = ({
   const tripPriceDisplay = basePerStudent;
 
   // --------------------------
-  // ✅ Clean payment UI state
+  // ✅ Payment UI state
   // --------------------------
   const [loadingMethods, setLoadingMethods] = useState(false);
   const [methodsErr, setMethodsErr] = useState("");
@@ -92,8 +95,17 @@ const TrupSummary = ({
     }
   };
 
-  // Fetch methods once (so we can show/hide based on availability)
+  // ✅ FIX: do NOT call initiate-payment when hidePaymentPicker is true
   useEffect(() => {
+    if (hidePaymentPicker) {
+      // optional: reset any prior state
+      setLoadingMethods(false);
+      setMethodsErr("");
+      setAvailableIds(new Set());
+      setSelectedId(null);
+      return;
+    }
+
     const run = async () => {
       setMethodsErr("");
       setLoadingMethods(true);
@@ -153,7 +165,7 @@ const TrupSummary = ({
 
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentAmount, apiBase]);
+  }, [paymentAmount, apiBase, hidePaymentPicker]);
 
   const selectMethod = (id) => {
     const nid = Number(id);
@@ -242,174 +254,174 @@ const TrupSummary = ({
 
       <div className="divider" />
 
-      {/* ✅ Payment methods */}
-      <div style={{ marginTop: 12 }}>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>
-          {dict.ar_choose_method || (isArabic ? "اختر طريقة الدفع:" : "Choose payment method:")}
-          <span style={{ color: "red", fontSize: 22, marginInlineStart: 6 }}>*</span>
-        </div>
-
-        {loadingMethods && (
-          <div style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}>
-            {dict.loadingPaymentMethods || "Loading payment methods…"}
+      {/* ✅ Payment methods (HIDDEN when using embedded) */}
+      {!hidePaymentPicker && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>
+            {dict.ar_choose_method || (isArabic ? "اختر طريقة الدفع:" : "Choose payment method:")}
+            <span style={{ color: "red", fontSize: 22, marginInlineStart: 6 }}>*</span>
           </div>
-        )}
 
-        {/* ✅ ALL methods as radios (Apple Pay is BLACK row with icon) */}
-        <div style={{ display: "grid", gap: 8 }}>
-          {canShowApplePay && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "12px 14px",
-                borderRadius: 10,
-                border: isApplePaySelected ? "2px solid #1976d2" : "1px solid #000",
-                cursor: loadingMethods ? "not-allowed" : "pointer",
-                backgroundColor: "#000",
-                color: "#fff",
-                userSelect: "none",
-              }}
-              onClick={(e) => {
-                if (loadingMethods) return;
-                if (e.target?.tagName?.toLowerCase() !== "input") selectApplePay();
-              }}
-            >
-              <input
-                type="radio"
-                name="mf-method-simple"
-                checked={isApplePaySelected}
-                onChange={selectApplePay}
-                disabled={loadingMethods}
-                style={{ width: 18, height: 18, accentColor: "#fff" }}
-              />
+          {loadingMethods && (
+            <div style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}>
+              {dict.loadingPaymentMethods || "Loading payment methods…"}
+            </div>
+          )}
 
-              {/* Icon + text (forced white, overrides any global css) */}
-              <span
+          <div style={{ display: "grid", gap: 8 }}>
+            {canShowApplePay && (
+              <label
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 12,
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  border: isApplePaySelected ? "2px solid #1976d2" : "1px solid #000",
+                  cursor: loadingMethods ? "not-allowed" : "pointer",
+                  backgroundColor: "#000",
                   color: "#fff",
-                  fontWeight: 900,
-                  fontSize: 16,
+                  userSelect: "none",
+                }}
+                onClick={(e) => {
+                  if (loadingMethods) return;
+                  if (e.target?.tagName?.toLowerCase() !== "input") selectApplePay();
                 }}
               >
-                <span style={{ color: "#fff" }}>
-                  <AppleIcon size={18} />
+                <input
+                  type="radio"
+                  name="mf-method-simple"
+                  checked={isApplePaySelected}
+                  onChange={selectApplePay}
+                  disabled={loadingMethods}
+                  style={{ width: 18, height: 18, accentColor: "#fff" }}
+                />
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    color: "#fff",
+                    fontWeight: 900,
+                    fontSize: 16,
+                  }}
+                >
+                  <span style={{ color: "#fff" }}>
+                    <AppleIcon size={18} />
+                  </span>
+                  <span style={{ color: "#fff" }}>Pay</span>
                 </span>
-                <span style={{ color: "#fff" }}>Pay</span>
-              </span>
 
-              <span style={{ marginInlineStart: "auto", fontWeight: 800, color: "#fff" }}>
-                {isApplePaySelected ? "✓" : ""}
-              </span>
-            </label>
-          )}
+                <span style={{ marginInlineStart: "auto", fontWeight: 800, color: "#fff" }}>
+                  {isApplePaySelected ? "✓" : ""}
+                </span>
+              </label>
+            )}
 
-          {showMethod(MF_MADA_ID) && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: 10,
-                borderRadius: 8,
-                border: selectedId === MF_MADA_ID ? "2px solid #1976d2" : "1px solid #ccc",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="radio"
-                name="mf-method-simple"
-                checked={selectedId === MF_MADA_ID}
-                onChange={() => selectMethod(MF_MADA_ID)}
-              />
-              <span style={{ fontWeight: 700 }}>{isArabic ? "مدى" : "MADA"}</span>
-            </label>
-          )}
+            {showMethod(MF_MADA_ID) && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: 10,
+                  borderRadius: 8,
+                  border: selectedId === MF_MADA_ID ? "2px solid #1976d2" : "1px solid #ccc",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="mf-method-simple"
+                  checked={selectedId === MF_MADA_ID}
+                  onChange={() => selectMethod(MF_MADA_ID)}
+                />
+                <span style={{ fontWeight: 700 }}>{isArabic ? "مدى" : "MADA"}</span>
+              </label>
+            )}
 
-          {showMethod(MF_VISA_MASTER_ID) && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: 10,
-                borderRadius: 8,
-                border: selectedId === MF_VISA_MASTER_ID ? "2px solid #1976d2" : "1px solid #ccc",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="radio"
-                name="mf-method-simple"
-                checked={selectedId === MF_VISA_MASTER_ID}
-                onChange={() => selectMethod(MF_VISA_MASTER_ID)}
-              />
-              <span style={{ fontWeight: 700 }}>{isArabic ? "فيزا / ماستر" : "VISA / MasterCard"}</span>
-            </label>
-          )}
+            {showMethod(MF_VISA_MASTER_ID) && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: 10,
+                  borderRadius: 8,
+                  border: selectedId === MF_VISA_MASTER_ID ? "2px solid #1976d2" : "1px solid #ccc",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="mf-method-simple"
+                  checked={selectedId === MF_VISA_MASTER_ID}
+                  onChange={() => selectMethod(MF_VISA_MASTER_ID)}
+                />
+                <span style={{ fontWeight: 700 }}>{isArabic ? "فيزا / ماستر" : "VISA / MasterCard"}</span>
+              </label>
+            )}
 
-          {showMethod(MF_STC_ID) && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: 10,
-                borderRadius: 8,
-                border: selectedId === MF_STC_ID ? "2px solid #1976d2" : "1px solid #ccc",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="radio"
-                name="mf-method-simple"
-                checked={selectedId === MF_STC_ID}
-                onChange={() => selectMethod(MF_STC_ID)}
-              />
-              <span style={{ fontWeight: 700 }}>{isArabic ? "STC Pay" : "STC Pay"}</span>
-            </label>
-          )}
-        </div>
-
-        {/* Terms (Program.jsx validates by id="termsAgree") */}
-        <div
-          style={{
-            marginTop: 12,
-            padding: 10,
-            borderRadius: 8,
-            border: "1px solid rgba(255, 221, 87, 0.8)",
-            backgroundColor: "rgba(255, 249, 196, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <span style={{ color: "red", fontSize: 22 }}>*</span>
-          <input type="checkbox" id="termsAgree" style={{ width: 18, height: 18 }} />
-          <label htmlFor="termsAgree" style={{ margin: 0, cursor: "pointer" }}>
-            {dict.ar_terms_agree ||
-              (isArabic ? "أوافق على الشروط والأحكام" : "I agree to terms & conditions")}
-          </label>
-        </div>
-
-        {!!methodsErr && (
-          <div
-            style={{
-              marginTop: 10,
-              background: "#ffe6e6",
-              border: "1px solid #f5a9a9",
-              color: "#a40000",
-              padding: 10,
-              borderRadius: 8,
-            }}
-          >
-            <strong>{dict.errorTitle || "Error"}:</strong> {methodsErr}
+            {showMethod(MF_STC_ID) && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: 10,
+                  borderRadius: 8,
+                  border: selectedId === MF_STC_ID ? "2px solid #1976d2" : "1px solid #ccc",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="mf-method-simple"
+                  checked={selectedId === MF_STC_ID}
+                  onChange={() => selectMethod(MF_STC_ID)}
+                />
+                <span style={{ fontWeight: 700 }}>{isArabic ? "STC Pay" : "STC Pay"}</span>
+              </label>
+            )}
           </div>
-        )}
+
+          {!!methodsErr && (
+            <div
+              style={{
+                marginTop: 10,
+                background: "#ffe6e6",
+                border: "1px solid #f5a9a9",
+                color: "#a40000",
+                padding: 10,
+                borderRadius: 8,
+              }}
+            >
+              <strong>{dict.errorTitle || "Error"}:</strong> {methodsErr}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ✅ Terms checkbox MUST remain for program.jsx validation */}
+      <div
+        style={{
+          marginTop: 12,
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid rgba(255, 221, 87, 0.8)",
+          backgroundColor: "rgba(255, 249, 196, 0.5)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <span style={{ color: "red", fontSize: 22 }}>*</span>
+        <input type="checkbox" id="termsAgree" style={{ width: 18, height: 18 }} />
+        <label htmlFor="termsAgree" style={{ margin: 0, cursor: "pointer" }}>
+          {dict.ar_terms_agree ||
+            (isArabic ? "أوافق على الشروط والأحكام" : "I agree to terms & conditions")}
+        </label>
       </div>
 
       <div className="divider" />
