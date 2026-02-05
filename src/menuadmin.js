@@ -29,9 +29,18 @@ const adminmenu = [
   {
     component: CNavItem,
     name: 'Activity Management',
-    to: '/admindata/activityinfo/activity/list',
+    to: '/admindata/activityinfo/activity/list?activitytype=SCHOOL',
     icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
   },
+
+  // ✅ ADDED — Membership Activity (same list page with querystring)
+  {
+    component: CNavItem,
+    name: 'Membership Activity',
+    to: '/admindata/activityinfo/membership/list?activitytype=membership',
+    icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
+  },
+
   {
     component: CNavItem,
     name: 'Vendor Management',
@@ -67,8 +76,8 @@ const adminmenu = [
   },
   {
     component: CNavItem,
-    name: 'Membership And Credits',
-    to: '/admindata/membership/list',
+    name: 'Star Cards',
+    to: '/admindata/products/list',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
   },
 

@@ -8,7 +8,7 @@ import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/opera
 import { CRow, CCol } from '@coreui/react'
 
 // ✅ Validator (returns { ok, errors, message })
-import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
+import { validateActivityForm } from '../../../vendordata/activityinfo/membership/validate/validate'
 
 // 🔤 i18n packs (default Arabic if not set)
 import enPack from '../../../i18n/enloc100.json'
@@ -23,6 +23,10 @@ const Vendor = () => {
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_ACTIVITY_RATING_UI = false // actRating field visible
   const HIDE_FOOD_IMAGE = true // 👈 hide Extra Image everywhere
+
+  // ✅ NEW: page-level switches (do not remove code, only hide UI)
+  const HIDE_EXTRA_INFORMATION_UI = true
+  const HIDE_SUMMARY_UI = true
 
   // ✅ Vendor login guard: runs once when this page mounts
   useEffect(() => {
@@ -62,7 +66,8 @@ const Vendor = () => {
   const [txtactName, setactName] = useState('')
 
   // ✅ UPDATED: Activity Type now supports SCHOOL + MEMBERSHIP
-  const [selectedType, setactType] = useState('SCHOOL')
+  // ✅ CHANGE: default must be MEMBERSHIP (and UI will show membership only)
+  const [selectedType, setactType] = useState('MEMBERSHIP')
 
   // default rating kept, now visible
   const [actRating, setactRating] = useState('0') // 1..5 required
@@ -88,6 +93,10 @@ const Vendor = () => {
 
   const [txtactMinStudent, setMinStudent] = useState('')
   const [txtactMaxStudent, setMaxStudent] = useState('')
+
+  // ✅ NEW: add two multiline textboxes before Terms and Conditions
+  const [actTripDetail, setActTripDetail] = useState('')
+  const [actWhatsIncluded, setActWhatsIncluded] = useState('')
 
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
@@ -478,6 +487,12 @@ const Vendor = () => {
   const handleSubmit = async (actStatusVal, e) => {
     if (e?.preventDefault) e.preventDefault()
 
+    // ✅ Ensure membership only (keeps payload consistent even if state changes)
+    // do not remove, only enforce
+    if (selectedType !== 'MEMBERSHIP') {
+      setactType('MEMBERSHIP')
+    }
+
     // ✅ Block submit if invalid image type selected
     const anyImageTypeError =
       (imageTypeErrors.txtactImageName1 && imageTypeErrors.txtactImageName1.trim()) ||
@@ -492,7 +507,7 @@ const Vendor = () => {
 
     const validation = validateActivityForm({
       txtactName,
-      selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP'
+      selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP' (but UI shows MEMBERSHIP only)
       selectedCategories,
       txtactDesc,
       txtactImageName1,
@@ -514,6 +529,9 @@ const Vendor = () => {
       days,
       foods,
       txtactAdminNotes,
+      // ✅ NEW fields (not required by validator unless you add rules there)
+      actTripDetail,
+      actWhatsIncluded,
     })
 
     if (!validation.ok) {
@@ -593,7 +611,7 @@ const Vendor = () => {
     const payload = {
       VendorID: getCurrentLoggedUserID(),
       actName: txtactName || '',
-      actTypeID: selectedType, // ✅ 'SCHOOL' or 'MEMBERSHIP'
+      actTypeID: 'MEMBERSHIP', // ✅ enforce membership in payload
       actCategoryID: selectedCategories,
       actDesc: txtactDesc || '',
 
@@ -630,6 +648,10 @@ const Vendor = () => {
 
       actAvailDaysHours: actavailDaysHoursVal,
       actFood: actfoodDataVal, // 👈 FoodImage will be '' when hidden
+
+      // ✅ NEW fields
+      actTripDetail: actTripDetail || '',
+      actWhatsIncluded: actWhatsIncluded || '',
 
       actAdminNotes: txtactAdminNotes || '',
       actRating: Number(actRating), // visible + submitted
@@ -670,7 +692,7 @@ const Vendor = () => {
 
       setToastMessage(tr('toastActivityAdded', 'Activity added successfully!'))
       setToastType('success')
-      setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
+      setTimeout(() => navigate('/vendordata/activityinfo/membership/list'), 2000)
     } catch (err) {
       console.error('❌ createActivity error:', err)
       setToastMessage(tr('toastActivityAddFailed', 'Failed to add Activity.'))
@@ -702,7 +724,7 @@ const Vendor = () => {
           <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
             {tr('btnSave', 'Save')}
           </button>
-          <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
+          <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/membership/list')}>
             {tr('btnReturn', 'Return')}
           </button>
         </div>
@@ -719,25 +741,13 @@ const Vendor = () => {
           <ErrorText msg={errors.txtactName} />
         </div>
 
-        {/* ✅ UPDATED: Activity Type (SCHOOL / MEMBERSHIP) */}
+        {/* ✅ CHANGE #1: Activity Type display Membership only (do not remove any code) */}
         <div className="form-group">
           <label className="act-fieldLabelSpacing">
             {tr('labelActivityType', 'Activity Type')} <span className="act-required">*</span>
           </label>
 
           <div className="act-typeRow">
-            <label className="act-genderOption" style={{ cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="selectedType"
-                value="SCHOOL"
-                checked={selectedType === 'SCHOOL'}
-                onChange={(e) => setactType(e.target.value)}
-                className="act-genderRadio"
-              />
-              <div className="pink-shadow4 act-typePill">{tr('typeSchool', 'School')}</div>
-            </label>
-
             <label className="act-genderOption" style={{ cursor: 'pointer' }}>
               <input
                 type="radio"
@@ -1081,16 +1091,18 @@ const Vendor = () => {
       </div>
 
       {/* -------------------- VAT / PRICE SECTION -------------------- */}
+      {/* ✅ CHANGE #2: Per Student -> Activity Price Per Member */}
       <div className="txtsubtitle">
-        {tr('sectionPerStudent', 'Per Student (vendor Price)')}
+        {tr('sectionPerMember', 'Activity Price Per Member')}
         {vatPercentValue > 0 && <span className="act-vatPercentPill">{`+ VAT ${to2(vatPercentValue)}%`}</span>}
         <span className="act-required">*</span>
       </div>
 
       <div className="divbox">
         <CRow className="fw-bold mb-2">
+          {/* ✅ CHANGE #3: Price Per Student -> Activity Price Per Member */}
           <CCol sm={3}>
-            {tr('colBasePricePerStudent', 'Price Per Student (Excl. VAT)')} <span className="act-required">*</span>
+            {tr('colPricePerMember', 'Activity Price Per Member (Excl. VAT)')} <span className="act-required">*</span>
           </CCol>
           <CCol sm={3} className={HIDE_PRICE_RANGE_UI ? 'act-hide' : ''}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -1250,104 +1262,140 @@ const Vendor = () => {
         </div>
       </div>
 
-      <div className="txtsubtitle">{tr('sectionFoodInfo', 'Extra Information')}</div>
+      {/* ✅ CHANGE #4: Extra Information Hide it (do not remove any code) */}
+      {!HIDE_EXTRA_INFORMATION_UI && (
+        <>
+          <div className="txtsubtitle">{tr('sectionFoodInfo', 'Extra Information')}</div>
 
-      <div className="divbox">
-        <div className="act-foodWrap">
-          <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-            <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
-            <CCol sm={3}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
-            <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
-            {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Extra Image')}</CCol>}
-            <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
-            <CCol sm={1}></CCol>
-          </CRow>
+          <div className="divbox">
+            <div className="act-foodWrap">
+              <CRow className="mb-2 fw-bold hbg">
+                <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
+                <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
+                <CCol sm={3}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
+                <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
+                {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Extra Image')}</CCol>}
+                <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
+                <CCol sm={1}></CCol>
+              </CRow>
 
-          {foods.map((item, index) => {
-            const baseFoodPrice = item.include ? 0 : Number(item.price || 0)
-            const foodVat = baseFoodPrice * vatRateValue
+              {foods.map((item, index) => {
+                const baseFoodPrice = item.include ? 0 : Number(item.price || 0)
+                const foodVat = baseFoodPrice * vatRateValue
 
-            return (
-              <CRow key={index} className="mb-3 align-items-center">
-                <CCol sm={3}>
-                  <input
-                    type="text"
-                    className="admin-txt-box w-100"
-                    placeholder={tr('phEnterName', 'Enter name')}
-                    value={item.name}
-                    onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
-                  />
-                </CCol>
+                return (
+                  <CRow key={index} className="mb-3 align-items-center">
+                    <CCol sm={3}>
+                      <input
+                        type="text"
+                        className="admin-txt-box w-100"
+                        placeholder={tr('phEnterName', 'Enter name')}
+                        value={item.name}
+                        onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
+                      />
+                    </CCol>
 
-                <CCol sm={2}>
-                  <input
-                    type="number"
-                    className="admin-txt-box w-100"
-                    placeholder={item.include ? tr('phIncludedZero', 'Included (0)') : tr('phEnterPrice', 'Enter price')}
-                    value={item.include ? 0 : item.price ?? ''}
-                    onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
-                    min="0"
-                    step="0.01"
-                    disabled={item.include}
-                  />
-                </CCol>
+                    <CCol sm={2}>
+                      <input
+                        type="number"
+                        className="admin-txt-box w-100"
+                        placeholder={item.include ? tr('phIncludedZero', 'Included (0)') : tr('phEnterPrice', 'Enter price')}
+                        value={item.include ? 0 : item.price ?? ''}
+                        onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
+                        min="0"
+                        step="0.01"
+                        disabled={item.include}
+                      />
+                    </CCol>
 
-                <CCol sm={3}>
-                  {baseFoodPrice > 0 && vatPercentValue > 0 && (
-                    <div className="act-foodVatCell">
-                      <span className="act-vatPill">
-                        {tr('labelVatAmount', 'VAT Amount')} ({to2(vatPercentValue)}%):{' '}
-                        <strong className="act-vatStrong">{to2(foodVat)}</strong>
-                      </span>
-                    </div>
-                  )}
-                </CCol>
+                    <CCol sm={3}>
+                      {baseFoodPrice > 0 && vatPercentValue > 0 && (
+                        <div className="act-foodVatCell">
+                          <span className="act-vatPill">
+                            {tr('labelVatAmount', 'VAT Amount')} ({to2(vatPercentValue)}%):{' '}
+                            <strong className="act-vatStrong">{to2(foodVat)}</strong>
+                          </span>
+                        </div>
+                      )}
+                    </CCol>
 
-                <CCol sm={3}>
-                  <input
-                    type="text"
-                    className="admin-txt-box w-100"
-                    placeholder={tr('phEnterNotes', 'Enter notes')}
-                    value={item.notes || ''}
-                    onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
-                  />
-                </CCol>
+                    <CCol sm={3}>
+                      <input
+                        type="text"
+                        className="admin-txt-box w-100"
+                        placeholder={tr('phEnterNotes', 'Enter notes')}
+                        value={item.notes || ''}
+                        onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
+                      />
+                    </CCol>
 
-                {!HIDE_FOOD_IMAGE && (
-                  <CCol sm={1}>
-                    <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />
-                  </CCol>
-                )}
+                    {!HIDE_FOOD_IMAGE && (
+                      <CCol sm={1}>
+                        <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />
+                      </CCol>
+                    )}
 
-                <CCol sm={1} className="text-center">
-                  <input
-                    type="checkbox"
-                    checked={item.include}
-                    onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
-                    className="act-includeCheckbox"
-                    title={tr('titleIncludePriceZero', 'If checked, price becomes 0')}
-                  />
-                </CCol>
+                    <CCol sm={1} className="text-center">
+                      <input
+                        type="checkbox"
+                        checked={item.include}
+                        onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
+                        className="act-includeCheckbox"
+                        title={tr('titleIncludePriceZero', 'If checked, price becomes 0')}
+                      />
+                    </CCol>
 
-                <CCol sm={1}>
-                  {foods.length > 1 && (
-                    <button type="button" onClick={() => handleFoodRemoveFood(index)} className="btn btn-danger btn-sm">
-                      {tr('btnRemove', 'Remove')}
-                    </button>
-                  )}
+                    <CCol sm={1}>
+                      {foods.length > 1 && (
+                        <button type="button" onClick={() => handleFoodRemoveFood(index)} className="btn btn-danger btn-sm">
+                          {tr('btnRemove', 'Remove')}
+                        </button>
+                      )}
+                    </CCol>
+                  </CRow>
+                )
+              })}
+
+              <CRow className="mt-3">
+                <CCol>
+                  <button type="button" className="admin-buttonv1" onClick={handleFoodAddMore}>
+                    {tr('btnAddMore', 'Add More')}
+                  </button>
                 </CCol>
               </CRow>
-            )
-          })}
+            </div>
+          </div>
+        </>
+      )}
 
-          <CRow className="mt-3">
-            <CCol>
-              <button type="button" className="admin-buttonv1" onClick={handleFoodAddMore}>
-                {tr('btnAddMore', 'Add More')}
-              </button>
-            </CCol>
-          </CRow>
+      {/* ✅ NEW SECTION: Trip Detail + What's Included (before Terms and Conditions) */}
+      <div className="txtsubtitle">{tr('sectionTripDetail', 'Trip Detail')}</div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <textarea
+            name="actTripDetail"
+            className="vendor-input"
+            rows={5}
+            value={actTripDetail}
+            onChange={(e) => setActTripDetail(e.target.value)}
+            placeholder={tr('phTripDetail', 'Enter trip detail')}
+          />
+          <ErrorText msg={errors.actTripDetail} />
+        </div>
+      </div>
+
+      <div className="txtsubtitle">{tr('sectionWhatsIncluded', "What's Included")}</div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <textarea
+            name="actWhatsIncluded"
+            className="vendor-input"
+            rows={5}
+            value={actWhatsIncluded}
+            onChange={(e) => setActWhatsIncluded(e.target.value)}
+            placeholder={tr('phWhatsIncluded', "Enter what's included")}
+          />
+          <ErrorText msg={errors.actWhatsIncluded} />
         </div>
       </div>
 
@@ -1362,56 +1410,60 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* -------------------- SUMMARY (BOTTOM) -------------------- */}
-      <div className="txtsubtitle">{tr('sectionSummary', 'Summary')}</div>
+      {/* ✅ CHANGE #5: Summary hide it (do not remove any code) */}
+      {!HIDE_SUMMARY_UI && (
+        <>
+          <div className="txtsubtitle">{tr('sectionSummary', 'Summary')}</div>
 
-      <div className="divbox">
-        <div className="act-summaryCard">
-          <div className="act-summaryHeader">
-            <div className="act-summaryNo">{tr('summaryNo', '#')}</div>
-            <div className="act-summaryDesc">{tr('summaryDescription', 'Description')}</div>
-            <div className="act-summaryAmount">
-              {tr('summaryAmount', 'Amount')} <span className="act-vatPill">({to2(vatPercentValue)}%)</span>
+          <div className="divbox">
+            <div className="act-summaryCard">
+              <div className="act-summaryHeader">
+                <div className="act-summaryNo">{tr('summaryNo', '#')}</div>
+                <div className="act-summaryDesc">{tr('summaryDescription', 'Description')}</div>
+                <div className="act-summaryAmount">
+                  {tr('summaryAmount', 'Amount')} <span className="act-vatPill">({to2(vatPercentValue)}%)</span>
+                </div>
+                <div className="act-summaryVat">{tr('summaryVat', 'VAT')}</div>
+                <div className="act-summaryTotal">{tr('summaryTotalInclVat', 'Total')}</div>
+              </div>
+
+              <div className="act-summaryBody">
+                <div className="act-summaryRow">
+                  <div className="act-summaryNo">1.</div>
+                  <div className="act-summaryDesc">{tr('summaryTrip', 'Trip')}</div>
+                  <div className="act-summaryAmountVal">{to2(tripPriceBase)}</div>
+                  <div className="act-summaryVatVal">{to2(tripVatAmount)}</div>
+                  <div className="act-summaryTotalVal">{to2(tripTotalWithVatRow)}</div>
+                </div>
+
+                <div className="act-summaryRow">
+                  <div className="act-summaryNo">2.</div>
+                  <div className="act-summaryDesc">{tr('summaryFood', 'Extra')}</div>
+                  <div className="act-summaryAmountVal">{to2(foodBaseAmount)}</div>
+                  <div className="act-summaryVatVal">{to2(foodVatAmount)}</div>
+                  <div className="act-summaryTotalVal">{to2(foodTotalWithVatRow)}</div>
+                </div>
+
+                <div className="act-summaryTotalRow">
+                  <div className="act-summaryNo"></div>
+                  <div className="act-summaryDesc">{tr('summaryTotal', 'Total')}</div>
+                  <div className="act-summaryAmountVal">{to2(totalBaseAmount)}</div>
+                  <div className="act-summaryVatVal">{to2(totalVatAmount)}</div>
+                  <div className="act-summaryTotalVal">{to2(totalWithVat)}</div>
+                </div>
+              </div>
             </div>
-            <div className="act-summaryVat">{tr('summaryVat', 'VAT')}</div>
-            <div className="act-summaryTotal">{tr('summaryTotalInclVat', 'Total')}</div>
+
+            <div className="act-totalGreenBox">
+              <div>
+                <div className="act-totalGreenTitle">{tr('summaryTotalCostInclVat', 'Your Total Price Included VAT')}</div>
+                <div className="act-totalGreenSub">{tr('summaryTotalCostEquation', 'Total Amount + Total VAT Amount')}</div>
+              </div>
+              <div className="act-totalGreenValue">{to2(totalWithVat)}</div>
+            </div>
           </div>
-
-          <div className="act-summaryBody">
-            <div className="act-summaryRow">
-              <div className="act-summaryNo">1.</div>
-              <div className="act-summaryDesc">{tr('summaryTrip', 'Trip')}</div>
-              <div className="act-summaryAmountVal">{to2(tripPriceBase)}</div>
-              <div className="act-summaryVatVal">{to2(tripVatAmount)}</div>
-              <div className="act-summaryTotalVal">{to2(tripTotalWithVatRow)}</div>
-            </div>
-
-            <div className="act-summaryRow">
-              <div className="act-summaryNo">2.</div>
-              <div className="act-summaryDesc">{tr('summaryFood', 'Extra')}</div>
-              <div className="act-summaryAmountVal">{to2(foodBaseAmount)}</div>
-              <div className="act-summaryVatVal">{to2(foodVatAmount)}</div>
-              <div className="act-summaryTotalVal">{to2(foodTotalWithVatRow)}</div>
-            </div>
-
-            <div className="act-summaryTotalRow">
-              <div className="act-summaryNo"></div>
-              <div className="act-summaryDesc">{tr('summaryTotal', 'Total')}</div>
-              <div className="act-summaryAmountVal">{to2(totalBaseAmount)}</div>
-              <div className="act-summaryVatVal">{to2(totalVatAmount)}</div>
-              <div className="act-summaryTotalVal">{to2(totalWithVat)}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="act-totalGreenBox">
-          <div>
-            <div className="act-totalGreenTitle">{tr('summaryTotalCostInclVat', 'Your Total Price Included VAT')}</div>
-            <div className="act-totalGreenSub">{tr('summaryTotalCostEquation', 'Total Amount + Total VAT Amount')}</div>
-          </div>
-          <div className="act-totalGreenValue">{to2(totalWithVat)}</div>
-        </div>
-      </div>
+        </>
+      )}
 
       <div className="button-container">
         <button className="admin-buttonv1" onClick={() => setShowModal(true)}>
@@ -1420,7 +1472,7 @@ const Vendor = () => {
         <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
           {tr('btnSave', 'Save')}
         </button>
-        <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
+        <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/membership/list')}>
           {tr('btnCancel', 'Cancel')}
         </button>
       </div>

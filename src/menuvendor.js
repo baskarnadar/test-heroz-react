@@ -58,7 +58,9 @@ function ApprovedActivityName() {
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span><Txt k="navApprovedTrips" fb="Approved Trips" /></span>
+      <span>
+        <Txt k="navApprovedTrips" fb="Approved Trips" />
+      </span>
       <span style={{ color: 'yellow' }}>[{approved === null ? '…' : approved}]</span>
     </div>
   )
@@ -90,7 +92,9 @@ function PendingActivityName() {
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span><Txt k="navPendingTrips" fb="Pending Trips" /></span>
+      <span>
+        <Txt k="navPendingTrips" fb="Pending Trips" />
+      </span>
       <span style={{ color: 'orange' }}>[{pending === null ? '…' : pending}]</span>
     </div>
   )
@@ -122,7 +126,9 @@ function RejectedActivityName() {
   }, [])
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span><Txt k="navRejectedTrips" fb="Rejected Trips" /></span>
+      <span>
+        <Txt k="navRejectedTrips" fb="Rejected Trips" />
+      </span>
       <span style={{ color: 'red' }}>[{rejected === null ? '…' : rejected}]</span>
     </div>
   )
@@ -145,6 +151,15 @@ const vendormenu = [
     to: '/vendordata/activityinfo/activity/list',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
   },
+
+  // ✅ ADDED: Membership Activities
+  {
+    component: CNavItem,
+    name: <Txt k="navMembershipActivities" fb="Membership Activities" />,
+    to: '/vendordata/membership/activity/list',
+    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+  },
+
   // ✅ Match dashboard logic
   {
     component: CNavItem,
@@ -168,8 +183,6 @@ const vendormenu = [
     component: CNavTitle,
     name: <Txt k="navFieldTrip" fb="Field Trip" />,
   },
-  // You can apply same query logic for trips too later
-
   // 🚍 Trip Booked
   {
     component: CNavItem,

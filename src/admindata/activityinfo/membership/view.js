@@ -59,7 +59,7 @@ const Vendor = () => {
 
   // ✅ SAME CONCEPT (layout helpers) — ADDED (no removals)
   const typeUpper = String(ActivityData?.actTypeID || '').toUpperCase()
-  const isMemberType = typeUpper === 'MEMBERSHIP' || typeUpper ==="MEMBERSHIP"
+  const isMemberType = typeUpper === 'MEMBERSHIP' || typeUpper === 'MEMBERSHIP'
   const isSchoolType = typeUpper === 'SCHOOL'
 
   const priceSectionTitle = isSchoolType
@@ -87,6 +87,19 @@ const Vendor = () => {
     if (!Number.isFinite(t) || !Number.isFinite(s) || s <= 0) return ''
     return to2(t / s)
   }
+
+  // ✅ NEW (DISPLAY ONLY): get new fields from API (safe fallbacks)
+  const actWhatsIncludedVal =
+    ActivityData?.actWhatsIncluded ??
+    ActivityData?.ActWhatsIncluded ??
+    ActivityData?.WhatsIncluded ??
+    ''
+
+  const actTripDetailVal =
+    ActivityData?.actTripDetail ??
+    ActivityData?.ActTripDetail ??
+    ActivityData?.TripDetail ??
+    ''
 
   // ---------------- SUMMARY values (Trip + Food) for Vendor/School ---------------
   const firstPriceRowBase =
@@ -248,7 +261,7 @@ const Vendor = () => {
           <button
             type="button"
             className="admin-buttonv1"
-            onClick={() => navigate('/admindata/activityinfo/activity/list?')}
+            onClick={() => navigate('/admindata/activityinfo/membership/list?')}
           >
             Return
           </button>
@@ -287,6 +300,18 @@ const Vendor = () => {
         <div className="form-group">
           <label>Activity Description</label>
           <div className="admin-lbl-boxv1"> {ActivityData?.actDesc} </div>
+        </div>
+
+        {/* ✅ NEW (DISPLAY ONLY): actWhatsIncluded */}
+        <div className="form-group">
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>What&apos;s Included</label>
+          <div className="admin-lbl-boxv1">{actWhatsIncludedVal || '-'}</div>
+        </div>
+
+        {/* ✅ NEW (DISPLAY ONLY): actTripDetail */}
+        <div className="form-group">
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>Trip Detail</label>
+          <div className="admin-lbl-boxv1">{actTripDetailVal || '-'}</div>
         </div>
       </div>
 
@@ -1015,7 +1040,7 @@ const Vendor = () => {
                   fontWeight: 700,
                 }}
               >
-                Description (Vendor Price) +(Heroz Profit  )
+                Description (Vendor Price) +(Heroz Profit )
               </div>
               <div
                 style={{
@@ -1113,7 +1138,7 @@ const Vendor = () => {
         <button
           type="button"
           className="admin-buttonv1"
-          onClick={() => navigate('/admindata/activityinfo/activity/list')}
+          onClick={() => navigate('/admindata/activityinfo/membership/list')}
         >
           Return
         </button>

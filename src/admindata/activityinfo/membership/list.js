@@ -245,7 +245,7 @@ const ActivityList = () => {
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
 
   const handleViewClick = (ActivityID, VendorID) => {
-    navigate(`/admindata/activityinfo/activity/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
+    navigate(`/admindata/activityinfo/membership/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
 
   const handleBookedClick = (ActivityID, VendorID) => {

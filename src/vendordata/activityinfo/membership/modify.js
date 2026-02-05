@@ -16,7 +16,7 @@ const vatPillStyle = {
   color: '#cf2037',
 }
 // ✅ Import the shared validator (returns { ok, errors, message? })
-import { validateActivityForm } from '../../../vendordata/activityinfo/activity/validate/validate'
+import { validateActivityForm } from '../../../vendordata/activityinfo/membership/validate/validate'
 
 // 🔤 i18n packs (default Arabic if not set)
 import enPack from '../../../i18n/enloc100.json'
@@ -30,6 +30,10 @@ const Vendor = () => {
   // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_FOOD_IMAGE = true // ⬅️ Hide Extra Image everywhere (UI + payload)
+
+  // ✅ NEW: hide sections requested (do not remove code)
+  const HIDE_EXTRA_INFORMATION_UI = true
+  const HIDE_SUMMARY_UI = true
 
   // === VAT SETUP (global default from settings) ===
   // getVatAmount() may return 15  OR  0.15
@@ -98,8 +102,8 @@ const Vendor = () => {
 
   // Define state for each input
   const [txtactName, setactName] = useState('')
-  // 🔒 Force Activity Type to SCHOOL only (default + guards below)
-  const [selectedType, setactType] = useState('SCHOOL')
+  // 🔒 Force Activity Type to MEMBERSHIP only (default + guards below)
+  const [selectedType, setactType] = useState('MEMBERSHIP')
   const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
@@ -120,6 +124,10 @@ const Vendor = () => {
   const [rdoactGender, setGenderService] = useState([])
   const [txtactMinStudent, setMinStudent] = useState([])
   const [txtactMaxStudent, setMaxStudent] = useState([])
+
+  // ✅ NEW: add two multi-line fields before Terms & Conditions
+  const [actTripDetail, setActTripDetail] = useState('')
+  const [actWhatsIncluded, setActWhatsIncluded] = useState('')
 
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
@@ -456,9 +464,9 @@ const Vendor = () => {
     return Number.isFinite(n) && n >= 1 && n <= 5
   }
 
-  // 🔒 Guard: if anything tries to set a non-SCHOOL value, force back to SCHOOL
+  // 🔒 Guard: Activity Type must always be MEMBERSHIP
   useEffect(() => {
-    if (selectedType !== 'SCHOOL') setactType('SCHOOL')
+    if (selectedType !== 'MEMBERSHIP') setactType('MEMBERSHIP')
   }, [selectedType])
 
   const handleSubmit = async (actStatusVal, e) => {
@@ -475,10 +483,7 @@ const Vendor = () => {
     if (!isValidActRating(actRating)) {
       setErrors((prev) => ({
         ...prev,
-        actRating: tr(
-          'errRatingRange',
-          'Activity Rating must be between 1 and 5 (decimals allowed).',
-        ),
+        actRating: tr('errRatingRange', 'Activity Rating must be between 1 and 5 (decimals allowed).'),
       }))
       setToastMessage(tr('fixRating', 'Please correct Activity Rating.'))
       setToastType('fail')
@@ -510,13 +515,15 @@ const Vendor = () => {
       txtactMaxAge,
       txtactMinStudent,
       txtactMaxStudent,
+
+      // ✅ NEW fields (safe: validator will ignore if not implemented)
+      actTripDetail,
+      actWhatsIncluded,
     })
 
     if (!validation.ok) {
       setErrors(validation.errors || {}) // ✅ show under fields
-      setToastMessage(
-        validation.message || tr('fixHighlighted', 'Please correct the highlighted fields.'),
-      )
+      setToastMessage(validation.message || tr('fixHighlighted', 'Please correct the highlighted fields.'))
       setToastType('fail')
       return
     }
@@ -529,10 +536,7 @@ const Vendor = () => {
     const overlap = hasOverlap(days)
     if (overlap) {
       setToastMessage(
-        tr(
-          'timeOverlap',
-          'Time range overlap on {day}: {s1}–{e1} overlaps with {s2}–{e2}',
-        )
+        tr('timeOverlap', 'Time range overlap on {day}: {s1}–{e1} overlaps with {s2}–{e2}')
           .replace('{day}', overlap.day)
           .replace('{s1}', overlap.range1.start)
           .replace('{e1}', overlap.range1.end)
@@ -630,8 +634,7 @@ const Vendor = () => {
     const firstPriceNum = Number(priceRanges[0]?.price || 0)
     const actPriceVatPercentageVal = effectiveVatPercent
     const actPriceVatAmountVal = dec(firstPriceNum * effectiveVatRate)
-    // alert(actPriceVatPercentageVal)
-    //alert(actPriceVatAmountVal)
+
     // 🐞 Build and log final API payload
     const payload = {
       ActivityID: getActivityIDVal,
@@ -663,6 +666,10 @@ const Vendor = () => {
       actMinStudent: txtactMinStudent || '',
       actMaxStudent: txtactMaxStudent || '',
 
+      // ✅ NEW: send these 2 fields
+      actTripDetail: actTripDetail || '',
+      actWhatsIncluded: actWhatsIncluded || '',
+
       actPrice: actPriceDataVal,
       actPriceVatPercentage: actPriceVatPercentageVal,
       actPriceVatAmount: actPriceVatAmountVal,
@@ -680,14 +687,11 @@ const Vendor = () => {
     console.log('🐞 DEBUG updateActivity payload:', payload)
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(payload),
-        },
-      )
+      const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      })
 
       console.log('🐞 DEBUG updateActivity raw response:', response)
 
@@ -699,7 +703,7 @@ const Vendor = () => {
       setToastMessage(tr('toastActivityUpdated', 'Activity updated successfully!'))
       setToastType('success')
 
-      setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
+      setTimeout(() => navigate('/vendordata/activityinfo/membership/list'), 2000)
     } catch (err) {
       console.error('🐞 DEBUG updateActivity error:', err)
       setToastMessage(tr('toastActivityUpdateFailed', 'Failed to update Activity.'))
@@ -738,10 +742,7 @@ const Vendor = () => {
   }
 
   const handleAddRange = () => {
-    setPriceRanges((prev) => [
-      ...prev,
-      { price: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false },
-    ])
+    setPriceRanges((prev) => [...prev, { price: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false }])
   }
 
   const handleRemoveRange = (index) => {
@@ -773,14 +774,11 @@ const Vendor = () => {
           setCountries(countriesResult.data)
         }
 
-        const categoryRes = await fetch(
-          `${API_BASE_URL}/lookupdata/category/getCategoryAllList`,
-          {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({}),
-          },
-        )
+        const categoryRes = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        })
         const categoryResult = await categoryRes.json()
         console.log('🐞 DEBUG getCategoryAllList result:', categoryResult)
         if (categoryResult.data) {
@@ -790,9 +788,7 @@ const Vendor = () => {
         const getSearchParams = () => {
           const search =
             window.location.search ||
-            (window.location.hash && window.location.hash.includes('?')
-              ? `?${window.location.hash.split('?')[1]}`
-              : '')
+            (window.location.hash && window.location.hash.includes('?') ? `?${window.location.hash.split('?')[1]}` : '')
           return new URLSearchParams(search)
         }
 
@@ -830,17 +826,15 @@ const Vendor = () => {
 
     setactName(ActivityData.actName || '')
     setactType(ActivityData.actTypeID || '') // ← keep your original line
-    if (ActivityData.actTypeID !== 'SCHOOL') {
-      // ← enforce SCHOOL anyway
-      setactType('SCHOOL')
+    if (ActivityData.actTypeID !== 'MEMBERSHIP') {
+      // ← enforce MEMBERSHIP anyway
+      setactType('MEMBERSHIP')
     }
     setSelectedCategories(ActivityData.actCategoryID || [])
     setactDesc(ActivityData.actDesc || '')
 
     setactRating(
-      ActivityData.actRating !== undefined && ActivityData.actRating !== null
-        ? String(ActivityData.actRating)
-        : '',
+      ActivityData.actRating !== undefined && ActivityData.actRating !== null ? String(ActivityData.actRating) : '',
     )
 
     setYouTube1(ActivityData.actYouTubeID1 || '')
@@ -862,6 +856,10 @@ const Vendor = () => {
     setMaxStudent(ActivityData.actMaxStudent || '')
     setAdminNotes(ActivityData.actAdminNotes || '')
 
+    // ✅ NEW: set the two new fields from API if they exist
+    setActTripDetail(ActivityData.actTripDetail || '')
+    setActWhatsIncluded(ActivityData.actWhatsIncluded || '')
+
     // 🔢 From API: set price ranges and read VAT % from first price row
     if (Array.isArray(ActivityData.priceList) && ActivityData.priceList.length > 0) {
       const formattedPriceRanges = ActivityData.priceList.map((item) => ({
@@ -882,9 +880,7 @@ const Vendor = () => {
         setVatPercentFromServer(firstVat)
       }
     } else {
-      setPriceRanges([
-        { PriceID: '', price: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false },
-      ])
+      setPriceRanges([{ PriceID: '', price: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false }])
     }
 
     if (Array.isArray(ActivityData.foodList)) {
@@ -948,9 +944,7 @@ const Vendor = () => {
     const getSearchParams = () => {
       const search =
         window.location.search ||
-        (window.location.hash && window.location.hash.includes('?')
-          ? `?${window.location.hash.split('?')[1]}`
-          : '')
+        (window.location.hash && window.location.hash.includes('?') ? `?${window.location.hash.split('?')[1]}` : '')
       return new URLSearchParams(search)
     }
 
@@ -990,8 +984,8 @@ const Vendor = () => {
       const data = await response.json()
       console.log('🐞 DEBUG getActivity API result:', data)
 
-      if ((data?.data?.actStatus !== 'DRAFT') || (data?.data?.actStatus !== 'DRAFT')) {
-        navigate(`/vendordata/activityinfo/activity/view?ActivityID=${ActivityIDVal}`)
+      if (data?.data?.actStatus !== 'DRAFT' || data?.data?.actStatus !== 'DRAFT') {
+        navigate(`/vendordata/activityinfo/membership/view?ActivityID=${ActivityIDVal}`)
         return
       }
 
@@ -1030,10 +1024,7 @@ const Vendor = () => {
       ...days,
       [day]: {
         ...days[day],
-        times:
-          updatedTimes.length > 0
-            ? updatedTimes
-            : [{ start: '', end: '', note: '', total: '' }],
+        times: updatedTimes.length > 0 ? updatedTimes : [{ start: '', end: '', note: '', total: '' }],
         total: newTotal.toFixed(2),
       },
     })
@@ -1041,9 +1032,7 @@ const Vendor = () => {
 
   const handleCheckboxChange = (CategoryID) => {
     setSelectedCategories((prevSelected) =>
-      prevSelected.includes(CategoryID)
-        ? prevSelected.filter((id) => id !== CategoryID)
-        : [...prevSelected, CategoryID],
+      prevSelected.includes(CategoryID) ? prevSelected.filter((id) => id !== CategoryID) : [...prevSelected, CategoryID],
     )
   }
 
@@ -1069,10 +1058,7 @@ const Vendor = () => {
         // base price (respect Include=0)
         const baseFoodPrice = item.include ? 0 : Number(item.price || 0)
         // 🔢 VAT for food uses same percentage as main price (effectiveVatPercent)
-        const foodVatAmount =
-          baseFoodPrice > 0 && effectiveVatPercent > 0
-            ? dec(baseFoodPrice * effectiveVatRate)
-            : 0
+        const foodVatAmount = baseFoodPrice > 0 && effectiveVatPercent > 0 ? dec(baseFoodPrice * effectiveVatRate) : 0
 
         // When hidden, we never upload nor send an image key
         if (HIDE_FOOD_IMAGE) {
@@ -1113,9 +1099,7 @@ const Vendor = () => {
   }
 
   //price ------------------------------------
-  const [priceRanges, setPriceRanges] = useState([
-    { price: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false },
-  ])
+  const [priceRanges, setPriceRanges] = useState([{ price: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false }])
 
   const handlePriceChange = (index, field, value) => {
     setPriceRanges((prev) => {
@@ -1138,19 +1122,10 @@ const Vendor = () => {
 
   // -------------------- SUMMARY VALUES (VAT) --------------------
   const tripPriceBase = Number(priceRanges[0]?.price || 0)
-  const tripVatAmount =
-    tripPriceBase > 0 && effectiveVatPercent > 0
-      ? dec(tripPriceBase * effectiveVatRate)
-      : 0
+  const tripVatAmount = tripPriceBase > 0 && effectiveVatPercent > 0 ? dec(tripPriceBase * effectiveVatRate) : 0
 
-  const foodBaseAmount = foods.reduce(
-    (sum, item) => sum + (item.include ? 0 : Number(item.price || 0)),
-    0,
-  )
-  const foodVatAmount =
-    foodBaseAmount > 0 && effectiveVatPercent > 0
-      ? dec(foodBaseAmount * effectiveVatRate)
-      : 0
+  const foodBaseAmount = foods.reduce((sum, item) => sum + (item.include ? 0 : Number(item.price || 0)), 0)
+  const foodVatAmount = foodBaseAmount > 0 && effectiveVatPercent > 0 ? dec(foodBaseAmount * effectiveVatRate) : 0
 
   const totalBaseAmount = tripPriceBase + foodBaseAmount
   const totalVatAmount = dec(tripVatAmount + foodVatAmount)
@@ -1191,25 +1166,18 @@ const Vendor = () => {
           <button className="admin-buttonv1" onClick={handleSave}>
             {tr('btnSave', 'Save')}
           </button>
-          <button
-            type="button"
-            className="admin-buttonv1"
-            onClick={() => navigate('/vendordata/activityinfo/activity/list')}
-          >
+          <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/membership/list')}>
             {tr('btnReturn', 'Return')}
           </button>
         </div>
       </div>
 
-      <div className="txtsubtitle">
-        {tr('sectionActivityInfo', 'Activity Information')}
-      </div>
+      <div className="txtsubtitle">{tr('sectionActivityInfo', 'Activity Information')}</div>
 
       <div className="divbox">
         <div className="form-group">
           <label>
-            {tr('labelActivityName', 'Activity Name')}{' '}
-            <span style={{ color: 'red' }}>*</span>
+            {tr('labelActivityName', 'Activity Name')} <span style={{ color: 'red' }}>*</span>
           </label>
           <input
             name="txtactName"
@@ -1224,27 +1192,21 @@ const Vendor = () => {
 
         <div className="form-group">
           <label style={{ marginBottom: '10px', marginTop: '20px' }}>
-            {tr('labelActivityType', 'Activity Type')}{' '}
-            <span style={{ color: 'red' }}>*</span>
+            {tr('labelActivityType', 'Activity Type')} <span style={{ color: 'red' }}>*</span>
           </label>
-          <div
-            style={{
-              display: 'flex',
-              gap: '10px',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
+
+          {/* ✅ DISPLAY MEMBERSHIP ONLY (do not remove code) */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
                 name="rdoactTyper"
-                value="SCHOOL"
-                checked={selectedType === 'SCHOOL'}
-                onChange={() => setactType('SCHOOL')}
+                value="MEMBERSHIP"
+                checked={selectedType === 'MEMBERSHIP'}
+                onChange={() => setactType('MEMBERSHIP')}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4"> {tr('typeSchool', 'School')}</div>
+              <div className="pink-shadow4"> {tr('typeMembership', 'Membership')}</div>
             </label>
 
             {/* Keep your original options but hide + disable them */}
@@ -1260,9 +1222,30 @@ const Vendor = () => {
               <input
                 type="radio"
                 name="rdoactTyper"
+                value="SCHOOL"
+                checked={selectedType === 'SCHOOL'}
+                onChange={() => setactType('MEMBERSHIP')}
+                style={{ width: '24px', height: '24px' }}
+                disabled
+              />
+              <div className="pink-shadow4"> {tr('typeSchool', 'School')}</div>
+            </label>
+
+            <label
+              style={{
+                display: 'none', // 🔒 hidden
+                alignItems: 'center',
+                gap: '5px',
+                opacity: 0.4,
+                pointerEvents: 'none',
+              }}
+            >
+              <input
+                type="radio"
+                name="rdoactTyper"
                 value="INDIVIDUAL"
                 checked={selectedType === 'INDIVIDUAL'}
-                onChange={() => setactType('SCHOOL')}
+                onChange={() => setactType('MEMBERSHIP')}
                 style={{ width: '24px', height: '24px' }}
                 disabled
               />
@@ -1282,22 +1265,22 @@ const Vendor = () => {
                 type="radio"
                 name="rdoactTyper"
                 value="MEMBERSHIP"
-                checked={selectedType ==="MEMBERSHIP"}
-                onChange={() => setactType('SCHOOL')}
+                checked={selectedType === 'MEMBERSHIP'}
+                onChange={() => setactType('MEMBERSHIP')}
                 style={{ width: '24px', height: '24px' }}
                 disabled
               />
-              <div className="pink-shadow4"> {tr('typeMember', "MEMBERSHIP")}</div>
+              <div className="pink-shadow4"> {tr('typeMember', 'MEMBERSHIP')}</div>
             </label>
           </div>
+
           <ErrorText msg={errors.selectedType} />
         </div>
 
         {/* ⭐ Activity Rating – read-only display, validated 1..5 (decimals allowed) */}
         <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
           <label className="vendor-label" style={{ margin: 0 }}>
-            {tr('labelActivityRating', 'Activity Rating')}{' '}
-            <span style={{ color: 'red' }}>*</span>
+            {tr('labelActivityRating', 'Activity Rating')} <span style={{ color: 'red' }}>*</span>
           </label>
           <div
             className="vendor-input"
@@ -1315,19 +1298,13 @@ const Vendor = () => {
         </div>
 
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
-          <label
-            style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}
-          >
-            {tr('labelCategories', 'Activity Categories')}{' '}
-            <span style={{ color: 'red' }}>*</span>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+            {tr('labelCategories', 'Activity Categories')} <span style={{ color: 'red' }}>*</span>
           </label>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {fetchcategories.map((item) => (
-              <label
-                key={item.CategoryID}
-                style={{ display: 'flex', alignItems: 'center' }}
-              >
+              <label key={item.CategoryID} style={{ display: 'flex', alignItems: 'center' }}>
                 <input
                   type="checkbox"
                   name="txtactCategoryID"
@@ -1350,8 +1327,7 @@ const Vendor = () => {
 
         <div className="form-group">
           <label>
-            {tr('labelActivityDesc', 'Activity Description')}{' '}
-            <span style={{ color: 'red' }}>*</span>
+            {tr('labelActivityDesc', 'Activity Description')} <span style={{ color: 'red' }}>*</span>
           </label>
           <textarea
             name="txtactDesc"
@@ -1366,8 +1342,7 @@ const Vendor = () => {
       </div>
 
       <div className="txtsubtitle">
-        {tr('sectionActivityImages', 'Activity Images')}{' '}
-        <span style={{ color: 'red' }}>*</span>
+        {tr('sectionActivityImages', 'Activity Images')} <span style={{ color: 'red' }}>*</span>
       </div>
       <div className="divbox">
         {/* ✅ NEW: upload hint text with red border */}
@@ -1386,15 +1361,7 @@ const Vendor = () => {
           {tr('uploadImage', 'Upload image')} (JPG / JPEG / PNG)
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: '20px',
-            flexWrap: 'wrap',
-            marginTop: '20px',
-            marginBottom: '20px',
-          }}
-        >
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px', marginBottom: '20px' }}>
           {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelImage1', 'Activity Image 1')}</label>
@@ -1458,19 +1425,9 @@ const Vendor = () => {
         <ErrorText msg={errors.images} />
       </div>
 
-      <div className="txtsubtitle">
-        {tr('sectionYouTube', 'Activity Youtube Videos')}
-      </div>
+      <div className="txtsubtitle">{tr('sectionYouTube', 'Activity Youtube Videos')}</div>
       <div className="divbox">
-        <div
-          style={{
-            display: 'flex',
-            gap: '20px',
-            flexWrap: 'wrap',
-            marginTop: '20px',
-            marginBottom: '20px',
-          }}
-        >
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px', marginBottom: '20px' }}>
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelYouTube1', 'Youtube Video Link 1')}</label>
             <input
@@ -1504,8 +1461,7 @@ const Vendor = () => {
       </div>
 
       <div className="txtsubtitle">
-        {tr('sectionLocation', 'Activity Location')}{' '}
-        <span style={{ color: 'red' }}>*</span>
+        {tr('sectionLocation', 'Activity Location')} <span style={{ color: 'red' }}>*</span>
       </div>
 
       <div className="divbox">
@@ -1513,8 +1469,7 @@ const Vendor = () => {
           <div className="vendor-row">
             <div className="vendor-column">
               <label className="vendor-label">
-                {tr('labelGoogleMap', 'Google Map Location')}{' '}
-                <span style={{ color: 'red' }}>*</span>
+                {tr('labelGoogleMap', 'Google Map Location')} <span style={{ color: 'red' }}>*</span>
               </label>
               <input
                 name="txtactGoogleMap"
@@ -1528,8 +1483,7 @@ const Vendor = () => {
 
             <div className="vendor-column">
               <label className="vendor-label">
-                {tr('labelLatitude', 'Google Latitude')}{' '}
-                <span style={{ color: 'red' }}>*</span>
+                {tr('labelLatitude', 'Google Latitude')} <span style={{ color: 'red' }}>*</span>
               </label>
               <input
                 name="txtactGlat"
@@ -1542,8 +1496,7 @@ const Vendor = () => {
             </div>
             <div className="vendor-column">
               <label className="vendor-label">
-                {tr('labelLongitude', 'Google Longitude')}{' '}
-                <span style={{ color: 'red' }}>*</span>
+                {tr('labelLongitude', 'Google Longitude')} <span style={{ color: 'red' }}>*</span>
               </label>
               <input
                 name="txtactGlan"
@@ -1557,29 +1510,22 @@ const Vendor = () => {
           </div>
         </div>
       </div>
+
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row">
             <div className="vendor-column">
               <label className="vendor-label">
-                {tr('labelCountry', 'Country')}{' '}
-                <span style={{ color: 'red' }}>*</span>
+                {tr('labelCountry', 'Country')} <span style={{ color: 'red' }}>*</span>
               </label>
               <select
                 onChange={(e) => setCountryID(e.target.value)}
                 name="txtactCountryID"
                 value={ddactCountryID}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                }}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
                 required
               >
-                <option value="">
-                  {tr('optSelectCountry', 'Select a country')}
-                </option>
+                <option value="">{tr('optSelectCountry', 'Select a country')}</option>
                 {countries.map((country) => (
                   <option key={country.CountryID} value={country.CountryID}>
                     {country.EnCountryName}
@@ -1591,8 +1537,7 @@ const Vendor = () => {
 
             <div className="vendor-column">
               <label className="vendor-label">
-                {tr('labelCity', 'City')}{' '}
-                <span style={{ color: 'red' }}>*</span>
+                {tr('labelCity', 'City')} <span style={{ color: 'red' }}>*</span>
               </label>
               <select
                 value={ddactCityID}
@@ -1610,10 +1555,9 @@ const Vendor = () => {
               </select>
               <ErrorText msg={errors.ddactCityID} />
             </div>
+
             <div className="vendor-column">
-              <label className="vendor-label">
-                {tr('labelLocation1', 'Location')}
-              </label>
+              <label className="vendor-label">{tr('labelLocation1', 'Location')}</label>
               <input
                 value={txtactAddress1}
                 name="txtactAddress1"
@@ -1623,62 +1567,32 @@ const Vendor = () => {
               />
               <ErrorText msg={errors.txtactAddress1} />
             </div>
+
             <div className="vendor-column">
-              <label className="vendor-label">
-                {tr('labelAddress2', 'Address2')}
-              </label>
-              <input
-                value={txtactAddress2}
-                name="txtactAddress2"
-                className="vendor-input"
-                onChange={(e) => setAddress2(e.target.value)}
-              />
+              <label className="vendor-label">{tr('labelAddress2', 'Address2')}</label>
+              <input value={txtactAddress2} name="txtactAddress2" className="vendor-input" onChange={(e) => setAddress2(e.target.value)} />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">
-        {tr('sectionAgeRange', ' Age Range ')}
-      </div>
+      <div className="txtsubtitle">{tr('sectionAgeRange', ' Age Range ')}</div>
       <div className="divbox">
         <div className="vendor-container">
           <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">
-                {tr('labelMinAge', 'Minimum Age')}{' '}
-                <span style={{ color: 'red' }}>*</span>
+                {tr('labelMinAge', 'Minimum Age')} <span style={{ color: 'red' }}>*</span>
               </label>
-              <input
-                value={txtactMinAge}
-                onChange={(e) => setMinAge(e.target.value)}
-                name="txtactMinAge"
-                className="vendor-input"
-                type="number"
-                min="0"
-              />
+              <input value={txtactMinAge} onChange={(e) => setMinAge(e.target.value)} name="txtactMinAge" className="vendor-input" type="number" min="0" />
               <ErrorText msg={errors.txtactMinAge} />
             </div>
 
-            <div
-              className="vendor-column"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <label className="vendor-label">
-                {tr('labelMaxAge', 'Maximum Age')}{' '}
-                <span style={{ color: 'red' }}>*</span>
+                {tr('labelMaxAge', 'Maximum Age')} <span style={{ color: 'red' }}>*</span>
               </label>
-              <input
-                value={txtactMaxAge}
-                onChange={(e) => setMaxAge(e.target.value)}
-                name="txtactMaxAge"
-                className="vendor-input"
-                type="number"
-                min="0"
-              />
+              <input value={txtactMaxAge} onChange={(e) => setMaxAge(e.target.value)} name="txtactMaxAge" className="vendor-input" type="number" min="0" />
               <ErrorText msg={errors.txtactMaxAge} />
             </div>
           </div>
@@ -1687,8 +1601,7 @@ const Vendor = () => {
         <div className="vendor-container">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label className="vendor-label">
-              {tr('labelGender', 'Gender')}{' '}
-              <span style={{ color: 'red' }}>*</span>
+              {tr('labelGender', 'Gender')} <span style={{ color: 'red' }}>*</span>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
@@ -1699,10 +1612,7 @@ const Vendor = () => {
                 onChange={(e) => setGenderService(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4">
-                {' '}
-                {tr('genderBoys', 'Boys')}
-              </div>
+              <div className="pink-shadow4"> {tr('genderBoys', 'Boys')}</div>
             </label>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1714,10 +1624,7 @@ const Vendor = () => {
                 onChange={(e) => setGenderService(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4">
-                {' '}
-                {tr('genderGirls', 'Girls')}
-              </div>
+              <div className="pink-shadow4"> {tr('genderGirls', 'Girls')}</div>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
@@ -1728,17 +1635,14 @@ const Vendor = () => {
                 onChange={(e) => setGenderService(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />
-              <div className="pink-shadow4">
-                {' '}
-                {tr('genderBoth', 'Both')}
-              </div>
+              <div className="pink-shadow4"> {tr('genderBoth', 'Both')}</div>
             </label>
           </div>
           <ErrorText msg={errors.rdoactGender} />
         </div>
       </div>
 
-      {/* 🔴 NEW HEADER STRIP WITH PINK VAT BADGE (LIKE YOUR SCREENSHOT) */}
+      {/* 🔴 HEADER STRIP WITH PINK VAT BADGE */}
       <div
         className="txtsubtitle"
         style={{
@@ -1752,8 +1656,8 @@ const Vendor = () => {
         }}
       >
         <div>
-          {tr('sectionPricePerStudent', 'Per Student (vendor Price)')}{' '}
-          <span style={{ color: 'red' }}>*</span>
+          {/* ✅ CHANGED LABEL */}
+          {tr('sectionPricePerMember', 'Activity Price Per Member')} <span style={{ color: 'red' }}>*</span>
         </div>
 
         {effectiveVatPercent > 0 && (
@@ -1777,35 +1681,23 @@ const Vendor = () => {
       <div className="divbox">
         <CRow className="fw-bold   mb-2">
           <CCol sm={3}>
-            {tr('colBasePricePerStudent', 'Price Per Student (Excl. VAT)')}{' '}
-            <span style={{ color: 'red' }}>*</span>
+            {/* ✅ CHANGED LABEL */}
+            {tr('colBasePricePerMember', 'Activity Price Per Member (Excl. VAT)')} <span style={{ color: 'red' }}>*</span>
           </CCol>
-          <CCol
-            sm={3}
-            style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}
-          >
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
           </CCol>
-          <CCol
-            sm={3}
-            style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}
-          >
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('labelStudentRangeTo', 'Student Range To')}
           </CCol>
-          <CCol
-            sm={3}
-            style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}
-          >
+          <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('colDelete', 'Delete')}
           </CCol>
         </CRow>
 
         {priceRanges.map((item, index) => {
           const priceNum = Number(item.price || 0)
-          const vatAmt =
-            priceNum > 0 && effectiveVatPercent > 0
-              ? dec(priceNum * effectiveVatRate)
-              : 0
+          const vatAmt = priceNum > 0 && effectiveVatPercent > 0 ? dec(priceNum * effectiveVatRate) : 0
           const totalWithVatRow = dec(priceNum + vatAmt)
 
           return (
@@ -1832,7 +1724,7 @@ const Vendor = () => {
                       flexWrap: 'wrap',
                     }}
                   >
-                    {/* VAT badge like screenshot (but smaller, under input) */}
+                    {/* VAT badge */}
                     <div
                       style={{
                         padding: '4px 12px',
@@ -1844,30 +1736,18 @@ const Vendor = () => {
                         fontWeight: 600,
                       }}
                     >
-                      {tr('labelVatAmount', 'VAT Amount')} (
-                      {effectiveVatPercent.toFixed(2)}%):{' '}
-                      <span style={{ fontWeight: 800 }}>
-                        {vatAmt.toFixed(2)}
-                      </span>
+                      {tr('labelVatAmount', 'VAT Amount')} ({effectiveVatPercent.toFixed(2)}%):{' '}
+                      <span style={{ fontWeight: 800 }}>{vatAmt.toFixed(2)}</span>
                     </div>
                     {/* Total with VAT */}
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: '#333',
-                      }}
-                    >
-                      {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
-                      <span>{totalWithVatRow.toFixed(2)}</span>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>
+                      {tr('labelPriceWithVatShort', 'Total incl. VAT')}: <span>{totalWithVatRow.toFixed(2)}</span>
                     </div>
                   </div>
                 )}
               </CCol>
-              <CCol
-                sm={3}
-                style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}
-              >
+
+              <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
                 <input
                   name="txtStudentRangeFrom"
                   type="text"
@@ -1877,10 +1757,8 @@ const Vendor = () => {
                   onChange={(e) => handlePriceChange(index, 'rangeFrom', e.target.value)}
                 />
               </CCol>
-              <CCol
-                sm={3}
-                style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}
-              >
+
+              <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
                 <input
                   name="txtStudentRangeTo"
                   type="text"
@@ -1891,10 +1769,7 @@ const Vendor = () => {
                 />
               </CCol>
 
-              <CCol
-                sm={3}
-                style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}
-              >
+              <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
                 {item.PriceID ? (
                   <input
                     key={index}
@@ -1905,20 +1780,11 @@ const Vendor = () => {
                       updatedRanges[index].ChkRemovePrice = e.target.checked
                       setPriceRanges(updatedRanges)
                     }}
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      accentColor: 'red',
-                      cursor: 'pointer',
-                    }}
+                    style={{ width: '24px', height: '24px', accentColor: 'red', cursor: 'pointer' }}
                   />
                 ) : (
                   priceRanges.length > 1 && (
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={() => handleRemoveRange(index)}
-                    >
+                    <button type="button" className="btn btn-danger" onClick={() => handleRemoveRange(index)}>
                       {tr('btnRemove', 'Remove')}
                     </button>
                   )
@@ -1928,578 +1794,379 @@ const Vendor = () => {
           )
         })}
 
-        <CRow
-          className="mt-3"
-          style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}
-        >
+        <CRow className="mt-3" style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
           <CCol>
-            <button
-              type="button"
-              className="admin-buttonv1"
-              onClick={handleAddRange}
-            >
+            <button type="button" className="admin-buttonv1" onClick={handleAddRange}>
               {tr('btnAddMore', 'Add More')}
             </button>
           </CCol>
         </CRow>
       </div>
 
-      <div className="txtsubtitle">
-        {tr('sectionSetAvailability', 'Set Availability')}
-      </div>
+      <div className="txtsubtitle">{tr('sectionSetAvailability', 'Set Availability')}</div>
       {/* Section-level availability error */}
       <ErrorText msg={errors.availability} />
 
       <div className="divbox">
         <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map(
-            (day) => (
-              <div
-                key={day}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px 0',
-                  borderBottom: '1px solid #ccc',
-                }}
-              >
-                <div style={{ flexGrow: 1 }}>
-                  <div
-                    style={{
-                      fontWeight: 'bold',
-                      textTransform: 'capitalize',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <label>
-                      {dayLabel(day)}{' '}
-                      <input
-                        type="checkbox"
-                        checked={!days[day].closed}
-                        onChange={(e) =>
-                          handleClosedChange(day, !e.target.checked)
-                        }
-                      />{' '}
-                      {tr('labelAvailable', 'Available')}
-                    </label>
-                  </div>
-
-                  {!days[day].closed && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 10,
-                      }}
-                    >
-                      {days[day].times.map((range, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            display: 'flex',
-                            gap: 20,
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <label>
-                            {tr('labelStartTime', 'Start Time')}:{' '}
-                            <input
-                              className="admin-txt-box"
-                              type="time"
-                              value={range.start}
-                              onChange={(e) =>
-                                handleTimeChange(day, index, 'start', e.target.value)
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            {tr('labelEndTime', 'End Time')}:{' '}
-                            <input
-                              className="admin-txt-box"
-                              type="time"
-                              value={range.end}
-                              onChange={(e) =>
-                                handleTimeChange(day, index, 'end', e.target.value)
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            {tr('labelNotes', 'Notes')}:{' '}
-                            <input
-                              type="text"
-                              className="admin-txt-box"
-                              placeholder={tr(
-                                'phOptionalNotes',
-                                'Optional notes',
-                              )}
-                              value={range.note || ''}
-                              onChange={(e) =>
-                                handleRangeNoteChange(
-                                  day,
-                                  index,
-                                  e.target.value,
-                                )
-                              }
-                            />
-                          </label>
-
-                          <div>
-                            {tr('labelRangeHours', 'Range Hours')}:{' '}
-                            <strong>{range.total || '0.00'}</strong>
-                          </div>
-
-                          {days[day].times.length > 1 &&
-                            (days[day].times[index].AvailDaysHoursID ? (
-                              <input
-                                type="checkbox"
-                                name="ChkRemoveDays"
-                                style={{
-                                  width: '24px',
-                                  height: '24px',
-                                  accentColor: 'red',
-                                  cursor: 'pointer',
-                                }}
-                                onChange={(e) => {
-                                  const updatedTimes = [...days[day].times]
-                                  updatedTimes[index].ChkRemoveDays =
-                                    e.target.checked
-
-                                  setDays({
-                                    ...days,
-                                    [day]: {
-                                      ...days[day],
-                                      times: updatedTimes,
-                                    },
-                                  })
-                                }}
-                              />
-                            ) : (
-                              <button
-                                type="button"
-                                style={{
-                                  background: 'tomato',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '4px 8px',
-                                  cursor: 'pointer',
-                                }}
-                                onClick={() =>
-                                  handleRemoveTimeRange(day, index)
-                                }
-                              >
-                                {tr('btnRemove', 'Remove')}
-                              </button>
-                            ))}
-                        </div>
-                      ))}
-
-                      <div style={{ marginTop: 10 }}>
-                        <button
-                          type="button"
-                          className="admin-buttonv1"
-                          onClick={() => handleAddMore(day)}
-                        >
-                          {tr('btnAddMore', 'Add More')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+          {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
+            <div
+              key={day}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #ccc',
+              }}
+            >
+              <div style={{ flexGrow: 1 }}>
+                <div style={{ fontWeight: 'bold', textTransform: 'capitalize', marginBottom: 8 }}>
+                  <label>
+                    {dayLabel(day)}{' '}
+                    <input type="checkbox" checked={!days[day].closed} onChange={(e) => handleClosedChange(day, !e.target.checked)} />{' '}
+                    {tr('labelAvailable', 'Available')}
+                  </label>
                 </div>
+
+                {!days[day].closed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {days[day].times.map((range, index) => (
+                      <div key={index} style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <label>
+                          {tr('labelStartTime', 'Start Time')}:{' '}
+                          <input
+                            className="admin-txt-box"
+                            type="time"
+                            value={range.start}
+                            onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
+                          />
+                        </label>
+
+                        <label>
+                          {tr('labelEndTime', 'End Time')}:{' '}
+                          <input
+                            className="admin-txt-box"
+                            type="time"
+                            value={range.end}
+                            onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
+                          />
+                        </label>
+
+                        <label>
+                          {tr('labelNotes', 'Notes')}:{' '}
+                          <input
+                            type="text"
+                            className="admin-txt-box"
+                            placeholder={tr('phOptionalNotes', 'Optional notes')}
+                            value={range.note || ''}
+                            onChange={(e) => handleRangeNoteChange(day, index, e.target.value)}
+                          />
+                        </label>
+
+                        <div>
+                          {tr('labelRangeHours', 'Range Hours')}: <strong>{range.total || '0.00'}</strong>
+                        </div>
+
+                        {days[day].times.length > 1 &&
+                          (days[day].times[index].AvailDaysHoursID ? (
+                            <input
+                              type="checkbox"
+                              name="ChkRemoveDays"
+                              style={{ width: '24px', height: '24px', accentColor: 'red', cursor: 'pointer' }}
+                              onChange={(e) => {
+                                const updatedTimes = [...days[day].times]
+                                updatedTimes[index].ChkRemoveDays = e.target.checked
+
+                                setDays({
+                                  ...days,
+                                  [day]: {
+                                    ...days[day],
+                                    times: updatedTimes,
+                                  },
+                                })
+                              }}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              style={{
+                                background: 'tomato',
+                                color: 'white',
+                                border: 'none',
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                              }}
+                              onClick={() => handleRemoveTimeRange(day, index)}
+                            >
+                              {tr('btnRemove', 'Remove')}
+                            </button>
+                          ))}
+                      </div>
+                    ))}
+
+                    <div style={{ marginTop: 10 }}>
+                      <button type="button" className="admin-buttonv1" onClick={() => handleAddMore(day)}>
+                        {tr('btnAddMore', 'Add More')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            ),
-          )}
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="txtsubtitle">
-        {tr('sectionFoodInfo', 'Extra Information')}
-      </div>
-      <div className="divbox">
-        <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-          <CRow className="mb-2 fw-bold hbg">
-            <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-            <CCol sm={2}>
-              {tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}
-            </CCol>
-            <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
-            {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>}
-            <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
-            <CCol sm={1}>{tr('colDelete', 'Delete')}</CCol>
-          </CRow>
+      {/* ✅ HIDE EXTRA INFORMATION UI (do not remove code) */}
+      <div style={{ display: HIDE_EXTRA_INFORMATION_UI ? 'none' : undefined }}>
+        <div className="txtsubtitle">{tr('sectionFoodInfo', 'Extra Information')}</div>
+        <div className="divbox">
+          <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
+            <CRow className="mb-2 fw-bold hbg">
+              <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
+              <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
+              <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
+              {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>}
+              <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
+              <CCol sm={1}>{tr('colDelete', 'Delete')}</CCol>
+            </CRow>
 
-          {foods.map((item, index) => {
-            const basePrice = item.include ? 0 : Number(item.price || 0)
-            const foodVatAmount =
-              basePrice > 0 && effectiveVatPercent > 0
-                ? dec(basePrice * effectiveVatRate)
-                : 0
-            const foodTotalWithVat = dec(basePrice + foodVatAmount)
+            {foods.map((item, index) => {
+              const basePrice = item.include ? 0 : Number(item.price || 0)
+              const foodVatAmount = basePrice > 0 && effectiveVatPercent > 0 ? dec(basePrice * effectiveVatRate) : 0
+              const foodTotalWithVat = dec(basePrice + foodVatAmount)
 
-            return (
-              <CRow key={index} className="mb-3 align-items-center">
-                <CCol sm={3}>
-                  <input
-                    type="text"
-                    className="admin-txt-box w-100"
-                    placeholder={tr('phEnterName', 'Enter name')}
-                    value={item.name}
-                    onChange={(e) =>
-                      handleFoodChange(index, 'name', e.target.value)
-                    }
-                  />
-                </CCol>
-
-                <CCol sm={2}>
-                  <input
-                    type="number"
-                    className="admin-txt-box w-100"
-                    placeholder={
-                      item.include
-                        ? tr('phIncludedZero', 'Included (0)')
-                        : tr('phEnterPrice', 'Enter price')
-                    }
-                    value={item.include ? 0 : item.price ?? ''}
-                    onChange={(e) =>
-                      handleFoodChange(index, 'price', e.target.value)
-                    }
-                    min="0"
-                    step="0.01"
-                    disabled={item.include}
-                  />
-                  {basePrice > 0 && effectiveVatPercent > 0 && (
-                    <div
-                      style={{
-                        marginTop: 6,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 8,
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      {/* VAT badge (matches your screenshot) */}
-                      <div
-                        style={{
-                          padding: '4px 12px',
-                          borderRadius: 20,
-                          border: '1px solid #cf2037',
-                          backgroundColor: '#ffe6eb',
-                          color: '#cf2037',
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {tr('labelVatAmount', 'VAT Amount')} (
-                        {effectiveVatPercent.toFixed(2)}%):{' '}
-                        <span style={{ fontWeight: 800 }}>
-                          {foodVatAmount.toFixed(2)}
-                        </span>
-                      </div>
-
-                      {/* Total incl. VAT text */}
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: '#333',
-                        }}
-                      >
-                        {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
-                        <span>{foodTotalWithVat.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  )}
-                </CCol>
-
-                <CCol sm={3}>
-                  <input
-                    type="text"
-                    className="admin-txt-box w-100"
-                    placeholder={tr('phEnterNotes', 'Enter notes')}
-                    value={item.notes}
-                    onChange={(e) =>
-                      handleFoodChange(index, 'notes', e.target.value)
-                    }
-                  />
-                </CCol>
-
-                {/* Extra Image column (hidden when HIDE_Extra_IMAGE) */}
-                {!HIDE_FOOD_IMAGE && (
-                  <CCol sm={2}>
+              return (
+                <CRow key={index} className="mb-3 align-items-center">
+                  <CCol sm={3}>
                     <input
-                      type="file"
-                      accept="image/*"
-                      className="w-100"
-                      onChange={(e) =>
-                        handleFoodChange(
-                          index,
-                          'image',
-                          e.target.files[0],
-                        )
-                      }
+                      type="text"
+                      className="admin-txt-box w-100"
+                      placeholder={tr('phEnterName', 'Enter name')}
+                      value={item.name}
+                      onChange={(e) => handleFoodChange(index, 'name', e.target.value)}
                     />
                   </CCol>
-                )}
 
-                <CCol sm={1} className="text-center">
-                  <input
-                    type="checkbox"
-                    checked={item.include}
-                    onChange={(e) =>
-                      handleFoodChange(index, 'include', e.target.checked)
-                    }
-                    style={{
-                      transform: 'scale(1.5)',
-                      accentColor: 'red',
-                      cursor: 'pointer',
-                    }}
-                    title={tr(
-                      'titleIncludePriceZero',
-                      'If checked, price becomes 0',
+                  <CCol sm={2}>
+                    <input
+                      type="number"
+                      className="admin-txt-box w-100"
+                      placeholder={item.include ? tr('phIncludedZero', 'Included (0)') : tr('phEnterPrice', 'Enter price')}
+                      value={item.include ? 0 : item.price ?? ''}
+                      onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
+                      min="0"
+                      step="0.01"
+                      disabled={item.include}
+                    />
+                    {basePrice > 0 && effectiveVatPercent > 0 && (
+                      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: 20,
+                            border: '1px solid #cf2037',
+                            backgroundColor: '#ffe6eb',
+                            color: '#cf2037',
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {tr('labelVatAmount', 'VAT Amount')} ({effectiveVatPercent.toFixed(2)}%):{' '}
+                          <span style={{ fontWeight: 800 }}>{foodVatAmount.toFixed(2)}</span>
+                        </div>
+
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>
+                          {tr('labelPriceWithVatShort', 'Total incl. VAT')}: <span>{foodTotalWithVat.toFixed(2)}</span>
+                        </div>
+                      </div>
                     )}
-                  />
-                </CCol>
+                  </CCol>
 
-                <CCol sm={1}>
-                  {item.FoodID ? (
+                  <CCol sm={3}>
+                    <input
+                      type="text"
+                      className="admin-txt-box w-100"
+                      placeholder={tr('phEnterNotes', 'Enter notes')}
+                      value={item.notes}
+                      onChange={(e) => handleFoodChange(index, 'notes', e.target.value)}
+                    />
+                  </CCol>
+
+                  {!HIDE_FOOD_IMAGE && (
+                    <CCol sm={2}>
+                      <input type="file" accept="image/*" className="w-100" onChange={(e) => handleFoodChange(index, 'image', e.target.files[0])} />
+                    </CCol>
+                  )}
+
+                  <CCol sm={1} className="text-center">
                     <input
                       type="checkbox"
-                      name="ChkRemoveFood"
-                      onChange={(e) => {
-                        const updatedFoods = [...foods]
-                        updatedFoods[index].ChkRemoveFood = e.target.checked
-                        setFoods(updatedFoods)
-                      }}
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        accentColor: 'red',
-                        cursor: 'pointer',
-                      }}
+                      checked={item.include}
+                      onChange={(e) => handleFoodChange(index, 'include', e.target.checked)}
+                      style={{ transform: 'scale(1.5)', accentColor: 'red', cursor: 'pointer' }}
+                      title={tr('titleIncludePriceZero', 'If checked, price becomes 0')}
                     />
-                  ) : (
-                    priceRanges.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleFoodRemoveFood(index)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        {tr('btnRemove', 'Remove')}
-                      </button>
-                    )
-                  )}
-                </CCol>
-              </CRow>
-            )
-          })}
+                  </CCol>
 
-          <CRow className="mt-3">
-            <CCol>
-              <button
-                type="button"
-                className="admin-buttonv1"
-                onClick={handleFoodAddMore}
-              >
-                {tr('btnAddMore', 'Add More')}
-              </button>
-            </CCol>
-          </CRow>
+                  <CCol sm={1}>
+                    {item.FoodID ? (
+                      <input
+                        type="checkbox"
+                        name="ChkRemoveFood"
+                        onChange={(e) => {
+                          const updatedFoods = [...foods]
+                          updatedFoods[index].ChkRemoveFood = e.target.checked
+                          setFoods(updatedFoods)
+                        }}
+                        style={{ width: '24px', height: '24px', accentColor: 'red', cursor: 'pointer' }}
+                      />
+                    ) : (
+                      priceRanges.length > 1 && (
+                        <button type="button" onClick={() => handleFoodRemoveFood(index)} className="btn btn-danger btn-sm">
+                          {tr('btnRemove', 'Remove')}
+                        </button>
+                      )
+                    )}
+                  </CCol>
+                </CRow>
+              )
+            })}
+
+            <CRow className="mt-3">
+              <CCol>
+                <button type="button" className="admin-buttonv1" onClick={handleFoodAddMore}>
+                  {tr('btnAddMore', 'Add More')}
+                </button>
+              </CCol>
+            </CRow>
+          </div>
         </div>
       </div>
 
+      {/* ✅ NEW SECTION (before Terms & Conditions): Trip Detail */}
       <div className="txtsubtitle">
-        {tr('sectionTerms', 'Terms And Conditions')}{' '}
-        <span style={{ color: 'red' }}>*</span>
+        {tr('sectionTripDetail', 'Trip Detail')} <span style={{ color: 'red' }}>*</span>
       </div>
       <div className="divbox">
         <div className="vendor-container">
           <textarea
-            onChange={(e) => setAdminNotes(e.target.value)}
-            value={txtactAdminNotes}
-            name="txtactAdminNotes"
+            name="actTripDetail"
             className="vendor-input"
-            rows={5}
+            rows={4}
+            value={actTripDetail}
+            onChange={(e) => setActTripDetail(e.target.value)}
+            placeholder={tr('phTripDetail', 'Enter trip detail')}
           />
+          <ErrorText msg={errors.actTripDetail} />
+        </div>
+      </div>
+
+      {/* ✅ NEW SECTION (before Terms & Conditions): What&#39;s Included */}
+      <div className="txtsubtitle">
+        {tr('sectionWhatsIncluded', "What's Included")} <span style={{ color: 'red' }}>*</span>
+      </div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <textarea
+            name="actWhatsIncluded"
+            className="vendor-input"
+            rows={4}
+            value={actWhatsIncluded}
+            onChange={(e) => setActWhatsIncluded(e.target.value)}
+            placeholder={tr('phWhatsIncluded', "Enter what's included")}
+          />
+          <ErrorText msg={errors.actWhatsIncluded} />
+        </div>
+      </div>
+
+      <div className="txtsubtitle">
+        {tr('sectionTerms', 'Terms And Conditions')} <span style={{ color: 'red' }}>*</span>
+      </div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <textarea onChange={(e) => setAdminNotes(e.target.value)} value={txtactAdminNotes} name="txtactAdminNotes" className="vendor-input" rows={5} />
           <ErrorText msg={errors.txtactAdminNotes} />
         </div>
       </div>
 
-      {/* -------------------- SUMMARY (BOTTOM) -------------------- */}
-      <div className="txtsubtitle">
-        {tr('sectionSummary', 'Summary')}
-      </div>
-      <div className="divbox">
-        {/* Main summary card: Description / Amount / VAT / Total */}
-        <div
-          style={{
-            maxWidth: 650,
-            margin: '0 auto',
-            border: '1px solid #ddd',
-            borderRadius: 12,
-            overflow: 'hidden',
-            fontSize: 14,
-          }}
-        >
-          {/* Header row */}
+      {/* ✅ HIDE SUMMARY UI (do not remove code) */}
+      <div style={{ display: HIDE_SUMMARY_UI ? 'none' : undefined }}>
+        <div className="txtsubtitle">{tr('sectionSummary', 'Summary')}</div>
+        <div className="divbox">
           <div
             style={{
+              maxWidth: 650,
+              margin: '0 auto',
+              border: '1px solid #ddd',
+              borderRadius: 12,
+              overflow: 'hidden',
+              fontSize: 14,
+            }}
+          >
+            <div style={{ display: 'flex', background: '#f7f7f7', fontWeight: 600, padding: '8px 12px' }}>
+              <div style={{ flex: 0.5 }}>{tr('summaryNo', '#')}</div>
+              <div style={{ flex: 1.5 }}>{tr('summaryDescription', 'Description')}</div>
+              <div style={{ flex: 1, textAlign: 'right' }}>{tr('summaryAmount', 'Amount')}</div>
+              <div style={{ flex: 1.7, textAlign: 'right', color: '#cf2037' }}>
+                {tr('summaryVat', 'VAT')} <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>{tr('summaryTotal', 'Total')}</div>
+            </div>
+
+            <div style={{ padding: '8px 12px' }}>
+              <div style={{ display: 'flex', padding: '6px 0', borderBottom: '1px solid #eee', alignItems: 'center' }}>
+                <div style={{ flex: 0.5 }}>1.</div>
+                <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
+                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>{tripPriceBase.toFixed(2)}</div>
+                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600, color: '#cf2037' }}>{tripVatAmount.toFixed(2)}</div>
+                <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>{tripTotalWithVat.toFixed(2)}</div>
+              </div>
+
+              <div style={{ display: 'flex', padding: '6px 0', borderBottom: '1px solid #eee', alignItems: 'center' }}>
+                <div style={{ flex: 0.5 }}>2.</div>
+                <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Extra')}</div>
+                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>{foodBaseAmount.toFixed(2)}</div>
+                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600, color: '#cf2037' }}>{foodVatAmount.toFixed(2)}</div>
+                <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>{foodTotalWithVat.toFixed(2)}</div>
+              </div>
+
+              <div style={{ display: 'flex', padding: '8px 0 4px', fontWeight: 700, alignItems: 'center' }}>
+                <div style={{ flex: 0.5 }}></div>
+                <div style={{ flex: 1.5 }}>{tr('summaryTotal', 'Total')}</div>
+                <div style={{ flex: 1, textAlign: 'right' }}>{totalBaseAmount.toFixed(2)}</div>
+                <div style={{ flex: 1, textAlign: 'right', color: '#cf2037' }}>{totalVatAmount.toFixed(2)}</div>
+                <div style={{ flex: 1, textAlign: 'right' }}>{totalWithVat.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              maxWidth: 650,
+              margin: '16px auto 0',
+              border: '3px solid #2e7d32',
+              borderRadius: 16,
+              padding: '12px 16px',
+              backgroundColor: 'rgba(46, 125, 50, 0.15)',
               display: 'flex',
-              background: '#f7f7f7',
-              fontWeight: 600,
-              padding: '8px 12px',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
             }}
           >
-            <div style={{ flex: 0.5 }}>
-              {tr('summaryNo', '#')}
-            </div>
-            <div style={{ flex: 1.5 }}>
-              {tr('summaryDescription', 'Description')}
-            </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryAmount', 'Amount')} 
-            </div>
-            <div style={{ flex: 1.7, textAlign: 'right', color: '#cf2037' }}>
-              {tr('summaryVat', 'VAT')} <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
-            </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryTotal', 'Total')}
-            </div>
-          </div>
-
-          {/* Body rows */}
-          <div style={{ padding: '8px 12px' }}>
-            {/* 1. Trip */}
-            <div
-              style={{
-                display: 'flex',
-                padding: '6px 0',
-                borderBottom: '1px solid #eee',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ flex: 0.5 }}>1.</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {tripPriceBase.toFixed(2)}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
+                {tr('summaryTotalCostInclVat', 'Your Total Price Including VAT')}
               </div>
-              <div
-                style={{
-                  flex: 1,
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  color: '#cf2037',
-                }}
-              >
-                {tripVatAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {tripTotalWithVat.toFixed(2)}
+              <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
+                {tr('summaryTotalCostEquation', 'Total Amount + Total VAT Amount')}
               </div>
             </div>
-
-            {/* 2. Food */}
-            <div
-              style={{
-                display: 'flex',
-                padding: '6px 0',
-                borderBottom: '1px solid #eee',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ flex: 0.5 }}>2.</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Extra')}</div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {foodBaseAmount.toFixed(2)}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  color: '#cf2037',
-                }}
-              >
-                {foodVatAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {foodTotalWithVat.toFixed(2)}
-              </div>
-            </div>
-
-            {/* Total row */}
-            <div
-              style={{
-                display: 'flex',
-                padding: '8px 0 4px',
-                fontWeight: 700,
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ flex: 0.5 }}></div>
-              <div style={{ flex: 1.5 }}>
-                {tr('summaryTotal', 'Total')}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalBaseAmount.toFixed(2)}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  textAlign: 'right',
-                  color: '#cf2037',
-                }}
-              >
-                {totalVatAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalWithVat.toFixed(2)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 🔶 Final big Total Price box (green) */}
-        <div
-          style={{
-            maxWidth: 650,
-            margin: '16px auto 0',
-            border: '3px solid #2e7d32',                // big green border
-            borderRadius: 16,
-            padding: '12px 16px',
-            backgroundColor: 'rgba(46, 125, 50, 0.15)', // rgba green
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              {tr('summaryTotalCostInclVat', 'Your Total Price Including VAT')}
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
-              {tr(
-                'summaryTotalCostEquation',
-                'Total Amount + Total VAT Amount'
-              )}
-            </div>
-          </div>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 24,
-              color: '#1b5e20',
-              marginTop: 8,
-            }}
-          >
-            {totalWithVat.toFixed(2)}
+            <div style={{ fontWeight: 800, fontSize: 24, color: '#1b5e20', marginTop: 8 }}>{totalWithVat.toFixed(2)}</div>
           </div>
         </div>
       </div>
-      {/* --------------------------------------------------------- */}
 
       <div className="button-container">
         <button className="admin-buttonv1" onClick={handlebtnSendToApprovalClick}>
@@ -2508,11 +2175,7 @@ const Vendor = () => {
         <button className="admin-buttonv1" onClick={handleSave} disabled={loading}>
           {loading ? tr('saving', 'Saving...') : tr('btnSave', 'Save')}
         </button>
-        <button
-          type="button"
-          className="admin-buttonv1"
-          onClick={() => navigate('/vendordata/activityinfo/activity/list')}
-        >
+        <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/membership/list')}>
           {tr('btnReturn', 'Return')}
         </button>
       </div>
@@ -2521,12 +2184,7 @@ const Vendor = () => {
         <div className="modal-overlay">
           <div className="modal-content_50">
             <h4> {tr('modalSendApprovalTitle', 'Send To Admin Approval')}</h4>
-            <p>
-              {tr(
-                'modalSendApprovalText',
-                'Are you sure you want to send this for admin approval?',
-              )}
-            </p>
+            <p>{tr('modalSendApprovalText', 'Are you sure you want to send this for admin approval?')}</p>
             <div className="modal-buttons">
               <button className="admin-buttonv1" onClick={handleConfirm}>
                 {tr('yes', 'Yes')}
@@ -2538,7 +2196,7 @@ const Vendor = () => {
           </div>
         </div>
       )}
-      Upload image 
+      Upload image
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   )

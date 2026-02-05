@@ -883,8 +883,8 @@ const Vendor = () => {
               <input
                 type="radio"
                 name="rdoactTyper"
-                value="MEMBER"
-                checked={selectedType === 'MEMBER'}
+                value="MEMBERSHIP"
+                checked={selectedType ==="MEMBERSHIP"}
                 onChange={(e) => setactType(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />

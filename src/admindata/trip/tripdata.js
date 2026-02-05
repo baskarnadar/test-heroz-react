@@ -46,6 +46,43 @@ const debugCellStyle = {
   borderCollapse: "collapse",
 };
 
+// ✅ API Debug switches
+const DEBUG_API = true; // set false when done
+
+const debugFetch = async (label, url, options = {}) => {
+  if (DEBUG_API) {
+    console.log("====================================");
+    console.log(`[${label}] URL:`, url);
+    console.log(`[${label}] OPTIONS:`, options);
+    if (options?.body) {
+      try {
+        console.log(`[${label}] PAYLOAD(JSON):`, JSON.parse(options.body));
+      } catch {
+        console.log(`[${label}] PAYLOAD(RAW):`, options.body);
+      }
+    }
+  }
+
+  const res = await fetch(url, options);
+  const text = await res.text();
+
+  let json;
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = { _raw: text };
+  }
+
+  if (DEBUG_API) {
+    console.log(`[${label}] STATUS:`, res.status, res.statusText);
+    console.log(`[${label}] RESPONSE TEXT:`, text);
+    console.log(`[${label}] RESPONSE JSON:`, json);
+    console.log("====================================");
+  }
+
+  return { res, text, json };
+};
+
 // ---------- tiny inline SVG icons ----------
 const IconCard = ({ size = 16, title = "Pay" }) => (
   <svg
@@ -227,49 +264,97 @@ const parseYMD = (s) => {
   return isNaN(d.getTime()) ? null : d;
 };
 
+// ✅ Open / Close based ONLY on PaymentDueDate (passed => CLOSE red else OPEN green)
+const getPaymentOpenClose = (paymentDueDate) => {
+  if (!paymentDueDate) {
+    return { label: "Open", color: "#16a34a" }; // default OPEN
+  }
+
+  const due = new Date(paymentDueDate);
+  if (isNaN(due.getTime())) {
+    return { label: "Open", color: "#16a34a" };
+  }
+
+  // compare by DATE only (ignore time)
+  const today = new Date();
+  const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const due0 = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+  // 🔴 If due date passed → CLOSE
+  if (today0 > due0) {
+    return { label: "closed", color: "#dc2626" };
+  }
+
+  // 🟢 Still valid → OPEN
+  return { label: "open", color: "#16a34a" };
+};
+
+// ✅ derive PaymentDueDate from ref (kept for fallback only)
+const getPaymentDueDateFromRef = (refNo) => {
+  const ref = toStr(refNo).trim();
+  if (!ref) return "";
+
+  // pattern 1: YYYY-MM-DD or YYYY/MM/DD
+  const m1 = ref.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (m1) return `${m1[1]}-${m1[2]}-${m1[3]}`;
+
+  // pattern 2: YYYYMMDD
+  const m2 = ref.match(/(\d{4})(\d{2})(\d{2})/);
+  if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+
+  // pattern 3: DD-MM-YYYY or DD/MM/YYYY
+  const m3 = ref.match(/(\d{2})[-/](\d{2})[-/](\d{4})/);
+  if (m3) return `${m3[3]}-${m3[2]}-${m3[1]}`;
+
+  return "";
+};
+
 // Server → UI (normalized for table), PLUS keep the full raw record
-const normalizeItem = (x) => ({
-  RequestID: toStr(x.RequestID),
-  ActivityID: toStr(x.ActivityID),
-  SchoolID: toStr(x.SchoolID),
-  VendorID: toStr(x.VendorID),
-  actRequestRefNo: toStr(x.actRequestRefNo),
-  actName: toStr(x.actName),
-  vdrName: toStr(x.vdrName),
-  schName: toStr(x.schName),
-  actRequestStatus: toStr(x.actRequestStatus),
-  actRequestDate: toStr(x.actRequestDate),
-  actRequestTime: toStr(x.actRequestTime),
+const normalizeItem = (x) => {
+  const actRequestRefNo = toStr(x.actRequestRefNo);
 
-  studentSummary: {
-    totalStudentPaid: Number(x?.studentSummary?.totalStudentPaid ?? 0),
-    totalStudentApproved: Number(
-      x?.studentSummary?.totalStudentApproved ?? 0
-    ),
-    totalStudentFailed: Number(x?.studentSummary?.totalStudentFailed ?? 0),
-    totalStudentNew: Number(x?.studentSummary?.totalStudentNew ?? 0),
-    totalStudentAbsent: Number(
-      x?.studentSummary?.totalStudentAbsent ?? 0
-    ),
-  },
-  tripPayment: {
-    totalTripVendorCost: Number(
-      x?.tripPayment?.totalTripVendorCost ?? 0
-    ),
-  },
-  foodExtrasSummary: {
-    totalFoodVendorPrice: Number(
-      x?.foodExtrasSummary?.totalFoodVendorPrice ?? 0
-    ),
-  },
-  totalPaymentSummary: {
-    totalVendorTripProfit: Number(
-      x?.totalPaymentSummary?.totalVendorTripProfit ?? 0
-    ),
-  },
+  // ✅ PaymentDueDate from JSON first; fallback derive from ref
+  const paymentDueDate =
+    toStr(x.PaymentDueDate) ||
+    toStr(x.paymentDueDate) ||
+    getPaymentDueDateFromRef(actRequestRefNo);
 
-  __full: x,
-});
+  return {
+    RequestID: toStr(x.RequestID),
+    ActivityID: toStr(x.ActivityID),
+    SchoolID: toStr(x.SchoolID),
+    VendorID: toStr(x.VendorID),
+    actRequestRefNo,
+    actName: toStr(x.actName),
+    vdrName: toStr(x.vdrName),
+    schName: toStr(x.schName),
+    actRequestStatus: toStr(x.actRequestStatus),
+    actRequestDate: toStr(x.actRequestDate),
+    actRequestTime: toStr(x.actRequestTime),
+
+    // ✅ NEW: PaymentDueDate from API JSON (preferred)
+    PaymentDueDate: paymentDueDate,
+
+    studentSummary: {
+      totalStudentPaid: Number(x?.studentSummary?.totalStudentPaid ?? 0),
+      totalStudentApproved: Number(x?.studentSummary?.totalStudentApproved ?? 0),
+      totalStudentFailed: Number(x?.studentSummary?.totalStudentFailed ?? 0),
+      totalStudentNew: Number(x?.studentSummary?.totalStudentNew ?? 0),
+      totalStudentAbsent: Number(x?.studentSummary?.totalStudentAbsent ?? 0),
+    },
+    tripPayment: {
+      totalTripVendorCost: Number(x?.tripPayment?.totalTripVendorCost ?? 0),
+    },
+    foodExtrasSummary: {
+      totalFoodVendorPrice: Number(x?.foodExtrasSummary?.totalFoodVendorPrice ?? 0),
+    },
+    totalPaymentSummary: {
+      totalVendorTripProfit: Number(x?.totalPaymentSummary?.totalVendorTripProfit ?? 0),
+    },
+
+    __full: x,
+  };
+};
 
 // sort header with ▲▼
 const SortHeader = ({ label, columnKey, sortConfig, onSort }) => {
@@ -367,56 +452,45 @@ const ViewActivityScreen = () => {
         let json;
 
         // ---- NEW endpoint ----
-        const res = await fetch(url, {
+        const newResp = await debugFetch("NEW tripdata", url, {
           method: "GET",
           headers: {
             ...(getAuthHeaders ? getAuthHeaders() : {}),
           },
         });
 
-        if (res.status === 404) {
+        if (newResp.res.status === 404) {
           // ---- LEGACY endpoint ----
           const legacyBody = statusFromUrl ? { status: statusFromUrl } : {};
 
-          const legacyRes = await fetch(get_pay_summary, {
-            method: "POST",
-            headers: {
-              ...(getAuthHeaders ? getAuthHeaders() : {}),
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(legacyBody),
-          });
+          const legacyResp = await debugFetch(
+            "LEGACY gettripPaymentSummary",
+            get_pay_summary,
+            {
+              method: "POST",
+              headers: {
+                ...(getAuthHeaders ? getAuthHeaders() : {}),
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(legacyBody),
+            }
+          );
 
-          const legacyText = await legacyRes.text();
-          let legacyJson;
-          try {
-            legacyJson = legacyText ? JSON.parse(legacyText) : {};
-          } catch {
-            legacyJson = { _raw: legacyText };
-          }
-
-          if (!legacyRes.ok) {
+          if (!legacyResp.res.ok) {
             throw new Error(
-              legacyJson?.message ||
-                `Legacy request failed: ${legacyRes.status}`
+              legacyResp.json?.message ||
+                `Legacy request failed: ${legacyResp.res.status}`
             );
           }
 
-          json = legacyJson;
+          json = legacyResp.json;
         } else {
-          const text = await res.text();
-          let body;
-          try {
-            body = text ? JSON.parse(text) : {};
-          } catch {
-            body = { _raw: text };
+          if (!newResp.res.ok) {
+            throw new Error(
+              newResp.json?.message || `Request failed: ${newResp.res.status}`
+            );
           }
-
-          if (!res.ok) {
-            throw new Error(body?.message || `Request failed: ${res.status}`);
-          }
-
-          json = body;
+          json = newResp.json;
         }
 
         const rawArr = Array.isArray(json?.data)
@@ -427,6 +501,21 @@ const ViewActivityScreen = () => {
 
         // normalize
         let normalized = rawArr.map(normalizeItem);
+
+        // 🔎 Debug the keys and PaymentDueDate
+        if (DEBUG_API && normalized?.length) {
+          console.log("FIRST NORMALIZED ROW:", normalized[0]);
+          console.log("FIRST FULL RAW ROW:", normalized[0]?.__full);
+          console.log("RAW KEYS:", Object.keys(normalized[0]?.__full || {}));
+          console.log(
+            "PaymentDueDate:",
+            normalized[0]?.PaymentDueDate
+          );
+          console.log(
+            "OpenClose:",
+            getPaymentOpenClose(normalized[0]?.PaymentDueDate)
+          );
+        }
 
         // status filter by URL
         if (statusUpperFromUrl) {
@@ -529,9 +618,7 @@ const ViewActivityScreen = () => {
         case "studentAbsent":
           return Number(item.studentSummary?.totalStudentAbsent ?? 0);
         case "profit":
-          return Number(
-            item.totalPaymentSummary?.totalVendorTripProfit ?? 0
-          );
+          return Number(item.totalPaymentSummary?.totalVendorTripProfit ?? 0);
         default:
           return 0;
       }
@@ -553,8 +640,7 @@ const ViewActivityScreen = () => {
     try {
       return filteredItems.reduce(
         (sum, it) =>
-          sum +
-          (Number(it?.totalPaymentSummary?.totalVendorTripProfit) || 0),
+          sum + (Number(it?.totalPaymentSummary?.totalVendorTripProfit) || 0),
         0
       );
     } catch {
@@ -632,11 +718,7 @@ const ViewActivityScreen = () => {
 
             <div className="vas-header-right">
               <div className="vas-total-tile tile--xl">
-                <Tile
-                  label="Total Profit"
-                  value={fmtMoney(totalProfitAll)}
-                  mono
-                />
+                <Tile label="Total Profit" value={fmtMoney(totalProfitAll)} mono />
               </div>
             </div>
           </div>
@@ -687,11 +769,7 @@ const ViewActivityScreen = () => {
               />
             </div>
 
-            <CButton
-              color="secondary"
-              variant="outline"
-              onClick={resetFilters}
-            >
+            <CButton color="secondary" variant="outline" onClick={resetFilters}>
               Reset
             </CButton>
 
@@ -737,10 +815,7 @@ const ViewActivityScreen = () => {
                 overflowX: "auto",
               }}
             >
-              <div
-                className="vas-table-scroll-inner"
-                style={{ minWidth: "100%" }}
-              >
+              <div className="vas-table-scroll-inner" style={{ minWidth: "100%" }}>
                 <CTable
                   responsive
                   small
@@ -760,9 +835,7 @@ const ViewActivityScreen = () => {
                       >
                         #
                       </CTableHeaderCell>
-                      <CTableHeaderCell
-                        style={{ ...debugCellStyle, width: "8ch" }}
-                      >
+                      <CTableHeaderCell style={{ ...debugCellStyle, width: "8ch" }}>
                         <SortHeader
                           label="Ref#"
                           columnKey="actRequestRefNo"
@@ -815,9 +888,7 @@ const ViewActivityScreen = () => {
                         />
                       </CTableHeaderCell>
 
-                      <CTableHeaderCell
-                        style={{ ...debugCellStyle, width: "15ch" }}
-                      >
+                      <CTableHeaderCell style={{ ...debugCellStyle, width: "15ch" }}>
                         <SortHeader
                           label="Status"
                           columnKey="actRequestStatus"
@@ -825,6 +896,7 @@ const ViewActivityScreen = () => {
                           onSort={handleSort}
                         />
                       </CTableHeaderCell>
+
                       <CTableHeaderCell
                         style={{ ...debugCellStyle, width: "9ch" }}
                         className="text-center"
@@ -847,10 +919,9 @@ const ViewActivityScreen = () => {
                           onSort={handleSort}
                         />
                       </CTableHeaderCell>
+
                       {SHOW_PROFIT_COLUMN && (
-                        <CTableHeaderCell
-                          style={{ ...debugCellStyle, width: "10ch" }}
-                        >
+                        <CTableHeaderCell style={{ ...debugCellStyle, width: "10ch" }}>
                           <SortHeader
                             label="Profit"
                             columnKey="profit"
@@ -859,6 +930,7 @@ const ViewActivityScreen = () => {
                           />
                         </CTableHeaderCell>
                       )}
+
                       <CTableHeaderCell
                         className="text-nowrap"
                         style={{ ...debugCellStyle, width: ACTIONS_COL_WIDTH }}
@@ -867,145 +939,135 @@ const ViewActivityScreen = () => {
                       </CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
+
                   <CTableBody>
-                    {pageItems.map((row, idx) => (
-                      <CTableRow
-                        key={row.RequestID || startIndex + idx}
-                        onClick={() => openModalFor(row)}
-                        className="row-clickable"
-                      >
-                        <CTableDataCell
-                          className="text-center"
-                          style={debugCellStyle}
-                        >
-                          {startIndex + idx + 1}
-                        </CTableDataCell>
-                        <CTableDataCell className="mono" style={debugCellStyle}>
-                          {row.actRequestRefNo || "-"}
-                        </CTableDataCell>
-                        <CTableDataCell style={debugCellStyle}>
-                          <Ellipsis
-                            text={row.actName}
-                            maxWidth={TRIP_COL_WIDTH}
-                          />
-                        </CTableDataCell>
-                        <CTableDataCell style={debugCellStyle}>
-                          <Ellipsis
-                            text={row.schName}
-                            maxWidth={SCHOOL_COL_WIDTH}
-                          />
-                        </CTableDataCell>
-                        <CTableDataCell style={debugCellStyle}>
-                          <Ellipsis
-                            text={row.vdrName}
-                            maxWidth={VENDOR_COL_WIDTH}
-                          />
-                        </CTableDataCell>
-                        <CTableDataCell
-                          className="mono text-nowrap"
-                          style={debugCellStyle}
-                        >
-                          <div>{row.actRequestDate || "-"}</div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {(row.actRequestTime || "-")
-                              .toString()
-                              .trim()}
-                          </div>
-                        </CTableDataCell>
+                    {pageItems.map((row, idx) => {
+                      // ✅ Use PaymentDueDate for Open/Close
+                      const oc = getPaymentOpenClose(row.PaymentDueDate);
 
-                        <CTableDataCell style={debugCellStyle}>
-                          <CBadge
-                            className={`status-badge ${statusClassName(
-                              row.actRequestStatus
-                            )}`}
-                          >
-                            {row.actRequestStatus}
-                          </CBadge>
-                        </CTableDataCell>
-                        <CTableDataCell
-                          className="mono text-center"
-                          style={debugCellStyle}
+                      return (
+                        <CTableRow
+                          key={row.RequestID || startIndex + idx}
+                          onClick={() => openModalFor(row)}
+                          className="row-clickable"
                         >
-                          {fmtNum(
-                            row.studentSummary.totalStudentApproved
-                          )}
-                        </CTableDataCell>
-                        <CTableDataCell
-                          className="mono text-center"
-                          style={debugCellStyle}
-                        >
-                          {fmtNum(row.studentSummary.totalStudentAbsent)}
-                        </CTableDataCell>
-                        {SHOW_PROFIT_COLUMN && (
-                          <CTableDataCell
-                            className="mono"
-                            style={debugCellStyle}
-                          >
-                            {fmtMoney(
-                              row.totalPaymentSummary.totalVendorTripProfit
-                            )}
+                          <CTableDataCell className="text-center" style={debugCellStyle}>
+                            {startIndex + idx + 1}
                           </CTableDataCell>
-                        )}
 
-                        <CTableDataCell
-                          className="text-nowrap"
-                          style={debugCellStyle}
-                        >
-                          <div
-  className="d-flex gap-1 flex-wrap"
-  style={{
-    maxWidth: "180px",
-    minWidth: "120px",
-    overflow: "visible",
-  }}
->
-                            <CButton
-                              size="sm"
-                              color="secondary"
-                              variant="outline"
-                              title="View"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openModalFor(row);
+                          <CTableDataCell className="mono" style={debugCellStyle}>
+                            {row.actRequestRefNo || "-"}
+                          </CTableDataCell>
+
+                          <CTableDataCell style={debugCellStyle}>
+                            <Ellipsis text={row.actName} maxWidth={TRIP_COL_WIDTH} />
+                          </CTableDataCell>
+
+                          <CTableDataCell style={debugCellStyle}>
+                            <Ellipsis text={row.schName} maxWidth={SCHOOL_COL_WIDTH} />
+                          </CTableDataCell>
+
+                          <CTableDataCell style={debugCellStyle}>
+                            <Ellipsis text={row.vdrName} maxWidth={VENDOR_COL_WIDTH} />
+                          </CTableDataCell>
+
+                          <CTableDataCell className="mono text-nowrap" style={debugCellStyle}>
+                            <div>{row.actRequestDate || "-"}</div>
+                            <div style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+                              {(row.actRequestTime || "-").toString().trim()}
+                            </div>
+                          </CTableDataCell>
+
+                          <CTableDataCell style={debugCellStyle}>
+                            <CBadge
+                              className={`status-badge ${statusClassName(
+                                row.actRequestStatus
+                              )}`}
+                            >
+                              {row.actRequestStatus}
+                            </CBadge>
+
+                            <span
+                              style={{
+                                color: oc.color,
+                                fontWeight: 700,
+                                whiteSpace: "nowrap",
+                                marginLeft: 8,
                               }}
                             >
-                              <IconEye title="View" />
-                            </CButton>
-                            <CButton
-                              size="sm"
-                              color="success"
-                              variant="outline"
-                              title="Pay School"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelected(row);
-                                setShowSchPay(true);
+                              {row.PaymentDueDate ? `${row.PaymentDueDate} ` : ""}
+                              {oc.label}
+                            </span>
+                          </CTableDataCell>
+
+                          <CTableDataCell className="mono text-center" style={debugCellStyle}>
+                            {fmtNum(row.studentSummary.totalStudentApproved)}
+                          </CTableDataCell>
+
+                          <CTableDataCell className="mono text-center" style={debugCellStyle}>
+                            {fmtNum(row.studentSummary.totalStudentAbsent)}
+                          </CTableDataCell>
+
+                          {SHOW_PROFIT_COLUMN && (
+                            <CTableDataCell className="mono" style={debugCellStyle}>
+                              {fmtMoney(row.totalPaymentSummary.totalVendorTripProfit)}
+                            </CTableDataCell>
+                          )}
+
+                          <CTableDataCell className="text-nowrap" style={debugCellStyle}>
+                            <div
+                              className="d-flex gap-1 flex-wrap"
+                              style={{
+                                maxWidth: "180px",
+                                minWidth: "120px",
+                                overflow: "visible",
                               }}
                             >
-                              <IconCard title="Pay School" />
-                            </CButton>
-                            <CButton
-                              size="sm"
-                              color="primary"
-                              variant="outline"
-                              title="Pay Vendor"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelected(row);
-                                setShowVdrPay(true);
-                              }}
-                            >
-                              <IconCard title="Pay Vendor" />
-                            </CButton>
-                          </div>
-                        </CTableDataCell>
-                      </CTableRow>
-                    ))}
+                              <CButton
+                                size="sm"
+                                color="secondary"
+                                variant="outline"
+                                title="View"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openModalFor(row);
+                                }}
+                              >
+                                <IconEye title="View" />
+                              </CButton>
+
+                              <CButton
+                                size="sm"
+                                color="success"
+                                variant="outline"
+                                title="Pay School"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelected(row);
+                                  setShowSchPay(true);
+                                }}
+                              >
+                                <IconCard title="Pay School" />
+                              </CButton>
+
+                              <CButton
+                                size="sm"
+                                color="primary"
+                                variant="outline"
+                                title="Pay Vendor"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelected(row);
+                                  setShowVdrPay(true);
+                                }}
+                              >
+                                <IconCard title="Pay Vendor" />
+                              </CButton>
+                            </div>
+                          </CTableDataCell>
+                        </CTableRow>
+                      );
+                    })}
                   </CTableBody>
                 </CTable>
               </div>
@@ -1016,10 +1078,7 @@ const ViewActivityScreen = () => {
                   Page {safePage} of {totalPages}
                 </small>
                 <CPagination align="end" className="mb-0">
-                  <CPaginationItem
-                    disabled={safePage === 1}
-                    onClick={() => goToPage(1)}
-                  >
+                  <CPaginationItem disabled={safePage === 1} onClick={() => goToPage(1)}>
                     «
                   </CPaginationItem>
                   <CPaginationItem
@@ -1028,25 +1087,25 @@ const ViewActivityScreen = () => {
                   >
                     ‹
                   </CPaginationItem>
-                  {Array.from({ length: Math.min(5, totalPages) }).map(
-                    (_, i) => {
-                      const half = 2;
-                      let start = Math.max(1, safePage - half);
-                      let end = Math.min(totalPages, start + 4);
-                      start = Math.max(1, end - 4);
-                      const page = start + i;
-                      if (page > totalPages) return null;
-                      return (
-                        <CPaginationItem
-                          key={page}
-                          active={page === safePage}
-                          onClick={() => goToPage(page)}
-                        >
-                          {page}
-                        </CPaginationItem>
-                      );
-                    }
-                  )}
+
+                  {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                    const half = 2;
+                    let start = Math.max(1, safePage - half);
+                    let end = Math.min(totalPages, start + 4);
+                    start = Math.max(1, end - 4);
+                    const page = start + i;
+                    if (page > totalPages) return null;
+                    return (
+                      <CPaginationItem
+                        key={page}
+                        active={page === safePage}
+                        onClick={() => goToPage(page)}
+                      >
+                        {page}
+                      </CPaginationItem>
+                    );
+                  })}
+
                   <CPaginationItem
                     disabled={safePage === totalPages}
                     onClick={() => goToPage(safePage + 1)}
@@ -1065,20 +1124,20 @@ const ViewActivityScreen = () => {
           )}
 
           {!loading && !error && !filteredItems.length && (
-            <div className="center-text muted">
-              No data found for the selected filters.
-            </div>
+            <div className="center-text muted">No data found for the selected filters.</div>
           )}
         </CCardBody>
       </CCard>
 
       {/* View Details (separate component) */}
-      <ViewPaymentModal
-        visible={showModal}
-        onClose={() => setShowModal(false)}
-        item={selected?.__full || selected}
-        allRequests={rawAllRequests}
-      />
+     <ViewPaymentModal
+  visible={showModal}
+  onClose={() => setShowModal(false)}
+  item={selected?.__full || selected}
+  allRequests={rawAllRequests}
+  paymentDueDate={selected?.PaymentDueDate}
+/>
+
 
       {/* Payment Modals */}
       {selected && (
@@ -1087,21 +1146,13 @@ const ViewActivityScreen = () => {
             visible={showSchPay}
             onClose={() => setShowSchPay(false)}
             item={selected}
-            totalProfit={
-              Number(
-                selected?.totalPaymentSummary?.totalVendorTripProfit
-              ) || 0
-            }
+            totalProfit={Number(selected?.totalPaymentSummary?.totalVendorTripProfit) || 0}
           />
           <VdrPaymentModal
             visible={showVdrPay}
             onClose={() => setShowVdrPay(false)}
             item={selected}
-            totalProfit={
-              Number(
-                selected?.totalPaymentSummary?.totalVendorTripProfit
-              ) || 0
-            }
+            totalProfit={Number(selected?.totalPaymentSummary?.totalVendorTripProfit) || 0}
           />
         </>
       )}

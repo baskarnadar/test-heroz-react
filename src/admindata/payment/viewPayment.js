@@ -26,20 +26,26 @@ const IS_DEBUG =
 
 // API base + auth headers
 import { API_BASE_URL } from "../../config";
-import { getAuthHeaders } from "../../utils/operation";
+import { getAuthHeaders, getCurrentLoggedUserID } from "../../utils/operation";
 
 const GET_PAY_SUMMARY_URL = `${API_BASE_URL}/commondata/trip/gettripPaymentSummary`;
 
+// ✅ Close Payment Due Date API (explicit URL as requested)
+const CLOSE_PAY_DUE_DATE_URL = `${API_BASE_URL}/commondata/trip/closePayDueDate`;
+
 // ---------- helpers ----------
 const toStr = (v) => (v ?? "").toString();
+
 const fmtNum = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n.toString() : toStr(v);
 };
+
 const fmtMoney = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n.toFixed(2) : "-";
 };
+
 const fmtDateTime = (iso) => {
   if (!iso) return "-";
   try {
@@ -63,6 +69,23 @@ const fmtDateOnly = (iso) => {
   }
 };
 
+const todayYMD = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const compareYMD = (a, b) => {
+  // compares "YYYY-MM-DD"
+  if (!a || !b) return 0;
+  const aa = String(a).trim();
+  const bb = String(b).trim();
+  if (aa === bb) return 0;
+  return aa < bb ? -1 : 1;
+};
+
 const statusClassName = (status = "") => {
   const s = (status || "").toUpperCase();
   if (s === "TRIP-BOOKED") return "status--trip-booked";
@@ -74,37 +97,106 @@ const statusClassName = (status = "") => {
   return "status--default";
 };
 
+// ✅ payment open detector (tolerant)
+const isPaymentOpenStatus = (v) => {
+  const s = String(v ?? "").trim().toUpperCase();
+  if (!s) return false;
+
+  // OPEN-like values
+  if (s === "OPEN") return true;
+  if (s === "PAYMENT-OPEN") return true;
+  if (s === "PAY-OPEN") return true;
+  if (s === "DUE") return true;
+  if (s === "PENDING") return true;
+  if (s === "UNPAID") return true;
+  if (s === "TRUE") return true;
+
+  return false;
+};
+
+// ✅ payment closed detector (tolerant)
+const isPaymentClosedStatus = (v) => {
+  const s = String(v ?? "").trim().toUpperCase();
+  if (!s) return false;
+
+  if (s === "CLOSE") return true;
+  if (s === "CLOSED") return true;
+  if (s === "PAYMENT-CLOSED") return true;
+  if (s === "PAY-CLOSED") return true;
+  if (s === "EXPIRED") return true;
+  if (s === "DONE") return true;
+  if (s === "COMPLETED") return true;
+  if (s === "PAID") return true;
+  if (s === "FALSE") return true;
+
+  return false;
+};
+
+// ✅ Derive payment open/close even when backend does NOT send a field
+// Priority:
+// 1) explicit open/close fields if available
+// 2) if due date exists: OPEN when today <= due date, else CLOSED
+// 3) UNKNOWN
+const derivePaymentStatus = (item, dueDateStr) => {
+  // check known fields (add more if your API uses different names)
+  const s1 =
+    item?.payStatus ??
+    item?.PayStatus ??
+    item?.paymentStatus ??
+    item?.PaymentStatus ??
+    item?.payDueStatus ??
+    item?.PayDueStatus ??
+    item?.paymentDueStatus ??
+    item?.PaymentDueStatus ??
+    item?.PaymentOpenCloseStatus ??
+    item?.paymentOpenCloseStatus;
+
+  const s3 =
+    item?.isPayOpen ??
+    item?.IsPayOpen ??
+    item?.isPaymentOpen ??
+    item?.IsPaymentOpen ??
+    item?.PaymentIsOpen ??
+    item?.paymentIsOpen;
+
+  // boolean / numeric
+  if (typeof s3 === "boolean") return s3 ? "OPEN" : "CLOSED";
+  if (typeof s3 === "number") return s3 === 1 ? "OPEN" : "CLOSED";
+
+  // string open/close
+  if (isPaymentOpenStatus(s3) || isPaymentOpenStatus(s1)) return "OPEN";
+  if (isPaymentClosedStatus(s3) || isPaymentClosedStatus(s1)) return "CLOSED";
+
+  // date-based fallback
+  const due = fmtDateOnly(dueDateStr);
+  if (due && due !== "-") {
+    const t = todayYMD();
+    // today <= due => OPEN, else CLOSED
+    return compareYMD(t, due) <= 0 ? "OPEN" : "CLOSED";
+  }
+
+  return "UNKNOWN";
+};
+
 // --- inline icons (no deps) ---
 const Icon = ({ name, className = "" }) => {
   if (name === "vendor") {
     return (
-      <svg
-        className={`icon ${className}`}
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
+      <svg className={`icon ${className}`} viewBox="0 0 24 24" aria-hidden="true">
         <path d="M3 7h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zm2-4h14v3H5V3zm3 8h4v6H8v-6z" />
       </svg>
     );
   }
   if (name === "school") {
     return (
-      <svg
-        className={`icon ${className}`}
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
+      <svg className={`icon ${className}`} viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 3l9 5-9 5-9-5 9-5zm0 12l6-3.333V17l-6 3-6-3v-5.333L12 15z" />
       </svg>
     );
   }
   if (name === "heroz") {
     return (
-      <svg
-        className={`icon ${className}`}
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
+      <svg className={`icon ${className}`} viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 2l2.39 4.84L20 8.27l-3.9 3.8L17.78 20 12 16.9 6.22 20l1.68-7.93L4 8.27l5.61-1.43L12 2z" />
       </svg>
     );
@@ -236,8 +328,7 @@ function choosePaymentsSource(item, paymentsOverride, allRequests) {
       (r) => r?.RequestID && r.RequestID === item?.RequestID
     );
     const byRef = allRequests.find(
-      (r) =>
-        r?.actRequestRefNo && r.actRequestRefNo === item?.actRequestRefNo
+      (r) => r?.actRequestRefNo && r.actRequestRefNo === item?.actRequestRefNo
     );
     const match = byId || byRef;
     if (Array.isArray(match?.payments) && match.payments.length) {
@@ -262,9 +353,7 @@ function choosePaymentsSource(item, paymentsOverride, allRequests) {
 const JsonBlock = ({ title, obj }) => (
   <div style={{ marginBottom: 12 }}>
     <div style={{ fontWeight: 600, marginBottom: 4 }}>{title}</div>
-    <pre className="json-block">
-      {obj ? JSON.stringify(obj, null, 2) : "—"}
-    </pre>
+    <pre className="json-block">{obj ? JSON.stringify(obj, null, 2) : "—"}</pre>
   </div>
 );
 
@@ -309,6 +398,9 @@ const ViewPaymentModal = ({
   item,
   paymentsOverride,
   allRequests,
+
+  // ✅ optional prop. If not provided we also try to read from item.PaymentDueDate
+  paymentDueDate,
 }) => {
   // local states
   const [fallbackPayments, setFallbackPayments] = React.useState([]);
@@ -326,6 +418,98 @@ const ViewPaymentModal = ({
     direction: "asc",
   });
   const [exportBusy, setExportBusy] = React.useState(false);
+
+  // ✅ Close Payment dialog states
+  const [showClosePayDialog, setShowClosePayDialog] = React.useState(false);
+  const [newPayDueDate, setNewPayDueDate] = React.useState("");
+  const [payCloseReason, setPayCloseReason] = React.useState("");
+  const [closePayBusy, setClosePayBusy] = React.useState(false);
+  const [closePayError, setClosePayError] = React.useState("");
+  const [closePayOkMsg, setClosePayOkMsg] = React.useState("");
+
+  // ✅ We keep a local due date + local status so UI updates immediately after API call
+  const [localDueDate, setLocalDueDate] = React.useState("");
+  const [localPaymentStatus, setLocalPaymentStatus] = React.useState("UNKNOWN"); // OPEN | CLOSED | UNKNOWN
+
+  // ✅ PaymentDueDate resolved (prop wins, then item, then local)
+  const resolvedPaymentDueDate = React.useMemo(() => {
+    const local = toStr(localDueDate).trim();
+    if (local) return local;
+
+    const a = toStr(paymentDueDate).trim();
+    if (a) return a;
+
+    const b = toStr(item?.PaymentDueDate || item?.paymentDueDate).trim();
+    return b || "";
+  }, [paymentDueDate, item, localDueDate]);
+
+  // ✅ derive payment status (OPEN/CLOSED/UNKNOWN) even if API doesn't return a field
+  const derivedStatus = React.useMemo(() => {
+    return derivePaymentStatus(item, resolvedPaymentDueDate);
+  }, [item, resolvedPaymentDueDate]);
+
+  // ✅ keep local status in sync when item changes / modal opens
+  React.useEffect(() => {
+    if (!visible) return;
+    setLocalPaymentStatus(derivedStatus);
+    // also reset localDueDate when new item opens
+    setLocalDueDate("");
+    // reset dialog messages
+    setClosePayError("");
+    setClosePayOkMsg("");
+  }, [visible, item?.RequestID, item?.actRequestRefNo, derivedStatus]);
+
+  const isPaymentOpen = localPaymentStatus === "OPEN";
+
+  const paymentBadge = React.useMemo(() => {
+    const s = localPaymentStatus;
+    if (s === "OPEN") {
+      return (
+        <CBadge
+          style={{
+            background: "rgba(16,185,129,0.15)",
+            border: "1px solid rgba(16,185,129,0.55)",
+            color: "#047857",
+            fontWeight: 800,
+            padding: "6px 10px",
+            borderRadius: 999,
+          }}
+        >
+          PAYMENT OPEN
+        </CBadge>
+      );
+    }
+    if (s === "CLOSED") {
+      return (
+        <CBadge
+          style={{
+            background: "rgba(220,38,38,0.12)",
+            border: "1px solid rgba(220,38,38,0.55)",
+            color: "#b91c1c",
+            fontWeight: 800,
+            padding: "6px 10px",
+            borderRadius: 999,
+          }}
+        >
+          PAYMENT CLOSED
+        </CBadge>
+      );
+    }
+    return (
+      <CBadge
+        style={{
+          background: "rgba(107,114,128,0.12)",
+          border: "1px solid rgba(107,114,128,0.45)",
+          color: "#374151",
+          fontWeight: 800,
+          padding: "6px 10px",
+          borderRadius: 999,
+        }}
+      >
+        PAYMENT UNKNOWN
+      </CBadge>
+    );
+  }, [localPaymentStatus]);
 
   // Parents map (ParentsID -> parent)
   const parentMap = React.useMemo(() => {
@@ -378,8 +562,8 @@ const ViewPaymentModal = ({
     async function fetchIfNeeded() {
       if (!visible) return;
       if (!item || !item.RequestID || !item.actRequestRefNo) return;
-      if (Array.isArray(paymentsSourceRaw) && paymentsSourceRaw.length) return; // already have payments
-      if (fallbackTried) return; // already tried a fetch once
+      if (Array.isArray(paymentsSourceRaw) && paymentsSourceRaw.length) return;
+      if (fallbackTried) return;
 
       const startedAt = Date.now();
       const requestBody = {}; // intentionally empty per current API
@@ -387,14 +571,10 @@ const ViewPaymentModal = ({
         setFallbackTried(true);
 
         if (IS_DEBUG) {
-          console.log(
-            "[ViewPaymentModal] Fallback fetch →",
-            GET_PAY_SUMMARY_URL,
-            {
-              refNo: item?.actRequestRefNo,
-              reqId: item?.RequestID,
-            }
-          );
+          console.log("[ViewPaymentModal] Fallback fetch →", GET_PAY_SUMMARY_URL, {
+            refNo: item?.actRequestRefNo,
+            reqId: item?.RequestID,
+          });
         }
 
         const res = await fetch(GET_PAY_SUMMARY_URL, {
@@ -406,7 +586,7 @@ const ViewPaymentModal = ({
           body: JSON.stringify(requestBody),
         });
 
-        const txt = await res.text(); // capture raw then parse
+        const txt = await res.text();
         let json;
         try {
           json = JSON.parse(txt);
@@ -435,18 +615,11 @@ const ViewPaymentModal = ({
 
         const match =
           arr.find((r) => r?.RequestID && r.RequestID === item.RequestID) ||
-          arr.find(
-            (r) =>
-              r?.actRequestRefNo && r.actRequestRefNo === item.actRequestRefNo
-          );
+          arr.find((r) => r?.actRequestRefNo && r.actRequestRefNo === item.actRequestRefNo);
 
         if (!aborted) setMatchedDebug(match || null);
 
-        if (
-          !aborted &&
-          Array.isArray(match?.payments) &&
-          match.payments.length
-        ) {
+        if (!aborted && Array.isArray(match?.payments) && match.payments.length) {
           setFallbackPayments(match.payments);
         }
       } catch (e) {
@@ -462,8 +635,7 @@ const ViewPaymentModal = ({
             error: String(e?.message || e),
           });
         }
-        if (IS_DEBUG)
-          console.error("[ViewPaymentModal] Fallback fetch error", e);
+        if (IS_DEBUG) console.error("[ViewPaymentModal] Fallback fetch error", e);
       }
     }
 
@@ -475,10 +647,8 @@ const ViewPaymentModal = ({
 
   // Use raw source if present; otherwise fallback to fetched payments
   const effectivePayments = React.useMemo(() => {
-    if (Array.isArray(paymentsSourceRaw) && paymentsSourceRaw.length)
-      return paymentsSourceRaw;
-    if (Array.isArray(fallbackPayments) && fallbackPayments.length)
-      return fallbackPayments;
+    if (Array.isArray(paymentsSourceRaw) && paymentsSourceRaw.length) return paymentsSourceRaw;
+    if (Array.isArray(fallbackPayments) && fallbackPayments.length) return fallbackPayments;
     return [];
   }, [paymentsSourceRaw, fallbackPayments]);
 
@@ -528,7 +698,6 @@ const ViewPaymentModal = ({
 
   // ---------- Aggregate profits & totals (All records) ----------
   const aggregates = React.useMemo(() => {
-    // ONLY count payments where kid is NOT ABSENT
     const countablePayments = effectivePayments.filter(isPaymentCountable);
 
     const trip = {
@@ -551,39 +720,18 @@ const ViewPaymentModal = ({
       trip.tax += numField(p, "TripTaxAmount", "tripTaxAmount");
     }
 
-    const food = {
-      count: 0,
-      school: 0,
-      vendor: 0,
-      heroz: 0,
-    };
+    const food = { count: 0, school: 0, vendor: 0, heroz: 0 };
 
     for (const f of foodExtras) {
       food.count += 1;
 
-      let s = numField(
-        f,
-        "FoodSchoolPrice",
-        "foodSchoolPrice",
-        "SchoolPrice"
-      );
-      let v = numField(
-        f,
-        "FoodVendorPrice",
-        "foodVendorPrice",
-        "VendorPrice"
-      );
+      let s = numField(f, "FoodSchoolPrice", "foodSchoolPrice", "SchoolPrice");
+      let v = numField(f, "FoodVendorPrice", "foodVendorPrice", "VendorPrice");
       let h = numField(f, "FoodHerozPrice", "foodHerozPrice", "HerozPrice");
 
-      if (s === 0)
-        s =
-          looseNumberByKey(f, "food", "school") || looseNumberByKey(f, "school");
-      if (v === 0)
-        v =
-          looseNumberByKey(f, "food", "vendor") || looseNumberByKey(f, "vendor");
-      if (h === 0)
-        h =
-          looseNumberByKey(f, "food", "heroz") || looseNumberByKey(f, "heroz");
+      if (s === 0) s = looseNumberByKey(f, "food", "school") || looseNumberByKey(f, "school");
+      if (v === 0) v = looseNumberByKey(f, "food", "vendor") || looseNumberByKey(f, "vendor");
+      if (h === 0) h = looseNumberByKey(f, "food", "heroz") || looseNumberByKey(f, "heroz");
 
       food.school += s;
       food.vendor += v;
@@ -596,21 +744,11 @@ const ViewPaymentModal = ({
       if (sum) {
         food.count = numField(sum, "count");
         food.school +=
-          numField(
-            sum,
-            "totalFoodSchoolPrice",
-            "FoodSchoolPrice",
-            "school"
-          ) ||
+          numField(sum, "totalFoodSchoolPrice", "FoodSchoolPrice", "school") ||
           looseNumberByKey(sum, "food", "school") ||
           looseNumberByKey(sum, "school");
         food.vendor +=
-          numField(
-            sum,
-            "totalFoodVendorPrice",
-            "FoodVendorPrice",
-            "vendor"
-          ) ||
+          numField(sum, "totalFoodVendorPrice", "FoodVendorPrice", "vendor") ||
           looseNumberByKey(sum, "food", "vendor") ||
           looseNumberByKey(sum, "vendor");
         food.heroz +=
@@ -632,8 +770,7 @@ const ViewPaymentModal = ({
   // Per-kid costs (average across NON-ABSENT payments)
   const perKid = React.useMemo(() => {
     const countablePayments = effectivePayments.filter(isPaymentCountable);
-    if (!countablePayments.length)
-      return { vendor: 0, school: 0, heroz: 0 };
+    if (!countablePayments.length) return { vendor: 0, school: 0, heroz: 0 };
     let vSum = 0,
       sSum = 0,
       hSum = 0;
@@ -643,14 +780,9 @@ const ViewPaymentModal = ({
       hSum += numField(p, "TripHerozCost", "tripHerozCost");
     }
     const n = countablePayments.length || 1;
-    return {
-      vendor: vSum / n,
-      school: sSum / n,
-      heroz: hSum / n,
-    };
+    return { vendor: vSum / n, school: sSum / n, heroz: hSum / n };
   }, [effectivePayments, isPaymentCountable]);
 
-  // Single “Total Profit” (Vendor grand total) as text
   const totalProfitStr = React.useMemo(
     () => fmtMoney(aggregates.grand.vendor),
     [aggregates.grand.vendor]
@@ -695,7 +827,6 @@ const ViewPaymentModal = ({
           return parent?.tripParentsName ?? "";
         case "Mobile":
           return parent?.tripParentsMobileNo ?? "";
-        case "Index":
         default:
           return 0;
       }
@@ -731,7 +862,7 @@ const ViewPaymentModal = ({
 
     for (const k of kidsFiltered) {
       const st = String(k?.tripKidsStatus || "").toUpperCase();
-      if (st === "ABSENT" || st === "ABSET") continue; // ❌ skip ABSENT
+      if (st === "ABSENT" || st === "ABSET") continue;
 
       const key = norm(k?.KidsID);
       const pay = paymentMap[key];
@@ -744,29 +875,6 @@ const ViewPaymentModal = ({
     }
     return { totalFull, totalSchool, totalVendor, totalHeroz };
   }, [kidsFiltered, paymentMap]);
-
-  // header totals (all NON-ABSENT) – still for the whole trip
-  const headerTotals = React.useMemo(() => {
-    let withAll = 0;
-    let withoutAbsent = 0;
-    for (const k of kidsSummary) {
-      const st = String(k?.tripKidsStatus || "").toUpperCase();
-      const key = norm(k?.KidsID);
-      const pay = paymentMap[key];
-      if (!pay) continue;
-
-      const amt = numField(pay, "TripFullAmount", "tripFullAmount");
-
-      // ✅ rule: ABSENT = do NOT include in any totals
-      if (st === "ABSENT" || st === "ABSET") {
-        continue;
-      }
-
-      withAll += amt;
-      withoutAbsent += amt;
-    }
-    return { withAll, withoutAbsent };
-  }, [kidsSummary, paymentMap]);
 
   // ---------- Excel Export (Kids grid + MyFatrooahRefNo) ----------
   const handleExportKidsExcel = React.useCallback(async () => {
@@ -798,12 +906,10 @@ const ViewPaymentModal = ({
 
         rows.push({
           "#": idx,
-          TripFullAmount:
-            numField(pay, "TripFullAmount", "tripFullAmount") || "",
+          TripFullAmount: numField(pay, "TripFullAmount", "tripFullAmount") || "",
           SchoolNo: k?.TripKidsSchoolNo ?? "",
           Name: k?.TripKidsName ?? "",
           Status: k?.tripKidsStatus ?? "",
-          // export date only
           Created: fmtDateOnly(k?.CreatedDate),
           ParentName: parent?.tripParentsName ?? "",
           Mobile: parent?.tripParentsMobileNo ?? "",
@@ -813,7 +919,6 @@ const ViewPaymentModal = ({
 
       const wsKids = XLSX.utils.json_to_sheet(rows);
 
-      // Auto-fit columns approximately
       const colWidths = Object.keys(rows[0] || { A: "" }).map((key) => ({
         wch: Math.max(10, key.length + 2),
       }));
@@ -830,14 +935,8 @@ const ViewPaymentModal = ({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, wsKids, "Kids");
 
-      const safeRef = (item?.actRequestRefNo || "request").replace(
-        /[^\w\-]+/g,
-        "_"
-      );
-      XLSX.writeFile(
-        wb,
-        `kids_grid_${safeRef}_${kidsStatusFilter.toLowerCase()}.xlsx`
-      );
+      const safeRef = (item?.actRequestRefNo || "request").replace(/[^\w\-]+/g, "_");
+      XLSX.writeFile(wb, `kids_grid_${safeRef}_${kidsStatusFilter.toLowerCase()}.xlsx`);
     } catch (err) {
       if (DEBUG_MODE) console.error("Excel export failed:", err);
     } finally {
@@ -845,7 +944,112 @@ const ViewPaymentModal = ({
     }
   }, [sortedKids, parentMap, paymentMap, item, kidsStatusFilter]);
 
-  // ===== Render =====
+  // ✅ open close-pay dialog
+  const openClosePayDialog = React.useCallback(() => {
+    setClosePayError("");
+    setClosePayOkMsg("");
+    setPayCloseReason("");
+    const pre = resolvedPaymentDueDate ? fmtDateOnly(resolvedPaymentDueDate) : "";
+    setNewPayDueDate(pre === "-" ? "" : pre);
+    setShowClosePayDialog(true);
+  }, [resolvedPaymentDueDate]);
+
+  // ✅ submit close-pay request
+  const submitClosePayDueDate = React.useCallback(async () => {
+    try {
+      setClosePayError("");
+      setClosePayOkMsg("");
+
+      const reqId = item?.RequestID;
+      if (!reqId) {
+        setClosePayError("RequestID is missing.");
+        return;
+      }
+      if (!newPayDueDate || String(newPayDueDate).trim() === "") {
+        setClosePayError("Please select New Payment Due Date.");
+        return;
+      }
+      if (!payCloseReason || String(payCloseReason).trim().length < 3) {
+        setClosePayError("Please enter Reason (min 3 characters).");
+        return;
+      }
+
+      setClosePayBusy(true);
+
+      // ✅ FIXED PAYLOAD KEYS to match backend:
+      // RequestID, PaymentDueDate, ClosedReason, ClosedBy, ClosedDate
+      const closedByVal =
+        (typeof getCurrentLoggedUserID === "function"
+          ? String(getCurrentLoggedUserID() ?? "").trim()
+          : "") || "ADMIN";
+
+      const payload = {
+        RequestID: reqId,
+        PaymentDueDate: String(newPayDueDate).trim(), // ✅ backend expects PaymentDueDate
+        ClosedReason: String(payCloseReason).trim(),  // ✅ backend expects ClosedReason
+        ClosedBy: closedByVal,                         // ✅ send value not function
+        ClosedDate: todayYMD(),                         // ✅ YYYY-MM-DD
+      };
+
+      if (IS_DEBUG) {
+        console.log("[ViewPaymentModal] closePayDueDate →", {
+          url: CLOSE_PAY_DUE_DATE_URL,
+          payload,
+        });
+      }
+
+      const res = await fetch(CLOSE_PAY_DUE_DATE_URL, {
+        method: "POST",
+        headers: {
+          ...(getAuthHeaders ? getAuthHeaders() : {}),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const txt = await res.text();
+      let json;
+      try {
+        json = JSON.parse(txt);
+      } catch {
+        json = { _raw: txt };
+      }
+
+      if (!res.ok) {
+        const msg =
+          json?.message ||
+          json?.Message ||
+          json?.error ||
+          `Request failed (${res.status})`;
+        setClosePayError(String(msg));
+        if (IS_DEBUG)
+          console.error("[ViewPaymentModal] closePayDueDate failed", {
+            resStatus: res.status,
+            json,
+          });
+        return;
+      }
+
+      // ✅ Update UI immediately after success:
+      setLocalDueDate(String(newPayDueDate).trim());
+      setLocalPaymentStatus("CLOSED");
+
+      setClosePayOkMsg(
+        json?.message ||
+          json?.Message ||
+          "Payment Due Date updated and payment closed successfully."
+      );
+
+      if (IS_DEBUG) console.log("[ViewPaymentModal] closePayDueDate OK", json);
+    } catch (e) {
+      setClosePayError(String(e?.message || e));
+      if (IS_DEBUG) console.error("[ViewPaymentModal] closePayDueDate exception", e);
+    } finally {
+      setClosePayBusy(false);
+    }
+  }, [item, newPayDueDate, payCloseReason]);
+
+  // ===== Render calculations =====
   const vendorTrip = aggregates.trip.vendor;
   const vendorFood = aggregates.food.vendor;
   const vendorTotal = vendorTrip + vendorFood;
@@ -859,575 +1063,470 @@ const ViewPaymentModal = ({
   const herozTotal = herozTrip + herozFood;
 
   return (
-    <CModal
-      visible={visible}
-      onClose={onClose}
-      alignment="center"
-      backdrop="static"
-      className="custom-modal"
-    >
-      <CModalHeader closeButton>
-        <CModalTitle>Payment Request Details</CModalTitle>
-      </CModalHeader>
+    <>
+      <CModal
+        visible={visible}
+        onClose={onClose}
+        alignment="center"
+        backdrop="static"
+        className="custom-modal"
+      >
+        <CModalHeader closeButton>
+          <CModalTitle>Payment Request Details</CModalTitle>
+        </CModalHeader>
 
-      <CModalBody style={{ maxHeight: "70vh", overflowY: "auto" }}>
-        {!item ? (
-          <div className="muted">No record selected.</div>
-        ) : (
-          <>
-            {/* ===== Basic Info ===== */}
-            <SectionTitle>Basic Info</SectionTitle>
-            <Grid className="grid--equal grid--spacious">
-              <div className="tile tile--idgreen tile--idcombo">
-                <div className="pair">
-                  <span className="pair__label">Request ID</span>
-                  <span className="pair__value mono">
-                    {item?.RequestID || "-"}
-                  </span>
-                </div>
-                <div className="pair">
-                  <span className="pair__label">Trip No</span>
-                  <span className="pair__value mono">
-                    {/* styled Trip Number badge */}
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "2px 10px",
-                        borderRadius: 8,
-                        backgroundColor: "rgba(128, 0, 0, 0.3)",
-                        border: "1px solid rgba(128, 0, 0, 0.8)",
-                      }}
-                    >
-                      {item?.actRequestRefNo || "-"}
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              <Tile label="Activity Name" value={item.actName} />
-              <Tile label="Vendor Name" value={item.vdrName || "-"} />
-
-              <div className="tile tile--clusterbox tile--vertical">
-                <div className="pill pill--amber">
-                  <span className="pill__label">Activity Time</span>
-                  <span className="pill__value mono">
-                    {item?.actRequestTime || "-"}
-                  </span>
-                </div>
-
-                <div className="pill pill--amber">
-                  <span className="pill__label">Activity Date</span>
-                  <span className="pill__value mono">
-                    {item?.actRequestDate || "-"}
-                  </span>
-                </div>
-
-                <div className="pill pill--info">
-                  <span className="pill__label">Status</span>
-                  <span className="pill__value">
-                    <CBadge
-                      className={`status-badge ${statusClassName(
-                        item?.actRequestStatus
-                      )}`}
-                    >
-                      {item?.actRequestStatus || "-"}
-                    </CBadge>
-                  </span>
-                </div>
-              </div>
-            </Grid>
-
-            {/* ===== Student Summary ===== */}
-            <SectionTitle>Student Summary</SectionTitle>
-            <Grid className="grid--tight grid--spacious">
-              <Tile
-                className="tile--stat"
-                label="Total Paid"
-                value={fmtNum(item?.studentSummary?.totalStudentPaid)}
-              />
-              <Tile
-                className="tile--stat"
-                label="Approved"
-                value={fmtNum(item?.studentSummary?.totalStudentApproved)}
-              />
-              <Tile
-                className="tile--stat"
-                label="Failed"
-                value={fmtNum(item?.studentSummary?.totalStudentFailed)}
-              />
-              <Tile
-                className="tile--stat"
-                label="New"
-                value={fmtNum(item?.studentSummary?.totalStudentNew)}
-              />
-            </Grid>
-
-            {/* ===== Payments Summary → Party ===== */}
-            <SectionTitle>Payments Summary</SectionTitle>
-            <div className="summary-card">
-              <div className="card-head">
-                <div className="card-title">Party</div>
-                <div className="chips">
-                  <span className="chip chip--vendor">
-                    <Icon name="vendor" className="chip__icon" />
-                    Vendor: {fmtMoney(vendorTotal)}
-                  </span>
-                  <span className="chip chip--school">
-                    <Icon name="school" className="chip__icon" />
-                    School: {fmtMoney(schoolTotal)}
-                  </span>
-                  <span className="chip chip--heroz">
-                    <Icon name="heroz" className="chip__icon" />
-                    Heroz: {fmtMoney(herozTotal)}
-                  </span>
-                </div>
-              </div>
-
-              <CTable
-                small
-                hover
-                responsive
-                className="mb-0 table--dense table--accented"
+        <CModalBody style={{ maxHeight: "70vh", overflowY: "auto" }}>
+          {!item ? (
+            <div className="muted">No record selected.</div>
+          ) : (
+            <>
+              {/* ✅ Payment Due Date + Payment Status + Close Payment button */}
+              <div
+                style={{
+                  marginBottom: 12,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(220, 38, 38, 0.35)",
+                  background: "rgba(220, 38, 38, 0.06)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
               >
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell style={{ width: 220 }}>
-                      Party
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono text-end">
-                      Per Kid
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono text-end">
-                      Kids
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono text-end">
-                      Trip Profit
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono text-end">
-                      Food Profit
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono text-end">
-                      Total Profit
-                    </CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  <CTableRow className="row-accent row-accent--vendor">
-                    <CTableDataCell className="with-icon">
-                      <Icon name="vendor" /> <b>Vendor</b>
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(perKid.vendor)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtNum(aggregates.trip.count)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(vendorTrip)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(vendorFood)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      <b>{fmtMoney(vendorTotal)}</b>
-                    </CTableDataCell>
-                  </CTableRow>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span>Payment Due Date</span>
+                    {paymentBadge}
+                  </div>
 
-                  <CTableRow className="row-accent row-accent--school">
-                    <CTableDataCell className="with-icon">
-                      <Icon name="school" /> <b>School</b>
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(perKid.school)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtNum(aggregates.trip.count)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(schoolTrip)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(schoolFood)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      <b>{fmtMoney(schoolTotal)}</b>
-                    </CTableDataCell>
-                  </CTableRow>
+                  <div className="mono" style={{ fontWeight: 900, fontSize: 16 }}>
+                    {resolvedPaymentDueDate ? fmtDateOnly(resolvedPaymentDueDate) : "-"}
+                  </div>
 
-                  <CTableRow className="row-accent row-accent--heroz">
-                    <CTableDataCell className="with-icon">
-                      <Icon name="heroz" /> <b>Heroz</b>
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(perKid.heroz)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtNum(aggregates.trip.count)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(herozTrip)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      {fmtMoney(herozFood)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono text-end">
-                      <b>{fmtMoney(herozTotal)}</b>
-                    </CTableDataCell>
-                  </CTableRow>
-                </CTableBody>
-              </CTable>
-            </div>
-
-            {/* ===== Profit Breakdown ===== */}
-            <SectionTitle>Profit Breakdown (All Records)</SectionTitle>
-            <div className="table-card">
-              <CTable
-                small
-                hover
-                striped
-                responsive
-                className="mb-0 table--dense profit-breakdown"
-              >
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell>Category</CTableHeaderCell>
-                    <CTableHeaderCell className="mono col-school">
-                      School
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono col-vendor">
-                      Vendor
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono col-heroz">
-                      Heroz
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="mono">Count</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  <CTableRow>
-                    <CTableDataCell>Trip Payments</CTableDataCell>
-                    <CTableDataCell className="mono col-school">
-                      {fmtMoney(aggregates.trip.school)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono col-vendor">
-                      {fmtMoney(aggregates.trip.vendor)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono col-heroz">
-                      {fmtMoney(aggregates.trip.heroz)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono">
-                      {fmtNum(aggregates.trip.count)}
-                    </CTableDataCell>
-                  </CTableRow>
-                  <CTableRow>
-                    <CTableDataCell>Food Extras</CTableDataCell>
-                    <CTableDataCell className="mono col-school">
-                      {fmtMoney(aggregates.food.school)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono col-vendor">
-                      {fmtMoney(aggregates.food.vendor)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono col-heroz">
-                      {fmtMoney(aggregates.food.heroz)}
-                    </CTableDataCell>
-                    <CTableDataCell className="mono">
-                      {fmtNum(aggregates.food.count)}
-                    </CTableDataCell>
-                  </CTableRow>
-                  <CTableRow className="row-total">
-                    <CTableDataCell>
-                      <b>Grand Total</b>
-                    </CTableDataCell>
-                    <CTableDataCell className="mono col-school">
-                      <b>{fmtMoney(aggregates.grand.school)}</b>
-                    </CTableDataCell>
-                    <CTableDataCell className="mono col-vendor">
-                      <b>{fmtMoney(aggregates.grand.vendor)}</b>
-                    </CTableDataCell>
-                    <CTableDataCell className="mono col-heroz">
-                      <b>{fmtMoney(aggregates.grand.heroz)}</b>
-                    </CTableDataCell>
-                    <CTableDataCell />
-                  </CTableRow>
-                </CTableBody>
-              </CTable>
-            </div>
-
-            {/* ===== Kids Information ===== */}
-            <SectionTitle
-              right={
-                <div className="d-flex align-items-center gap-2">
-                  <span className="small text-muted">
-                    Pink row = same MyFatrooahRefNo
-                  </span>
-                  <CFormSelect
-                    size="sm"
-                    value={kidsStatusFilter}
-                    onChange={(e) => setKidsStatusFilter(e.target.value)}
-                    style={{ width: 160 }}
-                  >
-                    <option value="ALL">All Kids</option>
-                    <option value="PRESENT">Present Only</option>
-                    <option value="ABSENT">Absent Only</option>
-                  </CFormSelect>
-                  {kidsSummary.length > 0 ? (
-                    <CButton
-                      color="success"
-                      size="sm"
-                      onClick={handleExportKidsExcel}
-                      disabled={exportBusy || sortedKids.length === 0}
-                    >
-                      {exportBusy
-                        ? "Exporting..."
-                        : "Export Filtered Kids to Grid"}
-                    </CButton>
+                  {/* optional hint for UNKNOWN */}
+                  {localPaymentStatus === "UNKNOWN" ? (
+                    <div style={{ fontSize: 12, color: "rgba(0,0,0,0.55)" }}>
+                      *No open/close field from API, so status is derived from due date when possible.
+                    </div>
                   ) : null}
                 </div>
-              }
-            >
-              Kids Information
-            </SectionTitle>
 
-            {sortedKids.length > 0 ? (
-              <div className="table-card">
-                <CTable
-                  small
-                  hover
-                  striped
-                  responsive
-                  className="mb-0 table--dense"
-                >
-                  <CTableHead
-                    style={{
-                      position: "sticky",
-                      top: 0,
-                      background: "#fff",
-                      zIndex: 1,
-                    }}
+                {/* ✅ show button only when OPEN */}
+                {isPaymentOpen ? (
+                  <CButton
+                    color="danger"
+                    variant="outline"
+                    size="sm"
+                    onClick={openClosePayDialog}
                   >
+                    Click here to Close Payment
+                  </CButton>
+                ) : null}
+              </div>
+
+              {/* ===== Basic Info ===== */}
+              <SectionTitle>Basic Info</SectionTitle>
+              <Grid className="grid--equal grid--spacious">
+                <div className="tile tile--idgreen tile--idcombo">
+                  <div className="pair">
+                    <span className="pair__label">Request ID</span>
+                    <span className="pair__value mono">{item?.RequestID || "-"}</span>
+                  </div>
+                  <div className="pair">
+                    <span className="pair__label">Trip No</span>
+                    <span className="pair__value mono">
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "2px 10px",
+                          borderRadius: 8,
+                          backgroundColor: "rgba(128, 0, 0, 0.3)",
+                          border: "1px solid rgba(128, 0, 0, 0.8)",
+                        }}
+                      >
+                        {item?.actRequestRefNo || "-"}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                <Tile label="Activity Name" value={item.actName} />
+                <Tile label="Vendor Name" value={item.vdrName || "-"} />
+
+                <div className="tile tile--clusterbox tile--vertical">
+                  <div className="pill pill--amber">
+                    <span className="pill__label">Activity Time</span>
+                    <span className="pill__value mono">{item?.actRequestTime || "-"}</span>
+                  </div>
+
+                  <div className="pill pill--amber">
+                    <span className="pill__label">Activity Date</span>
+                    <span className="pill__value mono">{item?.actRequestDate || "-"}</span>
+                  </div>
+
+                  <div className="pill pill--info">
+                    <span className="pill__label">Status</span>
+                    <span className="pill__value">
+                      <CBadge className={`status-badge ${statusClassName(item?.actRequestStatus)}`}>
+                        {item?.actRequestStatus || "-"}
+                      </CBadge>
+                    </span>
+                  </div>
+                </div>
+              </Grid>
+
+              {/* ===== Student Summary ===== */}
+              <SectionTitle>Student Summary</SectionTitle>
+              <Grid className="grid--tight grid--spacious">
+                <Tile className="tile--stat" label="Total Paid" value={fmtNum(item?.studentSummary?.totalStudentPaid)} />
+                <Tile className="tile--stat" label="Approved" value={fmtNum(item?.studentSummary?.totalStudentApproved)} />
+                <Tile className="tile--stat" label="Failed" value={fmtNum(item?.studentSummary?.totalStudentFailed)} />
+                <Tile className="tile--stat" label="New" value={fmtNum(item?.studentSummary?.totalStudentNew)} />
+              </Grid>
+
+              {/* ===== Payments Summary ===== */}
+              <SectionTitle>Payments Summary</SectionTitle>
+              <div className="summary-card">
+                <div className="card-head">
+                  <div className="card-title">Party</div>
+                  <div className="chips">
+                    <span className="chip chip--vendor">
+                      <Icon name="vendor" className="chip__icon" />
+                      Vendor: {fmtMoney(vendorTotal)}
+                    </span>
+                    <span className="chip chip--school">
+                      <Icon name="school" className="chip__icon" />
+                      School: {fmtMoney(schoolTotal)}
+                    </span>
+                    <span className="chip chip--heroz">
+                      <Icon name="heroz" className="chip__icon" />
+                      Heroz: {fmtMoney(herozTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                <CTable small hover responsive className="mb-0 table--dense table--accented">
+                  <CTableHead>
                     <CTableRow>
-                      <CTableHeaderCell>#</CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <SortHeader
-                          label="TripFullAmount"
-                          columnKey="TripFullAmount"
-                          sortConfig={kidsSortConfig}
-                          onSort={handleSortKids}
-                        />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <SortHeader
-                          label="SchoolNo"
-                          columnKey="SchoolNo"
-                          sortConfig={kidsSortConfig}
-                          onSort={handleSortKids}
-                        />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <SortHeader
-                          label="Name"
-                          columnKey="Name"
-                          sortConfig={kidsSortConfig}
-                          onSort={handleSortKids}
-                        />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <SortHeader
-                          label="Status"
-                          columnKey="Status"
-                          sortConfig={kidsSortConfig}
-                          onSort={handleSortKids}
-                        />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <SortHeader
-                          label="Created"
-                          columnKey="Created"
-                          sortConfig={kidsSortConfig}
-                          onSort={handleSortKids}
-                        />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <SortHeader
-                          label="Parent Name"
-                          columnKey="ParentName"
-                          sortConfig={kidsSortConfig}
-                          onSort={handleSortKids}
-                        />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <SortHeader
-                          label="Mobile"
-                          columnKey="Mobile"
-                          sortConfig={kidsSortConfig}
-                          onSort={handleSortKids}
-                        />
-                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ width: 220 }}>Party</CTableHeaderCell>
+                      <CTableHeaderCell className="mono text-end">Per Kid</CTableHeaderCell>
+                      <CTableHeaderCell className="mono text-end">Kids</CTableHeaderCell>
+                      <CTableHeaderCell className="mono text-end">Trip Profit</CTableHeaderCell>
+                      <CTableHeaderCell className="mono text-end">Food Profit</CTableHeaderCell>
+                      <CTableHeaderCell className="mono text-end">Total Profit</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
-                    {sortedKids.map((k, i) => {
-                      const parent = k?.ParentsID
-                        ? parentMap[k.ParentsID]
-                        : null;
-                      const key = norm(k?.KidsID);
-                      const pay = paymentMap[key];
+                    <CTableRow className="row-accent row-accent--vendor">
+                      <CTableDataCell className="with-icon">
+                        <Icon name="vendor" /> <b>Vendor</b>
+                      </CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(perKid.vendor)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtNum(aggregates.trip.count)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(vendorTrip)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(vendorFood)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">
+                        <b>{fmtMoney(vendorTotal)}</b>
+                      </CTableDataCell>
+                    </CTableRow>
 
-                      // duplicate ref detection
-                      const ref = pay
-                        ? strField(
-                            pay,
-                            "MyFatrooahRefNo",
-                            "MyFatoorahRefNo",
-                            "myFatoorahRefNo",
-                            "myfatoorahRefNo",
-                            "MFRefNo",
-                            "mfRefNo",
-                            "mfReference",
-                            "FatoorahRefNo"
-                          ).trim()
-                        : "";
-                      const isDupRef = ref && refCountMap[ref] >= 2;
+                    <CTableRow className="row-accent row-accent--school">
+                      <CTableDataCell className="with-icon">
+                        <Icon name="school" /> <b>School</b>
+                      </CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(perKid.school)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtNum(aggregates.trip.count)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(schoolTrip)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(schoolFood)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">
+                        <b>{fmtMoney(schoolTotal)}</b>
+                      </CTableDataCell>
+                    </CTableRow>
 
-                      return (
-                        <CTableRow
-                          key={`${k.KidsID || i}`}
-                          style={
-                            isDupRef ? { backgroundColor: "#ffd6ea" } : undefined
-                          }
-                        >
-                          <CTableDataCell>{i + 1}</CTableDataCell>
-                          <CTableDataCell className="mono">
-                            {pay?.TripFullAmount !== undefined ||
-                            pay?.tripFullAmount !== undefined
-                              ? fmtMoney(
-                                  numField(
-                                    pay,
-                                    "TripFullAmount",
-                                    "tripFullAmount"
-                                  )
-                                )
-                              : "-"}
-                          </CTableDataCell>
-                          <CTableDataCell className="mono">
-                            {k?.TripKidsSchoolNo || "-"}
-                          </CTableDataCell>
-                          <CTableDataCell>
-                            {k?.TripKidsName || "-"}
-                          </CTableDataCell>
-                          <CTableDataCell>
-                            <CBadge
-                              className={`status-badge ${statusClassName(
-                                k?.tripKidsStatus
-                              )}`}
-                            >
-                              {k?.tripKidsStatus || "-"}
-                            </CBadge>
-                          </CTableDataCell>
-                          {/* date only */}
-                          <CTableDataCell className="mono">
-                            {fmtDateOnly(k?.CreatedDate)}
-                          </CTableDataCell>
-                          <CTableDataCell>
-                            {parent?.tripParentsName || "-"}
-                          </CTableDataCell>
-                          <CTableDataCell className="mono">
-                            {parent?.tripParentsMobileNo || "-"}
-                          </CTableDataCell>
-                        </CTableRow>
-                      );
-                    })}
-                    <CTableRow>
-                      <CTableDataCell />
-                      {/* totals EXCLUDING ABSENT, based on FILTERED list */}
-                      <CTableDataCell className="mono">
-                        <b>{fmtMoney(paymentTotalsForKids.totalFull)}</b>
+                    <CTableRow className="row-accent row-accent--heroz">
+                      <CTableDataCell className="with-icon">
+                        <Icon name="heroz" /> <b>Heroz</b>
                       </CTableDataCell>
-                      <CTableDataCell colSpan={3}>
-                        <i>
-                          Trip totals by mapped payments (ABSENT excluded; using
-                          filtered kids):
-                        </i>
-                      </CTableDataCell>
-                      <CTableDataCell className="mono">
-                        <span className="me-2">School:</span>
-                        <b>{fmtMoney(paymentTotalsForKids.totalSchool)}</b>
-                      </CTableDataCell>
-                      <CTableDataCell className="mono">
-                        <span className="me-2">Vendor:</span>
-                        <b>{fmtMoney(paymentTotalsForKids.totalVendor)}</b>
-                      </CTableDataCell>
-                      <CTableDataCell className="mono">
-                        <span className="me-2">Heroz:</span>
-                        <b>{fmtMoney(paymentTotalsForKids.totalHeroz)}</b>
+                      <CTableDataCell className="mono text-end">{fmtMoney(perKid.heroz)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtNum(aggregates.trip.count)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(herozTrip)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">{fmtMoney(herozFood)}</CTableDataCell>
+                      <CTableDataCell className="mono text-end">
+                        <b>{fmtMoney(herozTotal)}</b>
                       </CTableDataCell>
                     </CTableRow>
                   </CTableBody>
                 </CTable>
               </div>
-            ) : (
-              <div className="muted">No kids found for this filter.</div>
-            )}
 
-            {/* ---- Debug ---- */}
-            {showDebug && (
-              <>
-                <SectionTitle>Debug</SectionTitle>
-                <JsonBlock
-                  title="Aggregates Snapshot"
-                  obj={{ aggregates, perKid }}
-                />
-              </>
-            )}
-          </>
-        )}
-      </CModalBody>
+              {/* ===== Kids Information ===== */}
+              <SectionTitle
+                right={
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small text-muted">Pink row = same MyFatrooahRefNo</span>
+                    <CFormSelect
+                      size="sm"
+                      value={kidsStatusFilter}
+                      onChange={(e) => setKidsStatusFilter(e.target.value)}
+                      style={{ width: 160 }}
+                    >
+                      <option value="ALL">All Kids</option>
+                      <option value="PRESENT">Present Only</option>
+                      <option value="ABSENT">Absent Only</option>
+                    </CFormSelect>
+                    {kidsSummary.length > 0 ? (
+                      <CButton
+                        color="success"
+                        size="sm"
+                        onClick={handleExportKidsExcel}
+                        disabled={exportBusy || sortedKids.length === 0}
+                      >
+                        {exportBusy ? "Exporting..." : "Export Filtered Kids to Grid"}
+                      </CButton>
+                    ) : null}
+                  </div>
+                }
+              >
+                Kids Information
+              </SectionTitle>
 
-      <CModalFooter className="footer-meta">
-        <div className="me-auto small text-muted footer-meta__left">
-          <div>
-            Trip Full Amount (all NON-ABSENT payments):{" "}
-            <b>{fmtMoney(aggregates.trip.fullAmount)}</b>
+              {sortedKids.length > 0 ? (
+                <div className="table-card">
+                  <CTable small hover striped responsive className="mb-0 table--dense">
+                    <CTableHead
+                      style={{
+                        position: "sticky",
+                        top: 0,
+                        background: "#fff",
+                        zIndex: 1,
+                      }}
+                    >
+                      <CTableRow>
+                        <CTableHeaderCell>#</CTableHeaderCell>
+                        <CTableHeaderCell>
+                          <SortHeader
+                            label="TripFullAmount"
+                            columnKey="TripFullAmount"
+                            sortConfig={kidsSortConfig}
+                            onSort={handleSortKids}
+                          />
+                        </CTableHeaderCell>
+                        <CTableHeaderCell>
+                          <SortHeader
+                            label="SchoolNo"
+                            columnKey="SchoolNo"
+                            sortConfig={kidsSortConfig}
+                            onSort={handleSortKids}
+                          />
+                        </CTableHeaderCell>
+                        <CTableHeaderCell>
+                          <SortHeader
+                            label="Name"
+                            columnKey="Name"
+                            sortConfig={kidsSortConfig}
+                            onSort={handleSortKids}
+                          />
+                        </CTableHeaderCell>
+                        <CTableHeaderCell>
+                          <SortHeader
+                            label="Status"
+                            columnKey="Status"
+                            sortConfig={kidsSortConfig}
+                            onSort={handleSortKids}
+                          />
+                        </CTableHeaderCell>
+                        <CTableHeaderCell>
+                          <SortHeader
+                            label="Created"
+                            columnKey="Created"
+                            sortConfig={kidsSortConfig}
+                            onSort={handleSortKids}
+                          />
+                        </CTableHeaderCell>
+                        <CTableHeaderCell>
+                          <SortHeader
+                            label="Parent Name"
+                            columnKey="ParentName"
+                            sortConfig={kidsSortConfig}
+                            onSort={handleSortKids}
+                          />
+                        </CTableHeaderCell>
+                        <CTableHeaderCell>
+                          <SortHeader
+                            label="Mobile"
+                            columnKey="Mobile"
+                            sortConfig={kidsSortConfig}
+                            onSort={handleSortKids}
+                          />
+                        </CTableHeaderCell>
+                      </CTableRow>
+                    </CTableHead>
+                    <CTableBody>
+                      {sortedKids.map((k, i) => {
+                        const parent = k?.ParentsID ? parentMap[k.ParentsID] : null;
+                        const key = norm(k?.KidsID);
+                        const pay = paymentMap[key];
+
+                        const ref = pay
+                          ? strField(
+                              pay,
+                              "MyFatrooahRefNo",
+                              "MyFatoorahRefNo",
+                              "myFatoorahRefNo",
+                              "myfatoorahRefNo",
+                              "MFRefNo",
+                              "mfRefNo",
+                              "mfReference",
+                              "FatoorahRefNo"
+                            ).trim()
+                          : "";
+                        const isDupRef = ref && refCountMap[ref] >= 2;
+
+                        return (
+                          <CTableRow
+                            key={`${k.KidsID || i}`}
+                            style={isDupRef ? { backgroundColor: "#ffd6ea" } : undefined}
+                          >
+                            <CTableDataCell>{i + 1}</CTableDataCell>
+                            <CTableDataCell className="mono">
+                              {pay?.TripFullAmount !== undefined || pay?.tripFullAmount !== undefined
+                                ? fmtMoney(numField(pay, "TripFullAmount", "tripFullAmount"))
+                                : "-"}
+                            </CTableDataCell>
+                            <CTableDataCell className="mono">{k?.TripKidsSchoolNo || "-"}</CTableDataCell>
+                            <CTableDataCell>{k?.TripKidsName || "-"}</CTableDataCell>
+                            <CTableDataCell>
+                              <CBadge className={`status-badge ${statusClassName(k?.tripKidsStatus)}`}>
+                                {k?.tripKidsStatus || "-"}
+                              </CBadge>
+                            </CTableDataCell>
+                            <CTableDataCell className="mono">{fmtDateOnly(k?.CreatedDate)}</CTableDataCell>
+                            <CTableDataCell>{parent?.tripParentsName || "-"}</CTableDataCell>
+                            <CTableDataCell className="mono">{parent?.tripParentsMobileNo || "-"}</CTableDataCell>
+                          </CTableRow>
+                        );
+                      })}
+                    </CTableBody>
+                  </CTable>
+                </div>
+              ) : (
+                <div className="muted">No kids found for this filter.</div>
+              )}
+            </>
+          )}
+        </CModalBody>
+
+        <CModalFooter className="footer-meta">
+          <div className="me-auto small text-muted footer-meta__left">
+            <div>
+              Total Profit: <b>{totalProfitStr}</b>
+            </div>
           </div>
-          <div>
-            Food on Payments:{" "}
-            <b>{fmtMoney(aggregates.trip.foodCostOnPayments)}</b> • Tax Stored
-            Field: <b>{fmtMoney(aggregates.trip.tax)}</b>
+
+          <CButton
+            color="success"
+            className="me-2"
+            disabled={sortedKids.length === 0 || exportBusy}
+            onClick={handleExportKidsExcel}
+          >
+            {exportBusy ? "Exporting..." : "Export Filtered Kids to Grid"}
+          </CButton>
+
+          <CButton color="secondary" className="add-product-button" variant="outline" onClick={onClose}>
+            Close
+          </CButton>
+        </CModalFooter>
+      </CModal>
+
+      {/* ✅ Dialog: Close payment and set new due date + reason */}
+      <CModal
+        visible={showClosePayDialog}
+        onClose={() => {
+          if (closePayBusy) return;
+          setShowClosePayDialog(false);
+        }}
+        alignment="center"
+        backdrop="static"
+        className="custom-modal"
+      >
+        <CModalHeader closeButton={!closePayBusy}>
+          <CModalTitle>Close Payment</CModalTitle>
+        </CModalHeader>
+
+        <CModalBody>
+          <div className="mb-2">
+            <div className="small text-muted">
+              RequestID: <span className="mono">{item?.RequestID || "-"}</span>
+            </div>
+            <div className="small text-muted">
+              Current Due Date:{" "}
+              <span className="mono">{resolvedPaymentDueDate ? fmtDateOnly(resolvedPaymentDueDate) : "-"}</span>
+            </div>
           </div>
-          <div>
-            Total Profit: <b>{totalProfitStr}</b>
+
+          <div style={{ marginTop: 10 }}>
+            <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Add New Payment Due Date</label>
+            <input
+              type="date"
+              value={newPayDueDate}
+              onChange={(e) => setNewPayDueDate(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,0.15)",
+                outline: "none",
+              }}
+              disabled={closePayBusy}
+            />
           </div>
-        </div>
 
-        <CButton
-          color="success"
-          className="me-2"
-          disabled={sortedKids.length === 0 || exportBusy}
-          onClick={handleExportKidsExcel}
-        >
-          {exportBusy ? "Exporting..." : "Export Filtered Kids to Grid"}
-        </CButton>
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontWeight: 700, display: "block", marginBottom: 6 }}>Reason To change Date</label>
+            <textarea
+              value={payCloseReason}
+              onChange={(e) => setPayCloseReason(e.target.value)}
+              rows={4}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,0.15)",
+                outline: "none",
+                resize: "vertical",
+              }}
+              placeholder="Type reason..."
+              disabled={closePayBusy}
+            />
+          </div>
 
-        {/* Debug button kept commented as before */}
-        {/* <CButton
-          color={showDebug ? "warning" : "info"}
-          variant={showDebug ? "solid" : "outline"}
-          className="me-2"
-          onClick={() => setShowDebug((v) => !v)}
-        >
-          {showDebug ? "Hide Debug" : "Debug API"}
-        </CButton> */}
+          {closePayError ? (
+            <div style={{ marginTop: 10, color: "#b91c1c", fontWeight: 600 }}>{closePayError}</div>
+          ) : null}
 
-        <CButton
-          color="secondary"
-          className="add-product-button"
-          variant="outline"
-          onClick={onClose}
-        >
-          Close
-        </CButton>
-      </CModalFooter>
-    </CModal>
+          {closePayOkMsg ? (
+            <div style={{ marginTop: 10, color: "#047857", fontWeight: 800 }}>{closePayOkMsg}</div>
+          ) : null}
+        </CModalBody>
+
+        <CModalFooter>
+          <CButton
+            color="secondary"
+            variant="outline"
+            disabled={closePayBusy}
+            onClick={() => setShowClosePayDialog(false)}
+          >
+            Cancel
+          </CButton>
+
+          <CButton color="danger" disabled={closePayBusy} onClick={submitClosePayDueDate}>
+            {closePayBusy ? "Submitting..." : "Submit"}
+          </CButton>
+        </CModalFooter>
+      </CModal>
+    </>
   );
 };
 
