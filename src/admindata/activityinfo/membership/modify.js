@@ -49,10 +49,7 @@ const Vendor = () => {
   const [errors, setErrors] = useState({})
 
   // === NEW: single flag to hide price-range & delete UI (kept logic, just hidden)
-  const HIDE_PRICE_RANGE_UI = true
-
-  // ✅ NEW (no removals): SHOW ONLY MEMBERSHIP in Activity Type UI
-  const SHOW_ONLY_MEMBERSHIP = true
+  const HIDE_PRICE_RANGE_UI = false
 
   // ✅ ADD (no removals): prevent runtime errors for code you already have
   const [formData, setFormData] = useState({
@@ -120,17 +117,6 @@ const Vendor = () => {
     IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
   }, [])
 
-  // ✅ NEW (no removals): force Membership type in UI if requested
-  useEffect(() => {
-    if (SHOW_ONLY_MEMBERSHIP) {
-      // keep state consistent even if something else tries to set it
-      if (selectedType !== "MEMBERSHIP" && selectedType !== 'MEMBERSHIP') {
-        setactType("MEMBERSHIP")
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SHOW_ONLY_MEMBERSHIP])
-
   // ---------------- VAT & SUMMARY NUMBERS (READ-ONLY) ----------------
   const vatPercentValue = Number(getVatAmount() || 0) // e.g. 15
   const vatRateValue = vatPercentValue / 100 // e.g. 0.15
@@ -138,7 +124,7 @@ const Vendor = () => {
 
   // ✅ MEMBERSHIP detection (no removals)
   const typeUpper = String(selectedType || '').toUpperCase()
-  const isMemberType = typeUpper === 'MEMBERSHIP' || typeUpper ==="MEMBERSHIP"
+  const isMemberType = typeUpper === 'MEMBERSHIP'
 
   // ⭐ FIXED FINANCIAL ROUNDING (2.447 → 2.45, etc.)
   const to2 = (v) => {
@@ -147,8 +133,7 @@ const Vendor = () => {
     return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2)
   }
 
-  // ✅ NEW: default formula for Total Star For Parents
-  // Total Star For Parents = Total Star Value / Star Value
+  // ✅ Total Star For Parents = Total Star Value / Star Value
   const calcDefaultTotalStarForParents = (totalStarValue, starValue) => {
     const t = Number(totalStarValue || 0)
     const s = Number(starValue || 0)
@@ -156,7 +141,7 @@ const Vendor = () => {
     return to2(t / s)
   }
 
-  // ✅ star configs
+  // ✅ star configs (default)
   const starValueNum = Number(HerozStarValue || 0)
 
   const vatPillStyle = {
@@ -172,10 +157,6 @@ const Vendor = () => {
     whiteSpace: 'nowrap',
   }
 
-  // ✅ UPDATED: title changes
-  // 1) SCHOOL => Price Per Student
-  // 2) MEMBER/MEMBERSHIP => Membership Price (Star) Information
-  // 3) else => Star (Price) Information (kept)
   const priceSectionTitle =
     String(selectedType || '').toUpperCase() === 'SCHOOL'
       ? 'Price Per Student'
@@ -183,20 +164,33 @@ const Vendor = () => {
         ? 'Membership Price (Star) Information'
         : 'Star (Price) Information'
 
-  // ✅ NEW: requested border gray + rgba(0.5) yellow background for this section
   const priceSectionBoxStyle = {
     border: '1px solid gray',
     backgroundColor: 'rgba(255, 255, 0, 0.5)',
     borderRadius: 10,
   }
 
-  // === UPDATED: if include is turned on, force both prices to "0" and keep state in sync
+  const starPinkStyle = {
+    border: '1px solid #cf2037',
+    borderRadius: 10,
+    backgroundColor: 'rgba(248, 234, 243, 1)',
+    boxShadow: 'none',
+  }
+  const starHeaderPink = { backgroundColor: 'rgba(248, 234, 243, 1)' }
+
+  // ✅ robust numeric input sanitizer (keeps empty allowed)
+  const numOrEmpty = (v) => {
+    const s = String(v ?? '')
+    if (s.trim() === '') return ''
+    const n = Number(s)
+    if (!Number.isFinite(n)) return ''
+    return n
+  }
+
   const handleFoodChange = (index, field, value) => {
     setFoods((prev) => {
       const updated = [...prev]
-      // toggle / set field first
       updated[index] = { ...updated[index], [field]: value }
-      // rule: when include == true -> prices must be 0
       if (field === 'include' && value === true) {
         updated[index].price = '0'
         updated[index].herozprice = '0'
@@ -214,19 +208,14 @@ const Vendor = () => {
     setFoods(updated)
   }
 
-  /*  days */
   const handleAddMore = (day) => {
     const existingTimes = days[day].times
-
-    // Calculate default new start and end time
     let lastEnd = existingTimes.length ? timeToMinutes(existingTimes[existingTimes.length - 1].end) : 480 // 08:00
-
     if (lastEnd === null) lastEnd = 480
 
     const newStartMins = lastEnd
-    const newEndMins = newStartMins + 60 // +1 hour
+    const newEndMins = newStartMins + 60
 
-    // Use "HH:MM" (24h) because inputs are type="time"
     const minutesToTime = (mins) => {
       let h = Math.floor(mins / 60)
       let m = mins % 60
@@ -238,7 +227,6 @@ const Vendor = () => {
     const newStart = minutesToTime(newStartMins)
     const newEnd = minutesToTime(newEndMins)
 
-    // ✅ Include note and total
     const newTimes = [
       ...existingTimes,
       {
@@ -280,11 +268,9 @@ const Vendor = () => {
       },
     }))
   }
-  // days
 
   const timeToMinutes = (time) => {
     if (!time) return null
-    // supports "HH:MM"
     const [hh, mm] = String(time).split(':')
     const hours = parseInt(hh, 10)
     const minutes = parseInt(mm, 10)
@@ -317,7 +303,6 @@ const Vendor = () => {
           const endB = timeStringToMinutes(times[j].end)
           if (startB === null || endB === null) continue
 
-          // Overlap if startA < endB && endA > startB
           if (startA < endB && endA > startB) {
             return { day: dayName, range1: times[i], range2: times[j] }
           }
@@ -334,7 +319,6 @@ const Vendor = () => {
         ...updatedTimes[index],
         [field]: value,
       }
-      // auto-calc total when both set
       const s = updatedTimes[index].start
       const e = updatedTimes[index].end
       if (s && e) {
@@ -371,8 +355,6 @@ const Vendor = () => {
   const handleSubmit = async (actStatusVal, e) => {
     if (e && e.preventDefault) e.preventDefault()
 
-    // ✅ 1) Build payload for validation (mirror the other page)
-    // Note: our UI rating is 0–5. Convert to 1–10 *for validation only*.
     const ratingForValidation =
       actRating === '' ? '' : String(Math.min(10, Math.max(0, Number(actRating) * 2)))
 
@@ -393,32 +375,28 @@ const Vendor = () => {
       rdoactGender,
       priceRanges,
       days,
-      foods, // validator enforces include => price=0 rule & non-negative
+      foods,
       txtactAdminNotes,
-      actRating: ratingForValidation, // mapped
+      actRating: ratingForValidation,
       txtactMinAge,
       txtactMaxAge,
       txtactMinStudent,
       txtactMaxStudent,
-
-      // ✅ NEW: include these fields for validation (won't break if validator ignores)
       txtactTripDetail,
       txtactWhatsIncluded,
     })
 
     if (!validation.ok) {
-      setErrors(validation.errors || {}) // show errors under fields/sections
+      setErrors(validation.errors || {})
       setToastMessage(validation.message || 'Please correct the highlighted fields.')
       setToastType('fail')
       return
     }
 
-    // ✅ clear errors if validation passed
     setErrors({})
     setLoading(true)
     setToastMessage('')
 
-    // ✅ 2) Overlap check (your existing extra guard)
     const overlap = hasOverlap(days)
     if (overlap) {
       setToastMessage(
@@ -429,7 +407,6 @@ const Vendor = () => {
       return
     }
 
-    // ✅ 3) Uploads + submit (unchanged)
     // Image 1
     let txtactImageName1Val = OrgtxtactImageName1
     let uploadedImageKey1 = ''
@@ -506,14 +483,14 @@ const Vendor = () => {
     const actavailDaysHoursVal = getAvailDaysHoursData()
     const actPriceDataVal = getPriceData()
 
-    // ✅ NEW: derive VAT fields from your existing VAT numbers
-    const effectiveVatPercent = vatPercentValue // same as getVatAmount()
-    const effectiveVatRate = vatRateValue // percent / 100
-    const firstPriceNum = tripBasePrice // first range base price
-    const dec = (v) => Number(v || 0).toFixed(2) // simple 2-decimal helper
+    const effectiveVatPercent = vatPercentValue
+    const effectiveVatRate = vatRateValue
+    const firstPriceNum = tripBasePrice
+    const dec = (v) => Number(v || 0).toFixed(2)
 
     const actPriceVatPercentageVal = effectiveVatPercent
     const actPriceVatAmountVal = dec(firstPriceNum * effectiveVatRate)
+
     try {
       const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`, {
         method: 'POST',
@@ -525,15 +502,12 @@ const Vendor = () => {
           actTypeID: selectedType,
           actCategoryID: selectedCategories,
           actDesc: txtactDesc || '',
-
           actImageName1: txtactImageName1Val,
           actImageName2: txtactImageName2Val,
           actImageName3: txtactImageName3Val,
-
           actYouTubeID1: txtactYouTubeID1,
           actYouTubeID2: txtactYouTubeID2,
           actYouTubeID3: txtactYouTubeID3,
-
           actGoogleMap: txtactGoogleMap || '',
           actGlat: txtactGlat || '',
           actGlan: txtactGlan || '',
@@ -541,27 +515,20 @@ const Vendor = () => {
           actAddress2: txtactAddress2 || '',
           actCountryID: ddactCountryID || '',
           actCityID: ddactCityID || '',
-
           actMinAge: txtactMinAge || '',
           actMaxAge: txtactMaxAge || '',
           actGender: rdoactGender,
           actMinStudent: txtactMinStudent || '',
           actMaxStudent: txtactMaxStudent || '',
-
-          actPrice: actPriceDataVal,
+          actPrice: actPriceDataVal, // ✅ includes StarValue + TotalStarValue + TotalStarForParents
           actPriceVatPercentage: actPriceVatPercentageVal,
           actPriceVatAmount: actPriceVatAmountVal,
           actAvailDaysHours: actavailDaysHoursVal,
           actFood: actfoodDataVal,
-
-          // ✅ NEW: send these 2 fields to API
           actTripDetail: txtactTripDetail || '',
           actWhatsIncluded: txtactWhatsIncluded || '',
-
           actAdminNotes: txtactAdminNotes || '',
-          // keep UI scale (0–5) for backend, as in your current page
           actRating: actRating === '' ? '' : Number(actRating),
-
           actStatus: actStatusVal,
           IsDataStatus: 1,
           ModifyBy: getCurrentLoggedUserID(),
@@ -574,14 +541,13 @@ const Vendor = () => {
       setToastMessage('Activity updated successfully!')
       setToastType('success')
 
-      // ✅ NEW REDIRECT LOGIC:
-      // if we updated the status to APPROVED, go to view page with same ActivityID & VendorID
       if (actStatusVal === 'APPROVED') {
         setTimeout(() => {
-          navigate(`/admindata/activityinfo/membership/view?ActivityID=${getActivityIDVal}&VendorID=${getVendorIDVal}`)
+          navigate(
+            `/admindata/activityinfo/membership/view?ActivityID=${getActivityIDVal}&VendorID=${getVendorIDVal}`,
+          )
         }, 2000)
       } else {
-        // keep your original behavior for other statuses
         setTimeout(() => navigate('/admindata/activityinfo/membership/list'), 2000)
       }
     } catch (err) {
@@ -630,18 +596,9 @@ const Vendor = () => {
     return new URLSearchParams(search)
   }
 
-  const handleAddRange = () => {
-    setPriceRanges((prev) => [...prev, { price: '', range: '' }])
-  }
-
-  const handleRemoveRange = (index) => {
-    setPriceRanges((prev) => prev.filter((_, i) => i !== index))
-  }
-
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // Fetch Cities
         const citiesRes = await fetch(`${API_BASE_URL}/lookupdata/city/getcityalllist`, {
           method: 'POST',
           headers: getAuthHeaders(),
@@ -649,10 +606,9 @@ const Vendor = () => {
         })
         const citiesResult = await citiesRes.json()
         if (citiesResult.data) {
-          setCityList(uniqueBy(citiesResult.data, 'CityID')) // dedupe
+          setCityList(uniqueBy(citiesResult.data, 'CityID'))
         }
 
-        // Fetch Countries
         const countriesRes = await fetch(`${API_BASE_URL}/lookupdata/country/getcountrylist`, {
           method: 'POST',
           headers: getAuthHeaders(),
@@ -660,10 +616,9 @@ const Vendor = () => {
         })
         const countriesResult = await countriesRes.json()
         if (countriesResult.data) {
-          setCountries(uniqueBy(countriesResult.data, 'CountryID')) // dedupe
+          setCountries(uniqueBy(countriesResult.data, 'CountryID'))
         }
 
-        // Fetch Categories
         const categoryRes = await fetch(`${API_BASE_URL}/lookupdata/category/getCategoryAllList`, {
           method: 'POST',
           headers: getAuthHeaders(),
@@ -671,13 +626,10 @@ const Vendor = () => {
         })
         const categoryResult = await categoryRes.json()
         if (categoryResult.data) {
-          // ✅ keep your existing state name
-          setFetchCategories(uniqueBy(categoryResult.data, 'CategoryID')) // dedupe
-          // ✅ also keep the other state (no removals)
+          setFetchCategories(uniqueBy(categoryResult.data, 'CategoryID'))
           setFetchedCategories(uniqueBy(categoryResult.data, 'CategoryID'))
         }
 
-        // Get ActivityID from URL
         const urlParams = getSearchParams()
         const ActivityIDVal = urlParams.get('ActivityID')
         if (ActivityIDVal) {
@@ -699,9 +651,9 @@ const Vendor = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  //Edit
   useEffect(() => {
     if (!ActivityData) return
+
     setactImageName1(ActivityData.actImageName1Url)
     setactImageName2(ActivityData.actImageName2Url)
     setactImageName3(ActivityData.actImageName3Url)
@@ -710,36 +662,24 @@ const Vendor = () => {
     setOrgsetactImageName2(ActivityData.actImageName2)
     setOrgsetactImageName3(ActivityData.actImageName3)
 
-    // Basic info
     setactName(ActivityData.actName || '')
-
-    // ✅ UPDATED (no removals): if UI is membership-only, force MEMBER type
-    if (SHOW_ONLY_MEMBERSHIP) {
-      setactType("MEMBERSHIP")
-    } else {
-      setactType(ActivityData.actTypeID || '')
-    }
-
+    setactType(ActivityData.actTypeID || '')
     setSelectedCategories(ActivityData.actCategoryID || [])
     setactDesc(ActivityData.actDesc || '')
 
-    // ✅ NEW: set these 2 fields from API
     setactTripDetail(ActivityData?.actTripDetail || '')
     setactWhatsIncluded(ActivityData?.actWhatsIncluded || '')
 
-    // ⭐ load rating (UI 0–5)
     setactRating(
       ActivityData?.actRating !== undefined && ActivityData?.actRating !== null
         ? String(ActivityData.actRating)
         : '',
     )
 
-    // YouTube IDs
     setYouTube1(ActivityData.actYouTubeID1 || '')
     setYouTube2(ActivityData.actYouTubeID2 || '')
     setYouTube3(ActivityData.actYouTubeID3 || '')
 
-    // Location
     setactGoogleMap(ActivityData.actGoogleMap || '')
     setGlat(ActivityData.actGlat)
     setGlan(ActivityData.actGlan || '')
@@ -748,7 +688,6 @@ const Vendor = () => {
     setAddress1(ActivityData.actAddress1 || '')
     setAddress2(ActivityData.actAddress2 || '')
 
-    // Age & Gender
     setMinAge(ActivityData.actMinAge || '')
     setMaxAge(ActivityData.actMaxAge || '')
     setGenderService(ActivityData.actGender || '')
@@ -756,12 +695,8 @@ const Vendor = () => {
     setMaxStudent(ActivityData.actMaxStudent || '')
     setAdminNotes(ActivityData.actAdminNotes || '')
 
-    // ✅ NEW: ROOT-LEVEL fallbacks (your JSON shows these at root)
     const rootStarValue =
-      ActivityData?.StarValue ??
-      ActivityData?.starValue ??
-      ActivityData?.HerozStarValue ??
-      null
+      ActivityData?.StarValue ?? ActivityData?.starValue ?? ActivityData?.HerozStarValue ?? null
 
     const rootTotalStarValue =
       ActivityData?.TotalStarValue ??
@@ -775,21 +710,15 @@ const Vendor = () => {
       ActivityData?.TotalStarForParentsValue ??
       null
 
-    // Set Price list
     if (Array.isArray(ActivityData.priceList) && ActivityData.priceList.length > 0) {
       const formattedPriceRanges = ActivityData.priceList.map((item) => {
-        const herozPriceNum = Number(item.HerozStudentPrice || 0)
-        const herozVatAmount = herozPriceNum * vatRateValue
-
-        // ✅ base/vat for this row
         const vendorBase = Number(item.Price || 0)
         const vendorVat = vendorBase * vatRateValue
+        const computedTotalStarValue = vendorBase + vendorVat
 
-        // ✅ Total Star Value from API:
-        // Prefer priceList item → else ROOT (ActivityData.TotalStarValue) → else compute (Price + VAT)
         const apiTotalStarValueFromItem =
           item.TotalStarValue ?? item.TotalStarValueAmount ?? item.TotalStarValues ?? item.TotalStar ?? null
-        const computedTotalStarValue = vendorBase + vendorVat
+
         const totalStarValueFinal =
           apiTotalStarValueFromItem !== null &&
           apiTotalStarValueFromItem !== undefined &&
@@ -801,20 +730,19 @@ const Vendor = () => {
               ? Number(rootTotalStarValue || 0)
               : computedTotalStarValue
 
-        // ✅ Star Value from API:
-        // Prefer priceList item → else ROOT (ActivityData.StarValue) → else config HerozStarValue
         const apiStarValueFromItem = item.StarValue ?? item.StarValues ?? item.HerozStarValue ?? null
+
         const starValueFinal =
           apiStarValueFromItem !== null &&
           apiStarValueFromItem !== undefined &&
           String(apiStarValueFromItem).trim() !== ''
             ? Number(apiStarValueFromItem || 0)
-            : rootStarValue !== null && rootStarValue !== undefined && String(rootStarValue).trim() !== ''
+            : rootStarValue !== null &&
+                rootStarValue !== undefined &&
+                String(rootStarValue).trim() !== ''
               ? Number(rootStarValue || 0)
               : starValueNum
 
-        // ✅ Total Star For Parents:
-        // Prefer priceList item → else ROOT (ActivityData.TotalStarForParents) → else formula
         const existingParentsStarFromItem =
           item.TotalStarForParents ??
           item.TotalStarForParentsValue ??
@@ -834,24 +762,20 @@ const Vendor = () => {
               ? rootTotalStarForParents
               : ''
 
-        // ✅ Only apply formula when there is NO value from API (item/root)
         const defaultParentsStar = calcDefaultTotalStarForParents(totalStarValueFinal, starValueFinal)
 
         return {
           PriceID: item.PriceID,
           price: item.Price,
           HerozStudentPrice: item.HerozStudentPrice,
-          HerozStudentPriceVatAmount: herozVatAmount.toFixed(2),
           rangeFrom: item.StudentRangeFrom,
           rangeTo: item.StudentRangeTo,
 
-          // ✅ keep these in state so we can "get value and display" + send payload
-          TotalStarValue: totalStarValueFinal, // number
-          StarValue: starValueFinal, // number
+          TotalStarValue: totalStarValueFinal === '' ? '' : String(totalStarValueFinal),
+          StarValue: starValueFinal === '' ? '' : String(starValueFinal),
 
-          // ✅ IMPORTANT:
-          // If API gives TotalStarForParents (item/root) => set it and DO NOT calculate.
-          // If API does NOT give value => calculate TotalStarValue/StarValue.
+          // ✅ keep API value in UI, but DO NOT lock auto-calc
+          // auto-calc should work until user manually edits the field
           TotalStarForParents:
             existingParentsStarFinal !== '' &&
             existingParentsStarFinal !== null &&
@@ -860,12 +784,13 @@ const Vendor = () => {
               ? String(existingParentsStarFinal)
               : defaultParentsStar,
 
-          // ✅ manual flag = true only when API provided value
-          __parentsStarManual:
-            existingParentsStarFinal !== '' &&
-            existingParentsStarFinal !== null &&
-            existingParentsStarFinal !== undefined &&
-            String(existingParentsStarFinal).trim() !== '',
+          // ✅ IMPORTANT FIX:
+          // __parentsStarManual should mean "USER edited it", not "API provided it"
+          __parentsStarManual: false,
+
+          __totalStarManual: false,
+          __starManual: false,
+          ChkRemovePrice: false,
         }
       })
       setPriceRanges(formattedPriceRanges)
@@ -878,14 +803,16 @@ const Vendor = () => {
           rangeFrom: '',
           rangeTo: '',
           TotalStarValue: '',
-          StarValue: '',
+          StarValue: String(starValueNum || ''),
           TotalStarForParents: '',
           __parentsStarManual: false,
+          __totalStarManual: false,
+          __starManual: false,
+          ChkRemovePrice: false,
         },
       ])
     }
 
-    // Set Food List ( Display Food Data)
     if (Array.isArray(ActivityData.foodList)) {
       const mappedFoods = ActivityData.foodList.map((item) => ({
         FoodID: item.FoodID || '',
@@ -913,7 +840,6 @@ const Vendor = () => {
       ])
     }
 
-    // Set Availability
     if (Array.isArray(ActivityData.availList)) {
       const dayMap = {
         sunday: { closed: true, times: [] },
@@ -945,14 +871,14 @@ const Vendor = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ActivityData])
 
-  // ✅ NEW: auto-redirect on load if actStatus is APPROVED
   useEffect(() => {
     const status = ActivityData?.actStatus
     if (status === 'APPROVED' && getActivityIDVal && getVendorIDVal) {
       const timer = setTimeout(() => {
-        navigate(`/admindata/activityinfo/membership/view?ActivityID=${getActivityIDVal}&VendorID=${getVendorIDVal}`)
+        navigate(
+          `/admindata/activityinfo/membership/view?ActivityID=${getActivityIDVal}&VendorID=${getVendorIDVal}`,
+        )
       }, 2000)
-
       return () => clearTimeout(timer)
     }
   }, [ActivityData, getActivityIDVal, getVendorIDVal, navigate])
@@ -978,9 +904,7 @@ const Vendor = () => {
 
   const fetchActivity = async (ActivityIDVal, VendorIDVal) => {
     const key = `${ActivityIDVal}|${VendorIDVal || ''}`
-    if (lastFetchKey === key && loading) {
-      return
-    }
+    if (lastFetchKey === key && loading) return
 
     setLoading(true)
     try {
@@ -993,11 +917,13 @@ const Vendor = () => {
       if (!response.ok) throw new Error('Failed to fetch activities1')
 
       const jsonResponse = await response.json()
-      // Pretty print for debugging
       console.log('📦 getActivity JSON:', JSON.stringify(jsonResponse, null, 2))
 
-      setActivity(jsonResponse.data || [])
-      setTotalPages(Math.ceil((jsonResponse.totalCount || 0) / (ActivityPerPage || 1)))
+      const raw = jsonResponse?.data
+      const normalized = Array.isArray(raw) ? raw[0] : raw
+      setActivity(normalized || null)
+
+      setTotalPages(Math.ceil(((jsonResponse.totalCount || 0) * 1) / (ActivityPerPage || 1)))
     } catch (error) {
       setError('Error fetching activities')
     } finally {
@@ -1007,11 +933,8 @@ const Vendor = () => {
 
   const handleFileChange = (e, key) => {
     const file = e.target.files[0]
-    if (key === 'certificate') {
-      setCertificateFile(file)
-    } else if (key === 'tax') {
-      setTaxFile(file)
-    }
+    if (key === 'certificate') setCertificateFile(file)
+    else if (key === 'tax') setTaxFile(file)
   }
 
   const addPhoneField = () => {
@@ -1020,6 +943,7 @@ const Vendor = () => {
       phoneNumbers: [...prev.phoneNumbers, ''],
     }))
   }
+
   const [fetchcategories, setFetchCategories] = useState([])
 
   const handleRemoveTimeRange = (day, index) => {
@@ -1044,7 +968,6 @@ const Vendor = () => {
     )
   }
 
-  //Food--------------------------
   const uploadFoodImage = async (file) => {
     const formdata = new FormData()
     formdata.append('image', file)
@@ -1067,11 +990,9 @@ const Vendor = () => {
           uploadedImageKey = await uploadFoodImage(item.image)
         }
 
-        // Guarantee price zeros if include is true
         const priceOut = item.include ? '0' : item.price || ''
         const herozOut = item.include ? '0' : item.herozprice || ''
 
-        // ⭐ VAT CALCULATIONS
         const basePrice = Number(priceOut || 0)
         const baseHeroz = Number(herozOut || 0)
 
@@ -1082,15 +1003,10 @@ const Vendor = () => {
           FoodID: item.FoodID || null,
           FoodName: item.name || '',
           FoodPrice: priceOut,
-
-          // ⭐ NEW — FOOD VAT (Price)
-          FoodPriceVatPercentage: vatPercentValue, // e.g., 15
-          FoodPriceVatAmount: foodVat.toFixed(2), // price * VAT %
-
-          // ⭐ EXISTING + VAT
+          FoodPriceVatPercentage: vatPercentValue,
+          FoodPriceVatAmount: foodVat.toFixed(2),
           FoodHerozPrice: herozOut,
           FoodHerozPriceVatAmount: herozVat.toFixed(2),
-
           FoodNotes: item.notes || '',
           FoodImage: uploadedImageKey || '',
           Include: item.include || false,
@@ -1102,7 +1018,6 @@ const Vendor = () => {
     return foodData
   }
 
-  //price ------------------------------------
   const [priceRanges, setPriceRanges] = useState([
     {
       price: '',
@@ -1110,49 +1025,107 @@ const Vendor = () => {
       rangeFrom: '',
       rangeTo: '',
       ChkRemovePrice: false,
+
       TotalStarForParents: '',
       TotalStarValue: '',
       StarValue: '',
-      __parentsStarManual: false, // ✅ NEW internal flag
+      __parentsStarManual: false,
+      __totalStarManual: false,
+      __starManual: false,
     },
   ])
 
-  // ✅ UPDATED: when Base price changes -> TotalStarValue and TotalStarForParents must change automatically
-  // ✅ Admin can still edit TotalStarForParents. If they edit, we mark manual=true.
-  // ✅ If Base price changes again, we auto-recalculate (your requirement) and reset manual=false.
+  // ✅ FIXED:
+  // When Vendor Base Price changes -> update TotalStarValue AND TotalStarForParents automatically
+  // TotalStarValue = price + (price * vatRate)
+  // TotalStarForParents = TotalStarValue / StarValue
+  // (If user manually edits TotalStarForParents, then stop auto overriding it)
   const handlePriceChange = (index, field, value) => {
     setPriceRanges((prev) => {
       const updated = [...prev]
-      updated[index] = { ...updated[index], [field]: value }
+      const row = { ...updated[index] }
 
-      // ✅ Keep StarValue in state always (so payload always has it)
-      updated[index].StarValue = starValueNum
+      row[field] = value
 
-      // ✅ If admin edits TotalStarForParents => manual mode
-      if (field === 'TotalStarForParents') {
-        updated[index].__parentsStarManual = true
+      if (!isMemberType) {
+        updated[index] = row
         return updated
       }
 
-      // ✅ When MEMBER and price changes:
-      // - recompute TotalStarValue (price + VAT)
-      // - recompute TotalStarForParents ALWAYS (auto)
-      if (isMemberType && field === 'price') {
-        const basePrice = Number(updated[index].price || 0)
-        const vatAmount = basePrice * vatRateValue
-        const totalStarValue = basePrice + vatAmount
+      // Ensure StarValue always has a usable fallback for calculations
+      const starForCalc = (() => {
+        const sRaw = row.StarValue !== '' && row.StarValue !== null && row.StarValue !== undefined ? row.StarValue : ''
+        const n = numOrEmpty(sRaw)
+        if (n === '') return Number(starValueNum || 0)
+        return Number(n || 0)
+      })()
 
-        // ✅ store for payload + display
-        updated[index].TotalStarValue = totalStarValue
-
-        // ✅ AUTO update (required)
-        updated[index].TotalStarForParents = calcDefaultTotalStarForParents(totalStarValue, starValueNum)
-
-        // ✅ because it is derived from price now
-        updated[index].__parentsStarManual = false
+      if (field === 'TotalStarForParents') {
+        row.__parentsStarManual = true
+        updated[index] = row
+        return updated
       }
 
-      // Non-member behavior unchanged
+      if (field === 'TotalStarValue') {
+        row.__totalStarManual = true
+        const t = numOrEmpty(value)
+
+        // ✅ ALWAYS recalc parents when TotalStarValue changes (unless user manually edited parents field)
+        if (!row.__parentsStarManual) {
+          row.TotalStarForParents = t === '' ? '' : calcDefaultTotalStarForParents(t, starForCalc)
+        }
+
+        updated[index] = row
+        return updated
+      }
+
+      if (field === 'StarValue') {
+        row.__starManual = true
+        const t = numOrEmpty(row.TotalStarValue)
+        const s = numOrEmpty(value)
+
+        // ✅ recalc parents when StarValue changes (unless user manually edited parents field)
+        if (!row.__parentsStarManual) {
+          row.TotalStarForParents = t === '' ? '' : calcDefaultTotalStarForParents(t, s === '' ? 0 : s)
+        }
+
+        updated[index] = row
+        return updated
+      }
+
+      // ✅ KEY: Vendor Base Price change must recalc TotalStarValue and TotalStarForParents
+      if (field === 'price') {
+        const basePrice = Number(row.price || 0)
+        const vatAmount = basePrice * vatRateValue
+        const computedTotalStar = basePrice + vatAmount
+
+        // TotalStarValue always follows base price (your request)
+        row.TotalStarValue = String(to2(computedTotalStar))
+        row.__totalStarManual = false
+
+        // If StarValue is empty -> set default
+        if (row.StarValue === '' || row.StarValue === null || row.StarValue === undefined) {
+          row.StarValue = String(starValueNum || 0)
+          row.__starManual = false
+        }
+
+        // ✅ IMPORTANT: Always compute parents star from (TotalStarValue / StarValue)
+        // unless user manually edited parents field
+        if (!row.__parentsStarManual) {
+          const sNow = (() => {
+            const s = numOrEmpty(row.StarValue)
+            return s === '' ? 0 : Number(s || 0)
+          })()
+
+          // TotalStarForParents = TotalStarValue / StarValue
+          row.TotalStarForParents = sNow > 0 ? calcDefaultTotalStarForParents(computedTotalStar, sNow) : ''
+        }
+
+        updated[index] = row
+        return updated
+      }
+
+      updated[index] = row
       return updated
     })
   }
@@ -1160,13 +1133,13 @@ const Vendor = () => {
   const getPriceData = () => {
     return priceRanges.map((item) => {
       const baseHeroz = Number(item.HerozStudentPrice || 0)
-      const herozVat = baseHeroz * vatRateValue // ← VAT CALCULATION
+      const herozVat = baseHeroz * vatRateValue
 
-      // ✅ NEW: compute total star value for payload (prefer state value if present)
       const basePrice = Number(item.price || 0)
       const vendorVat = basePrice * vatRateValue
 
       const computedTotalStarValue = basePrice + vendorVat
+
       const totalStarValueOut =
         item.TotalStarValue !== undefined && item.TotalStarValue !== null && String(item.TotalStarValue).trim() !== ''
           ? Number(item.TotalStarValue || 0)
@@ -1181,14 +1154,14 @@ const Vendor = () => {
         PriceID: item.PriceID || '',
         Price: item.price || '',
         HerozStudentPrice: item.HerozStudentPrice || '',
-        HerozStudentPriceVatAmount: herozVat.toFixed(2), // ← ADDED HERE
+        HerozStudentPriceVatAmount: herozVat.toFixed(2),
 
-        // ✅ REQUIRED: send these 3 fields in payload
         TotalStarValue: to2(totalStarValueOut),
         StarValue: starValueOut,
+
+        // ✅ send what’s in UI (auto or manual)
         TotalStarForParents: item.TotalStarForParents || '',
 
-        // keep these fields for backward compatibility
         StudentRangeFrom: item.rangeFrom || '',
         StudentRangeTo: item.rangeTo || '',
         RemovePrice: item.ChkRemovePrice || false,
@@ -1196,7 +1169,6 @@ const Vendor = () => {
     })
   }
 
-  //Send to Admin Approval
   const handleSave = () => {
     setShowModal(true)
   }
@@ -1240,30 +1212,6 @@ const Vendor = () => {
   const totalHerozWithVat = totalHerozBaseAmount + totalHerozVatAmount
 
   const totalTripCost = totalWithVat + totalHerozWithVat
-
-  const starBoxStyle = {
-    border: '1px solid #9b9b9b',
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 0, 0.3)',
-  }
-
-  const starBoxPlainStyle = {
-    border: 'none',
-    backgroundColor: 'transparent',
-    boxShadow: 'none',
-  }
-
-  // ✅ NEW: Pink background style for:
-  // Total Star Value, Star Value, Total Star For Parents (as you asked)
-  const starPinkStyle = {
-    border: '1px solid #cf2037',
-    borderRadius: 10,
-    backgroundColor: 'rgba(248, 234, 243, 1)', // pink
-    boxShadow: 'none',
-  }
-
-  // ✅ NEW: Pink header background for the 3 columns
-  const starHeaderPink = { backgroundColor: 'rgba(248, 234, 243, 1)' }
 
   return (
     <div>
@@ -1311,10 +1259,8 @@ const Vendor = () => {
       </div>
 
       <div className="divhbg">
-        {/* Left side: Title */}
         <div className="txtheadertitle">Activity</div>
 
-        {/* Right side: Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="admin-buttonv1 btn-green" onClick={handleSave}>
             PUBLISH
@@ -1367,45 +1313,37 @@ const Vendor = () => {
             Activity Type <span style={{ color: 'red' }}>*</span>
           </label>
 
-          {/* ✅ UPDATED: display only Membership (code not removed; other options are just hidden) */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {/* kept (hidden) */}
-            {!SHOW_ONLY_MEMBERSHIP && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <input
-                  type="radio"
-                  name="rdoactTyper"
-                  value="SCHOOL"
-                  checked={selectedType === 'SCHOOL'}
-                  onChange={(e) => setactType(e.target.value)}
-                  style={{ width: '24px', height: '24px' }}
-                />
-                <div className="pink-shadow4"> School</div>
-              </label>
-            )}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <input
+                type="radio"
+                name="rdoactTyper"
+                value="SCHOOL"
+                checked={selectedType === 'SCHOOL'}
+                onChange={(e) => setactType(e.target.value)}
+                style={{ width: '24px', height: '24px' }}
+              />
+              <div className="pink-shadow4"> School</div>
+            </label>
 
-            {/* kept (hidden) */}
-            {!SHOW_ONLY_MEMBERSHIP && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <input
-                  type="radio"
-                  name="rdoactTyper"
-                  value="INDIVIDUAL"
-                  checked={selectedType === 'INDIVIDUAL'}
-                  onChange={(e) => setactType(e.target.value)}
-                  style={{ width: '24px', height: '24px' }}
-                />
-                <div className="pink-shadow4"> Individual</div>
-              </label>
-            )}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <input
+                type="radio"
+                name="rdoactTyper"
+                value="INDIVIDUAL"
+                checked={selectedType === 'INDIVIDUAL'}
+                onChange={(e) => setactType(e.target.value)}
+                style={{ width: '24px', height: '24px' }}
+              />
+              <div className="pink-shadow4"> Individual</div>
+            </label>
 
-            {/* ✅ only visible */}
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
                 name="rdoactTyper"
                 value="MEMBERSHIP"
-                checked={selectedType ==="MEMBERSHIP" || selectedType === 'MEMBERSHIP'}
+                checked={selectedType === 'MEMBERSHIP'}
                 onChange={(e) => setactType(e.target.value)}
                 style={{ width: '24px', height: '24px' }}
               />
@@ -1434,7 +1372,6 @@ const Vendor = () => {
             onChange={(e) => setactRating(e.target.value)}
             style={{ width: 140 }}
           />
-          {/* We still use errors.actRating from shared validator */}
           <ErrorText msg={errors.actRating} />
         </div>
 
@@ -1483,7 +1420,122 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ NEW: Trip Details + What's Included (Editable, before Terms) */}
+      {/* ✅ MEMBERSHIP: STAR VALUE SECTION (EDITABLE) */}
+      {isMemberType && (
+        <>
+          <div className="txtsubtitle">
+            Membership Price (Star) Information
+            {vatPercentValue > 0 && (
+              <span
+                style={{
+                  marginInlineStart: 8,
+                  fontSize: 13,
+                  border: '1px solid #cf2037',
+                  borderRadius: 999,
+                  padding: '3px 10px',
+                  backgroundColor: 'rgba(207, 32, 55, 0.15)',
+                  color: '#cf2037',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {`+ VAT ${to2(vatPercentValue)}%`}
+              </span>
+            )}
+          </div>
+
+          <div className="divbox" style={priceSectionBoxStyle}>
+            <CRow className="fw-bold text-center mb-2">
+              <CCol sm={3} style={starHeaderPink}>
+                Vendor Base Price
+              </CCol>
+              <CCol sm={3} style={starHeaderPink}>
+                Total Star Value
+              </CCol>
+              <CCol sm={3} style={starHeaderPink}>
+                Star Value
+              </CCol>
+              <CCol sm={3} style={starHeaderPink}>
+                Total Star For Parents
+              </CCol>
+            </CRow>
+
+            {priceRanges.map((row, index) => {
+              const vendorBase = Number(row.price || 0)
+              const vendorVat = vendorBase * vatRateValue
+              const computed = vendorBase + vendorVat
+              const computedHint = `Auto: ${to2(computed)} (Price + VAT)`
+
+              return (
+                <CRow key={index} className="align-items-center mb-2">
+                  <CCol sm={3}>
+                    <input
+                      className="admin-txt-box text-center"
+                      type="number"
+                      step="0.01"
+                      value={row.price}
+                      onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
+                      placeholder="Vendor Price"
+                    />
+                    {vatPercentValue > 0 && (
+                      <div style={{ fontSize: 12 }}>
+                        <span style={vatPillStyle}>{to2(vendorVat)}</span>
+                      </div>
+                    )}
+                  </CCol>
+
+                  <CCol sm={3}>
+                    <input
+                      className="admin-txt-box text-center"
+                      style={starPinkStyle}
+                      type="number"
+                      step="0.01"
+                      value={row.TotalStarValue}
+                      onChange={(e) => handlePriceChange(index, 'TotalStarValue', e.target.value)}
+                      placeholder="Total Star Value"
+                      title={computedHint}
+                    />
+                    <div style={{ fontSize: 11, opacity: 0.75, marginTop: 4 }}>{computedHint}</div>
+                  </CCol>
+
+                  <CCol sm={3}>
+                    <input
+                      className="admin-txt-box text-center"
+                      style={starPinkStyle}
+                      type="number"
+                      step="0.01"
+                      value={row.StarValue}
+                      onChange={(e) => handlePriceChange(index, 'StarValue', e.target.value)}
+                      placeholder="Star Value"
+                    />
+                    <div style={{ fontSize: 11, opacity: 0.75, marginTop: 4 }}>
+                      Default: {String(starValueNum || 0)}
+                    </div>
+                  </CCol>
+
+                  <CCol sm={3}>
+                    <input
+                      className="admin-txt-box text-center"
+                      style={starPinkStyle}
+                      type="number"
+                      step="0.01"
+                      value={row.TotalStarForParents}
+                      onChange={(e) => handlePriceChange(index, 'TotalStarForParents', e.target.value)}
+                      placeholder="Total Star For Parents"
+                    />
+                    <div style={{ fontSize: 11, opacity: 0.75, marginTop: 4 }}>
+                      Auto: TotalStarValue / StarValue
+                    </div>
+                  </CCol>
+                </CRow>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ✅ NEW: Trip Details + What's Included */}
       <div className="txtsubtitle">
         Trip Details <span style={{ color: 'red' }}>*</span>
       </div>
@@ -1521,8 +1573,6 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ... your existing code continues exactly as-is ... */}
-
       <div className="txtsubtitle">
         Terms And Conditions <span style={{ color: 'red' }}>*</span>
       </div>
@@ -1540,7 +1590,11 @@ const Vendor = () => {
       </div>
 
       <div className="button-container">
-        <button className="admin-buttonv1" style={{ backgroundColor: 'green', color: 'white' }} onClick={handleSave}>
+        <button
+          className="admin-buttonv1"
+          style={{ backgroundColor: 'green', color: 'white' }}
+          onClick={handleSave}
+        >
           PUBLISH
         </button>
         <button
@@ -1586,4 +1640,5 @@ const Vendor = () => {
     </div>
   )
 }
+
 export default Vendor
