@@ -81,7 +81,7 @@ const ProductNew = React.lazy(() => import('./admindata/products/new'))
 const ProductModify = React.lazy(() => import('./admindata/products/modify'))
 
 // =======================
-// Membership Activity (ADMIN ACTIVITY INFO – KEEP)
+// Membership Activity
 // =======================
 const adminMembershipActivityList = React.lazy(() =>
   import('./admindata/activityinfo/membership/list'),
@@ -122,7 +122,6 @@ const SchEduLevelModify = React.lazy(() =>
   import('./admindata/lookupdata/schedulevel/modify'),
 )
 
-// Outcome
 const OutcomeList = React.lazy(() => import('./admindata/lookupdata/outcome/list'))
 const OutcomeNew = React.lazy(() => import('./admindata/lookupdata/outcome/new'))
 const OutcomeModify = React.lazy(() => import('./admindata/lookupdata/outcome/modify'))
@@ -191,9 +190,24 @@ const routes = [
 
   // Class / Student / Staff / Parent
   { path: '/admindata/schoolmgm/classinfo/list', element: classinfoList },
+  { path: '/admindata/schoolmgm/classinfo/new', element: classinfoNew },
+  { path: '/admindata/schoolmgm/classinfo/modify', element: classinfoModify },
+  { path: '/admindata/schoolmgm/classinfo/view', element: classinfoView },
+
   { path: '/admindata/schoolmgm/studentinfo/list', element: studentinfoList },
+  { path: '/admindata/schoolmgm/studentinfo/new', element: studentinfoNew },
+  { path: '/admindata/schoolmgm/studentinfo/modify', element: studentinfoModify },
+  { path: '/admindata/schoolmgm/studentinfo/view', element: studentinfoView },
+
   { path: '/admindata/schoolmgm/staffinfo/list', element: staffinfoList },
+  { path: '/admindata/schoolmgm/staffinfo/new', element: staffinfoNew },
+  { path: '/admindata/schoolmgm/staffinfo/modify', element: staffinfoModify },
+  { path: '/admindata/schoolmgm/staffinfo/view', element: staffinfoView },
+
   { path: '/admindata/schoolmgm/parentinfo/list', element: parentinfoList },
+  { path: '/admindata/schoolmgm/parentinfo/new', element: parentinfoNew },
+  { path: '/admindata/schoolmgm/parentinfo/modify', element: parentinfoModify },
+  { path: '/admindata/schoolmgm/parentinfo/view', element: parentinfoView },
 
   // Trips
   { path: '/admindata/activityinfo/trip/list', element: adminschTripProposalCraeted },
@@ -201,15 +215,94 @@ const routes = [
   { path: '/trip/tripdata', element: Triptripdata },
   { path: '/admindata/activityinfo/trippayinfo/view', element: adminTripPayInfo },
 
+  // ✅ Admin Activity (YOUR missing route)
+  { path: '/admindata/activityinfo/activity/list', element: adminDataActivityList },
+  { path: '/admindata/activityinfo/activity/modify', element: adminDataActivityModify },
+  { path: '/admindata/activityinfo/activity/view', element: adminDataActivityView },
+
   // Membership Activity
   { path: '/admindata/activityinfo/membership/list', element: adminMembershipActivityList },
   { path: '/admindata/activityinfo/membership/modify', element: adminMembershipActivityModify },
   { path: '/admindata/activityinfo/membership/view', element: adminMembershipActivityView },
 
+  // ✅ Vendor (YOUR missing routes)
+  { path: '/admindata/vendor/list', element: vendorList },
+  { path: '/admindata/vendor/new', element: vendorNew },
+  { path: '/admindata/vendor/modify', element: vendorModify },
+  { path: '/admindata/vendor/view', element: vendorView },
+  { path: '/admindata/vendor/changepwd', element: vendorchangepwd },
+
+  // Vendor Staff
+  { path: '/admindata/vendor/staffinfo/list', element: vendorstaffinfoList },
+  { path: '/admindata/vendor/staffinfo/new', element: vendorstaffinfoNew },
+  { path: '/admindata/vendor/staffinfo/modify', element: vendorstaffinfoModify },
+  { path: '/admindata/vendor/staffinfo/view', element: vendorstaffinfoView },
+
+  // ✅ Badge (YOUR missing routes)
+  { path: '/admindata/badge/list', element: BadgeList },
+  { path: '/admindata/badge/new', element: BadgeNew },
+  { path: '/admindata/badge/modify', element: BadgeModify },
+  { path: '/admindata/badge/view', element: BadgeView },
+
+  // ✅ Push / Notes / Links (YOUR missing routes)
+  { path: '/admindata/push/send', element: PushSendList },
+  { path: '/admindata/note/list', element: NoteList },
+  { path: '/admindata/setlink/setlink', element: AdminSetLink },
+
+  // ✅ Others (YOUR missing routes)
+  { path: '/admindata/activityoversight/list', element: activityoversightList },
+  { path: '/admindata/reportsandanalysis/providerlist', element: reportsandanalysisList },
+  { path: '/admindata/reportsandanalysis/schoollist', element: reportsandanalysisNew },
+  { path: '/admindata/payment/list', element: PaymentList },
+  { path: '/admindata/agree/modify', element: AgreementList },
+
+  // ✅ LookupData (real paths)
+  { path: '/admindata/lookupdata/city/list', element: CityList },
+  { path: '/admindata/lookupdata/city/new', element: CityNew },
+  { path: '/admindata/lookupdata/city/modify', element: CityModify },
+
+  { path: '/admindata/lookupdata/outcome/list', element: OutcomeList },
+  { path: '/admindata/lookupdata/outcome/new', element: OutcomeNew },
+  { path: '/admindata/lookupdata/outcome/modify', element: OutcomeModify },
+
+  { path: '/admindata/lookupdata/country/list', element: countryList },
+  { path: '/admindata/lookupdata/country/new', element: countryNew },
+  { path: '/admindata/lookupdata/country/modify', element: countryModify },
+
+  { path: '/admindata/lookupdata/category/list', element: categoryList },
+  { path: '/admindata/lookupdata/category/new', element: categoryNew },
+  { path: '/admindata/lookupdata/category/modify', element: categoryModify },
+
+  { path: '/admindata/lookupdata/schedulevel/list', element: SchEduLevelList },
+  { path: '/admindata/lookupdata/schedulevel/new', element: SchEduLevelNew },
+  { path: '/admindata/lookupdata/schedulevel/modify', element: SchEduLevelModify },
+
+  // ✅ LookupData (aliases for your short URLs)
+  { path: '/admindata/city/list', element: CityList },
+  { path: '/admindata/country/list', element: countryList },
+  { path: '/admindata/category/list', element: categoryList },
+  { path: '/admindata/schedulevel/list', element: SchEduLevelList },
+  { path: '/admindata/outcome/list', element: OutcomeList },
+
+  // ✅ SubAdmin (YOUR missing routes)
+  { path: '/admindata/subadmin/list', element: UserList },
+  { path: '/admindata/subadmin/new', element: UserNew },
+  { path: '/admindata/subadmin/modify', element: UserModify },
+
   // Products
   { path: '/admindata/products/list', element: ProductList },
   { path: '/admindata/products/new', element: ProductNew },
   { path: '/admindata/products/modify', element: ProductModify },
+
+  // Menu / Rights
+  { path: '/mainmenu/list', element: MainMenuList },
+  { path: '/mainmenu/new', element: MainMenuNew },
+  { path: '/mainmenu/modify', element: MainMenuModify },
+  { path: '/rights/list', element: RightsList },
+
+  // Parents
+  { path: '/parents/list', element: parentsList },
+  { path: '/parents/view', element: parentsView },
 
   // Public
   { path: '/public/program/:requestId', element: PublicProgram },
