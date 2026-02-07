@@ -81,7 +81,7 @@ const ProductNew = React.lazy(() => import('./admindata/products/new'))
 const ProductModify = React.lazy(() => import('./admindata/products/modify'))
 
 // =======================
-// Membership Activity
+// Membership Activity (ADMIN ACTIVITY INFO – KEEP)
 // =======================
 const adminMembershipActivityList = React.lazy(() =>
   import('./admindata/activityinfo/membership/list'),
@@ -92,13 +92,6 @@ const adminMembershipActivityModify = React.lazy(() =>
 const adminMembershipActivityView = React.lazy(() =>
   import('./admindata/activityinfo/membership/view'),
 )
-
-// =======================
-// Membership
-// =======================
-const MemberShipList = React.lazy(() => import('./admindata/membership/list'))
-const MemberShipNew = React.lazy(() => import('./admindata/membership/new'))
-const MemberShipModify = React.lazy(() => import('./admindata/membership/modify'))
 
 // =======================
 // Badge
