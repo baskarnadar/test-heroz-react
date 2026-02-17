@@ -145,13 +145,30 @@ const ProductListWithPagination = () => {
       {loading && <div style={{ padding: 10 }}>Loading...</div>}
       {error && <div style={{ padding: 10, color: 'red' }}>{error}</div>}
 
-      <div className="dashboard-row">
+      {/* ✅ FIX: force cards to sit next to each other (no left/right spread) */}
+      <div
+        className="dashboard-row"
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 20,
+          justifyContent: 'flex-start',
+          alignItems: 'flex-start',
+        }}
+      >
         {(products || []).map((p) => {
           const stars = Number(p?.ProductTotalStar || 0)
           const bg = safeBg(p?.ProductImageUrl)
 
           return (
-            <div className="dashboard-col" key={p.ProductID} style={{ maxWidth: 200 }}>
+            <div
+              className="dashboard-col"
+              key={p.ProductID}
+              style={{
+                flex: '0 0 220px', // ✅ fixed column width so it doesn't push to far right
+                maxWidth: 220,
+              }}
+            >
               <div
                 className="card1bg"
                 style={{
@@ -162,7 +179,7 @@ const ProductListWithPagination = () => {
                   backgroundPosition: 'center',
                   minHeight: 250,
                   width: '100%',
-                  maxWidth: 200, // ✅ card max width 200px
+                  maxWidth: 200,
                   position: 'relative',
                   overflow: 'hidden',
                   borderRadius: 12,

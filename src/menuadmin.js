@@ -33,7 +33,7 @@ const adminmenu = [
     icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
   },
 
-  // ✅ ADDED — Membership Activity (same list page with querystring)
+  // ✅ Membership Activity
   {
     component: CNavItem,
     name: 'Membership Activity',
@@ -48,7 +48,7 @@ const adminmenu = [
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
   },
 
-  // ✅ NEW POSITION: Send Push Notification (moved here before Badges)
+  // ✅ Send Push Notification
   {
     component: CNavItem,
     name: 'Send Push Notification',
@@ -81,7 +81,22 @@ const adminmenu = [
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
   },
 
-  // existing Trip menu
+  // ✅ Purchase Management
+  {
+    component: CNavItem,
+    name: 'Purchase Management',
+    to: '/admindata/purchase/list',
+    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
+  },
+
+  // ✅ NEW — Booking Management
+  {
+    component: CNavItem,
+    name: 'Booking Management',
+    to: '/admindata/booking/list',
+    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
+  },
+
   {
     component: CNavItem,
     name: 'Trip tripdata',
@@ -101,7 +116,6 @@ const adminmenu = [
     to: '/admindata/city/list',
     icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
   },
-  // ✅ NEW — Outcome menu
   {
     component: CNavItem,
     name: 'Outcome',

@@ -1161,3 +1161,4 @@ const ViewActivityScreen = () => {
 };
 
 export default ViewActivityScreen;
+ 
