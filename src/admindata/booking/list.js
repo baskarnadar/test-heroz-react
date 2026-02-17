@@ -1,7 +1,13 @@
 // list.js  (Booking Management Grid List)
-// ✅ FIRST COLUMN: Big circle Parents Image
-// ✅ Activity Date & Time: TWO LINES (Date on top, Time below)
-// ✅ API: /membership/booking/getbookinglist
+// ✅ ONE LINE FILTER BAR (Clean UI)
+// ✅ Title Added
+// ✅ Eye Icon Last Column
+// ✅ Vendor Dropdown
+// ✅ From / To Date
+// ✅ Search by Mobile
+// ✅ Professional Layout
+// ✅ Grid first column: #
+// ✅ Grid second column: Image
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -9,6 +15,7 @@ import { API_BASE_URL } from '../../config'
 import '../../scss/toast.css'
 import { checkLogin } from '../../utils/auth'
 import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
+import { FaEye } from 'react-icons/fa'
 
 const BookingList = () => {
   const navigate = useNavigate()
@@ -20,12 +27,10 @@ const BookingList = () => {
   const [toastType, setToastType] = useState('info')
 
   const [searchText, setSearchText] = useState('')
-  const [sortKey, setSortKey] = useState('BookingDate')
-  const [sortDir, setSortDir] = useState('desc')
-
-  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 500, 'ALL']
-  const [pageSize, setPageSize] = useState(10)
-  const [pageNo, setPageNo] = useState(1)
+  const [mobileSearch, setMobileSearch] = useState('')
+  const [vendorFilter, setVendorFilter] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   useEffect(() => {
     IsAdminLoginIsValid?.()
@@ -55,10 +60,11 @@ const BookingList = () => {
 
       const raw = await resp.text()
       let json = null
-      try { json = JSON.parse(raw) } catch {}
+      try {
+        json = JSON.parse(raw)
+      } catch {}
 
       if (!resp.ok) throw new Error(json?.message || `Request failed (${resp.status})`)
-
       setRows(Array.isArray(json?.data) ? json.data : [])
     } catch (e) {
       setError(e?.message || 'Error fetching booking list')
@@ -71,9 +77,8 @@ const BookingList = () => {
     fetchBookings()
   }, [])
 
-  const norm = (v) => (v ?? '').toString().toLowerCase().trim()
-  const safeNum = (v) => Number.isFinite(Number(v)) ? Number(v) : 0
   const safeText = (v, f = '-') => (v ?? '').toString().trim() || f
+  const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0)
 
   const cleanRows = useMemo(() => {
     return rows.map((r) => ({
@@ -91,35 +96,31 @@ const BookingList = () => {
     }))
   }, [rows])
 
+  const vendorList = useMemo(() => {
+    const vendors = cleanRows.map((r) => r.vdrName).filter(Boolean)
+    return [...new Set(vendors)]
+  }, [cleanRows])
+
   const filtered = useMemo(() => {
-    const s = norm(searchText)
-    if (!s) return cleanRows
-    return cleanRows.filter((r) =>
-      Object.values(r).join(' ').toLowerCase().includes(s)
-    )
-  }, [cleanRows, searchText])
+    return cleanRows.filter((r) => {
+      if (
+        searchText &&
+        !Object.values(r)
+          .join(' ')
+          .toLowerCase()
+          .includes(searchText.toLowerCase())
+      )
+        return false
 
-  const sorted = useMemo(() => {
-    const arr = [...filtered]
-    const dir = sortDir === 'asc' ? 1 : -1
-    arr.sort((a, b) => {
-      const va = a[sortKey] ?? ''
-      const vb = b[sortKey] ?? ''
-      if (va === vb) return 0
-      return va > vb ? dir : -dir
+      if (mobileSearch && !r.RegUserMobileNo.includes(mobileSearch)) return false
+      if (vendorFilter && r.vdrName !== vendorFilter) return false
+
+      if (fromDate && new Date(r.BookingDate) < new Date(fromDate)) return false
+      if (toDate && new Date(r.BookingDate) > new Date(toDate)) return false
+
+      return true
     })
-    return arr
-  }, [filtered, sortKey, sortDir])
-
-  const totalItems = sorted.length
-  const effectivePageSize = pageSize === 'ALL' ? totalItems || 1 : Number(pageSize)
-  const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize))
-
-  const pageRows = useMemo(() => {
-    if (pageSize === 'ALL') return sorted
-    const start = (pageNo - 1) * effectivePageSize
-    return sorted.slice(start, start + effectivePageSize)
-  }, [sorted, pageNo, pageSize, effectivePageSize])
+  }, [cleanRows, searchText, mobileSearch, vendorFilter, fromDate, toDate])
 
   const AvatarOnly = ({ url, title }) => (
     <div
@@ -133,69 +134,142 @@ const BookingList = () => {
         margin: '0 auto',
       }}
     >
-      {url ? (
-        <img src={url} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      ) : null}
+      {url && (
+        <img
+          src={url}
+          alt={title}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      )}
     </div>
   )
 
   return (
-    <div>
-      <div style={{ marginBottom: 12 }}>
+    <div style={{ padding: 20 }}>
+      {/* ================= TITLE ================= */}
+      <h2 style={{ marginBottom: 20 }}>Booking Management</h2>
+
+      {/* ================= ONE LINE FILTER BAR ================= */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 20,
+          flexWrap: 'wrap',
+        }}
+      >
         <input
           type="text"
           className="form-control"
           placeholder="Search..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: 180 }}
+        />
+
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Mobile No"
+          value={mobileSearch}
+          onChange={(e) => setMobileSearch(e.target.value)}
+          style={{ width: 150 }}
+        />
+
+        <select
+          className="form-control"
+          value={vendorFilter}
+          onChange={(e) => setVendorFilter(e.target.value)}
+          style={{ width: 170 }}
+        >
+          <option value="">All Vendors</option>
+          {vendorList.map((v, i) => (
+            <option key={i} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="date"
+          className="form-control"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          style={{ width: 160 }}
+        />
+
+        <input
+          type="date"
+          className="form-control"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          style={{ width: 160 }}
         />
       </div>
 
+      {/* ================= TABLE ================= */}
       {loading ? (
         <p>Loading...</p>
       ) : error ? (
         <p style={{ color: 'red' }}>{error}</p>
       ) : (
-        <table className="grid-table">
-          <thead>
-            <tr>
-              <th style={{ width: 80 }}>Image</th>
-              <th>#</th>
-              <th>Booking ID</th>
-              <th>Parent</th>
-              <th>Mobile</th>
-              <th>Kid</th>
-              <th>Activity</th>
-              <th>Stars</th>
-              <th>Vendor</th>
-              <th>Activity Date & Time</th>
-              <th>Booking Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((r, idx) => (
-              <tr key={idx}>
-                <td><AvatarOnly url={r.RegUserImageNameUrl} title={r.RegUserFullName} /></td>
-                <td>{idx + 1}</td>
-                <td>{r.BookingID}</td>
-                <td>{r.RegUserFullName}</td>
-                <td>{r.RegUserMobileNo}</td>
-                <td>{r.KidsName}</td>
-                <td>{r.actName}</td>
-                <td style={{ fontWeight: 700 }}>{r.BookingStarPerKids.toFixed(2)}</td>
-                <td>{r.vdrName}</td>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="grid-table">
+            <thead>
+              <tr>
+                {/* ✅ FIRST #, SECOND Image */}
+                <th style={{ width: 60 }}>#</th>
+                <th style={{ width: 80 }}>Image</th>
 
-                {/* ✅ TWO LINES exactly as requested */}
-                <td>
-                  <div>{r.BookingActivityDate}</div>
-                  <div>{r.BookingActivityTime}</div>
-                </td>
-
-                <td>{r.BookingDate}</td>
+                <th>Booking ID</th>
+                <th>Parent</th>
+                <th>Mobile</th>
+                <th>Kid</th>
+                <th>Activity</th>
+                <th>Stars</th>
+                <th>Vendor</th>
+                <th>Activity Date & Time</th>
+                <th>Booking Date</th>
+                <th style={{ width: 80 }}>View</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {filtered.map((r, idx) => (
+                <tr key={idx}>
+                  {/* ✅ FIRST #, SECOND Image */}
+                  <td style={{ textAlign: 'center', fontWeight: 700 }}>{idx + 1}</td>
+                  <td>
+                    <AvatarOnly url={r.RegUserImageNameUrl} title={r.RegUserFullName} />
+                  </td>
+
+                  <td>{r.BookingID}</td>
+                  <td>{r.RegUserFullName}</td>
+                  <td>{r.RegUserMobileNo}</td>
+                  <td>{r.KidsName}</td>
+                  <td>{r.actName}</td>
+                  <td style={{ fontWeight: 700 }}>{r.BookingStarPerKids.toFixed(2)}</td>
+                  <td>{r.vdrName}</td>
+                  <td>
+                    <div>{r.BookingActivityDate}</div>
+                    <div>{r.BookingActivityTime}</div>
+                  </td>
+                  <td>{r.BookingDate}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button
+                      onClick={() => navigate(`/membership/booking/view/${r.BookingID}`)}
+                      style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                      title="View"
+                    >
+                      <FaEye size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <DspToastMessage message={toastMessage} type={toastType} />

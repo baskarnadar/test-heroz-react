@@ -1,156 +1,173 @@
-// src/_nav/vendormenu.js (or wherever your _nav files are stored)
+// src/_nav/vendormenu.js
+
 import React from 'react'
 import CIcon from '@coreui/icons-react'
 import {
-  cilCalculator,
-  cilNotes,
-  cilPuzzle,
   cilSpeedometer,
-  cilUser,
-  cilDrop,
-  cilExcerpt,
-  cilBasket,
+  cilBuilding,
+  cilPeople,
+  cilBell,
+  cilChart,
+  cilStar,
+  cilWallet,
+  cilList,
+  cilLocationPin,
+  cilMap,
+  cilLibrary,
+  cilFile,
+  cilSettings,
 } from '@coreui/icons'
-import { CNavItem } from '@coreui/react'
+import { CNavItem, CNavGroup } from '@coreui/react'
 
 const adminmenu = [
+  // ======================================================
+  // DASHBOARD
+  // ======================================================
   {
     component: CNavItem,
     name: 'Dashboard',
     to: '/admin/dashboard',
     icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
   },
+
+  // ======================================================
+  // MANAGEMENT
+  // ======================================================
   {
-    component: CNavItem,
-    name: 'School Management',
-    to: 'admindata/schoolmgm/schoolinfo/list',
-    icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Activity Management',
-    to: '/admindata/activityinfo/activity/list?activitytype=SCHOOL',
-    icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
+    component: CNavGroup,
+    name: 'Management',
+    icon: <CIcon icon={cilBuilding} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'School Management',
+        to: '/admindata/schoolmgm/schoolinfo/list',
+      },
+      {
+        component: CNavItem,
+        name: 'Activity Management',
+        to: '/admindata/activityinfo/activity/list?activitytype=SCHOOL',
+      },
+      {
+        component: CNavItem,
+        name: 'Vendor Management',
+        to: '/admindata/vendor/list',
+      },
+      {
+        component: CNavItem,
+        name: 'Sub Admin Management',
+        to: '/admindata/subadmin/list',
+      },
+    ],
   },
 
-  // ✅ Membership Activity
+  // ======================================================
+  // MEMBERSHIP
+  // ======================================================
   {
-    component: CNavItem,
-    name: 'Membership Activity',
-    to: '/admindata/activityinfo/membership/list?activitytype=membership',
-    icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
+    component: CNavGroup,
+    name: 'Membership',
+    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Membership Activities',
+        to: '/admindata/activityinfo/membership/list?activitytype=membership',
+      },
+      {
+        component: CNavItem,
+        name: 'Star Cards',
+        to: '/admindata/products/list',
+      },
+      {
+        component: CNavItem,
+        name: 'Purchase Management',
+        to: '/admindata/purchase/list',
+      },
+      {
+        component: CNavItem,
+        name: 'Booking Management',
+        to: '/admindata/booking/list',
+      },
+    ],
   },
 
+  // ======================================================
+  // LOOKUP DATA
+  // ======================================================
   {
-    component: CNavItem,
-    name: 'Vendor Management',
-    to: '/admindata/vendor/list',
-    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+    component: CNavGroup,
+    name: 'Lookup Data',
+    icon: <CIcon icon={cilList} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Country',
+        to: '/admindata/country/list',
+        icon: <CIcon icon={cilMap} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'City',
+        to: '/admindata/city/list',
+        icon: <CIcon icon={cilLocationPin} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'Category',
+        to: '/admindata/category/list',
+        icon: <CIcon icon={cilLibrary} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'School Education Level',
+        to: '/admindata/schedulevel/list',
+        icon: <CIcon icon={cilLibrary} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'Agreement',
+        to: '/admindata/agree/modify',
+        icon: <CIcon icon={cilFile} customClassName="nav-icon" />,
+      },
+    ],
   },
 
-  // ✅ Send Push Notification
+  // ======================================================
+  // COMMUNICATION & REPORTING
+  // ======================================================
   {
-    component: CNavItem,
-    name: 'Send Push Notification',
-    to: '/admindata/push/send',
-    icon: <CIcon icon={cilExcerpt} customClassName="nav-icon" />,
+    component: CNavGroup,
+    name: 'Communication & Reports',
+    icon: <CIcon icon={cilChart} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Reports & Analysis',
+        to: '/admindata/reportsandanalysis/providerlist',
+      },
+      {
+        component: CNavItem,
+        name: 'Send Push Notification',
+        to: '/admindata/push/send',
+        icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'Notifications',
+        to: '/admindata/note/list',
+      },
+    ],
   },
 
+  // ======================================================
+  // OTHER
+  // ======================================================
   {
     component: CNavItem,
-    name: 'Badges',
-    to: '/admindata/badge/list',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Activity Oversight',
-    to: '/admindata/activityoversight/list',
-    icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Reports And Analysis',
-    to: '/admindata/reportsandanalysis/providerlist',
-    icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Star Cards',
-    to: '/admindata/products/list',
-    icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-  },
-
-  // ✅ Purchase Management
-  {
-    component: CNavItem,
-    name: 'Purchase Management',
-    to: '/admindata/purchase/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-
-  // ✅ NEW — Booking Management
-  {
-    component: CNavItem,
-    name: 'Booking Management',
-    to: '/admindata/booking/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-
-  {
-    component: CNavItem,
-    name: 'Trip tripdata',
+    name: 'Trip Management',
     to: '/trip/tripdata',
-    icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
-  },
-
-  {
-    component: CNavItem,
-    name: 'Agreement',
-    to: '/admindata/agree/modify',
-    icon: <CIcon icon={cilExcerpt} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'City',
-    to: '/admindata/city/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Outcome',
-    to: '/admindata/outcome/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Country',
-    to: '/admindata/country/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Category',
-    to: '/admindata/category/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'School Education Level',
-    to: '/admindata/schedulevel/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Sub Admin',
-    to: '/admindata/subadmin/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Notification',
-    to: '/admindata/note/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilWallet} customClassName="nav-icon" />,
   },
 ]
 
