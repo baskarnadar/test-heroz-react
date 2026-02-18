@@ -248,6 +248,7 @@ const ActivityList = () => {
     navigate(`/admindata/activityinfo/membership/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
 
+  // ✅ Booked navigation kept (no longer shown in grid, but keeping function)
   const handleBookedClick = (ActivityID, VendorID) => {
     navigate(`/admindata/activityinfo/trip/list?ActivityID=${ActivityID}&VendorID=${VendorID}`)
   }
@@ -537,22 +538,29 @@ const ActivityList = () => {
               <tr>
                 <th style={{ width: 70, textAlign: 'right' }}>#</th>
                 <th style={{ width: 90 }}>Order</th>
-                {/*  <th>#</th>   */}
                 <th>Image</th>
                 <th>Activity Name</th>
                 <th>Vendor Name</th>
-                <th>Type</th>
+
+                {/* ✅ REMOVED: Type column */}
+                {/* <th>Type</th> */}
+
                 <th>Location</th>
                 <th>Gender</th>
-                <th>Price Per Student</th>
+
+                {/* ✅ RENAMED */}
+                <th>Price Per Kids</th>
+
                 <th>Date</th>
                 <th>Status</th>
-                <th>Booked</th>
+
+                {/* ✅ REMOVED: Booked column */}
+                {/* <th>Booked</th> */}
+
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {/* ✅ Use pageRows (client-side pagination) */}
               {pageRows.map((row, index) => {
                 const key = row?.ActivityID || row?.id || row?._id || index
                 const activityId = row?.ActivityID || row?.id || row?._id
@@ -562,6 +570,7 @@ const ActivityList = () => {
                 return (
                   <tr key={key}>
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>{serial}</td>
+
                     <td>
                       <input
                         type="number"
@@ -580,15 +589,23 @@ const ActivityList = () => {
                         <img src={logo} alt="logo" style={{ width: '75px' }} />
                       </div>
                     </td>
+
                     <td>{row.actName}</td>
+
                     <td style={{ backgroundColor: 'rgba(158, 227, 158, 0.1)' }}>
                       {row.vdrName || '-'}
                     </td>
-                    <td>{row.actTypeID}</td>
+
+                    {/* ✅ REMOVED: Type cell */}
+                    {/* <td>{row.actTypeID}</td> */}
+
                     <td>
                       {row.EnCityName} {row.actAddress1} {row.actAddress2}
                     </td>
+
                     <td>{row.actGender}</td>
+
+                    {/* ✅ UPDATED: label already changed, now remove word "from" */}
                     <td
                       style={{
                         whiteSpace: 'nowrap',
@@ -609,28 +626,24 @@ const ActivityList = () => {
                       {row.priceList && row.priceList.length > 0
                         ? row.priceList.map((price, i) => (
                             <span key={i}>
-                              {price.Price} from {price.StudentRangeFrom} to {price.StudentRangeTo}
+                              {price.Price} {price.StudentRangeFrom} - {price.StudentRangeTo}
                               {i < row.priceList.length - 1 && ', '}
                             </span>
                           ))
                         : 'No prices'}
                     </td>
+
                     <td>{formatDate(row.CreatedDate)}</td>
+
                     <td>{dspstatus(row.actStatus)}</td>
+
+                    {/* ✅ REMOVED: Booked cell */}
+                    {/*
                     <td align="center">
-                      <button
-                        onClick={() => handleBookedClick(row.ActivityID, row.VendorID)}
-                        style={{
-                          padding: '8px 12px',
-                          borderRadius: 12,
-                          border: '1px solid #ccc',
-                          background: '#ccc',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Booked [{row?.['TRIP-BOOKED']?.totalProposalCreatd ?? 0}]
-                      </button>
+                      <button onClick={() => handleBookedClick(row.ActivityID, row.VendorID)}>...</button>
                     </td>
+                    */}
+
                     <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
                       <div
                         style={{
@@ -651,11 +664,9 @@ const ActivityList = () => {
                           }}
                           aria-label="View"
                         >
-                          <i
-                            style={{ color: '#cf2037', fontSize: '22px' }}
-                            className="fa fa-pencil"
-                          />
+                          <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-pencil" />
                         </button>
+
                         <button
                           onClick={() => handleDeleteClick(row.ActivityID, row.VendorID)}
                           title="Delete"
@@ -667,10 +678,7 @@ const ActivityList = () => {
                           }}
                           aria-label="Delete"
                         >
-                          <i
-                            style={{ color: '#cf2037', fontSize: '22px' }}
-                            className="fa fa-trash"
-                          />
+                          <i style={{ color: '#cf2037', fontSize: '22px' }} className="fa fa-trash" />
                         </button>
                       </div>
                     </td>
@@ -706,7 +714,8 @@ const ActivityList = () => {
             >
               {'<<'}
             </button>
-            {getPageRange().map((pageNumber) => (
+
+            {pageNumbers.map((pageNumber) => (
               <button
                 key={pageNumber}
                 className={`pagination-button ${currentPage === pageNumber ? 'active' : ''}`}
@@ -716,6 +725,7 @@ const ActivityList = () => {
                 {pageNumber}
               </button>
             ))}
+
             <button
               className="pagination-button"
               onClick={() => handlePageClick(currentPage + 1)}
@@ -762,7 +772,10 @@ const ActivityList = () => {
                 disabled={!isConfirmMatch || !ActivityIDToDelete || !VendorIDToDelete}
                 style={{
                   opacity: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 1 : 0.6,
-                  cursor: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 'pointer' : 'not-allowed',
+                  cursor:
+                    isConfirmMatch && ActivityIDToDelete && VendorIDToDelete
+                      ? 'pointer'
+                      : 'not-allowed',
                   backgroundColor: isConfirmMatch ? '#cf2037' : '#bbb',
                   borderColor: '#cf2037',
                   color: '#fff',
@@ -770,6 +783,7 @@ const ActivityList = () => {
               >
                 Confirm Delete
               </button>
+
               <button
                 className="admin-buttonv1"
                 onClick={() => {
@@ -795,11 +809,7 @@ const ActivityList = () => {
 const SimpleSelect = ({ label, value, onChange, options, allLabel }) => (
   <div>
     <label style={{ fontSize: 12, color: '#666' }}>{label}</label>
-    <select
-      className="form-control"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
+    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">{allLabel}</option>
       {options.map((opt) => (
         <option key={opt} value={opt}>
@@ -813,11 +823,7 @@ const SimpleSelect = ({ label, value, onChange, options, allLabel }) => (
 const VendorFilter = ({ value, onChange, options }) => (
   <div>
     <label style={{ fontSize: 12, color: '#666' }}>Vendor</label>
-    <select
-      className="form-control"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
+    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">All Vendors</option>
       {options.map((v) => (
         <option key={v} value={v}>

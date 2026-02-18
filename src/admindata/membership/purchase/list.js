@@ -1,15 +1,15 @@
 // list.js  (FULL FILE)
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../../config'
-import '../../scss/toast.css'
-import { checkLogin } from '../../utils/auth'
+import { API_BASE_URL } from '../../../config'
+import '../../../scss/toast.css'
+import { checkLogin } from '../../../utils/auth'
 import {
   DspToastMessage,
   formatDate,
   getAuthHeaders,
   IsAdminLoginIsValid,
-} from '../../utils/operation'
+} from '../../../utils/operation'
 
 const PurchaseList = () => {
   const navigate = useNavigate()
@@ -291,7 +291,7 @@ const PurchaseList = () => {
     if (ParentsID) qs.set('ParentsID', ParentsID)
     if (StarID) qs.set('StarID', StarID)
 
-    navigate(`/admindata/purchase/info?${qs.toString()}`, {
+    navigate(`/admindata/membership/purchase/info?${qs.toString()}`, {
       state: {
         invoice: clickedRow._raw, // ✅ full object
       },

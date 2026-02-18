@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../../config'
-import '../../scss/toast.css'
-import { checkLogin } from '../../utils/auth'
-import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
+import { API_BASE_URL } from '../../../config'
+import '../../../scss/toast.css'
+import { checkLogin } from '../../../utils/auth'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 
 const ProductListWithPagination = () => {
   const [products, setProducts] = useState([])
@@ -137,7 +137,7 @@ const ProductListWithPagination = () => {
       </div>
 
       <div className="page-title">
-        <button onClick={() => navigate('/admindata/products/new')} className="add-product-button">
+        <button onClick={() => navigate('/admindata/membership/products/new')} className="add-product-button">
           New Card
         </button>
       </div>
@@ -222,7 +222,7 @@ const ProductListWithPagination = () => {
                 <button
                   className="btn btnbtn-default graybox"
                   style={{ padding: '2px', cursor: 'pointer' }}
-                  onClick={() => navigate(`/admindata/products/modify?ProductID=${p.ProductID}`)}
+                  onClick={() => navigate(`/admindata/membership/products/modify?ProductID=${p.ProductID}`)}
                   title="Edit"
                   aria-label="Edit"
                 >

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../../config'
-import '../../scss/toast.css'
-import { checkLogin } from '../../utils/auth'
-import { DspToastMessage, formatDate, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
+import { API_BASE_URL } from '../../../config'
+import '../../../scss/toast.css'
+import { checkLogin } from '../../../utils/auth'
+import { DspToastMessage, formatDate, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 
 const InvoiceInfo = () => {
   const navigate = useNavigate()
@@ -36,17 +36,15 @@ const InvoiceInfo = () => {
   const invoiceFromState = useMemo(() => location?.state?.invoice || null, [location?.state])
 
   // ✅ URL fallback (for refresh/direct open)
-  // ✅ ADDED: PaymentID (direct open)
   const urlParams = useMemo(() => {
     try {
       const sp = new URLSearchParams(location.search || '')
       return {
         ParentsID: (sp.get('ParentsID') || '').toString().trim(),
         StarID: (sp.get('StarID') || '').toString().trim(),
-        PaymentID: (sp.get('PaymentID') || '').toString().trim(),
       }
     } catch {
-      return { ParentsID: '', StarID: '', PaymentID: '' }
+      return { ParentsID: '', StarID: '' }
     }
   }, [location.search])
 
@@ -117,6 +115,8 @@ const InvoiceInfo = () => {
   }
 
   const info = useMemo(() => {
+    if (!invoice) return null
+
     const reg = invoice?.RegInfo || null
     const prod = invoice?.ProductInfo || null
 
@@ -136,12 +136,7 @@ const InvoiceInfo = () => {
     // ✅ "Star Valid means Active" => highlight when valid in date range (or StarIsActive true if no dates)
     const isStarValidActive = isValidRange || (starIsActiveBool && !validFrom && !validTo)
 
-    // ✅ PaymentID priority:
-    // 1) URL PaymentID (direct open)
-    // 2) invoice.PayPaymentID
-    const payPaymentId =
-      safe(urlParams?.PaymentID) !== '-' ? safe(urlParams?.PaymentID) : safe(invoice?.PayPaymentID)
-
+    const payPaymentId = safe(invoice?.PayPaymentID)
     const invoiceUrl =
       payPaymentId && payPaymentId !== '-'
         ? `https://sa.myfatoorah.com/Ar/SAU/PayInvoice/Result?paymentId=${encodeURIComponent(
@@ -149,43 +144,12 @@ const InvoiceInfo = () => {
           )}`
         : ''
 
-    // ✅ If invoice missing, still allow showing Payment section with button (if PaymentID exists)
-    if (!invoice) {
-      return {
-        isStarValidActive: false,
-        invoiceUrl,
-
-        PayRefNo: '-',
-        PayInvoiceID: '-',
-        PayPaymentID: payPaymentId,
-        PurchaseDate: '-',
-
-        TotalStar: 0,
-        TotalStarAmount: 0,
-
-        RegUserFullName: '-',
-        RegUserMobileNo: '-',
-        RegUserEmailAddress: '-',
-
-        ProductName: '-',
-        ProductAmount: '-',
-        ProductTotalStar: '-',
-        IsDataStatus: '-',
-        ProductCreatedDate: '-',
-        ProductModifyDate: '-',
-
-        StarIsActive: 'No',
-        StarValidPeriodFrom: '-',
-        StarValidPeriodTo: '-',
-      }
-    }
-
     return {
       // Flags
       isStarValidActive,
       invoiceUrl,
 
-      // Purchase (keep in info, but we'll hide StarID in UI)
+      // Purchase
       StarID: safe(invoice?.StarID),
       PayRefNo: safe(invoice?.PayRefNo),
       PayInvoiceID: safe(invoice?.PayInvoiceID),
@@ -208,7 +172,7 @@ const InvoiceInfo = () => {
       RegUserMobileNo: safe(reg?.RegUserMobileNo),
       RegUserEmailAddress: safe(reg?.RegUserEmailAddress),
 
-      // ProductInfo (keep in info, but hide ProductImage + ProductID in UI)
+      // ProductInfo
       ProductName: safe(prod?.ProductName),
       ProductAmount: prod?.ProductAmount ?? '-',
       ProductTotalStar: prod?.ProductTotalStar ?? '-',
@@ -218,10 +182,10 @@ const InvoiceInfo = () => {
       ProductCreatedDate: prod?.CreatedDate ? formatDate(prod?.CreatedDate) : '-',
       ProductModifyDate: prod?.ModifyDate ? formatDate(prod?.ModifyDate) : '-',
     }
-  }, [invoice, urlParams?.PaymentID])
+  }, [invoice])
 
   const goBack = () => {
-    navigate('/admindata/purchase/list')
+    navigate('/admindata/membership/purchase/list')
   }
 
   const Section = ({ title, children, highlight = false }) => (
@@ -303,7 +267,6 @@ const InvoiceInfo = () => {
     )
   }
 
-  // ✅ If invoice missing, still show Payment section if PaymentID exists
   if (!invoice || !info) {
     return (
       <div>
@@ -313,31 +276,6 @@ const InvoiceInfo = () => {
           </button>
           <div style={{ fontSize: 18, fontWeight: 800 }}>Invoice Info</div>
         </div>
-
-        <Section title="Payment / Invoice Info">
-          <Row label="Pay Ref No" value={safe(info?.PayRefNo)} />
-          <Row label="Pay Invoice ID" value={safe(info?.PayInvoiceID)} />
-          <Row label="Pay Payment ID" value={safe(info?.PayPaymentID)} />
-          <Row label="Purchase Date" value={safe(info?.PurchaseDate)} />
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-            <button
-              className="admin-buttonv1"
-              onClick={openInvoice}
-              disabled={!info?.invoiceUrl}
-              title={info?.invoiceUrl ? 'Open invoice in MyFatoorah' : 'No PaymentID found'}
-              style={{
-                border: '2px solid #1aa34a',
-                background: 'rgba(26,163,74,0.5)',
-                color: '#0b3d1f',
-                fontWeight: 900,
-                opacity: info?.invoiceUrl ? 1 : 0.6,
-              }}
-            >
-              View Invoice
-            </button>
-          </div>
-        </Section>
 
         <div
           style={{
@@ -434,14 +372,13 @@ const InvoiceInfo = () => {
         <Row label="Product Name" value={info.ProductName} />
         <Row label="Product Amount" value={String(info.ProductAmount)} />
         <Row label="Product Total Star" value={String(info.ProductTotalStar)} />
-        {/* ✅ REMOVED FROM UI: Product Image */}
+        <Row label="Product Image" value={info.ProductImage} />
         <Row label="Is Data Status" value={info.IsDataStatus} />
         <Row label="Product Created Date" value={info.ProductCreatedDate} />
         <Row label="Product Modify Date" value={info.ProductModifyDate} />
-        {/* ✅ REMOVED FROM UI: ProductID */}
+        <Row label="ProductID" value={info.ProductID} />
       </Section>
 
-      {/* ✅ RESTORED: all payment info rows + button */}
       <Section title="Payment / Invoice Info">
         <Row label="Pay Ref No" value={info.PayRefNo} />
         <Row label="Pay Invoice ID" value={info.PayInvoiceID} />
@@ -453,12 +390,12 @@ const InvoiceInfo = () => {
             className="admin-buttonv1"
             onClick={openInvoice}
             disabled={!info.invoiceUrl}
-            title={info.invoiceUrl ? 'Open invoice in MyFatoorah' : 'No PayPaymentID found for this record'}
+            title={
+              info.invoiceUrl
+                ? 'Open invoice in MyFatoorah'
+                : 'No PayPaymentID found for this record'
+            }
             style={{
-              border: '2px solid #1aa34a',
-              background: 'rgba(26,163,74,0.5)',
-              color: '#0b3d1f',
-              fontWeight: 900,
               opacity: info.invoiceUrl ? 1 : 0.6,
             }}
           >
@@ -469,13 +406,15 @@ const InvoiceInfo = () => {
 
       {/* ✅ Highlight green when "Star Valid means Active" */}
       <Section title="Star Card Info" highlight={info.isStarValidActive}>
-        {/* ✅ REMOVED FROM UI: StarID */}
+        <Row label="StarID" value={info.StarID} />
         <Row label="Total Stars" value={String(info.TotalStar)} />
         <Row label="Total Amount" value={String(info.TotalStarAmount)} />
         <Row label="Active" value={info.StarIsActive} />
         <Row label="Valid From" value={info.StarValidPeriodFrom} />
         <Row label="Valid To" value={info.StarValidPeriodTo} />
       </Section>
+
+      {/* ✅ REMOVED: Audit section */}
 
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>

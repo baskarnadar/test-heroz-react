@@ -1,3 +1,5 @@
+
+//routeAdmin.js
 import React from 'react'
 
 // Core
@@ -48,9 +50,9 @@ const parentinfoView = React.lazy(() => import('./admindata/schoolmgm/parentinfo
 // Trips
 // =======================
 const adminschTripProposalCraeted = React.lazy(() => import('./admindata/activityinfo/trip/list'))
-const adminschTripView = React.lazy(() => import('./admindata/activityinfo/trip/view'))
-const Triptripdata = React.lazy(() => import('./admindata/trip/tripdata'))
-const adminTripPayInfo = React.lazy(() => import('./admindata/activityinfo/trippayinfo/view'))
+ const adminschTripView = React.lazy(() => import('./admindata/activityinfo/trip/view'))
+ const Triptripdata = React.lazy(() => import('./admindata/trip/tripdata'))
+ const adminTripPayInfo = React.lazy(() => import('./admindata/activityinfo/trippayinfo/view'))
 
 // =======================
 // Vendor
@@ -70,27 +72,27 @@ const vendorstaffinfoView = React.lazy(() => import('./admindata/vendor/staffinf
 // =======================
 // Products
 // =======================
-const ProductList = React.lazy(() => import('./admindata/products/list'))
-const ProductNew = React.lazy(() => import('./admindata/products/new'))
-const ProductModify = React.lazy(() => import('./admindata/products/modify'))
+const ProductList = React.lazy(() => import('./admindata/membership/products/list'))
+const ProductNew = React.lazy(() => import('./admindata/membership/products/new'))
+const ProductModify = React.lazy(() => import('./admindata/membership/products/modify'))
 
 // =======================
 // Purchase Management ✅ NEW
 // =======================
-const PurchaseList = React.lazy(() => import('./admindata/purchase/list'))
-const PurchaseInfo = React.lazy(() => import('./admindata/purchase/info')) // ✅ NEW
+const PurchaseList = React.lazy(() => import('./admindata/membership/purchase/list'))
+const PurchaseInfo = React.lazy(() => import('./admindata/membership/purchase/info')) // ✅ NEW
 
 // =======================
 // Booking Management ✅ NEW
 // =======================
-const BookingList = React.lazy(() => import('./admindata/booking/list')) // ✅ NEW
+const BookingList = React.lazy(() => import('./admindata/membership/booking/list')) // ✅ NEW
 
 // =======================
 // Membership Activity
 // =======================
-const adminMembershipActivityList = React.lazy(() => import('./admindata/activityinfo/membership/list'))
-const adminMembershipActivityModify = React.lazy(() => import('./admindata/activityinfo/membership/modify'))
-const adminMembershipActivityView = React.lazy(() => import('./admindata/activityinfo/membership/view'))
+ const adminMembershipActivityList = React.lazy(() => import('./admindata/membership/members/list'))
+ const adminMembershipActivityModify = React.lazy(() => import('./admindata/membership/members/modify'))
+ const adminMembershipActivityView = React.lazy(() => import('./admindata/membership/members/view'))
 
 // =======================
 // Badge
@@ -156,9 +158,9 @@ const PushSendList = React.lazy(() => import('./admindata/push/send'))
 // =======================
 // Admin Activity
 // =======================
-const adminDataActivityView = React.lazy(() => import('./admindata/activityinfo/activity/view'))
-const adminDataActivityList = React.lazy(() => import('./admindata/activityinfo/activity/list'))
-const adminDataActivityModify = React.lazy(() => import('./admindata/activityinfo/activity/modify'))
+ const adminDataActivityView = React.lazy(() => import('./admindata/activityinfo/activity/view'))
+ const adminDataActivityList = React.lazy(() => import('./admindata/activityinfo/activity/list'))
+ const adminDataActivityModify = React.lazy(() => import('./admindata/activityinfo/activity/modify'))
 
 // Parents (frontend)
 const parentsList = React.lazy(() => import('./views/parents/list'))
@@ -201,20 +203,20 @@ const routes = [
   { path: '/admindata/schoolmgm/parentinfo/view', element: parentinfoView },
 
   // Trips
-  { path: '/admindata/activityinfo/trip/list', element: adminschTripProposalCraeted },
-  { path: '/admindata/activityinfo/trip/view', element: adminschTripView },
+  { path: '/admindata/membership/trip/list', element: adminschTripProposalCraeted },
+  { path: '/admindata/membership/trip/view', element: adminschTripView },
   { path: '/trip/tripdata', element: Triptripdata },
-  { path: '/admindata/activityinfo/trippayinfo/view', element: adminTripPayInfo },
+  { path: '/admindata/membership/trippayinfo/view', element: adminTripPayInfo },
 
   // Admin Activity
-  { path: '/admindata/activityinfo/activity/list', element: adminDataActivityList },
-  { path: '/admindata/activityinfo/activity/modify', element: adminDataActivityModify },
-  { path: '/admindata/activityinfo/activity/view', element: adminDataActivityView },
+  { path: '/admindata/membership/activity/list', element: adminDataActivityList },
+  { path: '/admindata/membership/activity/modify', element: adminDataActivityModify },
+  { path: '/admindata/membership/activity/view', element: adminDataActivityView },
 
   // Membership Activity
-  { path: '/admindata/activityinfo/membership/list', element: adminMembershipActivityList },
-  { path: '/admindata/activityinfo/membership/modify', element: adminMembershipActivityModify },
-  { path: '/admindata/activityinfo/membership/view', element: adminMembershipActivityView },
+  { path: '/admindata/membership/members/list', element: adminMembershipActivityList },
+  { path: '/admindata/membership/members/modify', element: adminMembershipActivityModify },
+  { path: '/admindata/membership/members/view', element: adminMembershipActivityView },
 
   // Vendor
   { path: '/admindata/vendor/list', element: vendorList },
@@ -229,12 +231,7 @@ const routes = [
   { path: '/admindata/vendor/staffinfo/modify', element: vendorstaffinfoModify },
   { path: '/admindata/vendor/staffinfo/view', element: vendorstaffinfoView },
 
-  // Badge
-  { path: '/admindata/badge/list', element: BadgeList },
-  { path: '/admindata/badge/new', element: BadgeNew },
-  { path: '/admindata/badge/modify', element: BadgeModify },
-  { path: '/admindata/badge/view', element: BadgeView },
-
+ 
   // Push / Notes / Links
   { path: '/admindata/push/send', element: PushSendList },
   { path: '/admindata/note/list', element: NoteList },
@@ -248,15 +245,15 @@ const routes = [
   { path: '/admindata/agree/modify', element: AgreementList },
 
   // ✅ Purchase Management
-  { path: '/admindata/purchase/list', element: PurchaseList },
+  { path: '/admindata/membership/purchase/list', element: PurchaseList },
 
   // ✅ Purchase Info (NEW ROUTE)
   // Example:
-  // http://localhost:3001/admindata/purchase/info?ParentsID=0c22e0fbbb7346898bfaf3ea7
-  { path: '/admindata/purchase/info', element: PurchaseInfo },
+  // http://localhost:3001/admindata/membership/purchase/info?ParentsID=0c22e0fbbb7346898bfaf3ea7
+  { path: '/admindata/membership/purchase/info', element: PurchaseInfo },
 
   // ✅ Booking Management (NEW ROUTE)
-  { path: '/admindata/booking/list', element: BookingList }, // ✅ NEW
+  { path: '/admindata/membership/booking/list', element: BookingList }, // ✅ NEW
 
   // LookupData (real paths)
   { path: '/admindata/lookupdata/city/list', element: CityList },
@@ -292,9 +289,9 @@ const routes = [
   { path: '/admindata/subadmin/modify', element: UserModify },
 
   // Products
-  { path: '/admindata/products/list', element: ProductList },
-  { path: '/admindata/products/new', element: ProductNew },
-  { path: '/admindata/products/modify', element: ProductModify },
+  { path: '/admindata/membership/products/list', element: ProductList },
+  { path: '/admindata/membership/products/new', element: ProductNew },
+  { path: '/admindata/membership/products/modify', element: ProductModify },
 
   // Menu / Rights
   { path: '/mainmenu/list', element: MainMenuList },

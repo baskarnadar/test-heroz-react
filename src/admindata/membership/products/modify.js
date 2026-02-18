@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../../config'
-import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
-import { checkLogin } from '../../utils/auth'
-import '../../scss/toast.css'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { API_BASE_URL } from '../../../config'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
+import { checkLogin } from '../../../utils/auth'
+import '../../../scss/toast.css'
 
-const ProductNew = () => {
+const ProductModify = () => {
   const navigate = useNavigate()
+  const ProductID = new URLSearchParams(useLocation().search).get('ProductID')
 
   const [ProductName, setProductName] = useState('')
   const [ProductAmount, setProductAmount] = useState('')
   const [ProductTotalStar, setProductTotalStar] = useState('')
-  const [ProductImage, setProductImage] = useState('bg1.jpg') // ✅ DROPDOWN default
+
+  // ✅ change to dropdown like ProductNew (bg1.jpg -> bg8.jpg)
+  const [ProductImage, setProductImage] = useState('bg1.jpg')
+  const [ProductImageUrl, setProductImageUrl] = useState('') // for preview (from API)
 
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -32,10 +36,54 @@ const ProductNew = () => {
     }
   }, [toastMessage])
 
+  useEffect(() => {
+    const load = async () => {
+      if (!ProductID) return
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/product/productsview`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ ProductID }),
+        })
+
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.message || 'Failed to load')
+
+        const p = data?.data
+        if (p) {
+          setProductName(p.ProductName || '')
+          setProductAmount(String(p.ProductAmount ?? ''))
+          setProductTotalStar(String(p.ProductTotalStar ?? ''))
+
+          // ✅ load dropdown value from DB, fallback bg1.jpg
+          const imgVal = (p.ProductImage || '').trim()
+          setProductImage(imgVal || 'bg1.jpg')
+
+          // ✅ built by API (preview)
+          setProductImageUrl(p.ProductImageUrl || '')
+        }
+      } catch (e) {
+        setToastType('fail')
+        setToastMessage(e?.message || 'Failed to load card')
+      }
+    }
+
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ProductID])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setToastMessage('')
+
+    if (!ProductID) {
+      setToastType('fail')
+      setToastMessage('ProductID missing.')
+      setLoading(false)
+      return
+    }
 
     const amountNum = Number(ProductAmount)
     const starNum = Number(ProductTotalStar)
@@ -48,40 +96,40 @@ const ProductNew = () => {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/product/productsadd`, {
+      const res = await fetch(`${API_BASE_URL}/product/productsmodify`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          ProductID,
           ProductName: ProductName.trim(),
-          ProductAmount: amountNum, // ✅ NUMBER
-          ProductTotalStar: starNum, // ✅ NUMBER
+          ProductAmount: amountNum,
+          ProductTotalStar: starNum,
           ProductImage: (ProductImage || '').trim(), // ✅ DROPDOWN VALUE
-          CreatedBy: 'ADMIN',
+          ModifyBy: 'ADMIN',
         }),
       })
 
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.message || 'Create failed')
+      if (!res.ok) throw new Error(data?.message || 'Update failed')
 
       setToastType('success')
-      setToastMessage('Card created')
-      setTimeout(() => navigate('/admindata/products/list'), 1000)
+      setToastMessage('Card updated')
+      setTimeout(() => navigate('/admindata/membership/products/list'), 1000)
     } catch (e2) {
       setToastType('fail')
-      setToastMessage(e2?.message || 'Create failed')
+      setToastMessage(e2?.message || 'Update failed')
     } finally {
       setLoading(false)
     }
   }
 
-  // ✅ since ProductImage is filename, we can’t preview without base url
-  // so just show selected filename as text
-  const selectedLabel = ProductImage || ''
+  // ✅ preview from API only (since dropdown gives filename)
+  const previewUrl = ProductImageUrl || ''
 
   return (
     <form onSubmit={handleSubmit} className="form-container">
       <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <h3 style={{ margin: 0 }}>New Membership Card</h3>
+        <h3 style={{ margin: 0 }}>Edit Membership Card</h3>
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="admin-buttonv1" disabled={loading}>
@@ -90,7 +138,7 @@ const ProductNew = () => {
           <button
             type="button"
             className="admin-buttonv1"
-            onClick={() => navigate('/admindata/products/list')}
+            onClick={() => navigate('/admindata/membership/products/list')}
             disabled={loading}
           >
             Return
@@ -145,12 +193,20 @@ const ProductNew = () => {
             ))}
           </select>
 
-          {/* ✅ show selected value */}
-          {selectedLabel ? (
-            <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
-              Selected: <b>{selectedLabel}</b>
+          {/* ✅ Show image preview from API (ProductImageUrl) */}
+          {previewUrl ? (
+            <div style={{ marginTop: 10 }}>
+              <img alt="preview" style={{ width: 220, borderRadius: 10 }} src={previewUrl} />
+              <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, wordBreak: 'break-all' }}>
+                <span style={{ opacity: 0.7 }}>ProductImageUrl: </span>
+                <b>{previewUrl}</b>
+              </div>
             </div>
-          ) : null}
+          ) : (
+            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+              Preview will appear after save (API returns <b>ProductImageUrl</b>).
+            </div>
+          )}
         </div>
       </div>
 
@@ -159,4 +215,4 @@ const ProductNew = () => {
   )
 }
 
-export default ProductNew
+export default ProductModify

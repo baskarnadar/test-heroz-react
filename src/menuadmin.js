@@ -77,17 +77,17 @@ const adminmenu = [
       {
         component: CNavItem,
         name: 'Star Cards',
-        to: '/admindata/products/list',
+        to: '/admindata/membership/products/list',
       },
       {
         component: CNavItem,
         name: 'Purchase Management',
-        to: '/admindata/purchase/list',
+        to: '/admindata/membership/purchase/list',
       },
       {
         component: CNavItem,
         name: 'Booking Management',
-        to: '/admindata/booking/list',
+        to: '/admindata/membership/booking/list',
       },
     ],
   },

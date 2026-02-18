@@ -15,10 +15,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../../config'
-import '../../scss/toast.css'
-import { checkLogin } from '../../utils/auth'
-import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../utils/operation'
+import { API_BASE_URL } from '../../../config'
+import '../../../scss/toast.css'
+import { checkLogin } from '../../../utils/auth'
+import { DspToastMessage, getAuthHeaders, IsAdminLoginIsValid } from '../../../utils/operation'
 import { FaEye, FaQrcode, FaTimes } from 'react-icons/fa'
 
 const BookingList = () => {
@@ -523,9 +523,7 @@ const BookingList = () => {
                     </button>
                   </td>
 
-                  <td style={{ textAlign: 'center' }}>
-                   
-                  </td>
+                 
                 </tr>
               ))}
             </tbody>
