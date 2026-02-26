@@ -4,12 +4,10 @@ import { useSearchParams } from "react-router-dom";
 import {
   CCard,
   CCardBody,
-  CCardHeader,
   CRow,
   CCol,
   CSpinner,
   CAlert,
-  CBadge,
   CButton,
   CFormInput,
   CFormSelect,
@@ -103,8 +101,6 @@ const safeUpper = (v) => (v || "").toString().trim().toUpperCase();
 const parseHHMM = (timeStr) => {
   const t = (timeStr || "").trim();
   if (!t) return null;
-
-  // accept "HH:mm" or "HH:mm:ss"
   const parts = t.split(":").map((x) => x.trim());
   if (parts.length < 2) return null;
   const hh = Number.parseInt(parts[0], 10);
@@ -116,7 +112,7 @@ const parseHHMM = (timeStr) => {
 
 const inTimeRange = (rowTime, fromTime, toTime) => {
   const t = parseHHMM(rowTime);
-  if (t == null) return true; // if empty time, don't block records
+  if (t == null) return true;
   const f = parseHHMM(fromTime);
   const to = parseHHMM(toTime);
   if (f == null && to == null) return true;
@@ -129,7 +125,6 @@ const inDateRange = (yyyyMmDd, fromDate, toDate) => {
   const d = (yyyyMmDd || "").trim();
   if (!d) return true;
 
-  // compare as strings "YYYY-MM-DD"
   const f = (fromDate || "").trim();
   const t = (toDate || "").trim();
 
@@ -139,7 +134,6 @@ const inDateRange = (yyyyMmDd, fromDate, toDate) => {
   return true;
 };
 
-// ✅ Amount picker: prefer TotalStarValue, else totalStarValue, else BookingStarPerKids
 const pickAmount = (json) => {
   const a =
     num(json?.TotalStarValue) > 0
@@ -147,8 +141,43 @@ const pickAmount = (json) => {
       : num(json?.totalStarValue) > 0
       ? num(json?.totalStarValue)
       : num(json?.BookingStarPerKids);
-
   return a;
+};
+
+const dateOnly = (val) => {
+  const s = (val ?? "").toString().trim();
+  if (!s) return "";
+  if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return s;
+};
+
+const fmtAmount = (v) => {
+  const n = num(v);
+  try {
+    return new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return n.toFixed(2);
+  }
+};
+
+const dateTimeOneLine = (dateStr, timeStr) => {
+  const d = (dateStr || "").trim();
+  const t = (timeStr || "").trim();
+  if (d && t) return `${d} ${t}`;
+  if (d) return d;
+  if (t) return t;
+  return "-";
 };
 
 function mapItem(json) {
@@ -159,7 +188,6 @@ function mapItem(json) {
     BookingRequestID: toStr(json.BookingRequestID),
     BookingParentsID: toStr(json.BookingParentsID),
     BookingKidsID: toStr(json.BookingKidsID),
-    BookingStarPerKids: json.BookingStarPerKids,
     BookingVendorID: toStr(json.BookingVendorID),
     BookingActivityID: toStr(json.BookingActivityID),
     BookingActivityDate: toStr(json.BookingActivityDate),
@@ -167,16 +195,13 @@ function mapItem(json) {
     BookingDate: toStr(json.BookingDate),
     BookingStatus: toStr(json.BookingStatus),
     BookingStatusName: toStr(json.BookingStatusName),
-    vdrName: toStr(json.vdrName),
 
-    RegUserFullName: toStr(json.RegUserFullName),
-    RegUserEmailAddress: toStr(json.RegUserEmailAddress),
+    // ✅ keep modal data
     RegUserMobileNo: toStr(json.RegUserMobileNo),
 
     KidsName: toStr(json.KidsName),
     actName: toStr(json.actName),
 
-    // ✅ use Amount everywhere (grid + cards + pdf)
     Amount,
   };
 }
@@ -186,7 +211,7 @@ const ActivityRequestList = () => {
 
   // URL: /membership/activity-requests?status=BOOKED
   const statusParamRaw = params.get("status");
-  const bookingStatusFromUrl = safeUpper(statusParamRaw); // "BOOKED" / "COMPLETED" / "ALL" / ""
+  const bookingStatusFromUrl = safeUpper(statusParamRaw);
 
   // ✅ guard
   useEffect(() => {
@@ -204,21 +229,13 @@ const ActivityRequestList = () => {
 
   // data
   const [items, setItems] = useState([]);
-  const [apiSummary, setApiSummary] = useState({
-    page: 1,
-    limit: 10,
-    totalCount: 0,
-    bookedCount: 0,
-    completedCount: 0,
-    statusSummary: [],
-  });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // UI states (filters)
   const [q, setQ] = useState("");
-  const [activityName, setActivityName] = useState(""); // dropdown
+  const [activityName, setActivityName] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [fromTime, setFromTime] = useState("");
@@ -238,12 +255,11 @@ const ActivityRequestList = () => {
         setError(null);
 
         const payload = {
-          BookingVendorID: getCurrentLoggedUserID(), // ✅ vendor
+          BookingVendorID: getCurrentLoggedUserID(),
           page: 1,
           limit: 1000,
         };
 
-        // ✅ optional status filter to backend as well
         if (bookingStatusFromUrl && bookingStatusFromUrl !== "ALL") {
           payload.BookingStatus = bookingStatusFromUrl;
         }
@@ -255,10 +271,6 @@ const ActivityRequestList = () => {
         });
 
         const json = await resp.json();
-
-        console.log("API payload:", payload);
-        console.log("API response:", json);
-
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
         const dataObj = json?.data || {};
@@ -269,21 +281,7 @@ const ActivityRequestList = () => {
           [];
 
         const mapped = listRaw.map(mapItem);
-
-        if (alive) {
-          setItems(mapped);
-          setApiSummary({
-            page: Number.parseInt(dataObj?.page ?? 1, 10) || 1,
-            limit: Number.parseInt(dataObj?.limit ?? 10, 10) || 10,
-            totalCount: Number.parseInt(dataObj?.totalCount ?? 0, 10) || 0,
-            bookedCount: Number.parseInt(dataObj?.bookedCount ?? 0, 10) || 0,
-            completedCount:
-              Number.parseInt(dataObj?.completedCount ?? 0, 10) || 0,
-            statusSummary: Array.isArray(dataObj?.statusSummary)
-              ? dataObj.statusSummary
-              : [],
-          });
-        }
+        if (alive) setItems(mapped);
       } catch (e) {
         if (alive) setError(e?.message || "Failed to load booking list");
       } finally {
@@ -314,66 +312,40 @@ const ActivityRequestList = () => {
         : "";
 
     return items.filter((x) => {
-      // ✅ FORCE filter by URL status
       if (urlStatus) {
         const rowStatus = safeUpper(x.BookingStatusName || x.BookingStatus);
         if (rowStatus !== urlStatus) return false;
       }
 
-      // search box
       if (qq) {
-        const hay = [
-          x.BookingID,
-          x.BookingRequestID,
-          x.actName,
-          x.KidsName,
-          x.RegUserMobileNo,
-          x.RegUserFullName,
-          x.vdrName,
-          x.BookingStatus,
-        ]
+        const hay = [x.BookingID, x.actName, x.KidsName, x.RegUserMobileNo]
           .map((v) => (v || "").toString().toLowerCase())
           .join(" | ");
-
         if (!hay.includes(qq)) return false;
       }
 
-      // activity dropdown
       if (actSel && (x.actName || "").trim() !== actSel) return false;
-
-      // date range
       if (!inDateRange(x.BookingActivityDate, fromDate, toDate)) return false;
-
-      // time range
       if (!inTimeRange(x.BookingActivityTime, fromTime, toTime)) return false;
 
       return true;
     });
-  }, [
-    items,
-    q,
-    activityName,
-    fromDate,
-    toDate,
-    fromTime,
-    toTime,
-    bookingStatusFromUrl,
-  ]);
+  }, [items, q, activityName, fromDate, toDate, fromTime, toTime, bookingStatusFromUrl]);
 
-  // ✅ Cards based on filtered
   const uiSummary = useMemo(() => {
-    const total = filtered.length;
-    const booked = filtered.filter(
-      (x) => safeUpper(x.BookingStatusName || x.BookingStatus) === "BOOKED"
-    ).length;
-    const completed = filtered.filter(
-      (x) => safeUpper(x.BookingStatusName || x.BookingStatus) === "COMPLETED"
-    ).length;
+    const bookedCount =
+      bookingStatusFromUrl === "BOOKED" ||
+      !bookingStatusFromUrl ||
+      bookingStatusFromUrl === "ALL"
+        ? filtered.filter(
+            (x) => safeUpper(x.BookingStatusName || x.BookingStatus) === "BOOKED"
+          ).length
+        : filtered.length;
 
     const totalAmount = filtered.reduce((sum, x) => sum + num(x.Amount), 0);
 
-    return { total, booked, completed, totalAmount };
-  }, [filtered]);
+    return { booked: bookedCount, totalAmount };
+  }, [filtered, bookingStatusFromUrl]);
 
   const resetFilters = () => {
     setQ("");
@@ -400,10 +372,10 @@ const ActivityRequestList = () => {
       <div class="hdr">
         <div class="ttl">${esc(title)}</div>
         <div class="meta">
-          <div><b>${esc(t("report.total", "Total"))}:</b> ${rows.length}</div>
-          <div><b>${esc(
-            t("report.total_amount", "Total Amount")
-          )}:</b> ${rows.reduce((s, r) => s + num(r.Amount), 0).toFixed(2)}</div>
+          <div><b>${esc(t("report.booked", "Booked"))}:</b> ${rows.length}</div>
+          <div><b>${esc(t("report.total_amount", "Total Amount"))}:</b> ${rows
+            .reduce((s, r) => s + num(r.Amount), 0)
+            .toFixed(2)}</div>
           <div class="dt">${esc(now)}</div>
         </div>
       </div>
@@ -413,31 +385,26 @@ const ActivityRequestList = () => {
       <tr>
         <th>#</th>
         <th>${esc(t("grid.booking_id", "BookingID"))}</th>
-        <th>${esc(t("grid.activity_name", "Activity"))}</th>
-        <th>${esc(t("grid.activity_date", "Date"))}</th>
-        <th>${esc(t("grid.activity_time", "Time"))}</th>
-        <th>${esc(t("grid.kid_name", "KidsName"))}</th>
-        <th>${esc(t("grid.mobile", "MobileNo"))}</th>
+        <th>${esc(t("grid.activity_name", "ActName"))}</th>
+        <th>${esc(t("grid.kid_name", "KidName"))}</th>
+        <th>${esc(t("grid.activity_date", "Date/Time"))}</th>
         <th>${esc(t("grid.booking_date", "Created Date"))}</th>
-        <th>${esc(t("grid.status", "Status"))}</th>
-        <th>${esc(t("grid.amount", "Amount"))}</th>
+        <th style="text-align:right">${esc(t("grid.amount", "Amount"))}</th>
       </tr>
     `;
 
     const tbody = rows
       .map((r, idx) => {
+        const dt = dateTimeOneLine(r.BookingActivityDate, r.BookingActivityTime);
         return `
           <tr>
             <td>${idx + 1}</td>
-            <td><b>${esc(r.BookingID || "-")}</b></td>
-            <td>${esc(r.actName)}</td>
-            <td>${esc(r.BookingActivityDate)}</td>
-            <td>${esc(r.BookingActivityTime)}</td>
-            <td>${esc(r.KidsName)}</td>
-            <td>${esc(r.RegUserMobileNo)}</td>
-            <td>${esc(r.BookingDate)}</td>
-            <td>${esc(r.BookingStatusName || r.BookingStatus)}</td>
-            <td style="text-align:right">${num(r.Amount).toFixed(2)}</td>
+            <td>${esc(r.BookingID || "-")}</td>
+            <td>${esc(r.actName || "-")}</td>
+            <td>${esc(r.KidsName || "-")}</td>
+            <td>${esc(dt)}</td>
+            <td>${esc(dateOnly(r.BookingDate) || "-")}</td>
+            <td style="text-align:right">${esc(num(r.Amount).toFixed(2))}</td>
           </tr>
         `;
       })
@@ -449,14 +416,15 @@ const ActivityRequestList = () => {
           <meta charset="utf-8" />
           <title>${esc(title)}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 18px; }
-            .hdr { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px; }
-            .ttl { font-size: 18px; font-weight: 800; }
+            body { font-family: Arial, sans-serif; padding: 14px; }
+            .hdr { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:10px; }
+            .ttl { font-size: 16px; font-weight: 800; }
             .meta { font-size: 12px; text-align:right; color:#333; }
             .meta .dt { margin-top: 4px; color:#666; }
             table { width:100%; border-collapse: collapse; }
-            th, td { border: 1px solid #e6e6e6; padding: 8px; font-size: 12px; }
-            th { background: #f7f7f7; text-align:left; }
+            th, td { border: 1px solid #ededed; padding: 8px; font-size: 12px; }
+            th { background: #ffffff; text-align:left; font-weight:800; }
+            tr:nth-child(even) td { background: #f8fafc; }
             @media print { body { padding: 0; } }
           </style>
         </head>
@@ -478,24 +446,7 @@ const ActivityRequestList = () => {
   };
 
   const exportAllPdf = () => {
-    const html = buildPrintHtml(
-      filtered,
-      t("report.title", "Static Report - Bookings")
-    );
-    const w = window.open("", "_blank", "noopener,noreferrer");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  };
-
-  const exportRowPdf = (row) => {
-    const html = buildPrintHtml(
-      [row],
-      `${t("report.row_title", "Booking")} - ${
-        row.BookingID || row.BookingRequestID || ""
-      }`
-    );
+    const html = buildPrintHtml(filtered, t("report.title", "Activity Requests"));
     const w = window.open("", "_blank", "noopener,noreferrer");
     if (!w) return;
     w.document.open();
@@ -513,133 +464,201 @@ const ActivityRequestList = () => {
       : t("page.title_activity_requests", "Activity Requests");
   }, [bookingStatusFromUrl, t]);
 
+  // ✅ Icon (document/details)
+  const DetailsIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M8 7h8M8 11h8M8 15h5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 3.5h11A2.5 2.5 0 0 1 20 6v12a2.5 2.5 0 0 1-2.5 2.5H9l-4.5-4.5V6A2.5 2.5 0 0 1 6.5 3.5Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid py-3">
+      <style>{`
+        .hrz-topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+        .hrz-title{ font-weight:900; font-size:18px; line-height:1.2; }
+
+        .hrz-chips{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .hrz-chip{
+          display:inline-flex; align-items:center;
+          padding:6px 12px; border-radius:999px;
+          font-size:12px; font-weight:800;
+          border:1px solid rgba(0,0,0,0.08);
+          background: #f7f7fb;
+          white-space: nowrap;
+        }
+        .hrz-chip--green{ background: rgba(25,135,84,0.12); border-color: rgba(25,135,84,0.18); }
+        .hrz-chip--blue{ background: rgba(13,110,253,0.10); border-color: rgba(13,110,253,0.18); }
+
+        .hrz-actions{ display:flex; align-items:center; gap:8px; }
+
+        .hrz-card{
+          border-radius:16px !important;
+          overflow:hidden;
+          border:1px solid rgba(0,0,0,0.08);
+          box-shadow: 0 10px 28px rgba(0,0,0,0.05);
+          background:#fff;
+        }
+
+        .hrz-filters{
+          display:grid;
+          grid-template-columns: 1.2fr 1fr 0.9fr 0.9fr 0.75fr 0.75fr auto;
+          gap:10px;
+          align-items:end;
+          width:100%;
+        }
+        @media (max-width: 1200px){
+          .hrz-filters{ grid-template-columns: 1.1fr 1fr 1fr 1fr 0.8fr 0.8fr auto; }
+        }
+        @media (max-width: 992px){
+          .hrz-filters{ grid-template-columns: 1fr 1fr; }
+        }
+
+        .hrz-label{
+          font-size:11px;
+          margin-bottom:4px;
+          color: rgba(0,0,0,0.60);
+          font-weight:800;
+        }
+        .hrz-input, .hrz-select{
+          border-radius:10px !important;
+          height:36px;
+          font-weight:400 !important;
+        }
+        .hrz-resetbtn{
+          border-radius:10px !important;
+          height:36px;
+          white-space: nowrap;
+        }
+
+        .hrz-table{
+          border-radius:14px;
+          overflow:hidden;
+          margin-bottom:0;
+          border: 1px solid rgba(0,0,0,0.08);
+        }
+        .hrz-table thead th{
+          background:#ffffff;
+          font-size:12px;
+          font-weight:900;
+          color: rgba(0,0,0,0.72);
+          border-bottom: 1px solid rgba(0,0,0,0.10) !important;
+          white-space: nowrap;
+          padding: 10px 12px;
+        }
+        .hrz-table tbody td{
+          border-top: 1px solid rgba(0,0,0,0.06);
+          padding: 10px 12px;
+          vertical-align: middle;
+          font-weight:400 !important;
+          line-height: 1.2;
+        }
+        .hrz-table tbody tr:nth-child(odd) td{ background:#ffffff; }
+        .hrz-table tbody tr:nth-child(even) td{ background:#f8fafc; }
+
+        .hrz-serial{
+          width:26px; height:26px;
+          border-radius:999px;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          font-size:12px;
+          border: 1px solid rgba(0,0,0,0.10);
+          background: rgba(0,0,0,0.03);
+          color: rgba(0,0,0,0.70);
+        }
+
+        .hrz-iconBtn{
+          width:34px; height:34px;
+          border-radius:10px !important;
+          padding:0 !important;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          border:1px solid rgba(13,110,253,0.35) !important;
+          color: rgba(13,110,253,0.95) !important;
+          background: rgba(13,110,253,0.08) !important;
+        }
+        .hrz-iconBtn:hover{ background: rgba(13,110,253,0.12) !important; }
+
+        .hrz-dtline{ white-space: nowrap; font-weight:400; }
+
+        .hrz-idBadge{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-weight: 900;
+          font-size: 12px;
+          border: 1px solid rgba(13,110,253,0.25);
+          background: rgba(13,110,253,0.10);
+          color: rgba(13,110,253,0.95);
+        }
+        .hrz-modalHeaderBox{
+          border-radius: 14px;
+          background: linear-gradient(135deg, rgba(13,110,253,0.10), rgba(0,0,0,0.00));
+        }
+      `}</style>
+
       <CRow className="justify-content-center">
         <CCol xs={12} xl={11}>
-          {/* Header */}
-          <div className="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
-            <div>
-              <div className="fw-bold" style={{ fontSize: 18 }}>
-                {pageTitle}
-              </div>
+          {/* Top row */}
+          <div className="hrz-topbar">
+            <div className="d-flex align-items-center gap-3 flex-wrap">
+              <div className="hrz-title">{pageTitle}</div>
 
-              {/* ✅ REMOVED:
-                  - Search, filter, and export booking report.
-                  - API total: X · Grid total: Y
-               */}
+              <div className="hrz-chips">
+                <span className="hrz-chip hrz-chip--green">
+                  {t("report.booked", "Booked")}: {uiSummary.booked}
+                </span>
+                <span className="hrz-chip hrz-chip--blue">
+                  {t("report.total_amount", "Total Amount")}: {fmtAmount(uiSummary.totalAmount)}
+                </span>
+              </div>
             </div>
 
-            <div className="d-flex align-items-center gap-2">
-              <CButton color="dark" variant="outline" onClick={exportAllPdf}>
+            <div className="hrz-actions">
+              <CButton
+                color="dark"
+                variant="outline"
+                size="sm"
+                style={{ borderRadius: 10, height: 34 }}
+                onClick={exportAllPdf}
+              >
                 📄 {t("actions.export_pdf", "Export PDF")}
               </CButton>
-              <CBadge color="secondary" shape="rounded-pill">
-                {uiSummary.total}
-              </CBadge>
             </div>
           </div>
 
-          {/* Cards */}
-          <CRow className="g-3 mb-3">
-            <CCol xs={12} md={6} xl={3}>
-              <CCard className="shadow-sm h-100" style={{ borderRadius: 14 }}>
-                <CCardBody>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
-                    {t("report.total", "Total")}
-                  </div>
-                  <div className="fw-bold" style={{ fontSize: 22 }}>
-                    {uiSummary.total}
-                  </div>
-                </CCardBody>
-              </CCard>
-            </CCol>
-
-            <CCol xs={12} md={6} xl={3}>
-              <CCard className="shadow-sm h-100" style={{ borderRadius: 14 }}>
-                <CCardBody>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
-                    {t("report.booked", "Booked")}
-                  </div>
-                  <div className="fw-bold" style={{ fontSize: 22 }}>
-                    {uiSummary.booked}
-                  </div>
-                </CCardBody>
-              </CCard>
-            </CCol>
-
-            <CCol xs={12} md={6} xl={3}>
-              <CCard className="shadow-sm h-100" style={{ borderRadius: 14 }}>
-                <CCardBody>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
-                    {t("report.completed", "Completed")}
-                  </div>
-                  <div className="fw-bold" style={{ fontSize: 22 }}>
-                    {uiSummary.completed}
-                  </div>
-                </CCardBody>
-              </CCard>
-            </CCol>
-
-            <CCol xs={12} md={6} xl={3}>
-              <CCard className="shadow-sm h-100" style={{ borderRadius: 14 }}>
-                <CCardBody>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
-                    {t("report.total_amount", "Total Amount")}
-                  </div>
-                  <div className="fw-bold" style={{ fontSize: 22 }}>
-                    {uiSummary.totalAmount.toFixed(2)}
-                  </div>
-                  <div className="text-muted" style={{ fontSize: 11 }}>
-                    {t("report.filtered_note", "Based on current filters")}
-                  </div>
-                </CCardBody>
-              </CCard>
-            </CCol>
-          </CRow>
-
           {/* Filters */}
-          <CCard className="shadow-sm mb-3" style={{ borderRadius: 14 }}>
-            <CCardHeader
-              className="bg-white"
-              style={{ borderTopLeftRadius: 14, borderTopRightRadius: 14 }}
-            >
-              <div className="d-flex align-items-center justify-content-between">
-                <div className="fw-bold">{t("filters.title", "Filters")}</div>
-                <div className="d-flex gap-2">
-                  <CButton
-                    color="secondary"
-                    variant="outline"
-                    size="sm"
-                    onClick={resetFilters}
-                  >
-                    ↩ {t("actions.reset", "Reset")}
-                  </CButton>
-                </div>
-              </div>
-            </CCardHeader>
-
-            <CCardBody>
-              <CRow className="g-3 align-items-end">
-                <CCol xs={12} md={6} xl={3}>
-                  <CFormLabel className="text-muted" style={{ fontSize: 12 }}>
-                    {t("filters.search", "Search")}
-                  </CFormLabel>
+          <CCard className="hrz-card mb-3">
+            <CCardBody className="py-2">
+              <div className="hrz-filters">
+                <div>
+                  <div className="hrz-label">{t("filters.search", "Search")}</div>
                   <CFormInput
-                    placeholder={t(
-                      "filters.search_ph",
-                      "Search by activity, kid, mobile, booking id..."
-                    )}
+                    className="hrz-input"
+                    placeholder={t("filters.search_ph", "Search...")}
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
-                </CCol>
+                </div>
 
-                <CCol xs={12} md={6} xl={3}>
-                  <CFormLabel className="text-muted" style={{ fontSize: 12 }}>
-                    {t("filters.activity_name", "Activity Name")}
-                  </CFormLabel>
+                <div>
+                  <div className="hrz-label">{t("filters.activity_name", "Activity")}</div>
                   <CFormSelect
+                    className="hrz-select"
                     value={activityName}
                     onChange={(e) => setActivityName(e.target.value)}
                   >
@@ -650,73 +669,68 @@ const ActivityRequestList = () => {
                       </option>
                     ))}
                   </CFormSelect>
-                </CCol>
+                </div>
 
-                <CCol xs={12} md={6} xl={2}>
-                  <CFormLabel className="text-muted" style={{ fontSize: 12 }}>
-                    {t("filters.from_date", "From Date")}
-                  </CFormLabel>
+                <div>
+                  <div className="hrz-label">{t("filters.from_date", "From")}</div>
                   <CFormInput
+                    className="hrz-input"
                     type="date"
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
                   />
-                </CCol>
+                </div>
 
-                <CCol xs={12} md={6} xl={2}>
-                  <CFormLabel className="text-muted" style={{ fontSize: 12 }}>
-                    {t("filters.to_date", "To Date")}
-                  </CFormLabel>
+                <div>
+                  <div className="hrz-label">{t("filters.to_date", "To")}</div>
                   <CFormInput
+                    className="hrz-input"
                     type="date"
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
                   />
-                </CCol>
+                </div>
 
-                <CCol xs={12} md={6} xl={1}>
-                  <CFormLabel className="text-muted" style={{ fontSize: 12 }}>
-                    {t("filters.from_time", "From Time")}
-                  </CFormLabel>
+                <div>
+                  <div className="hrz-label">{t("filters.from_time", "From")}</div>
                   <CFormInput
+                    className="hrz-input"
                     type="time"
                     value={fromTime}
                     onChange={(e) => setFromTime(e.target.value)}
                   />
-                </CCol>
+                </div>
 
-                <CCol xs={12} md={6} xl={1}>
-                  <CFormLabel className="text-muted" style={{ fontSize: 12 }}>
-                    {t("filters.to_time", "To Time")}
-                  </CFormLabel>
+                <div>
+                  <div className="hrz-label">{t("filters.to_time", "To")}</div>
                   <CFormInput
+                    className="hrz-input"
                     type="time"
                     value={toTime}
                     onChange={(e) => setToTime(e.target.value)}
                   />
-                </CCol>
-              </CRow>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <CButton
+                    color="secondary"
+                    variant="outline"
+                    size="sm"
+                    className="hrz-resetbtn"
+                    onClick={resetFilters}
+                  >
+                    Reset
+                  </CButton>
+                </div>
+              </div>
             </CCardBody>
           </CCard>
 
           {/* Grid */}
-          <CCard className="shadow-sm" style={{ borderRadius: 14 }}>
-            <CCardHeader
-              className="bg-white"
-              style={{ borderTopLeftRadius: 14, borderTopRightRadius: 14 }}
-            >
-              <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div className="fw-bold">{t("grid.title", "Bookings Grid")}</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  {t("grid.showing", "Showing")} <b>{filtered.length}</b>{" "}
-                  {t("grid.records", "records")}
-                </div>
-              </div>
-            </CCardHeader>
-
-            <CCardBody>
+          <CCard className="hrz-card">
+            <CCardBody className="pt-2">
               {loading && (
-                <div className="text-center py-5">
+                <div className="text-center py-4">
                   <CSpinner />
                 </div>
               )}
@@ -724,59 +738,39 @@ const ActivityRequestList = () => {
               {!loading && error && <CAlert color="danger">{error}</CAlert>}
 
               {!loading && !error && filtered.length === 0 && (
-                <div className="text-center text-muted py-4 fw-bold">
+                <div className="text-center text-muted py-4">
                   {t("list.no_activity_found", "No activity requests found")}
                 </div>
               )}
 
               {!loading && !error && filtered.length > 0 && (
                 <div className="table-responsive">
-                  <CTable hover className="align-middle" style={{ minWidth: 1200 }}>
+                  <CTable hover className="align-middle hrz-table" style={{ minWidth: 980 }}>
                     <CTableHead>
                       <CTableRow>
-                        <CTableHeaderCell scope="col">#</CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
+                        <CTableHeaderCell scope="col" style={{ width: 60 }}>
+                          #
+                        </CTableHeaderCell>
+                        <CTableHeaderCell scope="col" style={{ width: 140 }}>
                           {t("grid.booking_id", "BookingID")}
                         </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
-                          {t("grid.activity_name", "actName")}
+                        <CTableHeaderCell scope="col" style={{ width: 220 }}>
+                          {t("grid.activity_name", "ActName")}
                         </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
-                          {t("grid.activity_date", "Date")}
+                        <CTableHeaderCell scope="col" style={{ width: 220 }}>
+                          {t("grid.kid_name", "KidName")}
                         </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
-                          {t("grid.activity_time", "Time")}
+                        <CTableHeaderCell scope="col" style={{ width: 200 }}>
+                          {t("grid.activity_date", "Date / Time")}
                         </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
-                          {t("grid.kid_name", "KidsName")}
-                        </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
-                          {t("grid.mobile", "MobileNo")}
-                        </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
+                        <CTableHeaderCell scope="col" style={{ width: 150 }}>
                           {t("grid.booking_date", "Created Date")}
                         </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col">
-                          {t("grid.status", "Status")}
-                        </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col" className="text-end">
+                        <CTableHeaderCell scope="col" className="text-end" style={{ width: 140 }}>
                           {t("grid.amount", "Amount")}
                         </CTableHeaderCell>
-
-                        <CTableHeaderCell scope="col" className="text-center">
-                          👁️
-                        </CTableHeaderCell>
-                        <CTableHeaderCell scope="col" className="text-center">
-                          📄
+                        <CTableHeaderCell scope="col" className="text-center" style={{ width: 90 }}>
+                          {t("grid.actions", "Actions")}
                         </CTableHeaderCell>
                       </CTableRow>
                     </CTableHead>
@@ -784,43 +778,34 @@ const ActivityRequestList = () => {
                     <CTableBody>
                       {filtered.map((r, idx) => (
                         <CTableRow key={r.BookingID || r.BookingRequestID || idx}>
-                          <CTableDataCell>{idx + 1}</CTableDataCell>
-                          <CTableDataCell className="fw-bold">{r.BookingID || "-"}</CTableDataCell>
                           <CTableDataCell>
-                            <div className="fw-semibold">{(r.actName || "-").trim()}</div>
+                            <span className="hrz-serial">{idx + 1}</span>
                           </CTableDataCell>
-                          <CTableDataCell>{r.BookingActivityDate || "-"}</CTableDataCell>
-                          <CTableDataCell>{r.BookingActivityTime || "-"}</CTableDataCell>
-                          <CTableDataCell>{r.KidsName || "-"}</CTableDataCell>
-                          <CTableDataCell>{r.RegUserMobileNo || "-"}</CTableDataCell>
-                          <CTableDataCell>{r.BookingDate || "-"}</CTableDataCell>
-                          <CTableDataCell>{r.BookingStatusName || r.BookingStatus || "-"}</CTableDataCell>
-                          <CTableDataCell className="text-end fw-bold">{num(r.Amount).toFixed(2)}</CTableDataCell>
 
-                          <CTableDataCell className="text-center">
-                            <CButton
-                              color="dark"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setViewRow(r);
-                                setViewOpen(true);
-                              }}
-                              title={t("actions.view", "View")}
-                            >
-                              👁️
-                            </CButton>
+                          <CTableDataCell>{r.BookingID || "-"}</CTableDataCell>
+                          <CTableDataCell>{(r.actName || "-").trim()}</CTableDataCell>
+                          <CTableDataCell>{r.KidsName || "-"}</CTableDataCell>
+
+                          <CTableDataCell className="hrz-dtline">
+                            {dateTimeOneLine(r.BookingActivityDate, r.BookingActivityTime)}
                           </CTableDataCell>
+
+                          <CTableDataCell>{dateOnly(r.BookingDate) || "-"}</CTableDataCell>
+                          <CTableDataCell className="text-end">{fmtAmount(r.Amount)}</CTableDataCell>
 
                           <CTableDataCell className="text-center">
                             <CButton
                               color="primary"
                               variant="outline"
                               size="sm"
-                              onClick={() => exportRowPdf(r)}
-                              title={t("actions.pdf", "PDF")}
+                              className="hrz-iconBtn"
+                              onClick={() => {
+                                setViewRow(r);
+                                setViewOpen(true);
+                              }}
+                              title={t("actions.view", "Details")}
                             >
-                              📄
+                              <DetailsIcon />
                             </CButton>
                           </CTableDataCell>
                         </CTableRow>
@@ -837,93 +822,85 @@ const ActivityRequestList = () => {
             <CModalHeader>
               <CModalTitle>{t("modal.details", "Booking Details")}</CModalTitle>
             </CModalHeader>
+
             <CModalBody>
               {!viewRow ? null : (
                 <div className="d-flex flex-column" style={{ gap: 10 }}>
-                  <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
-                    <div className="fw-bold" style={{ fontSize: 16 }}>
-                      {(viewRow.actName || "-").trim()}
-                    </div>
-                    <div className="text-muted" style={{ fontSize: 12 }}>
-                      {t("grid.booking_id", "BookingID")}: <b>{viewRow.BookingID || "-"}</b>
-                      {" · "}
-                      {t("grid.request_id", "BookingRequestID")}: <b>{viewRow.BookingRequestID || "-"}</b>
+                  <div className="p-3 border hrz-modalHeaderBox">
+                    <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                      <div style={{ fontSize: 16, fontWeight: 800 }}>
+                        {(viewRow.actName || "-").trim()}
+                      </div>
+
+                      <div className="hrz-idBadge">
+                        {t("grid.booking_id", "BookingID")}: {viewRow.BookingID || "-"}
+                      </div>
                     </div>
                   </div>
 
-                  <CRow className="g-3">
+                  <CRow className="g-2">
                     <CCol md={6}>
-                      <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
+                      <div className="p-3 border" style={{ borderRadius: 14 }}>
                         <div className="text-muted" style={{ fontSize: 12 }}>
-                          {t("grid.activity_date", "Date")}
+                          {t("grid.activity_date", "Date / Time")}
                         </div>
-                        <div className="fw-bold">{viewRow.BookingActivityDate || "-"}</div>
+                        <div>
+                          {dateTimeOneLine(viewRow.BookingActivityDate, viewRow.BookingActivityTime)}
+                        </div>
                       </div>
                     </CCol>
 
                     <CCol md={6}>
-                      <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
+                      <div className="p-3 border" style={{ borderRadius: 14 }}>
                         <div className="text-muted" style={{ fontSize: 12 }}>
-                          {t("grid.activity_time", "Time")}
+                          {t("grid.kid_name", "KidName")}
                         </div>
-                        <div className="fw-bold">{viewRow.BookingActivityTime || "-"}</div>
+                        <div>{viewRow.KidsName || "-"}</div>
                       </div>
                     </CCol>
 
+                    {/* ✅ NEW: Mobile No in Modal */}
                     <CCol md={6}>
-                      <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
-                        <div className="text-muted" style={{ fontSize: 12 }}>
-                          {t("grid.kid_name", "KidsName")}
-                        </div>
-                        <div className="fw-bold">{viewRow.KidsName || "-"}</div>
-                      </div>
-                    </CCol>
-
-                    <CCol md={6}>
-                      <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
+                      <div className="p-3 border" style={{ borderRadius: 14 }}>
                         <div className="text-muted" style={{ fontSize: 12 }}>
                           {t("grid.mobile", "MobileNo")}
                         </div>
-                        <div className="fw-bold">{viewRow.RegUserMobileNo || "-"}</div>
+                        <div>{viewRow.RegUserMobileNo || "-"}</div>
                       </div>
                     </CCol>
 
                     <CCol md={6}>
-                      <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
+                      <div className="p-3 border" style={{ borderRadius: 14 }}>
                         <div className="text-muted" style={{ fontSize: 12 }}>
                           {t("grid.booking_date", "Created Date")}
                         </div>
-                        <div className="fw-bold">{viewRow.BookingDate || "-"}</div>
+                        <div>{dateOnly(viewRow.BookingDate) || "-"}</div>
                       </div>
                     </CCol>
 
                     <CCol md={6}>
-                      <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
+                      <div className="p-3 border" style={{ borderRadius: 14 }}>
                         <div className="text-muted" style={{ fontSize: 12 }}>
                           {t("grid.amount", "Amount")}
                         </div>
-                        <div className="fw-bold">{num(viewRow.Amount).toFixed(2)}</div>
+                        <div>{fmtAmount(viewRow.Amount)}</div>
                       </div>
                     </CCol>
 
                     <CCol md={12}>
-                      <div className="p-3 border rounded" style={{ borderRadius: 14 }}>
+                      <div className="p-3 border" style={{ borderRadius: 14 }}>
                         <div className="text-muted" style={{ fontSize: 12 }}>
                           {t("grid.status", "Status")}
                         </div>
-                        <div className="fw-bold">
-                          {viewRow.BookingStatusName || viewRow.BookingStatus || "-"}
-                        </div>
+                        <div>{viewRow.BookingStatusName || viewRow.BookingStatus || "-"}</div>
                       </div>
                     </CCol>
                   </CRow>
                 </div>
               )}
             </CModalBody>
+
             <CModalFooter>
-              <CButton color="primary" variant="outline" onClick={() => viewRow && exportRowPdf(viewRow)}>
-                📄 {t("actions.export_pdf", "Export PDF")}
-              </CButton>
               <CButton color="secondary" onClick={() => setViewOpen(false)}>
                 {t("actions.close", "Close")}
               </CButton>
