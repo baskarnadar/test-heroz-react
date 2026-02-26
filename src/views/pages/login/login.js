@@ -108,8 +108,11 @@ const Login = () => {
         if (data.data.usertype == 'ADMIN')
           navigate('/admin/dashboard')
 
-        if (data.data.usertype == 'VENDOR-SUBADMIN')
+        if ((data.data.usertype == 'VENDOR-SUBADMIN'))
           navigate('/vendor/dashboard')
+
+          if (  (data.data.usertype == 'MEMBERSHIP'))
+          navigate('/membership/dashboard')
 
       } else {
         handleLogout()

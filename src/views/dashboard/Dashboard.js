@@ -2,7 +2,7 @@ import React from 'react'
 import classNames from 'classnames'
 import { useNavigate, useLocation } from 'react-router-dom';
 import  { useState, useEffect } from 'react';
-import { checkLogin } from '../../utils/auth';
+ 
 import {
   CAvatar,
   CButton,

@@ -295,14 +295,35 @@ export function getAuthHeadersV1() {
 
 //------------------Vendor user Verification------------------------------------------------
 export function IsVendorLoginIsValid() {
+   
   const token = localStorage.getItem('token');
   const usertype = localStorage.getItem('usertype'); 
 
-  if (!token || isTokenExpired(token) || usertype !== 'VENDOR-SUBADMIN') {
+  if (!token || isTokenExpired(token) || usertype !== 'VENDOR-SUBADMIN'   ) {
     console.warn("Invalid session (token or usertype) — redirecting to login");
 
     localStorage.removeItem('token');
     localStorage.removeItem('usertype');
+
+    window.location.href = BaseURL; 
+    return {}; 
+  }
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+}
+export function IsMemberShipLoginIsValid() {
+  
+  const token = localStorage.getItem('token');
+  const usertype = localStorage.getItem('usertype'); 
+//alert(usertype);
+  if (!token || isTokenExpired(token)    || usertype !== 'MEMBERSHIP') {
+    console.warn("Invalid session (token or usertype) — redirecting to login");
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('usertype');
+
     window.location.href = BaseURL; 
     return {}; 
   }
