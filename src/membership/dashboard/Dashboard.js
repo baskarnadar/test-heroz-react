@@ -112,9 +112,9 @@ const Dashboard = () => {
     const usingHash =
       typeof window !== 'undefined' && window.location.hash.startsWith('#/')
     if (usingHash) {
-      window.location.hash = `#/vendor/activity-requests${query}`
+      window.location.hash = `#/membership/activity-requests${query}`
     } else {
-      navigate(`/vendor/activity-requests${query}`)
+      navigate(`/membership/activity-requests${query}`)
     }
   }
 
