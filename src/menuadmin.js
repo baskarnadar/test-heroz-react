@@ -46,7 +46,7 @@ const adminmenu = [
       {
         component: CNavItem,
         name: 'Activity Management',
-        to: '/admindata/activityinfo/activity/list?activitytype=SCHOOL',
+        to: '/admindata/activityinfo/activity/list',
       },
       {
         component: CNavItem,

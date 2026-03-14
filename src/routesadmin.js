@@ -90,7 +90,9 @@ const BookingList = React.lazy(() => import('./admindata/membership/booking/list
 // Membership Activity
 // =======================
 const adminMembershipActivityList = React.lazy(() => import('./admindata/membership/members/list'))
-const adminMembershipActivityModify = React.lazy(() => import('./admindata/membership/members/modify'))
+const adminMembershipActivityModify = React.lazy(() =>
+  import('./admindata/membership/members/modify')
+)
 const adminMembershipActivityView = React.lazy(() => import('./admindata/membership/members/view'))
 
 // =======================
@@ -207,10 +209,20 @@ const routes = [
   { path: '/trip/tripdata', element: Triptripdata },
   { path: '/admindata/membership/trippayinfo/view', element: adminTripPayInfo },
 
+  // ✅ Trip alias routes for activityinfo URLs
+  { path: '/admindata/activityinfo/trip/list', element: adminschTripProposalCraeted },
+  { path: '/admindata/activityinfo/trip/view', element: adminschTripView },
+  { path: '/admindata/activityinfo/trippayinfo/view', element: adminTripPayInfo },
+
   // Admin Activity
   { path: '/admindata/membership/activity/list', element: adminDataActivityList },
   { path: '/admindata/membership/activity/modify', element: adminDataActivityModify },
   { path: '/admindata/membership/activity/view', element: adminDataActivityView },
+
+  // ✅ Activity alias routes for activityinfo URLs
+  { path: '/admindata/activityinfo/activity/list', element: adminDataActivityList },
+  { path: '/admindata/activityinfo/activity/modify', element: adminDataActivityModify },
+  { path: '/admindata/activityinfo/activity/view', element: adminDataActivityView },
 
   // Membership Activity (REAL)
   { path: '/admindata/membership/members/list', element: adminMembershipActivityList },

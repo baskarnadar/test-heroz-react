@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react'
+// ./admindata/activityinfo/activity/list.js
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { CIcon } from '@coreui/icons-react'
@@ -11,7 +13,7 @@ import {
   getCurrentLoggedUserID,
   dspstatus,
   getAuthHeaders,
-  IsAdminLoginIsValid, // ✅ added here
+  IsAdminLoginIsValid,
 } from '../../../utils/operation'
 import logo from '../../../assets/logo/default.png'
 import moneyv1 from '../../../assets/images/moneyv1.png'
@@ -34,11 +36,11 @@ const ActivityList = () => {
   const [confirmText, setConfirmText] = useState('')
 
   // Order editing state
-  const [orderMap, setOrderMap] = useState({}) // { [ActivityID]: number | '' }
+  const [orderMap, setOrderMap] = useState({})
   const [originalOrderMap, setOriginalOrderMap] = useState({})
   const [savingOrder, setSavingOrder] = useState(false)
 
-  // Page size control (defaults to 10)
+  // Page size control
   const [pageSize, setPageSize] = useState(10)
 
   // Filters
@@ -49,97 +51,113 @@ const ActivityList = () => {
 
   const navigate = useNavigate()
   const location = useLocation()
+  const pathname = (location.pathname || '').toString()
+  const search = (location.search || '').toString()
 
   // ======================================================
-  // ✅ NEW: remember last selected activitytype locally
+  // route purpose
   // ======================================================
-  const ACT_TYPE_STORAGE_KEY = 'heroz_admin_activitytype'
+  const isGenericActivityRoute = useMemo(() => {
+    return pathname === '/admindata/activityinfo/activity/list'
+  }, [pathname])
 
-  const readSavedActivityType = () => {
-    try {
-      const v = (localStorage.getItem(ACT_TYPE_STORAGE_KEY) || '').toString().trim().toLowerCase()
-      if (v === 'membership') return 'MEMBERSHIP'
-      if (v === 'school') return 'SCHOOL'
-      return null
-    } catch {
-      return null
-    }
-  }
+  const isMembershipAliasRoute = useMemo(() => {
+    return pathname === '/admindata/activityinfo/membership/list'
+  }, [pathname])
 
-  const readActivityTypeFromUrl = () => {
-    try {
-      const sp = new URLSearchParams(location.search || '')
-      const v = (sp.get('activitytype') || '').toString().trim().toLowerCase()
-      if (!v) return null
-      if (v === 'membership') return 'MEMBERSHIP'
-      if (v === 'school') return 'SCHOOL'
-      // if you later add more types, you can map them here
-      return null
-    } catch {
-      return null
-    }
-  }
+  const isSchoolAliasRoute = useMemo(() => {
+    return pathname === '/admindata/membership/activity/list'
+  }, [pathname])
 
-  const saveActivityType = (type) => {
-    try {
-      const v = (type || '').toString().trim().toUpperCase()
-      if (v === 'MEMBERSHIP') localStorage.setItem(ACT_TYPE_STORAGE_KEY, 'membership')
-      else if (v === 'SCHOOL') localStorage.setItem(ACT_TYPE_STORAGE_KEY, 'school')
-    } catch {}
-  }
-
-  // ✅ NEW: compute requestedActType:
-  // 1) URL param wins
-  // 2) otherwise localStorage
-  // 3) default SCHOOL
+  // ======================================================
+  // ✅ IMPORTANT UPDATED:
+  // generic route => ALWAYS SCHOOL ONLY
+  // membership alias => MEMBERSHIP
+  // school alias => SCHOOL
+  // no localStorage used anymore for this screen
+  // ======================================================
   const requestedActType = useMemo(() => {
-    const fromUrl = readActivityTypeFromUrl()
-    if (fromUrl) return fromUrl
-
-    const fromSaved = readSavedActivityType()
-    if (fromSaved) return fromSaved
-
+    if (isGenericActivityRoute) return 'SCHOOL'
+    if (isMembershipAliasRoute) return 'MEMBERSHIP'
+    if (isSchoolAliasRoute) return 'SCHOOL'
     return 'SCHOOL'
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search])
+  }, [isGenericActivityRoute, isMembershipAliasRoute, isSchoolAliasRoute])
 
-  // ✅ NEW: when URL has activitytype, save it (one time) for later returns
-  useEffect(() => {
-    const fromUrl = readActivityTypeFromUrl()
-    if (fromUrl) saveActivityType(fromUrl)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search])
+  const normalizeType = (value) => {
+    const t = (value ?? '').toString().trim().toUpperCase()
 
-  // ✅ NEW: row filter based on requestedActType
-  const isRequestedType = (row) => {
-    const t = (row?.actTypeID ?? '').toString().trim().toUpperCase()
-    return t === requestedActType
+    if (!t) return ''
+
+    if (
+      t === 'MEMBERSHIP' ||
+      t === 'MEMBER' ||
+      t === 'MEMBERS' ||
+      t === 'MEMBERSHIPACTIVITY'
+    ) {
+      return 'MEMBERSHIP'
+    }
+
+    if (
+      t === 'SCHOOL' ||
+      t === 'TRIP' ||
+      t === 'ACTIVITY' ||
+      t === 'SCHOOLACTIVITY'
+    ) {
+      return 'SCHOOL'
+    }
+
+    return t
   }
 
-  // ✅ reset page when type changes
+  const getRowType = (row) => {
+    return normalizeType(
+      row?.actTypeID ??
+        row?.ActivityType ??
+        row?.activitytype ??
+        row?.actType ??
+        row?.Type ??
+        row?.type ??
+        '',
+    )
+  }
+
+  const isRequestedType = (row) => {
+    const rowType = getRowType(row)
+    return rowType === requestedActType
+  }
+
+  // reset page when route/type changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [requestedActType])
+  }, [requestedActType, pathname, search])
 
-  // ✅ admin login validation (runs once on mount)
+  // reset filters when route changes
   useEffect(() => {
-    IsAdminLoginIsValid?.() // will redirect to BaseURL if token/usertype invalid
+    setSearchText('')
+    setFilterVendor('')
+    setFilterGender('')
+    setFilterStatus('')
+  }, [pathname])
+
+  // admin login validation
+  useEffect(() => {
+    IsAdminLoginIsValid?.()
   }, [])
 
-  // ---------- tiny logging helpers ----------
+  // ---------- logging helpers ----------
   const logApiRequest = (label, url, payload, headers) => {
     console.groupCollapsed(`🔎 ${label} — Request`)
     console.log('URL:', url)
+    console.log('Pathname:', pathname)
+    console.log('Search:', search)
+    console.log('requestedActType:', requestedActType)
     if (headers) {
       try {
         console.log('Headers:', headers)
       } catch {}
     }
-    if (Array.isArray(payload)) {
-      console.table(payload)
-    } else {
-      console.log('Payload:', payload)
-    }
+    if (Array.isArray(payload)) console.table(payload)
+    else console.log('Payload:', payload)
     console.groupEnd()
   }
 
@@ -150,6 +168,7 @@ const ActivityList = () => {
     try {
       json = JSON.parse(raw)
     } catch {}
+
     console.groupCollapsed(`📨 ${label} — Response`)
     console.log('Status:', resp.status, resp.statusText, 'OK:', resp.ok)
     console.log('URL:', resp.url)
@@ -157,23 +176,10 @@ const ActivityList = () => {
     console.log('Raw:', raw)
     console.log('JSON:', json)
     console.groupEnd()
+
     return { raw, json }
   }
   // ------------------------------------------
-
-  useEffect(() => {
-    fetchActivity()
-    checkLogin(navigate)
-
-    let timer
-    if (toastMessage) {
-      timer = setTimeout(() => setToastMessage(''), 2000)
-    }
-    return () => {
-      if (timer) clearTimeout(timer)
-    }
-    // (no dependency on currentPage here anymore for fetching)
-  }, [pageSize, navigate, toastMessage])
 
   const safeNumFromApi = (v) => {
     if (v === '' || v === null || v === undefined) return ''
@@ -181,7 +187,6 @@ const ActivityList = () => {
     return Number.isFinite(n) ? n : ''
   }
 
-  // Prefer actOrderID from API
   const pickOrderField = (row) =>
     row?.actOrderID ??
     row?.OrderID ??
@@ -195,12 +200,14 @@ const ActivityList = () => {
     row?.orderNo ??
     ''
 
-  const fetchActivity = async () => {
+  const fetchActivity = useCallback(async () => {
     setLoading(true)
-    setError(null)
+    setError('')
+
     try {
       const API = `${API_BASE_URL}/admindata/activityinfo/activity/activityList`
-      const body = {} // ✅ clear pageNo & limit: fetch all, paginate on client
+      const body = {}
+
       logApiRequest('Activity List', API, body, getAuthHeaders())
 
       const resp = await fetch(API, {
@@ -208,6 +215,7 @@ const ActivityList = () => {
         headers: getAuthHeaders(),
         body: JSON.stringify(body),
       })
+
       const { json } = await logApiResponse('Activity List', resp)
 
       if (!resp.ok) {
@@ -215,14 +223,39 @@ const ActivityList = () => {
         throw new Error(message)
       }
 
-      const list = Array.isArray(json?.data) ? json.data : []
+      // support multiple response shapes
+      const list = Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json?.data?.data)
+          ? json.data.data
+          : Array.isArray(json?.result)
+            ? json.result
+            : Array.isArray(json?.items)
+              ? json.items
+              : []
+
+      console.groupCollapsed('🧪 Activity Filter Debug')
+      console.log('Current pathname:', pathname)
+      console.log('Current search:', search)
+      console.log('requestedActType:', requestedActType)
+      console.log('Total rows from API:', list.length)
+      console.table(
+        list.slice(0, 20).map((r) => ({
+          ActivityID: r?.ActivityID,
+          actName: r?.actName,
+          actTypeID: r?.actTypeID,
+          ActivityType: r?.ActivityType,
+          activitytype: r?.activitytype,
+          normalizedType: getRowType(r),
+          vdrName: r?.vdrName,
+          actStatus: r?.actStatus,
+        })),
+      )
+      console.groupEnd()
 
       setActivity(list)
-
-      // initial total pages from full list (will resync to filters below)
       setTotalPages(Math.max(1, Math.ceil(list.length / (pageSize || 1))))
 
-      // Seed order maps from API
       const orig = {}
       const cur = {}
       for (const row of list) {
@@ -237,10 +270,29 @@ const ActivityList = () => {
       setOrderMap(cur)
     } catch (error) {
       setError(error?.message || 'Error fetching activities')
+      setActivity([])
+      setOriginalOrderMap({})
+      setOrderMap({})
     } finally {
       setLoading(false)
     }
-  }
+  }, [pathname, search, requestedActType, pageSize])
+
+  // refetch on route change also
+  useEffect(() => {
+    fetchActivity()
+    checkLogin(navigate)
+  }, [fetchActivity, navigate])
+
+  useEffect(() => {
+    let timer
+    if (toastMessage) {
+      timer = setTimeout(() => setToastMessage(''), 2000)
+    }
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+  }, [toastMessage])
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
 
@@ -257,43 +309,49 @@ const ActivityList = () => {
   // =========================
   const norm = (v) => (v ?? '').toString().toLowerCase().trim()
 
-  // Unique lists from CURRENT JSON page
+  const rowsAfterTypeFilter = useMemo(() => {
+    const result = Activity.filter((row) => isRequestedType(row))
+
+    console.groupCollapsed('🧪 rowsAfterTypeFilter')
+    console.log('requestedActType:', requestedActType)
+    console.log('before type filter:', Activity.length)
+    console.log('after type filter:', result.length)
+    console.groupEnd()
+
+    return result
+  }, [Activity, requestedActType])
+
   const uniqueVendors = useMemo(() => {
     const set = new Set()
-    Activity.forEach((r) => {
-      if (!isRequestedType(r)) return
+    rowsAfterTypeFilter.forEach((r) => {
       const v = (r?.vdrName ?? '').toString().trim()
       if (v) set.add(v)
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [Activity, requestedActType])
+  }, [rowsAfterTypeFilter])
 
   const uniqueGenders = useMemo(() => {
     const set = new Set()
-    Activity.forEach((r) => {
-      if (!isRequestedType(r)) return
+    rowsAfterTypeFilter.forEach((r) => {
       const v = (r?.actGender ?? '').toString().trim()
       if (v) set.add(v)
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [Activity, requestedActType])
+  }, [rowsAfterTypeFilter])
 
   const uniqueStatuses = useMemo(() => {
     const set = new Set()
-    Activity.forEach((r) => {
-      if (!isRequestedType(r)) return
+    rowsAfterTypeFilter.forEach((r) => {
       const v = (r?.actStatus ?? '').toString().trim()
       if (v) set.add(v)
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [Activity, requestedActType])
+  }, [rowsAfterTypeFilter])
 
   const filteredActivity = useMemo(() => {
     const s = norm(searchText)
-    return Activity.filter((row) => {
-      // ✅ ALWAYS filter to requested type first
-      if (!isRequestedType(row)) return false
 
+    const result = rowsAfterTypeFilter.filter((row) => {
       const matchText =
         !s ||
         norm(row?.actName).includes(s) ||
@@ -308,21 +366,35 @@ const ActivityList = () => {
 
       return matchText && matchVendor && matchGender && matchStatus
     })
-  }, [Activity, searchText, filterVendor, filterGender, filterStatus, requestedActType])
 
-  // 🔁 Keep UX snappy: reset to page 1 when filters/pageSize change
+    console.groupCollapsed('🧪 filteredActivity')
+    console.log('rowsAfterTypeFilter:', rowsAfterTypeFilter.length)
+    console.log('searchText:', searchText)
+    console.log('filterVendor:', filterVendor)
+    console.log('filterGender:', filterGender)
+    console.log('filterStatus:', filterStatus)
+    console.log('after all filters:', result.length)
+    console.groupEnd()
+
+    return result
+  }, [
+    rowsAfterTypeFilter,
+    searchText,
+    filterVendor,
+    filterGender,
+    filterStatus,
+  ])
+
   useEffect(() => {
     setCurrentPage(1)
   }, [searchText, filterVendor, filterGender, filterStatus, pageSize])
 
-  // ✅ Client-side total pages based on FILTERED rows
   useEffect(() => {
     const pages = Math.max(1, Math.ceil((filteredActivity.length || 0) / (pageSize || 1)))
     setTotalPages(pages)
-    if (currentPage > pages) setCurrentPage(pages) // clamp if filters shrink pages
+    if (currentPage > pages) setCurrentPage(pages)
   }, [filteredActivity.length, pageSize]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Page range (uses state totalPages)
   const getPageRange = () => {
     const range = []
     const startPage = Math.floor((currentPage - 1) / 5) * 5 + 1
@@ -330,9 +402,9 @@ const ActivityList = () => {
     for (let i = startPage; i <= endPage; i++) range.push(i)
     return range
   }
+
   const pageNumbers = getPageRange()
 
-  // ✅ Slice rows for the current page (client-side pagination)
   const pageRows = useMemo(() => {
     const start = (currentPage - 1) * pageSize
     const end = start + pageSize
@@ -354,6 +426,7 @@ const ActivityList = () => {
         VendorID: VendorIDToDelete,
         DeletedByID: getCurrentLoggedUserID(),
       }
+
       logApiRequest('Delete Activity', API, body, getAuthHeaders())
 
       const resp = await fetch(API, {
@@ -361,6 +434,7 @@ const ActivityList = () => {
         headers: getAuthHeaders(),
         body: JSON.stringify(body),
       })
+
       const { json } = await logApiResponse('Delete Activity', resp)
 
       if (!resp.ok || json?.success === false) {
@@ -379,8 +453,8 @@ const ActivityList = () => {
       setToastMessage(json?.message || 'Activity deleted successfully!')
       setShowDeleteModal(false)
       setConfirmText('')
-      setActivityIDelete?.(null)
-      setVendorIDToDelete?.(null)
+      setActivityIDelete(null)
+      setVendorIDToDelete(null)
       fetchActivity()
     } catch (e) {
       setToastType('fail')
@@ -390,7 +464,6 @@ const ActivityList = () => {
 
   const isConfirmMatch = confirmText.trim() === 'Delete Activity'
 
-  // Order editing helpers
   const onOrderInputChange = (activityId, value) => {
     const v = value === '' ? '' : Number(value)
     setOrderMap((prev) => ({ ...prev, [activityId]: v }))
@@ -398,26 +471,28 @@ const ActivityList = () => {
 
   const changedItems = useMemo(() => {
     const diffs = []
-    for (const row of Activity) {
-      if (!isRequestedType(row)) continue
+    for (const row of rowsAfterTypeFilter) {
       const id = row?.ActivityID || row?.id || row?._id
       if (!id) continue
+
       const before = originalOrderMap[id]
       const after = orderMap[id]
       const beforeIsNum = typeof before === 'number' && Number.isFinite(before)
       const afterIsNum = typeof after === 'number' && Number.isFinite(after)
+
       if (afterIsNum && (!beforeIsNum || before !== after)) {
         diffs.push({ ActivityID: id, OrderID: after })
       }
     }
     return diffs
-  }, [Activity, originalOrderMap, orderMap, requestedActType])
+  }, [rowsAfterTypeFilter, originalOrderMap, orderMap])
 
   const hasChanges = changedItems.length > 0
 
   const handleChangeOrder = async () => {
     if (!hasChanges || savingOrder) return
     setSavingOrder(true)
+
     const API = `${API_BASE_URL}/admindata/activityinfo/activity/changeorder`
     const payload = {
       items: changedItems.map(({ ActivityID, OrderID }) => ({
@@ -434,6 +509,7 @@ const ActivityList = () => {
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       })
+
       const { json } = await logApiResponse('Change Order', resp)
 
       if (!resp.ok || (json && json.success === false)) {
@@ -520,10 +596,10 @@ const ActivityList = () => {
         </div>
       </div>
 
-      {/* Quick stats for filtered results */}
+      {/* Quick stats */}
       <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>
         Showing {pageRows.length} of {filteredActivity.length} filtered record(s) • Total loaded:{' '}
-        {Activity.length}
+        {Activity.length} • Type Filter: {requestedActType}
       </div>
 
       {loading ? (
@@ -537,7 +613,6 @@ const ActivityList = () => {
               <tr>
                 <th style={{ width: 70, textAlign: 'right' }}>#</th>
                 <th style={{ width: 90 }}>Order</th>
-                {/*  <th>#</th>   */}
                 <th>Image</th>
                 <th>Activity Name</th>
                 <th>Vendor Name</th>
@@ -552,7 +627,6 @@ const ActivityList = () => {
               </tr>
             </thead>
             <tbody>
-              {/* ✅ Use pageRows (client-side pagination) */}
               {pageRows.map((row, index) => {
                 const key = row?.ActivityID || row?.id || row?._id || index
                 const activityId = row?.ActivityID || row?.id || row?._id
@@ -562,6 +636,7 @@ const ActivityList = () => {
                 return (
                   <tr key={key}>
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>{serial}</td>
+
                     <td>
                       <input
                         type="number"
@@ -580,15 +655,21 @@ const ActivityList = () => {
                         <img src={logo} alt="logo" style={{ width: '75px' }} />
                       </div>
                     </td>
+
                     <td>{row.actName}</td>
+
                     <td style={{ backgroundColor: 'rgba(158, 227, 158, 0.1)' }}>
                       {row.vdrName || '-'}
                     </td>
-                    <td>{row.actTypeID}</td>
+
+                    <td>{getRowType(row) || '-'}</td>
+
                     <td>
                       {row.EnCityName} {row.actAddress1} {row.actAddress2}
                     </td>
+
                     <td>{row.actGender}</td>
+
                     <td
                       style={{
                         whiteSpace: 'nowrap',
@@ -615,8 +696,10 @@ const ActivityList = () => {
                           ))
                         : 'No prices'}
                     </td>
+
                     <td>{formatDate(row.CreatedDate)}</td>
                     <td>{dspstatus(row.actStatus)}</td>
+
                     <td align="center">
                       <button
                         onClick={() => handleBookedClick(row.ActivityID, row.VendorID)}
@@ -631,6 +714,7 @@ const ActivityList = () => {
                         Booked [{row?.['TRIP-BOOKED']?.totalProposalCreatd ?? 0}]
                       </button>
                     </td>
+
                     <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
                       <div
                         style={{
@@ -656,6 +740,7 @@ const ActivityList = () => {
                             className="fa fa-pencil"
                           />
                         </button>
+
                         <button
                           onClick={() => handleDeleteClick(row.ActivityID, row.VendorID)}
                           title="Delete"
@@ -677,6 +762,14 @@ const ActivityList = () => {
                   </tr>
                 )
               })}
+
+              {pageRows.length === 0 && (
+                <tr>
+                  <td colSpan="13" style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+                    No SCHOOL activity records found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -706,7 +799,8 @@ const ActivityList = () => {
             >
               {'<<'}
             </button>
-            {getPageRange().map((pageNumber) => (
+
+            {pageNumbers.map((pageNumber) => (
               <button
                 key={pageNumber}
                 className={`pagination-button ${currentPage === pageNumber ? 'active' : ''}`}
@@ -716,6 +810,7 @@ const ActivityList = () => {
                 {pageNumber}
               </button>
             ))}
+
             <button
               className="pagination-button"
               onClick={() => handlePageClick(currentPage + 1)}
@@ -733,6 +828,7 @@ const ActivityList = () => {
             <h4 style={{ color: '#cf2037', marginBottom: 8, fontWeight: 700 }}>
               Confirm Deletion
             </h4>
+
             <p style={{ color: '#cf2037', marginBottom: 12 }}>
               ⚠️ This will permanently delete <strong>all data related to this activity</strong>.
               <br />
@@ -762,7 +858,10 @@ const ActivityList = () => {
                 disabled={!isConfirmMatch || !ActivityIDToDelete || !VendorIDToDelete}
                 style={{
                   opacity: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 1 : 0.6,
-                  cursor: isConfirmMatch && ActivityIDToDelete && VendorIDToDelete ? 'pointer' : 'not-allowed',
+                  cursor:
+                    isConfirmMatch && ActivityIDToDelete && VendorIDToDelete
+                      ? 'pointer'
+                      : 'not-allowed',
                   backgroundColor: isConfirmMatch ? '#cf2037' : '#bbb',
                   borderColor: '#cf2037',
                   color: '#fff',
@@ -770,6 +869,7 @@ const ActivityList = () => {
               >
                 Confirm Delete
               </button>
+
               <button
                 className="admin-buttonv1"
                 onClick={() => {
@@ -791,15 +891,10 @@ const ActivityList = () => {
   )
 }
 
-// Small helpers to keep JSX tidy (no logic removed)
 const SimpleSelect = ({ label, value, onChange, options, allLabel }) => (
   <div>
     <label style={{ fontSize: 12, color: '#666' }}>{label}</label>
-    <select
-      className="form-control"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
+    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">{allLabel}</option>
       {options.map((opt) => (
         <option key={opt} value={opt}>
@@ -813,11 +908,7 @@ const SimpleSelect = ({ label, value, onChange, options, allLabel }) => (
 const VendorFilter = ({ value, onChange, options }) => (
   <div>
     <label style={{ fontSize: 12, color: '#666' }}>Vendor</label>
-    <select
-      className="form-control"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
+    <select className="form-control" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">All Vendors</option>
       {options.map((v) => (
         <option key={v} value={v}>

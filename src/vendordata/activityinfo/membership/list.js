@@ -209,7 +209,7 @@ const ActivityList = () => {
   return (
     <div>
       <div className="page-title">
-        <h3 style={{ margin: 0 }}>{tr('actListTitle', 'Activity')}</h3>
+        <h3 style={{ margin: 0 }}>{tr('membershipListTitle', 'Activity')}</h3>
         <button
           onClick={() => navigate('/vendordata/activityinfo/membership/new')}
           className="add-product-button"
