@@ -106,6 +106,11 @@ const Vendor = () => {
   const [selectedType, setactType] = useState('MEMBERSHIP')
   const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
   const [selectedCategories, setSelectedCategories] = useState([])
+
+  // ✅ NEW: Kids Interest states
+  const [fetchKidsInterests, setFetchKidsInterests] = useState([])
+  const [selectedKidsInterests, setSelectedKidsInterests] = useState([])
+
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
   const [txtactYouTubeID2, setYouTube2] = useState('')
@@ -136,6 +141,36 @@ const Vendor = () => {
   ])
   const [countries, setCountries] = useState([])
   const [cityList, setCityList] = useState([])
+
+  // ✅ NEW: Kids Interest display helpers
+  const getCurrentUiLang = () => {
+    try {
+      const lsLang = String(localStorage.getItem('heroz_lang') || '').trim().toLowerCase()
+      if (lsLang) return lsLang
+    } catch (e) {}
+
+    try {
+      const htmlLang = String(document?.documentElement?.lang || '').trim().toLowerCase()
+      if (htmlLang) return htmlLang
+    } catch (e) {}
+
+    return 'en'
+  }
+
+  const getKidsInterestDisplayName = (item) => {
+    const uiLang = getCurrentUiLang()
+    return uiLang === 'ar'
+      ? item?.ArkidsinterestName || item?.EnkidsinterestName || ''
+      : item?.EnkidsinterestName || item?.ArkidsinterestName || ''
+  }
+
+  const handleKidsInterestCheckboxChange = (kidsinterestID) => {
+    setSelectedKidsInterests((prevSelected) =>
+      prevSelected.includes(kidsinterestID)
+        ? prevSelected.filter((id) => id !== kidsinterestID)
+        : [...prevSelected, kidsinterestID],
+    )
+  }
 
   // ✅ Auto-enforce price = 0 when Include is checked
   const handleFoodChange = (index, field, value) => {
@@ -642,6 +677,7 @@ const Vendor = () => {
       actName: txtactName || '',
       actTypeID: selectedType,
       actCategoryID: selectedCategories,
+      actKidsInterestID: selectedKidsInterests, // ✅ NEW
       actDesc: txtactDesc || '',
 
       actImageName1: txtactImageName1Val,
@@ -785,6 +821,23 @@ const Vendor = () => {
           setFetchCategories(categoryResult.data)
         }
 
+        // ✅ NEW: Kids Interest list fetch
+        const kidsInterestRes = await fetch(`https://testapi.heroz.sa/api/lookupdata/kidsinterest/getkidsinterestlist`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            page: 1,
+            limit: 1000,
+          }),
+        })
+        const kidsInterestResult = await kidsInterestRes.json()
+        console.log('🐞 DEBUG getkidsinterestlist result:', kidsInterestResult)
+        if (kidsInterestResult.data) {
+          setFetchKidsInterests(kidsInterestResult.data)
+        }
+
         const getSearchParams = () => {
           const search =
             window.location.search ||
@@ -831,6 +884,26 @@ const Vendor = () => {
       setactType('MEMBERSHIP')
     }
     setSelectedCategories(ActivityData.actCategoryID || [])
+
+    // ✅ NEW: load actKidsInterestID from API
+    if (Array.isArray(ActivityData.actKidsInterestID)) {
+      setSelectedKidsInterests(ActivityData.actKidsInterestID)
+    } else if (ActivityData.actKidsInterestID && typeof ActivityData.actKidsInterestID === 'string') {
+      try {
+        const parsedKidsInterests = JSON.parse(ActivityData.actKidsInterestID)
+        setSelectedKidsInterests(Array.isArray(parsedKidsInterests) ? parsedKidsInterests : [])
+      } catch (e) {
+        setSelectedKidsInterests(
+          String(ActivityData.actKidsInterestID)
+            .split(',')
+            .map((v) => String(v).trim())
+            .filter(Boolean),
+        )
+      }
+    } else {
+      setSelectedKidsInterests([])
+    }
+
     setactDesc(ActivityData.actDesc || '')
 
     setactRating(
@@ -1212,7 +1285,7 @@ const Vendor = () => {
             {/* Keep your original options but hide + disable them */}
             <label
               style={{
-                display: 'none', // 🔒 hidden
+                display: 'none',
                 alignItems: 'center',
                 gap: '5px',
                 opacity: 0.4,
@@ -1233,7 +1306,7 @@ const Vendor = () => {
 
             <label
               style={{
-                display: 'none', // 🔒 hidden
+                display: 'none',
                 alignItems: 'center',
                 gap: '5px',
                 opacity: 0.4,
@@ -1254,7 +1327,7 @@ const Vendor = () => {
 
             <label
               style={{
-                display: 'none', // 🔒 hidden
+                display: 'none',
                 alignItems: 'center',
                 gap: '5px',
                 opacity: 0.4,
@@ -1325,6 +1398,62 @@ const Vendor = () => {
           <ErrorText msg={errors.selectedCategories} />
         </div>
 
+        {/* ✅ NEW: Kids Interest UI */}
+        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+            {tr('labelKidsInterest', 'Kids Interest')}
+          </label>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {fetchKidsInterests.map((item, i) => (
+              <label
+                key={`${item.kidsinterestID}-${i}`}
+                style={{ display: 'flex', alignItems: 'center' }}
+              >
+                <input
+                  type="checkbox"
+                  name="actKidsInterestID"
+                  value={item.kidsinterestID}
+                  checked={selectedKidsInterests.includes(item.kidsinterestID)}
+                  onChange={() => handleKidsInterestCheckboxChange(item.kidsinterestID)}
+                  style={{
+                    marginRight: 10,
+                    transform: 'scale(1.6)',
+                    cursor: 'pointer',
+                    accentColor: 'red',
+                  }}
+                />
+                <span
+                  className="pink-shadow4"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {item.kidsinterestImageNameUrl ? (
+                    <img
+                      src={item.kidsinterestImageNameUrl}
+                      alt={getKidsInterestDisplayName(item)}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        objectFit: 'cover',
+                        borderRadius: '50%',
+                        border: '1px solid #ddd',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : null}
+                  {getKidsInterestDisplayName(item)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         <div className="form-group">
           <label>
             {tr('labelActivityDesc', 'Activity Description')} <span style={{ color: 'red' }}>*</span>
@@ -1345,7 +1474,6 @@ const Vendor = () => {
         {tr('sectionActivityImages', 'Activity Images')} <span style={{ color: 'red' }}>*</span>
       </div>
       <div className="divbox">
-        {/* ✅ NEW: upload hint text with red border */}
         <div
           style={{
             border: '1px solid #cf2037',
@@ -1362,7 +1490,6 @@ const Vendor = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px', marginBottom: '20px' }}>
-          {/* Image 1 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelImage1', 'Activity Image 1')}</label>
             <input
@@ -1382,7 +1509,6 @@ const Vendor = () => {
             <ErrorText msg={imgErr1} />
           </div>
 
-          {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelImage2', 'Activity Image 2')}</label>
             <input
@@ -1402,7 +1528,6 @@ const Vendor = () => {
             <ErrorText msg={imgErr2} />
           </div>
 
-          {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelImage3', 'Activity Image 3')}</label>
             <input
@@ -1642,7 +1767,6 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* 🔴 HEADER STRIP WITH PINK VAT BADGE */}
       <div
         className="txtsubtitle"
         style={{
@@ -1656,7 +1780,6 @@ const Vendor = () => {
         }}
       >
         <div>
-          {/* ✅ CHANGED LABEL */}
           {tr('sectionPricePerMember', 'Activity Price Per Member')} <span style={{ color: 'red' }}>*</span>
         </div>
 
@@ -1681,7 +1804,6 @@ const Vendor = () => {
       <div className="divbox">
         <CRow className="fw-bold   mb-2">
           <CCol sm={3}>
-            {/* ✅ CHANGED LABEL */}
             {tr('colBasePricePerMember', 'Activity Price Per Member (Excl. VAT)')} <span style={{ color: 'red' }}>*</span>
           </CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
@@ -1712,7 +1834,7 @@ const Vendor = () => {
                   onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
                   min="0"
                 />
-                {index === 0 && <ErrorText msg={errors.price} />} {/* show once under first input */}
+                {index === 0 && <ErrorText msg={errors.price} />}
                 {priceNum > 0 && effectiveVatPercent > 0 && (
                   <div
                     style={{
@@ -1724,7 +1846,6 @@ const Vendor = () => {
                       flexWrap: 'wrap',
                     }}
                   >
-                    {/* VAT badge */}
                     <div
                       style={{
                         padding: '4px 12px',
@@ -1739,7 +1860,6 @@ const Vendor = () => {
                       {tr('labelVatAmount', 'VAT Amount')} ({effectiveVatPercent.toFixed(2)}%):{' '}
                       <span style={{ fontWeight: 800 }}>{vatAmt.toFixed(2)}</span>
                     </div>
-                    {/* Total with VAT */}
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>
                       {tr('labelPriceWithVatShort', 'Total incl. VAT')}: <span>{totalWithVatRow.toFixed(2)}</span>
                     </div>
@@ -1804,7 +1924,6 @@ const Vendor = () => {
       </div>
 
       <div className="txtsubtitle">{tr('sectionSetAvailability', 'Set Availability')}</div>
-      {/* Section-level availability error */}
       <ErrorText msg={errors.availability} />
 
       <div className="divbox">
@@ -1917,7 +2036,6 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ HIDE EXTRA INFORMATION UI (do not remove code) */}
       <div style={{ display: HIDE_EXTRA_INFORMATION_UI ? 'none' : undefined }}>
         <div className="txtsubtitle">{tr('sectionFoodInfo', 'Extra Information')}</div>
         <div className="divbox">
@@ -2044,7 +2162,6 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ NEW SECTION (before Terms & Conditions): Trip Detail */}
       <div className="txtsubtitle">
         {tr('sectionTripDetail', 'Trip Detail')} <span style={{ color: 'red' }}>*</span>
       </div>
@@ -2062,7 +2179,6 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ NEW SECTION (before Terms & Conditions): What&#39;s Included */}
       <div className="txtsubtitle">
         {tr('sectionWhatsIncluded', "What's Included")} <span style={{ color: 'red' }}>*</span>
       </div>
@@ -2090,7 +2206,6 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ HIDE SUMMARY UI (do not remove code) */}
       <div style={{ display: HIDE_SUMMARY_UI ? 'none' : undefined }}>
         <div className="txtsubtitle">{tr('sectionSummary', 'Summary')}</div>
         <div className="divbox">

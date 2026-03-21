@@ -48,6 +48,10 @@ const Vendor = () => {
   // ✅ NEW: field-level errors holder
   const [errors, setErrors] = useState({})
 
+  // ✅ NEW: Kids Interest states
+  const [fetchKidsInterests, setFetchKidsInterests] = useState([])
+  const [selectedKidsInterests, setSelectedKidsInterests] = useState([])
+
   // === NEW: single flag to hide price-range & delete UI (kept logic, just hidden)
   const HIDE_PRICE_RANGE_UI = false
 
@@ -185,6 +189,34 @@ const Vendor = () => {
     const n = Number(s)
     if (!Number.isFinite(n)) return ''
     return n
+  }
+
+  // ✅ NEW: language helper for kids interest name
+  const getCurrentUiLang = () => {
+    try {
+      const lsLang = String(localStorage.getItem('heroz_lang') || '').trim().toLowerCase()
+      if (lsLang) return lsLang
+    } catch (e) {}
+
+    try {
+      const htmlLang = String(document?.documentElement?.lang || '').trim().toLowerCase()
+      if (htmlLang) return htmlLang
+    } catch (e) {}
+
+    return 'en'
+  }
+
+  const getKidsInterestDisplayName = (item) => {
+    const lang = getCurrentUiLang()
+    return lang === 'ar' ? item?.ArkidsinterestName || item?.EnkidsinterestName || '' : item?.EnkidsinterestName || item?.ArkidsinterestName || ''
+  }
+
+  const handleKidsInterestCheckboxChange = (kidsinterestID) => {
+    setSelectedKidsInterests((prevSelected) =>
+      prevSelected.includes(kidsinterestID)
+        ? prevSelected.filter((id) => id !== kidsinterestID)
+        : [...prevSelected, kidsinterestID],
+    )
   }
 
   const handleFoodChange = (index, field, value) => {
@@ -490,7 +522,7 @@ const Vendor = () => {
 
     const actPriceVatPercentageVal = effectiveVatPercent
     const actPriceVatAmountVal = dec(firstPriceNum * effectiveVatRate)
-
+console.log(selectedKidsInterests);
     try {
       const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`, {
         method: 'POST',
@@ -501,6 +533,7 @@ const Vendor = () => {
           actName: txtactName || '',
           actTypeID: selectedType,
           actCategoryID: selectedCategories,
+          actKidsInterestID: selectedKidsInterests, // ✅ ADDED
           actDesc: txtactDesc || '',
           actImageName1: txtactImageName1Val,
           actImageName2: txtactImageName2Val,
@@ -630,6 +663,22 @@ const Vendor = () => {
           setFetchedCategories(uniqueBy(categoryResult.data, 'CategoryID'))
         }
 
+        // ✅ NEW: FETCH KIDS INTEREST LIST
+        const kidsInterestRes = await fetch(`https://testapi.heroz.sa/api/lookupdata/kidsinterest/getkidsinterestlist`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            page: 1,
+            limit: 1000,
+          }),
+        })
+        const kidsInterestResult = await kidsInterestRes.json()
+        if (kidsInterestResult.data) {
+          setFetchKidsInterests(uniqueBy(kidsInterestResult.data, 'kidsinterestID'))
+        }
+
         const urlParams = getSearchParams()
         const ActivityIDVal = urlParams.get('ActivityID')
         if (ActivityIDVal) {
@@ -665,6 +714,29 @@ const Vendor = () => {
     setactName(ActivityData.actName || '')
     setactType(ActivityData.actTypeID || '')
     setSelectedCategories(ActivityData.actCategoryID || [])
+
+    // ✅ NEW: SET actKidsInterestID
+    if (Array.isArray(ActivityData.actKidsInterestID)) {
+      setSelectedKidsInterests(ActivityData.actKidsInterestID)
+    } else if (
+      ActivityData.actKidsInterestID &&
+      typeof ActivityData.actKidsInterestID === 'string'
+    ) {
+      try {
+        const parsedKidsInterests = JSON.parse(ActivityData.actKidsInterestID)
+        setSelectedKidsInterests(Array.isArray(parsedKidsInterests) ? parsedKidsInterests : [])
+      } catch (e) {
+        setSelectedKidsInterests(
+          String(ActivityData.actKidsInterestID)
+            .split(',')
+            .map((v) => String(v).trim())
+            .filter(Boolean),
+        )
+      }
+    } else {
+      setSelectedKidsInterests([])
+    }
+
     setactDesc(ActivityData.actDesc || '')
 
     setactTripDetail(ActivityData?.actTripDetail || '')
@@ -1402,6 +1474,68 @@ const Vendor = () => {
             ))}
           </div>
           <ErrorText msg={errors.selectedCategories} />
+        </div>
+
+        {/* ✅ NEW: Kids Interest below Activity Categories */}
+        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+            Kids Interest
+          </label>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+            {fetchKidsInterests.map((item, i) => (
+              <label
+                key={`${item.kidsinterestID}-${i}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  marginBottom: 10,
+                  marginRight: 10,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  name="actKidsInterestID"
+                  value={item.kidsinterestID}
+                  checked={selectedKidsInterests.includes(item.kidsinterestID)}
+                  onChange={() => handleKidsInterestCheckboxChange(item.kidsinterestID)}
+                  style={{
+                    marginRight: 18,
+                    marginLeft: 18,
+                    transform: 'scale(2.0)',
+                    cursor: 'pointer',
+                    accentColor: 'red',
+                  }}
+                />
+                <span
+                  className="pink-shadow4"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {item.kidsinterestImageNameUrl ? (
+                    <img
+                      src={item.kidsinterestImageNameUrl}
+                      alt={getKidsInterestDisplayName(item)}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        objectFit: 'cover',
+                        borderRadius: '50%',
+                        border: '1px solid #ddd',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : null}
+                  {getKidsInterestDisplayName(item)}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="form-group">

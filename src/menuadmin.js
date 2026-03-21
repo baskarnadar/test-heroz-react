@@ -100,6 +100,12 @@ const adminmenu = [
     name: 'Lookup Data',
     icon: <CIcon icon={cilList} customClassName="nav-icon" />,
     items: [
+        {
+        component: CNavItem,
+        name: 'Kids Interest',
+        to: '/admindata/kidsinterest/list',
+        icon: <CIcon icon={cilLibrary} customClassName="nav-icon" />,
+      },
       {
         component: CNavItem,
         name: 'Country',

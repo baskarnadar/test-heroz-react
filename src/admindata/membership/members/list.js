@@ -51,69 +51,14 @@ const ActivityList = () => {
   const location = useLocation()
 
   // ======================================================
-  // ✅ NEW: remember last selected activitytype locally
+  // ✅ FORCE MEMBERSHIP ONLY
   // ======================================================
-  const ACT_TYPE_STORAGE_KEY = 'heroz_admin_activitytype'
+  const requestedActType = 'MEMBERSHIP'
 
-  const readSavedActivityType = () => {
-    try {
-      const v = (localStorage.getItem(ACT_TYPE_STORAGE_KEY) || '').toString().trim().toLowerCase()
-      if (v === 'membership') return 'MEMBERSHIP'
-      if (v === 'school') return 'SCHOOL'
-      return null
-    } catch {
-      return null
-    }
-  }
-
-  const readActivityTypeFromUrl = () => {
-    try {
-      const sp = new URLSearchParams(location.search || '')
-      const v = (sp.get('activitytype') || '').toString().trim().toLowerCase()
-      if (!v) return null
-      if (v === 'membership') return 'MEMBERSHIP'
-      if (v === 'school') return 'SCHOOL'
-      // if you later add more types, you can map them here
-      return null
-    } catch {
-      return null
-    }
-  }
-
-  const saveActivityType = (type) => {
-    try {
-      const v = (type || '').toString().trim().toUpperCase()
-      if (v === 'MEMBERSHIP') localStorage.setItem(ACT_TYPE_STORAGE_KEY, 'membership')
-      else if (v === 'SCHOOL') localStorage.setItem(ACT_TYPE_STORAGE_KEY, 'school')
-    } catch {}
-  }
-
-  // ✅ NEW: compute requestedActType:
-  // 1) URL param wins
-  // 2) otherwise localStorage
-  // 3) default SCHOOL
-  const requestedActType = useMemo(() => {
-    const fromUrl = readActivityTypeFromUrl()
-    if (fromUrl) return fromUrl
-
-    const fromSaved = readSavedActivityType()
-    if (fromSaved) return fromSaved
-
-    return 'SCHOOL'
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search])
-
-  // ✅ NEW: when URL has activitytype, save it (one time) for later returns
-  useEffect(() => {
-    const fromUrl = readActivityTypeFromUrl()
-    if (fromUrl) saveActivityType(fromUrl)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search])
-
-  // ✅ NEW: row filter based on requestedActType
+  // ✅ row filter based on actTypeID == MEMBERSHIP only
   const isRequestedType = (row) => {
     const t = (row?.actTypeID ?? '').toString().trim().toUpperCase()
-    return t === requestedActType
+    return t === 'MEMBERSHIP'
   }
 
   // ✅ reset page when type changes
@@ -130,6 +75,7 @@ const ActivityList = () => {
   const logApiRequest = (label, url, payload, headers) => {
     console.groupCollapsed(`🔎 ${label} — Request`)
     console.log('URL:', url)
+    console.log('requestedActType:', requestedActType)
     if (headers) {
       try {
         console.log('Headers:', headers)
@@ -267,7 +213,7 @@ const ActivityList = () => {
       if (v) set.add(v)
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [Activity, requestedActType])
+  }, [Activity])
 
   const uniqueGenders = useMemo(() => {
     const set = new Set()
@@ -277,7 +223,7 @@ const ActivityList = () => {
       if (v) set.add(v)
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [Activity, requestedActType])
+  }, [Activity])
 
   const uniqueStatuses = useMemo(() => {
     const set = new Set()
@@ -287,12 +233,12 @@ const ActivityList = () => {
       if (v) set.add(v)
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [Activity, requestedActType])
+  }, [Activity])
 
   const filteredActivity = useMemo(() => {
     const s = norm(searchText)
     return Activity.filter((row) => {
-      // ✅ ALWAYS filter to requested type first
+      // ✅ ALWAYS filter to MEMBERSHIP only
       if (!isRequestedType(row)) return false
 
       const matchText =
@@ -309,7 +255,7 @@ const ActivityList = () => {
 
       return matchText && matchVendor && matchGender && matchStatus
     })
-  }, [Activity, searchText, filterVendor, filterGender, filterStatus, requestedActType])
+  }, [Activity, searchText, filterVendor, filterGender, filterStatus])
 
   // 🔁 Keep UX snappy: reset to page 1 when filters/pageSize change
   useEffect(() => {
@@ -412,7 +358,7 @@ const ActivityList = () => {
       }
     }
     return diffs
-  }, [Activity, originalOrderMap, orderMap, requestedActType])
+  }, [Activity, originalOrderMap, orderMap])
 
   const hasChanges = changedItems.length > 0
 
@@ -524,7 +470,7 @@ const ActivityList = () => {
       {/* Quick stats for filtered results */}
       <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>
         Showing {pageRows.length} of {filteredActivity.length} filtered record(s) • Total loaded:{' '}
-        {Activity.length}
+        {Activity.length} • Type Filter: MEMBERSHIP
       </div>
 
       {loading ? (
@@ -541,22 +487,12 @@ const ActivityList = () => {
                 <th>Image</th>
                 <th>Activity Name</th>
                 <th>Vendor Name</th>
-
-                {/* ✅ REMOVED: Type column */}
-                {/* <th>Type</th> */}
-
+                <th>actTypeID</th>
                 <th>Location</th>
                 <th>Gender</th>
-
-                {/* ✅ RENAMED */}
                 <th>Price Per Kids</th>
-
                 <th>Date</th>
                 <th>Status</th>
-
-                {/* ✅ REMOVED: Booked column */}
-                {/* <th>Booked</th> */}
-
                 <th>Actions</th>
               </tr>
             </thead>
@@ -596,8 +532,7 @@ const ActivityList = () => {
                       {row.vdrName || '-'}
                     </td>
 
-                    {/* ✅ REMOVED: Type cell */}
-                    {/* <td>{row.actTypeID}</td> */}
+                    <td>{row.actTypeID || '-'}</td>
 
                     <td>
                       {row.EnCityName} {row.actAddress1} {row.actAddress2}
@@ -605,7 +540,6 @@ const ActivityList = () => {
 
                     <td>{row.actGender}</td>
 
-                    {/* ✅ UPDATED: label already changed, now remove word "from" */}
                     <td
                       style={{
                         whiteSpace: 'nowrap',
@@ -636,13 +570,6 @@ const ActivityList = () => {
                     <td>{formatDate(row.CreatedDate)}</td>
 
                     <td>{dspstatus(row.actStatus)}</td>
-
-                    {/* ✅ REMOVED: Booked cell */}
-                    {/*
-                    <td align="center">
-                      <button onClick={() => handleBookedClick(row.ActivityID, row.VendorID)}>...</button>
-                    </td>
-                    */}
 
                     <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
                       <div
@@ -685,6 +612,14 @@ const ActivityList = () => {
                   </tr>
                 )
               })}
+
+              {pageRows.length === 0 && (
+                <tr>
+                  <td colSpan="12" style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+                    No MEMBERSHIP activities found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 

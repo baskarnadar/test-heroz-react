@@ -1,4 +1,4 @@
-//routeAdmin.js
+// routeAdmin.js
 import React from 'react'
 
 // Core
@@ -76,13 +76,13 @@ const ProductNew = React.lazy(() => import('./admindata/membership/products/new'
 const ProductModify = React.lazy(() => import('./admindata/membership/products/modify'))
 
 // =======================
-// Purchase Management ✅ NEW
+// Purchase Management
 // =======================
 const PurchaseList = React.lazy(() => import('./admindata/membership/purchase/list'))
 const PurchaseInfo = React.lazy(() => import('./admindata/membership/purchase/info'))
 
 // =======================
-// Booking Management ✅ NEW
+// Booking Management
 // =======================
 const BookingList = React.lazy(() => import('./admindata/membership/booking/list'))
 
@@ -91,7 +91,7 @@ const BookingList = React.lazy(() => import('./admindata/membership/booking/list
 // =======================
 const adminMembershipActivityList = React.lazy(() => import('./admindata/membership/members/list'))
 const adminMembershipActivityModify = React.lazy(() =>
-  import('./admindata/membership/members/modify')
+  import('./admindata/membership/members/modify'),
 )
 const adminMembershipActivityView = React.lazy(() => import('./admindata/membership/members/view'))
 
@@ -117,6 +117,10 @@ const countryModify = React.lazy(() => import('./admindata/lookupdata/country/mo
 const categoryList = React.lazy(() => import('./admindata/lookupdata/category/list'))
 const categoryNew = React.lazy(() => import('./admindata/lookupdata/category/new'))
 const categoryModify = React.lazy(() => import('./admindata/lookupdata/category/modify'))
+
+const kidsinterestlist = React.lazy(() => import('./admindata/lookupdata/kidsinterest/list'))
+const kidsinterestnew = React.lazy(() => import('./admindata/lookupdata/kidsinterest/new'))
+const kidsinterestmodify = React.lazy(() => import('./admindata/lookupdata/kidsinterest/modify'))
 
 const SchEduLevelList = React.lazy(() => import('./admindata/lookupdata/schedulevel/list'))
 const SchEduLevelNew = React.lazy(() => import('./admindata/lookupdata/schedulevel/new'))
@@ -209,7 +213,7 @@ const routes = [
   { path: '/trip/tripdata', element: Triptripdata },
   { path: '/admindata/membership/trippayinfo/view', element: adminTripPayInfo },
 
-  // ✅ Trip alias routes for activityinfo URLs
+  // Trip alias routes for activityinfo URLs
   { path: '/admindata/activityinfo/trip/list', element: adminschTripProposalCraeted },
   { path: '/admindata/activityinfo/trip/view', element: adminschTripView },
   { path: '/admindata/activityinfo/trippayinfo/view', element: adminTripPayInfo },
@@ -219,7 +223,7 @@ const routes = [
   { path: '/admindata/membership/activity/modify', element: adminDataActivityModify },
   { path: '/admindata/membership/activity/view', element: adminDataActivityView },
 
-  // ✅ Activity alias routes for activityinfo URLs
+  // Activity alias routes for activityinfo URLs
   { path: '/admindata/activityinfo/activity/list', element: adminDataActivityList },
   { path: '/admindata/activityinfo/activity/modify', element: adminDataActivityModify },
   { path: '/admindata/activityinfo/activity/view', element: adminDataActivityView },
@@ -229,8 +233,7 @@ const routes = [
   { path: '/admindata/membership/members/modify', element: adminMembershipActivityModify },
   { path: '/admindata/membership/members/view', element: adminMembershipActivityView },
 
-  // ✅ ALIAS so your URL works:
-  // http://localhost:3001/admindata/activityinfo/membership/list?activitytype=membership
+  // Alias so URL works:
   { path: '/admindata/activityinfo/membership/list', element: adminMembershipActivityList },
   { path: '/admindata/activityinfo/membership/modify', element: adminMembershipActivityModify },
   { path: '/admindata/activityinfo/membership/view', element: adminMembershipActivityView },
@@ -260,11 +263,11 @@ const routes = [
   { path: '/admindata/payment/list', element: PaymentList },
   { path: '/admindata/agree/modify', element: AgreementList },
 
-  // ✅ Purchase Management
+  // Purchase Management
   { path: '/admindata/membership/purchase/list', element: PurchaseList },
   { path: '/admindata/membership/purchase/info', element: PurchaseInfo },
 
-  // ✅ Booking Management
+  // Booking Management
   { path: '/admindata/membership/booking/list', element: BookingList },
 
   // LookupData (real paths)
@@ -284,16 +287,38 @@ const routes = [
   { path: '/admindata/lookupdata/category/new', element: categoryNew },
   { path: '/admindata/lookupdata/category/modify', element: categoryModify },
 
+  { path: '/admindata/lookupdata/kidsinterest/list', element: kidsinterestlist },
+  { path: '/admindata/lookupdata/kidsinterest/new', element: kidsinterestnew },
+  { path: '/admindata/lookupdata/kidsinterest/modify', element: kidsinterestmodify },
+
   { path: '/admindata/lookupdata/schedulevel/list', element: SchEduLevelList },
   { path: '/admindata/lookupdata/schedulevel/new', element: SchEduLevelNew },
   { path: '/admindata/lookupdata/schedulevel/modify', element: SchEduLevelModify },
 
-  // LookupData (aliases)
+  // LookupData (aliases) ✅ FIXED
   { path: '/admindata/city/list', element: CityList },
+  { path: '/admindata/city/new', element: CityNew },
+  { path: '/admindata/city/modify', element: CityModify },
+
   { path: '/admindata/country/list', element: countryList },
+  { path: '/admindata/country/new', element: countryNew },
+  { path: '/admindata/country/modify', element: countryModify },
+
   { path: '/admindata/category/list', element: categoryList },
+  { path: '/admindata/category/new', element: categoryNew },
+  { path: '/admindata/category/modify', element: categoryModify },
+
+  { path: '/admindata/kidsinterest/list', element: kidsinterestlist },
+  { path: '/admindata/kidsinterest/new', element: kidsinterestnew },
+  { path: '/admindata/kidsinterest/modify', element: kidsinterestmodify },
+
   { path: '/admindata/schedulevel/list', element: SchEduLevelList },
+  { path: '/admindata/schedulevel/new', element: SchEduLevelNew },
+  { path: '/admindata/schedulevel/modify', element: SchEduLevelModify },
+
   { path: '/admindata/outcome/list', element: OutcomeList },
+  { path: '/admindata/outcome/new', element: OutcomeNew },
+  { path: '/admindata/outcome/modify', element: OutcomeModify },
 
   // SubAdmin
   { path: '/admindata/subadmin/list', element: UserList },
