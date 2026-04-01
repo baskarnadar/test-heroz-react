@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
@@ -137,10 +137,14 @@ const kidsinterestList = () => {
           <table className="grid-table">
             <thead>
               <tr>
-                <th>Image</th> {/* ✅ NEW */}
+                <th>Image</th>
                 <th>#</th>
                 <th>English kidsinterest Name</th>
                 <th>Arabic kidsinterest Name</th>
+
+                {/* ✅ NEW COLUMN ADDED */}
+                <th>Description</th>
+
                 <th>Actions</th>
               </tr>
             </thead>
@@ -148,7 +152,6 @@ const kidsinterestList = () => {
               {kidsinterest.map((kidsinterest, index) => (
                 <tr key={kidsinterest.kidsinterestID}>
                   
-                  {/* ✅ IMAGE COLUMN */}
                   <td>
                     <img
                       src={kidsinterest.kidsinterestImageNameUrl || '/no-image.png'}
@@ -161,7 +164,7 @@ const kidsinterestList = () => {
                         border: '1px solid #ddd'
                       }}
                       onError={(e) => {
-                        e.target.src = '/no-image.png'; // fallback
+                        e.target.src = '/no-image.png';
                       }}
                     />
                   </td>
@@ -174,6 +177,9 @@ const kidsinterestList = () => {
 
                   <td>{kidsinterest.EnkidsinterestName}</td>
                   <td>{kidsinterest.ArkidsinterestName}</td>
+
+                  {/* ✅ NEW FIELD VALUE */}
+                  <td>{kidsinterest.EnkidsinterestDesc || '-'}</td>
 
                   <td>
                     <CIcon
@@ -225,7 +231,6 @@ const kidsinterestList = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="modal-content_50">

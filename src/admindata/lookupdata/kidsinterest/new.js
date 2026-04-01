@@ -10,6 +10,7 @@ const AddkidsinterestForm = () => {
 
   const [EnkidsinterestName, setEnkidsinterestName] = useState('')
   const [ArkidsinterestName, setArkidsinterestName] = useState('')
+  const [EnkidsinterestDesc, setEnkidsinterestDesc] = useState('')
   const [kidsinterestImageName, setKidsinterestImageName] = useState(null)
   const [imageTypeError, setImageTypeError] = useState('')
   const [IsDataStatus, setIsDataStatus] = useState(true)
@@ -157,6 +158,7 @@ const AddkidsinterestForm = () => {
         body: JSON.stringify({
           EnkidsinterestName,
           ArkidsinterestName,
+          EnkidsinterestDesc,
           kidsinterestImageName: uploadedKidsinterestImageName,
           IsDataStatus: IsDataStatus ? 1 : 0,
           CreatedBy: 'USER', // Ideally get from auth context
@@ -216,6 +218,25 @@ const AddkidsinterestForm = () => {
           onChange={(e) => setArkidsinterestName(e.target.value)}
           placeholder="Enter Arabic kidsinterest Name"
           required
+        />
+      </div>
+
+      <div className="form-group">
+        <label>English kidsinterest Description</label>
+        <textarea
+          className="admin-txt-box"
+          value={EnkidsinterestDesc}
+          onChange={(e) => setEnkidsinterestDesc(e.target.value)}
+          placeholder="Enter English kidsinterest Description"
+          rows={6}
+          style={{
+            minHeight: '140px',
+            resize: 'vertical',
+            whiteSpace: 'pre-wrap',
+            lineHeight: '1.5',
+            paddingTop: '10px',
+            paddingBottom: '10px'
+          }}
         />
       </div>
 
