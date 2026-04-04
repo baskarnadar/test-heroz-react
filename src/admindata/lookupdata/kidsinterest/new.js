@@ -11,6 +11,7 @@ const AddkidsinterestForm = () => {
   const [EnkidsinterestName, setEnkidsinterestName] = useState('')
   const [ArkidsinterestName, setArkidsinterestName] = useState('')
   const [EnkidsinterestDesc, setEnkidsinterestDesc] = useState('')
+  const [ArkidsinterestDesc, setArkidsinterestDesc] = useState('')
   const [kidsinterestImageName, setKidsinterestImageName] = useState(null)
   const [imageTypeError, setImageTypeError] = useState('')
   const [IsDataStatus, setIsDataStatus] = useState(true)
@@ -22,9 +23,8 @@ const AddkidsinterestForm = () => {
     checkLogin(navigate)
   }, [navigate])
 
-  // ✅ Added admin login validation hook
   useEffect(() => {
-    IsAdminLoginIsValid() // will redirect to BaseURL if token/usertype invalid
+    IsAdminLoginIsValid()
   }, [])
 
   useEffect(() => {
@@ -34,7 +34,6 @@ const AddkidsinterestForm = () => {
     }
   }, [toastMessage])
 
-  // ✅ Keep this API call concept, but prevent crash by removing undefined setter usage
   useEffect(() => {
     const fetchKidsInterest = async () => {
       try {
@@ -133,7 +132,6 @@ const AddkidsinterestForm = () => {
     try {
       let uploadedKidsinterestImageName = ''
 
-      // ✅ Upload image only on submit
       if (kidsinterestImageName instanceof File) {
         const formData = new FormData()
         formData.append('image', kidsinterestImageName)
@@ -159,9 +157,10 @@ const AddkidsinterestForm = () => {
           EnkidsinterestName,
           ArkidsinterestName,
           EnkidsinterestDesc,
+          ArkidsinterestDesc,
           kidsinterestImageName: uploadedKidsinterestImageName,
           IsDataStatus: IsDataStatus ? 1 : 0,
-          CreatedBy: 'USER', // Ideally get from auth context
+          CreatedBy: 'USER',
           ModifyBy: 'USER',
         }),
       })
@@ -228,6 +227,25 @@ const AddkidsinterestForm = () => {
           value={EnkidsinterestDesc}
           onChange={(e) => setEnkidsinterestDesc(e.target.value)}
           placeholder="Enter English kidsinterest Description"
+          rows={6}
+          style={{
+            minHeight: '140px',
+            resize: 'vertical',
+            whiteSpace: 'pre-wrap',
+            lineHeight: '1.5',
+            paddingTop: '10px',
+            paddingBottom: '10px'
+          }}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Arabic kidsinterest Description</label>
+        <textarea
+          className="admin-txt-box"
+          value={ArkidsinterestDesc}
+          onChange={(e) => setArkidsinterestDesc(e.target.value)}
+          placeholder="Enter Arabic kidsinterest Description"
           rows={6}
           style={{
             minHeight: '140px',

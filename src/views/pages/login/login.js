@@ -104,7 +104,7 @@ const Login = () => {
           localStorage.setItem('VatAmount', data.data.VatAmount.toString())
           console.log('Saved VatAmount to localStorage (VatAmount):', data.data.VatAmount)
         }
-        alert(data.data.usertype);
+        
 
         if (data.data.usertype == 'ADMIN')
           navigate('/admin/dashboard')

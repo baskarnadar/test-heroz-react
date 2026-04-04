@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 import { checkLogin } from '../../../utils/auth';
@@ -23,7 +23,6 @@ const kidsinterestList = () => {
     checkLogin(navigate);
   }, [navigate]);
 
-  // ✅ Admin login validation
   useEffect(() => {
     IsAdminLoginIsValid();
   }, []);
@@ -137,14 +136,12 @@ const kidsinterestList = () => {
           <table className="grid-table">
             <thead>
               <tr>
-                <th>Image</th>
+               
                 <th>#</th>
                 <th>English kidsinterest Name</th>
                 <th>Arabic kidsinterest Name</th>
-
-                {/* ✅ NEW COLUMN ADDED */}
-                <th>Description</th>
-
+                <th>English Description</th>
+                <th>Arabic Description</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -152,22 +149,6 @@ const kidsinterestList = () => {
               {kidsinterest.map((kidsinterest, index) => (
                 <tr key={kidsinterest.kidsinterestID}>
                   
-                  <td>
-                    <img
-                      src={kidsinterest.kidsinterestImageNameUrl || '/no-image.png'}
-                      alt="kidsinterest"
-                      style={{
-                        width: '45px',
-                        height: '45px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '1px solid #ddd'
-                      }}
-                      onError={(e) => {
-                        e.target.src = '/no-image.png';
-                      }}
-                    />
-                  </td>
 
                   <td>
                     <strong>
@@ -178,8 +159,13 @@ const kidsinterestList = () => {
                   <td>{kidsinterest.EnkidsinterestName}</td>
                   <td>{kidsinterest.ArkidsinterestName}</td>
 
-                  {/* ✅ NEW FIELD VALUE */}
-                  <td>{kidsinterest.EnkidsinterestDesc || '-'}</td>
+                  <td style={{ whiteSpace: 'pre-wrap', minWidth: '220px' }}>
+                    {kidsinterest.EnkidsinterestDesc || '-'}
+                  </td>
+
+                  <td style={{ whiteSpace: 'pre-wrap', minWidth: '220px' }}>
+                    {kidsinterest.ArkidsinterestDesc || '-'}
+                  </td>
 
                   <td>
                     <CIcon
