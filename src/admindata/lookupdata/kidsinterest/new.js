@@ -258,7 +258,8 @@ const AddkidsinterestForm = () => {
         />
       </div>
 
-      <div className="form-group">
+      {/* ✅ ONLY CHANGE: HIDE IMAGE UPLOAD */}
+      <div className="form-group" style={{ display: 'none' }}>
         <label>kidsinterest Image</label>
         <input
           name="kidsinterestImageName"
@@ -267,29 +268,30 @@ const AddkidsinterestForm = () => {
           accept="image/png,image/jpeg,image/jpg"
           onChange={handleFileUpload}
         />
-        {imageTypeError && (
-          <div style={{ color: 'red', fontSize: '13px', marginTop: '5px' }}>
-            {imageTypeError}
-          </div>
-        )}
-
-        {kidsinterestImageName && kidsinterestImageName instanceof File && (
-          <div style={{ marginTop: '10px' }}>
-            <div style={{ marginBottom: '6px' }}>{kidsinterestImageName.name}</div>
-            <img
-              src={URL.createObjectURL(kidsinterestImageName)}
-              alt="kidsinterest preview"
-              style={{
-                width: '120px',
-                height: '120px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-                border: '1px solid #ddd',
-              }}
-            />
-          </div>
-        )}
       </div>
+
+      {imageTypeError && (
+        <div style={{ color: 'red', fontSize: '13px', marginTop: '5px' }}>
+          {imageTypeError}
+        </div>
+      )}
+
+      {kidsinterestImageName && kidsinterestImageName instanceof File && (
+        <div style={{ marginTop: '10px' }}>
+          <div style={{ marginBottom: '6px' }}>{kidsinterestImageName.name}</div>
+          <img
+            src={URL.createObjectURL(kidsinterestImageName)}
+            alt="kidsinterest preview"
+            style={{
+              width: '120px',
+              height: '120px',
+              objectFit: 'cover',
+              borderRadius: '8px',
+              border: '1px solid #ddd',
+            }}
+          />
+        </div>
+      )}
 
       <div className="submit-container custom-top-5">
         <button type="submit" className="admin-buttonv1" disabled={loading}>

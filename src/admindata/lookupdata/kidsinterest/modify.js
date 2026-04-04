@@ -108,8 +108,6 @@ const OfferForm = () => {
         const result = await res.json();
         const kidsinterest = result?.data;
 
-        console.log('getkidsinterest result:', result);
-
         if (kidsinterest) {
           setEnkidsinterestName(kidsinterest.EnkidsinterestName || '');
           setArkidsinterestName(kidsinterest.ArkidsinterestName || '');
@@ -128,7 +126,6 @@ const OfferForm = () => {
           }
         }
       } catch (err) {
-        console.error('Error fetching kidsinterest:', err);
         setToastMessage('Error fetching kidsinterest details.');
         setToastType('fail');
       }
@@ -174,7 +171,6 @@ const OfferForm = () => {
         }
 
         const uploadResult = await uploadResponse.json();
-        console.log('kidsinterest image upload result:', uploadResult);
 
         finalkidsinterestImageName = getFileNameFromUrlLocal(
           uploadResult?.data?.key || uploadResult?.data?.Key || ''
@@ -192,8 +188,6 @@ const OfferForm = () => {
         ModifyBy: 'USER',
       };
 
-      console.log('updatekidsinterest payload:', payload);
-
       const response = await fetch(`${API_BASE_URL}/lookupdata/kidsinterest/updatekidsinterest`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -202,14 +196,12 @@ const OfferForm = () => {
 
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
-      const result = await response.json();
-      console.log('updatekidsinterest result:', result);
+      await response.json();
 
       setToastMessage('kidsinterest updated successfully!');
       setToastType('success');
       setTimeout(() => navigate('/admindata/kidsinterest/list'), 2000);
     } catch (err) {
-      console.error('Error updating kidsinterest:', err);
       setToastMessage('Failed to update kidsinterest.');
       setToastType('fail');
     }
@@ -341,7 +333,8 @@ const OfferForm = () => {
         />
       </div>
 
-      <div className="form-group">
+      {/* ✅ ONLY CHANGE: HIDDEN IMAGE UPLOAD */}
+      <div className="form-group" style={{ display: 'none' }}>
         <label>kidsinterest Image</label>
         <input
           name="kidsinterestImageName"
@@ -350,15 +343,15 @@ const OfferForm = () => {
           accept="image/png,image/jpeg,image/jpg"
           onChange={handleFileUpload}
         />
-
-        {imageTypeError && (
-          <div style={{ color: 'red', fontSize: '13px', marginTop: '5px' }}>
-            {imageTypeError}
-          </div>
-        )}
-
-        {renderPreview()}
       </div>
+
+      {imageTypeError && (
+        <div style={{ color: 'red', fontSize: '13px', marginTop: '5px' }}>
+          {imageTypeError}
+        </div>
+      )}
+
+      {renderPreview()}
 
       <div className="submit-container custom-top-5">
         <button type="submit" className="admin-buttonv1" disabled={loading}>
