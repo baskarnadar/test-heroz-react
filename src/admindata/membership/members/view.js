@@ -101,6 +101,26 @@ const Vendor = () => {
     ActivityData?.TripDetail ??
     ''
 
+  // ✅ NEW: language helper for kids interest name
+  const getCurrentUiLang = () => {
+    try {
+      const lsLang = String(localStorage.getItem('heroz_lang') || '').trim().toLowerCase()
+      if (lsLang) return lsLang
+    } catch (e) {}
+    try {
+      const htmlLang = String(document?.documentElement?.lang || '').trim().toLowerCase()
+      if (htmlLang) return htmlLang
+    } catch (e) {}
+    return 'en'
+  }
+
+  const getKidsInterestDisplayName = (item) => {
+    const lang = getCurrentUiLang()
+    return lang === 'ar'
+      ? item?.ArkidsinterestName || item?.EnkidsinterestName || ''
+      : item?.EnkidsinterestName || item?.ArkidsinterestName || ''
+  }
+
   // ---------------- SUMMARY values (Trip + Food) for Vendor/School ---------------
   const firstPriceRowBase =
     ActivityData?.priceList && ActivityData.priceList.length > 0
@@ -162,16 +182,8 @@ const Vendor = () => {
   const overallHerozWithFood = totalHerozWithVatComputed
 
   // ✅ TRIP-ONLY TOTALS (exclude food) for School Price box
-  const tripTotalVendorOnly = firstPriceRowBase + tripHerozVatAmountComputed / vatRateValue * vatRateValue // (keep as derived from base+VAT)
-  // Actually, simpler: vendor-only: base + its VAT:
-  // but we already have:
-  // const tripVatAmountComputed = firstPriceRowBase * vatRateValue
-  // So:
-  // const tripTotalVendorOnly = firstPriceRowBase + tripVatAmountComputed
-  // I'll use that directly:
-  const _tripTotalVendorOnly = firstPriceRowBase + tripVatAmountComputed
-
   const tripTotalHerozOnly = firstHerozPriceRowBase + tripHerozVatAmountComputed
+  const _tripTotalVendorOnly = firstPriceRowBase + tripVatAmountComputed
   const schoolPriceTripOnly = _tripTotalVendorOnly + tripTotalHerozOnly
 
   // ✅ FOOD-ONLY TOTALS (exclude trip) for School Price box
@@ -217,7 +229,6 @@ const Vendor = () => {
       const normalized = Array.isArray(raw) ? raw[0] : raw
       setActivity(normalized || null)
 
-      // setTotalPages(Math.ceil(data.totalCount / ActivityPerPage)) // original, not used
     } catch (error) {
       setError('Error fetching activities')
     } finally {
@@ -283,19 +294,61 @@ const Vendor = () => {
           </div>
         </div>
 
-        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories
-          </label>
-
-          <div>
-            {ActivityData?.categoryInfo?.map((cat, index) => (
-              <span key={index} className="admin-lbl-box pink-badge">
-                {cat.EnCategoryName}
-              </span>
-            ))}
+        {/* ✅ Activity Categories: hidden when MEMBERSHIP */}
+        {!isMemberType && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              Activity Categories
+            </label>
+            <div>
+              {ActivityData?.categoryInfo?.map((cat, index) => (
+                <span key={index} className="admin-lbl-box pink-badge">
+                  {cat.EnCategoryName}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ✅ NEW: Membership Interest — shown only when MEMBERSHIP */}
+        {isMemberType && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              Membership Interest
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {ActivityData?.kidsInterestInfo && ActivityData.kidsInterestInfo.length > 0 ? (
+                ActivityData.kidsInterestInfo.map((item, index) => (
+                  <span
+                    key={index}
+                    className="admin-lbl-box pink-badge"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    {item.kidsinterestImageNameUrl ? (
+                      <img
+                        src={item.kidsinterestImageNameUrl}
+                        alt={getKidsInterestDisplayName(item)}
+                        style={{
+                          width: 22,
+                          height: 22,
+                          objectFit: 'cover',
+                          borderRadius: '50%',
+                          border: '1px solid #ddd',
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    ) : null}
+                    {getKidsInterestDisplayName(item)}
+                  </span>
+                ))
+              ) : (
+                <div className="admin-lbl-box">-</div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="form-group">
           <label>Activity Description</label>
@@ -1119,8 +1172,6 @@ const Vendor = () => {
               >
                 {to2(schoolFoodOnly)}
               </div>
-
-              {/* Row 3 (final school price) is still commented out */}
             </div>
           </div>
           {/* =================================================================== */}

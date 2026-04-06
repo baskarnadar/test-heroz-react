@@ -73,6 +73,11 @@ const Vendor = () => {
   const [actRating, setactRating] = useState('0') // 1..5 required
 
   const [selectedCategories, setSelectedCategories] = useState([])
+
+  // ✅ NEW: Kids Interest selected IDs (for MEMBERSHIP type)
+  const [selectedKidsInterests, setSelectedKidsInterests] = useState([])
+  const [fetchKidsInterests, setFetchKidsInterests] = useState([])
+
   const [txtactDesc, setactDesc] = useState('')
 
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -333,6 +338,13 @@ const Vendor = () => {
     )
   }
 
+  // ✅ NEW: Kids Interest checkbox handler
+  const handleKidsInterestChange = (kidsinterestID) => {
+    setSelectedKidsInterests((prevSelected) =>
+      prevSelected.includes(kidsinterestID) ? prevSelected.filter((id) => id !== kidsinterestID) : [...prevSelected, kidsinterestID],
+    )
+  }
+
   // food
   const uploadFoodImage = async (file) => {
     const formdata = new FormData()
@@ -478,9 +490,24 @@ const Vendor = () => {
         if (result.data) setFetchCategories(result.data)
       } catch {}
     }
+
+    // ✅ NEW: Fetch Kids Interests from external API
+    const FetchKidsInterests = async () => {
+      try {
+        const response = await fetch('https://testapi.heroz.sa/api/lookupdata/kidsinterest/getkidsinterestlist', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        })
+        const result = await response.json()
+        if (result.data) setFetchKidsInterests(result.data)
+      } catch {}
+    }
+
     fetchCities()
     fetchCountries()
     FetchCategory()
+    FetchKidsInterests()
   }, [])
 
   // submit
@@ -508,7 +535,7 @@ const Vendor = () => {
     const validation = validateActivityForm({
       txtactName,
       selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP' (but UI shows MEMBERSHIP only)
-      selectedCategories,
+      selectedCategories: selectedType === 'MEMBERSHIP' ? ['SKIP'] : selectedCategories,
       txtactDesc,
       txtactImageName1,
       txtactImageName2,
@@ -613,6 +640,7 @@ const Vendor = () => {
       actName: txtactName || '',
       actTypeID: 'MEMBERSHIP', // ✅ enforce membership in payload
       actCategoryID: selectedCategories,
+      actKidsInterestID: selectedKidsInterests, // ✅ NEW: Kids Interest IDs for MEMBERSHIP
       actDesc: txtactDesc || '',
 
       actImageName1: img1,
@@ -790,31 +818,63 @@ const Vendor = () => {
           </div>
         )}
 
-        <div className="act-categoriesWrap">
-          <label className="act-categoriesLabel">
-            {tr('labelCategories', 'Activity Categories')} <span className="act-required">*</span>
-          </label>
+        {/* ✅ Activity Categories: hidden when MEMBERSHIP is selected */}
+        {selectedType !== 'MEMBERSHIP' && (
+          <div className="act-categoriesWrap">
+            <label className="act-categoriesLabel">
+              {tr('labelCategories', 'Activity Categories')} <span className="act-required">*</span>
+            </label>
 
-          <div className="act-categoriesGrid">
-            {fetchcategories.map((item) => (
-              <label key={item.CategoryID} className="act-categoryItem">
-                <div className="act-categoryCheckWrap">
-                  <input
-                    type="checkbox"
-                    name="selectedCategories"
-                    value={item.CategoryID}
-                    checked={selectedCategories.includes(item.CategoryID)}
-                    onChange={() => handleCheckboxChange(item.CategoryID)}
-                    className="act-categoryCheckbox"
-                  />
-                </div>
-                <div className="pink-shadow4">{lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}</div>
-              </label>
-            ))}
+            <div className="act-categoriesGrid">
+              {fetchcategories.map((item) => (
+                <label key={item.CategoryID} className="act-categoryItem">
+                  <div className="act-categoryCheckWrap">
+                    <input
+                      type="checkbox"
+                      name="selectedCategories"
+                      value={item.CategoryID}
+                      checked={selectedCategories.includes(item.CategoryID)}
+                      onChange={() => handleCheckboxChange(item.CategoryID)}
+                      className="act-categoryCheckbox"
+                    />
+                  </div>
+                  <div className="pink-shadow4">{lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}</div>
+                </label>
+              ))}
+            </div>
+
+            <ErrorText msg={errors.selectedCategories} />
           </div>
+        )}
 
-          <ErrorText msg={errors.selectedCategories} />
-        </div>
+        {/* ✅ NEW: Kids Interest — shown when MEMBERSHIP is selected, same style as Activity Categories */}
+        {selectedType === 'MEMBERSHIP' && (
+          <div className="act-categoriesWrap">
+            <label className="act-categoriesLabel">
+              {tr('labelKidsInterest', 'Membership Interest')}
+            </label>
+
+            <div className="act-categoriesGrid">
+              {fetchKidsInterests.map((item) => (
+                <label key={item.kidsinterestID} className="act-categoryItem">
+                  <div className="act-categoryCheckWrap">
+                    <input
+                      type="checkbox"
+                      name="selectedKidsInterests"
+                      value={item.kidsinterestID}
+                      checked={selectedKidsInterests.includes(item.kidsinterestID)}
+                      onChange={() => handleKidsInterestChange(item.kidsinterestID)}
+                      className="act-categoryCheckbox"
+                    />
+                  </div>
+                  <div className="pink-shadow4">{lang === 'ar' ? item.ArkidsinterestName : item.EnkidsinterestName}</div>
+                </label>
+              ))}
+            </div>
+
+            <ErrorText msg={errors.selectedKidsInterests} />
+          </div>
+        )}
 
         <div className="form-group">
           <label className="act-requiredLabel">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -106,6 +106,11 @@ const Vendor = () => {
   const [selectedType, setactType] = useState('MEMBERSHIP')
   const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
   const [selectedCategories, setSelectedCategories] = useState([])
+
+  // ✅ NEW: Kids Interest selected IDs (for MEMBERSHIP type)
+  const [selectedKidsInterests, setSelectedKidsInterests] = useState([])
+  const [fetchKidsInterests, setFetchKidsInterests] = useState([])
+
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
   const [txtactYouTubeID2, setYouTube2] = useState('')
@@ -469,6 +474,13 @@ const Vendor = () => {
     if (selectedType !== 'MEMBERSHIP') setactType('MEMBERSHIP')
   }, [selectedType])
 
+  // ✅ NEW: Kids Interest checkbox handler
+  const handleKidsInterestChange = (kidsinterestID) => {
+    setSelectedKidsInterests((prevSelected) =>
+      prevSelected.includes(kidsinterestID) ? prevSelected.filter((id) => id !== kidsinterestID) : [...prevSelected, kidsinterestID],
+    )
+  }
+
   const handleSubmit = async (actStatusVal, e) => {
     if (e && e.preventDefault) e.preventDefault()
 
@@ -491,10 +503,11 @@ const Vendor = () => {
     }
 
     // ✅ Run validation first (uses original images if no new upload)
+    // ✅ bypass selectedCategories validation for MEMBERSHIP
     const validation = validateActivityForm({
       txtactName,
       selectedType,
-      selectedCategories,
+      selectedCategories: selectedType === 'MEMBERSHIP' ? ['SKIP'] : selectedCategories,
       txtactDesc,
       txtactImageName1: txtactImageName1 || OrgtxtactImageName1,
       txtactImageName2: txtactImageName2 || OrgtxtactImageName2,
@@ -642,6 +655,7 @@ const Vendor = () => {
       actName: txtactName || '',
       actTypeID: selectedType,
       actCategoryID: selectedCategories,
+      actKidsInterestID: selectedKidsInterests, // ✅ NEW: Kids Interest IDs for MEMBERSHIP
       actDesc: txtactDesc || '',
 
       actImageName1: txtactImageName1Val,
@@ -785,6 +799,17 @@ const Vendor = () => {
           setFetchCategories(categoryResult.data)
         }
 
+        // ✅ NEW: Fetch Kids Interests from external API
+        const kidsInterestRes = await fetch('https://testapi.heroz.sa/api/lookupdata/kidsinterest/getkidsinterestlist', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({}),
+        })
+        const kidsInterestResult = await kidsInterestRes.json()
+        if (kidsInterestResult.data) {
+          setFetchKidsInterests(kidsInterestResult.data)
+        }
+
         const getSearchParams = () => {
           const search =
             window.location.search ||
@@ -831,6 +856,10 @@ const Vendor = () => {
       setactType('MEMBERSHIP')
     }
     setSelectedCategories(ActivityData.actCategoryID || [])
+
+    // ✅ NEW: load saved Kids Interests from API response
+    setSelectedKidsInterests(ActivityData.actKidsInterestID || [])
+
     setactDesc(ActivityData.actDesc || '')
 
     setactRating(
@@ -1297,33 +1326,67 @@ const Vendor = () => {
           <ErrorText msg={errors.actRating} />
         </div>
 
-        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            {tr('labelCategories', 'Activity Categories')} <span style={{ color: 'red' }}>*</span>
-          </label>
+        {/* ✅ Activity Categories: hidden when MEMBERSHIP is selected */}
+        {selectedType !== 'MEMBERSHIP' && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              {tr('labelCategories', 'Activity Categories')} <span style={{ color: 'red' }}>*</span>
+            </label>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            {fetchcategories.map((item) => (
-              <label key={item.CategoryID} style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  name="txtactCategoryID"
-                  value={item.CategoryID}
-                  checked={selectedCategories.includes(item.CategoryID)}
-                  onChange={() => handleCheckboxChange(item.CategoryID)}
-                  style={{
-                    marginRight: 10,
-                    transform: 'scale(1.6)',
-                    cursor: 'pointer',
-                    accentColor: 'red',
-                  }}
-                />
-                <span className="pink-shadow4">{item.EnCategoryName}</span>
-              </label>
-            ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              {fetchcategories.map((item) => (
+                <label key={item.CategoryID} style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    name="txtactCategoryID"
+                    value={item.CategoryID}
+                    checked={selectedCategories.includes(item.CategoryID)}
+                    onChange={() => handleCheckboxChange(item.CategoryID)}
+                    style={{
+                      marginRight: 10,
+                      transform: 'scale(1.6)',
+                      cursor: 'pointer',
+                      accentColor: 'red',
+                    }}
+                  />
+                  <span className="pink-shadow4">{item.EnCategoryName}</span>
+                </label>
+              ))}
+            </div>
+            <ErrorText msg={errors.selectedCategories} />
           </div>
-          <ErrorText msg={errors.selectedCategories} />
-        </div>
+        )}
+
+        {/* ✅ NEW: Membership Interest — shown when MEMBERSHIP is selected, same style */}
+        {selectedType === 'MEMBERSHIP' && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              {tr('labelKidsInterest', 'Membership Interest')}
+            </label>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              {fetchKidsInterests.map((item) => (
+                <label key={item.kidsinterestID} style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    name="selectedKidsInterests"
+                    value={item.kidsinterestID}
+                    checked={selectedKidsInterests.includes(item.kidsinterestID)}
+                    onChange={() => handleKidsInterestChange(item.kidsinterestID)}
+                    style={{
+                      marginRight: 10,
+                      transform: 'scale(1.6)',
+                      cursor: 'pointer',
+                      accentColor: 'red',
+                    }}
+                  />
+                  <span className="pink-shadow4">{lang === 'ar' ? item.ArkidsinterestName : item.EnkidsinterestName}</span>
+                </label>
+              ))}
+            </div>
+            <ErrorText msg={errors.selectedKidsInterests} />
+          </div>
+        )}
 
         <div className="form-group">
           <label>
@@ -2062,7 +2125,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ NEW SECTION (before Terms & Conditions): What&#39;s Included */}
+      {/* ✅ NEW SECTION (before Terms & Conditions): What's Included */}
       <div className="txtsubtitle">
         {tr('sectionWhatsIncluded', "What's Included")} <span style={{ color: 'red' }}>*</span>
       </div>
@@ -2196,7 +2259,7 @@ const Vendor = () => {
           </div>
         </div>
       )}
-      Upload image
+
       <DspToastMessage message={toastMessage} type={toastType} />
     </div>
   )

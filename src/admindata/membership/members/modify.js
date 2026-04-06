@@ -107,7 +107,7 @@ const Vendor = () => {
   const [txtactTripDetail, setactTripDetail] = useState('')
   const [txtactWhatsIncluded, setactWhatsIncluded] = useState('')
 
-  // ⭐ Activity Rating (0–5 UI). We’ll validate by mapping to 1–10 scale internally.
+  // ⭐ Activity Rating (0–5 UI). We'll validate by mapping to 1–10 scale internally.
   const [actRating, setactRating] = useState('')
 
   const [foods, setFoods] = useState([
@@ -393,7 +393,8 @@ const Vendor = () => {
     const validation = validateActivityForm({
       txtactName,
       selectedType,
-      selectedCategories,
+      // ✅ bypass selectedCategories validation for MEMBERSHIP
+      selectedCategories: isMemberType ? ['SKIP'] : selectedCategories,
       txtactDesc,
       txtactImageName1: txtactImageName1 || OrgtxtactImageName1,
       txtactImageName2: txtactImageName2 || OrgtxtactImageName2,
@@ -846,8 +847,6 @@ console.log(selectedKidsInterests);
           TotalStarValue: totalStarValueFinal === '' ? '' : String(totalStarValueFinal),
           StarValue: starValueFinal === '' ? '' : String(starValueFinal),
 
-          // ✅ keep API value in UI, but DO NOT lock auto-calc
-          // auto-calc should work until user manually edits the field
           TotalStarForParents:
             existingParentsStarFinal !== '' &&
             existingParentsStarFinal !== null &&
@@ -856,10 +855,7 @@ console.log(selectedKidsInterests);
               ? String(existingParentsStarFinal)
               : defaultParentsStar,
 
-          // ✅ IMPORTANT FIX:
-          // __parentsStarManual should mean "USER edited it", not "API provided it"
           __parentsStarManual: false,
-
           __totalStarManual: false,
           __starManual: false,
           ChkRemovePrice: false,
@@ -1107,11 +1103,6 @@ console.log(selectedKidsInterests);
     },
   ])
 
-  // ✅ FIXED:
-  // When Vendor Base Price changes -> update TotalStarValue AND TotalStarForParents automatically
-  // TotalStarValue = price + (price * vatRate)
-  // TotalStarForParents = TotalStarValue / StarValue
-  // (If user manually edits TotalStarForParents, then stop auto overriding it)
   const handlePriceChange = (index, field, value) => {
     setPriceRanges((prev) => {
       const updated = [...prev]
@@ -1124,7 +1115,6 @@ console.log(selectedKidsInterests);
         return updated
       }
 
-      // Ensure StarValue always has a usable fallback for calculations
       const starForCalc = (() => {
         const sRaw = row.StarValue !== '' && row.StarValue !== null && row.StarValue !== undefined ? row.StarValue : ''
         const n = numOrEmpty(sRaw)
@@ -1142,7 +1132,6 @@ console.log(selectedKidsInterests);
         row.__totalStarManual = true
         const t = numOrEmpty(value)
 
-        // ✅ ALWAYS recalc parents when TotalStarValue changes (unless user manually edited parents field)
         if (!row.__parentsStarManual) {
           row.TotalStarForParents = t === '' ? '' : calcDefaultTotalStarForParents(t, starForCalc)
         }
@@ -1156,7 +1145,6 @@ console.log(selectedKidsInterests);
         const t = numOrEmpty(row.TotalStarValue)
         const s = numOrEmpty(value)
 
-        // ✅ recalc parents when StarValue changes (unless user manually edited parents field)
         if (!row.__parentsStarManual) {
           row.TotalStarForParents = t === '' ? '' : calcDefaultTotalStarForParents(t, s === '' ? 0 : s)
         }
@@ -1165,31 +1153,25 @@ console.log(selectedKidsInterests);
         return updated
       }
 
-      // ✅ KEY: Vendor Base Price change must recalc TotalStarValue and TotalStarForParents
       if (field === 'price') {
         const basePrice = Number(row.price || 0)
         const vatAmount = basePrice * vatRateValue
         const computedTotalStar = basePrice + vatAmount
 
-        // TotalStarValue always follows base price (your request)
         row.TotalStarValue = String(to2(computedTotalStar))
         row.__totalStarManual = false
 
-        // If StarValue is empty -> set default
         if (row.StarValue === '' || row.StarValue === null || row.StarValue === undefined) {
           row.StarValue = String(starValueNum || 0)
           row.__starManual = false
         }
 
-        // ✅ IMPORTANT: Always compute parents star from (TotalStarValue / StarValue)
-        // unless user manually edited parents field
         if (!row.__parentsStarManual) {
           const sNow = (() => {
             const s = numOrEmpty(row.StarValue)
             return s === '' ? 0 : Number(s || 0)
           })()
 
-          // TotalStarForParents = TotalStarValue / StarValue
           row.TotalStarForParents = sNow > 0 ? calcDefaultTotalStarForParents(computedTotalStar, sNow) : ''
         }
 
@@ -1231,7 +1213,6 @@ console.log(selectedKidsInterests);
         TotalStarValue: to2(totalStarValueOut),
         StarValue: starValueOut,
 
-        // ✅ send what’s in UI (auto or manual)
         TotalStarForParents: item.TotalStarForParents || '',
 
         StudentRangeFrom: item.rangeFrom || '',
@@ -1447,96 +1428,101 @@ console.log(selectedKidsInterests);
           <ErrorText msg={errors.actRating} />
         </div>
 
-        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Activity Categories <span style={{ color: 'red' }}>*</span>
-          </label>
+        {/* ✅ Activity Categories: hidden when MEMBERSHIP is selected */}
+        {!isMemberType && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              Activity Categories <span style={{ color: 'red' }}>*</span>
+            </label>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-            {fetchcategories.map((item, i) => (
-              <label key={`${item.CategoryID}-${i}`}>
-                <input
-                  type="checkbox"
-                  name="txtactCategoryID"
-                  value={item.CategoryID}
-                  checked={selectedCategories.includes(item.CategoryID)}
-                  onChange={() => handleCheckboxChange(item.CategoryID)}
-                  style={{
-                    marginRight: 18,
-                    marginLeft: 18,
-                    transform: 'scale(2.0)',
-                    cursor: 'pointer',
-                    accentColor: 'red',
-                  }}
-                />
-                <span className="pink-shadow4">{item.EnCategoryName}</span>
-              </label>
-            ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              {fetchcategories.map((item, i) => (
+                <label key={`${item.CategoryID}-${i}`}>
+                  <input
+                    type="checkbox"
+                    name="txtactCategoryID"
+                    value={item.CategoryID}
+                    checked={selectedCategories.includes(item.CategoryID)}
+                    onChange={() => handleCheckboxChange(item.CategoryID)}
+                    style={{
+                      marginRight: 18,
+                      marginLeft: 18,
+                      transform: 'scale(2.0)',
+                      cursor: 'pointer',
+                      accentColor: 'red',
+                    }}
+                  />
+                  <span className="pink-shadow4">{item.EnCategoryName}</span>
+                </label>
+              ))}
+            </div>
+            <ErrorText msg={errors.selectedCategories} />
           </div>
-          <ErrorText msg={errors.selectedCategories} />
-        </div>
+        )}
 
-        {/* ✅ NEW: Kids Interest below Activity Categories */}
-        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            Kids Interest
-          </label>
+        {/* ✅ Kids Interest: shown only when MEMBERSHIP is selected */}
+        {isMemberType && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              Membership Interest
+            </label>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-            {fetchKidsInterests.map((item, i) => (
-              <label
-                key={`${item.kidsinterestID}-${i}`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  marginBottom: 10,
-                  marginRight: 10,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  name="actKidsInterestID"
-                  value={item.kidsinterestID}
-                  checked={selectedKidsInterests.includes(item.kidsinterestID)}
-                  onChange={() => handleKidsInterestCheckboxChange(item.kidsinterestID)}
-                  style={{
-                    marginRight: 18,
-                    marginLeft: 18,
-                    transform: 'scale(2.0)',
-                    cursor: 'pointer',
-                    accentColor: 'red',
-                  }}
-                />
-                <span
-                  className="pink-shadow4"
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              {fetchKidsInterests.map((item, i) => (
+                <label
+                  key={`${item.kidsinterestID}-${i}`}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 8,
+                    marginBottom: 10,
+                    marginRight: 10,
                   }}
                 >
-                  {item.kidsinterestImageNameUrl ? (
-                    <img
-                      src={item.kidsinterestImageNameUrl}
-                      alt={getKidsInterestDisplayName(item)}
-                      style={{
-                        width: 26,
-                        height: 26,
-                        objectFit: 'cover',
-                        borderRadius: '50%',
-                        border: '1px solid #ddd',
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  ) : null}
-                  {getKidsInterestDisplayName(item)}
-                </span>
-              </label>
-            ))}
+                  <input
+                    type="checkbox"
+                    name="actKidsInterestID"
+                    value={item.kidsinterestID}
+                    checked={selectedKidsInterests.includes(item.kidsinterestID)}
+                    onChange={() => handleKidsInterestCheckboxChange(item.kidsinterestID)}
+                    style={{
+                      marginRight: 18,
+                      marginLeft: 18,
+                      transform: 'scale(2.0)',
+                      cursor: 'pointer',
+                      accentColor: 'red',
+                    }}
+                  />
+                  <span
+                    className="pink-shadow4"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    {item.kidsinterestImageNameUrl ? (
+                      <img
+                        src={item.kidsinterestImageNameUrl}
+                        alt={getKidsInterestDisplayName(item)}
+                        style={{
+                          width: 26,
+                          height: 26,
+                          objectFit: 'cover',
+                          borderRadius: '50%',
+                          border: '1px solid #ddd',
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    ) : null}
+                    {getKidsInterestDisplayName(item)}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="form-group">
           <label>

@@ -225,19 +225,41 @@ const Vendor = () => {
           </div>
         </div>
 
-        <div style={{ marginBottom: '10px', marginTop: '20px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-            {tr('labelCategories', 'Activity Categories')}
-          </label>
-
-          <div>
-            {ActivityData?.categoryInfo?.map((cat, index) => (
-              <span key={index} className="admin-lbl-box pink-badge">
-                {cat.EnCategoryName}
-              </span>
-            ))}
+        {/* ✅ Activity Categories: hidden when MEMBERSHIP, show Membership Interest instead */}
+        {ActivityData?.actTypeID !== 'MEMBERSHIP' && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              {tr('labelCategories', 'Activity Categories')}
+            </label>
+            <div>
+              {ActivityData?.categoryInfo?.map((cat, index) => (
+                <span key={index} className="admin-lbl-box pink-badge">
+                  {lang === 'ar' ? cat.ArCategoryName : cat.EnCategoryName}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ✅ NEW: Membership Interest — shown only when MEMBERSHIP */}
+        {ActivityData?.actTypeID === 'MEMBERSHIP' && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              {tr('labelKidsInterest', 'Membership Interest')}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {ActivityData?.kidsInterestInfo?.length > 0 ? (
+                ActivityData.kidsInterestInfo.map((item, index) => (
+                  <span key={index} className="admin-lbl-box pink-badge">
+                    {lang === 'ar' ? item.ArkidsinterestName : item.EnkidsinterestName}
+                  </span>
+                ))
+              ) : (
+                <div className="admin-lbl-box">-</div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="form-group">
           <label>{tr('labelActivityDesc', 'Activity Description')}</label>
