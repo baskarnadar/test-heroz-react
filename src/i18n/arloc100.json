@@ -198,5 +198,6 @@
   "list.total_expected": "إجمالي الطلاب المتوقعين",
   "list.view_paid_students": "عرض الطلاب المسددين",
   "list.waiting_for_approval_button": "في انتظار الموافقة",
-  "list.approved_request_button": "عرض الطلب الموافق عليه"
+  "list.approved_request_button": "عرض الطلب الموافق عليه",
+    "menu_scholl_activities": "School Activities"
 }

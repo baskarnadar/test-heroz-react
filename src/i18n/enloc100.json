@@ -200,5 +200,6 @@
   "list.total_expected": "Total expected students",
   "list.view_paid_students": "View paid students",
   "list.waiting_for_approval_button": "Waiting for approval",
-  "list.approved_request_button": "View approved request"
+  "list.approved_request_button": "View approved request",
+  "menu_scholl_activities": "School Activities"
 }

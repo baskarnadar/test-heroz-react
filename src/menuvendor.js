@@ -147,7 +147,7 @@ const vendormenu = [
   },
   {
     component: CNavItem,
-    name: <Txt k="navAllActivity" fb="All Activity" />,
+    name: <Txt k="menu_scholl_activities" fb="All Activity" />,
     to: '/vendordata/activityinfo/activity/list',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
   },
