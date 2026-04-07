@@ -494,7 +494,7 @@ const Vendor = () => {
     // ✅ NEW: Fetch Kids Interests from external API
     const FetchKidsInterests = async () => {
       try {
-        const response = await fetch('${API_BASE_URL}/lookupdata/kidsinterest/getkidsinterestlist', {
+        const response = await fetch(`${API_BASE_URL}/lookupdata/kidsinterest/getkidsinterestlist`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({}),
