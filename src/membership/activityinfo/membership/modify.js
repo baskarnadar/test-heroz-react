@@ -822,7 +822,7 @@ const Vendor = () => {
         }
 
         // ✅ NEW: Kids Interest list fetch
-        const kidsInterestRes = await fetch(`https://testapi.heroz.sa/api/lookupdata/kidsinterest/getkidsinterestlist`, {
+        const kidsInterestRes = await fetch(`${API_BASE_URL}/lookupdata/kidsinterest/getkidsinterestlist`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -800,7 +800,7 @@ const Vendor = () => {
         }
 
         // ✅ NEW: Fetch Kids Interests from external API
-        const kidsInterestRes = await fetch('https://testapi.heroz.sa/api/lookupdata/kidsinterest/getkidsinterestlist', {
+        const kidsInterestRes = await fetch('${API_BASE_URL}/lookupdata/kidsinterest/getkidsinterestlist', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({}),
