@@ -89,6 +89,8 @@ const Vendor = () => {
   const [txtactMinStudent, setMinStudent] = useState('')
   const [txtactMaxStudent, setMaxStudent] = useState('')
 
+  const [txtactWhatsIncluded, setactWhatsIncluded] = useState('')
+  const [txtactTripDetail, setactTripDetail] = useState('')
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
   const [foods, setFoods] = useState([{ name: '', price: '', include: false }])
@@ -631,6 +633,8 @@ const Vendor = () => {
       actAvailDaysHours: actavailDaysHoursVal,
       actFood: actfoodDataVal, // 👈 FoodImage will be '' when hidden
 
+      actWhatsIncluded: txtactWhatsIncluded || '',
+      actTripDetail: txtactTripDetail || '',
       actAdminNotes: txtactAdminNotes || '',
       actRating: Number(actRating), // visible + submitted
       actStatus: actStatusVal,
@@ -1348,6 +1352,38 @@ const Vendor = () => {
               </button>
             </CCol>
           </CRow>
+        </div>
+      </div>
+
+      <div className="txtsubtitle">{tr('sectionTripExtraDetails', 'Trip Extra Details')}</div>
+
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="form-group">
+            <label className="act-requiredLabel">
+              {tr('labelWhatsIncluded', 'What is Include')}
+            </label>
+            <textarea
+              name="txtactWhatsIncluded"
+              className="vendor-input"
+              rows={4}
+              value={txtactWhatsIncluded}
+              onChange={(e) => setactWhatsIncluded(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="act-requiredLabel">
+              {tr('labelTripDetails', 'Trip Details')}
+            </label>
+            <textarea
+              name="txtactTripDetail"
+              className="vendor-input"
+              rows={4}
+              value={txtactTripDetail}
+              onChange={(e) => setactTripDetail(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 

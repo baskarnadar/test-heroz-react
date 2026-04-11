@@ -1102,6 +1102,17 @@ const Vendor = () => {
         </>
       )}
 
+
+      <div className="txtsubtitle">What is Include</div>
+      <div className="divbox">
+        <div className="admin-lbl-boxv1">{ActivityData?.actWhatsIncluded}</div>
+      </div>
+
+      <div className="txtsubtitle">Trip Details</div>
+      <div className="divbox">
+        <div className="admin-lbl-boxv1">{ActivityData?.actTripDetail}</div>
+      </div>
+
       <div className="txtsubtitle">Terms And Conditions</div>
       <div className="divbox">
         <div className="vendor-container">

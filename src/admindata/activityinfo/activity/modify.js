@@ -97,6 +97,8 @@ const Vendor = () => {
   const [txtactMinStudent, setMinStudent] = useState('') // was []
   const [txtactMaxStudent, setMaxStudent] = useState('') // was []
 
+  const [txtactWhatsIncluded, setactWhatsIncluded] = useState('')
+  const [txtactTripDetail, setactTripDetail] = useState('')
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
   // ⭐ Activity Rating (0–5 UI). We’ll validate by mapping to 1–10 scale internally.
@@ -525,6 +527,9 @@ const Vendor = () => {
           actAvailDaysHours: actavailDaysHoursVal,
           actFood: actfoodDataVal,
 
+          actWhatsIncluded: txtactWhatsIncluded || '',
+          actTripDetail: txtactTripDetail || '',
+
           actAdminNotes: txtactAdminNotes || '',
           // keep UI scale (0–5) for backend, as in your current page
           actRating: actRating === '' ? '' : Number(actRating),
@@ -710,6 +715,8 @@ const Vendor = () => {
     setGenderService(ActivityData.actGender || '')
     setMinStudent(ActivityData.actMinStudent || '')
     setMaxStudent(ActivityData.actMaxStudent || '')
+    setactWhatsIncluded(ActivityData.actWhatsIncluded || '')
+    setactTripDetail(ActivityData.actTripDetail || '')
     setAdminNotes(ActivityData.actAdminNotes || '')
 
     // ✅ NEW: ROOT-LEVEL fallbacks (your JSON shows these at root)
@@ -2118,6 +2125,35 @@ const Vendor = () => {
           </div>
         </>
       )}
+
+
+      <div className="txtsubtitle">What is Include</div>
+
+      <div className="divbox">
+        <div className="vendor-container">
+          <textarea
+            className="vendor-input"
+            rows={5}
+            value={txtactWhatsIncluded}
+            name="txtactWhatsIncluded"
+            onChange={(e) => setactWhatsIncluded(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="txtsubtitle">Trip Details</div>
+
+      <div className="divbox">
+        <div className="vendor-container">
+          <textarea
+            className="vendor-input"
+            rows={5}
+            value={txtactTripDetail}
+            name="txtactTripDetail"
+            onChange={(e) => setactTripDetail(e.target.value)}
+          />
+        </div>
+      </div>
 
       <div className="txtsubtitle">
         Terms And Conditions <span style={{ color: 'red' }}>*</span>

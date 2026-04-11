@@ -900,6 +900,21 @@ const Vendor = () => {
       </div>
       {/* ----------------------------------------------------------- */}
 
+      <div className="txtsubtitle">{tr('sectionTripExtraDetails', 'Trip Extra Details')}</div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="form-group">
+            <label>{tr('labelWhatsIncluded', 'What is Include')}</label>
+            <div className="admin-lbl-boxv1">{ActivityData?.actWhatsIncluded}</div>
+          </div>
+
+          <div className="form-group">
+            <label>{tr('labelTripDetails', 'Trip Details')}</label>
+            <div className="admin-lbl-boxv1">{ActivityData?.actTripDetail}</div>
+          </div>
+        </div>
+      </div>
+
       <div className="txtsubtitle">
         {tr('sectionTerms', 'Terms And Conditions')}
       </div>
