@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -55,6 +55,8 @@ const Vendor = () => {
 
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const submitLockRef = useRef(false)
+  const [submitAction, setSubmitAction] = useState('')
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
@@ -480,207 +482,217 @@ const Vendor = () => {
   const handleSubmit = async (actStatusVal, e) => {
     if (e?.preventDefault) e.preventDefault()
 
-    // ✅ Block submit if invalid image type selected
-    const anyImageTypeError =
-      (imageTypeErrors.txtactImageName1 && imageTypeErrors.txtactImageName1.trim()) ||
-      (imageTypeErrors.txtactImageName2 && imageTypeErrors.txtactImageName2.trim()) ||
-      (imageTypeErrors.txtactImageName3 && imageTypeErrors.txtactImageName3.trim())
-
-    if (anyImageTypeError) {
-      setToastMessage(tr('fixImageType', 'Please fix the image file type (PNG/JPG/JPEG only).'))
-      setToastType('fail')
+    if (submitLockRef.current || loading) {
       return
     }
 
-    const validation = validateActivityForm({
-      txtactName,
-      selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP'
-      selectedCategories,
-      txtactDesc,
-      txtactImageName1,
-      txtactImageName2,
-      txtactImageName3,
-      txtactGoogleMap,
-      txtactGlat,
-      txtactGlan,
-      ddactCountryID,
-      ddactCityID,
-      txtactAddress1,
-      rdoactGender,
-      txtactMinAge,
-      txtactMaxAge,
-      actRating, // now visible
-      txtactMinStudent,
-      txtactMaxStudent,
-      priceRanges,
-      days,
-      foods,
-      txtactAdminNotes,
-    })
-
-    if (!validation.ok) {
-      setErrors(validation.errors || {})
-      setToastMessage(validation.message || tr('fixHighlighted', 'Please fix the highlighted fields.'))
-      setToastType('fail')
-
-      const firstField = Object.keys(validation.errors || {})[0]
-      if (firstField) {
-        const el = document.querySelector(`[name="${firstField}"]`)
-        if (el?.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        if (el?.focus) el.focus()
-      }
-      return
-    }
-
-    setErrors({})
+    submitLockRef.current = true
+    setSubmitAction(actStatusVal)
     setLoading(true)
     setToastMessage('')
 
-    const overlap = hasOverlap(days)
-    if (overlap) {
-      const overlapMsg = tr('timeOverlap', 'Time range overlap on {day}: {s1}–{e1} overlaps with {s2}–{e2}')
-        .replace('{day}', overlap.day)
-        .replace('{s1}', overlap.range1.start)
-        .replace('{e1}', overlap.range1.end)
-        .replace('{s2}', overlap.range2.start)
-        .replace('{e2}', overlap.range2.end)
-
-      setToastMessage(overlapMsg)
-      setToastType('fail')
-      setLoading(false)
-      return
-    }
-
-    // upload activity images if any
-    let img1 = '',
-      img2 = '',
-      img3 = ''
     try {
-      if (txtactImageName1 instanceof File) {
-        const fd = new FormData()
-        fd.append('image', txtactImageName1)
-        fd.append('foldername', 'activity')
-        const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
-        const j = await r.json()
-        img1 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
+      // ✅ Block submit if invalid image type selected
+      const anyImageTypeError =
+        (imageTypeErrors.txtactImageName1 && imageTypeErrors.txtactImageName1.trim()) ||
+        (imageTypeErrors.txtactImageName2 && imageTypeErrors.txtactImageName2.trim()) ||
+        (imageTypeErrors.txtactImageName3 && imageTypeErrors.txtactImageName3.trim())
+
+      if (anyImageTypeError) {
+        setToastMessage(tr('fixImageType', 'Please fix the image file type (PNG/JPG/JPEG only).'))
+        setToastType('fail')
+        return
       }
 
-      if (txtactImageName2 instanceof File) {
-        const fd = new FormData()
-        fd.append('image', txtactImageName2)
-        fd.append('foldername', 'activity')
-        const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
-        const j = await r.json()
-        img2 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
-      }
-
-      if (txtactImageName3 instanceof File) {
-        const fd = new FormData()
-        fd.append('image', txtactImageName3)
-        fd.append('foldername', 'activity')
-        const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
-        const j = await r.json()
-        img3 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
-      }
-    } catch {
-      // ignore upload error here; validator ensures at least one if required
-    }
-
-    const actfoodDataVal = await getFoodData()
-    const actavailDaysHoursVal = getAvailDaysHoursData()
-    const actPriceDataVal = getPriceData()
-
-    // 🔍 DEBUG: log VAT + payload
-    const url = `${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`
-    const payload = {
-      VendorID: getCurrentLoggedUserID(),
-      actName: txtactName || '',
-      actTypeID: selectedType, // ✅ 'SCHOOL' or 'MEMBERSHIP'
-      actCategoryID: selectedCategories,
-      actDesc: txtactDesc || '',
-
-      actImageName1: img1,
-      actImageName2: img2,
-      actImageName3: img3,
-
-      actYouTubeID1: txtactYouTubeID1,
-      actYouTubeID2: txtactYouTubeID2,
-      actYouTubeID3: txtactYouTubeID3,
-
-      actGoogleMap: txtactGoogleMap || '',
-      actGlat: txtactGlat || '',
-      actGlan: txtactGlan || '',
-      actAddress1: txtactAddress1 || '',
-      actAddress2: txtactAddress2 || '',
-      actCountryID: ddactCountryID || '',
-      actCityID: ddactCityID || '',
-
-      actMinAge: txtactMinAge || '',
-      actMaxAge: txtactMaxAge || '',
-      actGender: rdoactGender,
-      actMinStudent: txtactMinStudent || '',
-      actMaxStudent: txtactMaxStudent || '',
-
-      actPrice: actPriceDataVal,
-      actPriceVatPercentage: actPriceVatPercentageVal, // ✅ VAT %
-      actPriceVatAmount: actPriceVatAmountVal, // ✅ VAT amount on base price
-
-      // 🟢 send full totals but KEEP base price unchanged
-      actTotalBaseAmount: totalBaseAmount, // Trip + Food base
-      actTotalVatAmount: totalVatAmount, // Trip VAT + Food VAT
-      actTotalAmountWithVat: totalWithVat, // Base + VAT
-
-      actAvailDaysHours: actavailDaysHoursVal,
-      actFood: actfoodDataVal, // 👈 FoodImage will be '' when hidden
-
-      actWhatsIncluded: txtactWhatsIncluded || '',
-      actTripDetail: txtactTripDetail || '',
-      actAdminNotes: txtactAdminNotes || '',
-      actRating: Number(actRating), // visible + submitted
-      actStatus: actStatusVal,
-      IsDataStatus: 1,
-      CreatedBy: getCurrentLoggedUserID(),
-      ModifyBy: getCurrentLoggedUserID(),
-    }
-
-    console.log('▶️ createActivity URL:', url)
-    console.log('▶️ createActivity VAT %:', vatPercentValue, 'rate:', vatRateValue)
-    console.log('▶️ createActivity tripPriceBase:', tripPriceBase, 'tripVatAmount:', tripVatAmount)
-    console.log('▶️ createActivity foodBaseAmount:', foodBaseAmount, 'foodVatAmount:', foodVatAmount)
-    console.log('▶️ createActivity TOTAL base:', totalBaseAmount, 'TOTAL VAT:', totalVatAmount, 'TOTAL with VAT:', totalWithVat)
-    console.log('▶️ createActivity payload:', payload)
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+      const validation = validateActivityForm({
+        txtactName,
+        selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP'
+        selectedCategories,
+        txtactDesc,
+        txtactImageName1,
+        txtactImageName2,
+        txtactImageName3,
+        txtactGoogleMap,
+        txtactGlat,
+        txtactGlan,
+        ddactCountryID,
+        ddactCityID,
+        txtactAddress1,
+        rdoactGender,
+        txtactMinAge,
+        txtactMaxAge,
+        actRating, // now visible
+        txtactMinStudent,
+        txtactMaxStudent,
+        priceRanges,
+        days,
+        foods,
+        txtactAdminNotes,
       })
 
-      console.log('◀️ createActivity status:', response.status)
+      if (!validation.ok) {
+        setErrors(validation.errors || {})
+        setToastMessage(validation.message || tr('fixHighlighted', 'Please fix the highlighted fields.'))
+        setToastType('fail')
 
-      let resultJson = null
+        const firstField = Object.keys(validation.errors || {})[0]
+        if (firstField) {
+          const el = document.querySelector(`[name="${firstField}"]`)
+          if (el?.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          if (el?.focus) el.focus()
+        }
+        return
+      }
+
+      setErrors({})
+
+      const overlap = hasOverlap(days)
+      if (overlap) {
+        const overlapMsg = tr('timeOverlap', 'Time range overlap on {day}: {s1}–{e1} overlaps with {s2}–{e2}')
+          .replace('{day}', overlap.day)
+          .replace('{s1}', overlap.range1.start)
+          .replace('{e1}', overlap.range1.end)
+          .replace('{s2}', overlap.range2.start)
+          .replace('{e2}', overlap.range2.end)
+
+        setToastMessage(overlapMsg)
+        setToastType('fail')
+        return
+      }
+
+      // upload activity images if any
+      let img1 = '',
+        img2 = '',
+        img3 = ''
       try {
-        resultJson = await response.json()
-        console.log('◀️ createActivity response JSON:', resultJson)
-      } catch (jsonErr) {
-        console.log('⚠️ Failed to parse JSON from createActivity:', jsonErr)
+        if (txtactImageName1 instanceof File) {
+          const fd = new FormData()
+          fd.append('image', txtactImageName1)
+          fd.append('foldername', 'activity')
+          const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
+          const j = await r.json()
+          img1 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
+        }
+
+        if (txtactImageName2 instanceof File) {
+          const fd = new FormData()
+          fd.append('image', txtactImageName2)
+          fd.append('foldername', 'activity')
+          const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
+          const j = await r.json()
+          img2 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
+        }
+
+        if (txtactImageName3 instanceof File) {
+          const fd = new FormData()
+          fd.append('image', txtactImageName3)
+          fd.append('foldername', 'activity')
+          const r = await fetch(`${API_BASE_URL}/product/upload/uploadImage`, { method: 'POST', body: fd })
+          const j = await r.json()
+          img3 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
+        }
+      } catch {
+        // ignore upload error here; validator ensures at least one if required
       }
 
-      if (!response.ok) {
-        const errMsg = resultJson?.message || `HTTP error: ${response.status}`
-        throw new Error(errMsg)
+      const actfoodDataVal = await getFoodData()
+      const actavailDaysHoursVal = getAvailDaysHoursData()
+      const actPriceDataVal = getPriceData()
+
+      // 🔍 DEBUG: log VAT + payload
+      const url = `${API_BASE_URL}/vendordata/activityinfo/activity/createActivity`
+      const payload = {
+        VendorID: getCurrentLoggedUserID(),
+        actName: txtactName || '',
+        actTypeID: selectedType, // ✅ 'SCHOOL' or 'MEMBERSHIP'
+        actCategoryID: selectedCategories,
+        actDesc: txtactDesc || '',
+
+        actImageName1: img1,
+        actImageName2: img2,
+        actImageName3: img3,
+
+        actYouTubeID1: txtactYouTubeID1,
+        actYouTubeID2: txtactYouTubeID2,
+        actYouTubeID3: txtactYouTubeID3,
+
+        actGoogleMap: txtactGoogleMap || '',
+        actGlat: txtactGlat || '',
+        actGlan: txtactGlan || '',
+        actAddress1: txtactAddress1 || '',
+        actAddress2: txtactAddress2 || '',
+        actCountryID: ddactCountryID || '',
+        actCityID: ddactCityID || '',
+
+        actMinAge: txtactMinAge || '',
+        actMaxAge: txtactMaxAge || '',
+        actGender: rdoactGender,
+        actMinStudent: txtactMinStudent || '',
+        actMaxStudent: txtactMaxStudent || '',
+
+        actPrice: actPriceDataVal,
+        actPriceVatPercentage: actPriceVatPercentageVal, // ✅ VAT %
+        actPriceVatAmount: actPriceVatAmountVal, // ✅ VAT amount on base price
+
+        // 🟢 send full totals but KEEP base price unchanged
+        actTotalBaseAmount: totalBaseAmount, // Trip + Food base
+        actTotalVatAmount: totalVatAmount, // Trip VAT + Food VAT
+        actTotalAmountWithVat: totalWithVat, // Base + VAT
+
+        actAvailDaysHours: actavailDaysHoursVal,
+        actFood: actfoodDataVal, // 👈 FoodImage will be '' when hidden
+
+        actWhatsIncluded: txtactWhatsIncluded || '',
+        actTripDetail: txtactTripDetail || '',
+        actAdminNotes: txtactAdminNotes || '',
+        actRating: Number(actRating), // visible + submitted
+        actStatus: actStatusVal,
+        IsDataStatus: 1,
+        CreatedBy: getCurrentLoggedUserID(),
+        ModifyBy: getCurrentLoggedUserID(),
       }
 
-      setToastMessage(tr('toastActivityAdded', 'Activity added successfully!'))
-      setToastType('success')
-      setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
-    } catch (err) {
-      console.error('❌ createActivity error:', err)
-      setToastMessage(tr('toastActivityAddFailed', 'Failed to add Activity.'))
-      setToastType('fail')
+      console.log('▶️ createActivity URL:', url)
+      console.log('▶️ createActivity VAT %:', vatPercentValue, 'rate:', vatRateValue)
+      console.log('▶️ createActivity tripPriceBase:', tripPriceBase, 'tripVatAmount:', tripVatAmount)
+      console.log('▶️ createActivity foodBaseAmount:', foodBaseAmount, 'foodVatAmount:', foodVatAmount)
+      console.log('▶️ createActivity TOTAL base:', totalBaseAmount, 'TOTAL VAT:', totalVatAmount, 'TOTAL with VAT:', totalWithVat)
+      console.log('▶️ createActivity payload:', payload)
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        })
+
+        console.log('◀️ createActivity status:', response.status)
+
+        let resultJson = null
+        try {
+          resultJson = await response.json()
+          console.log('◀️ createActivity response JSON:', resultJson)
+        } catch (jsonErr) {
+          console.log('⚠️ Failed to parse JSON from createActivity:', jsonErr)
+        }
+
+        if (!response.ok) {
+          const errMsg = resultJson?.message || `HTTP error: ${response.status}`
+          throw new Error(errMsg)
+        }
+
+        setToastMessage(tr('toastActivityAdded', 'Activity added successfully!'))
+        setToastType('success')
+        setTimeout(() => navigate('/vendordata/activityinfo/activity/list'), 2000)
+      } catch (err) {
+        console.error('❌ createActivity error:', err)
+        setToastMessage(tr('toastActivityAddFailed', 'Failed to add Activity.'))
+        setToastType('fail')
+      }
     } finally {
+      submitLockRef.current = false
       setLoading(false)
+      setSubmitAction('')
     }
   }
 
@@ -688,6 +700,12 @@ const Vendor = () => {
   const dayLabel = (d) => tr(`day_${d}`, d)
 
   const toggleLang = () => setStoredLang(lang === 'ar' ? 'en' : 'ar')
+
+  const saveButtonText = loading && submitAction === 'DRAFT' ? tr('saving', 'Saving...') : tr('btnSave', 'Save')
+  const sendApprovalButtonText =
+    loading && submitAction === 'WAITING-FOR-APPROVAL'
+      ? tr('sendingForApproval', 'Submitting...')
+      : tr('btnSendToAdmin', 'Send To Admin Approval')
 
   return (
     <div>
@@ -700,11 +718,11 @@ const Vendor = () => {
             {lang === 'ar' ? 'EN' : 'AR'}
           </button>
 
-          <button className="admin-buttonv1" onClick={() => setShowModal(true)}>
-            {tr('btnSendToAdmin', 'Send To Admin Approval')}
+          <button className="admin-buttonv1" onClick={() => setShowModal(true)} disabled={loading}>
+            {sendApprovalButtonText}
           </button>
-          <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
-            {tr('btnSave', 'Save')}
+          <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)} disabled={loading}>
+            {saveButtonText}
           </button>
           <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
             {tr('btnReturn', 'Return')}
@@ -1450,11 +1468,11 @@ const Vendor = () => {
       </div>
 
       <div className="button-container">
-        <button className="admin-buttonv1" onClick={() => setShowModal(true)}>
-          {tr('btnSendToAdmin', 'Send To Admin Approval')}
+        <button className="admin-buttonv1" onClick={() => setShowModal(true)} disabled={loading}>
+          {sendApprovalButtonText}
         </button>
-        <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
-          {tr('btnSave', 'Save')}
+        <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)} disabled={loading}>
+          {saveButtonText}
         </button>
         <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/activity/list')}>
           {tr('btnCancel', 'Cancel')}
@@ -1469,6 +1487,7 @@ const Vendor = () => {
             <div className="modal-buttons">
               <button
                 className="admin-buttonv1"
+                disabled={loading}
                 onClick={(e) => {
                   setShowModal(false)
                   handleSubmit('WAITING-FOR-APPROVAL', e)
