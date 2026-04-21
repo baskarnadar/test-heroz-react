@@ -296,8 +296,14 @@ const ActivityList = () => {
 
   const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
 
-  const handleViewClick = (ActivityID, VendorID) => {
+  const handleEditClick = (ActivityID, VendorID) => {
     navigate(`/admindata/activityinfo/activity/modify?ActivityID=${ActivityID}&VendorID=${VendorID}`)
+  }
+
+  const handleViewClick = (ActivityID, VendorID) => {
+    navigate(
+      `/admindata/activityinfo/activity/view?ActivityID=${ActivityID}&VendorID=${VendorID}&mode=view`,
+    )
   }
 
   const handleBookedClick = (ActivityID, VendorID) => {
@@ -715,50 +721,93 @@ const ActivityList = () => {
                       </button>
                     </td>
 
-                    <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '6px',
-                          justifyContent: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <button
-                          onClick={() => handleViewClick(row.ActivityID, row.VendorID)}
-                          title="View"
-                          className="btn btnbtn-default graybox"
-                          style={{
-                            padding: '4px',
-                            cursor: 'pointer',
-                            backgroundColor: 'white',
-                          }}
-                          aria-label="View"
-                        >
-                          <i
-                            style={{ color: '#cf2037', fontSize: '22px' }}
-                            className="fa fa-pencil"
-                          />
-                        </button>
+                     <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
+  <div
+    style={{
+      display: 'flex',
+      gap: '8px',
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexWrap: 'nowrap',
+      whiteSpace: 'nowrap',
+    }}
+  >
+    <button
+      onClick={() => handleEditClick(row.ActivityID, row.VendorID)}
+      title="Edit"
+      className="btn btnbtn-default graybox"
+      style={{
+        padding: '6px',
+        cursor: 'pointer',
+        backgroundColor: 'rgba(128,128,128,0.15)',
+        borderRadius: '50%',
+        width: '36px',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        border: 'none',
+      }}
+      aria-label="Edit"
+    >
+      <i
+        style={{ color: '#2c4696', fontSize: '18px' }}
+        className="fa fa-pencil"
+      />
+    </button>
 
-                        <button
-                          onClick={() => handleDeleteClick(row.ActivityID, row.VendorID)}
-                          title="Delete"
-                          className="btn btnbtn-default graybox"
-                          style={{
-                            padding: '4px',
-                            cursor: 'pointer',
-                            backgroundColor: 'white',
-                          }}
-                          aria-label="Delete"
-                        >
-                          <i
-                            style={{ color: '#cf2037', fontSize: '22px' }}
-                            className="fa fa-trash"
-                          />
-                        </button>
-                      </div>
-                    </td>
+    <button
+      onClick={() => handleViewClick(row.ActivityID, row.VendorID)}
+      title="View"
+      className="btn btnbtn-default graybox"
+      style={{
+        padding: '6px',
+        cursor: 'pointer',
+        backgroundColor: 'rgba(128,128,128,0.15)',
+        borderRadius: '50%',
+        width: '36px',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        border: 'none',
+      }}
+      aria-label="View"
+    >
+      <i
+        style={{ color: '#2c4696', fontSize: '18px' }}
+        className="fa fa-eye"
+      />
+    </button>
+
+    <button
+      onClick={() => handleDeleteClick(row.ActivityID, row.VendorID)}
+      title="Delete"
+      className="btn btnbtn-default graybox"
+      style={{
+        padding: '6px',
+        cursor: 'pointer',
+        backgroundColor: 'rgba(128,128,128,0.15)',
+        borderRadius: '50%',
+        width: '36px',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        border: 'none',
+      }}
+      aria-label="Delete"
+    >
+      <i
+        style={{ color: '#2c4696', fontSize: '18px' }}
+        className="fa fa-trash"
+      />
+    </button>
+  </div>
+</td>
                   </tr>
                 )
               })}
