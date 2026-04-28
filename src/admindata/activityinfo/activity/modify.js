@@ -22,6 +22,50 @@ import TripSummaryVat from './tripsummaryvat'
 const ErrorText = ({ msg }) =>
   msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
 
+// ✅ YouTube helper
+// ✅ Only real YouTube video IDs should preview. YouTube video ID must be exactly 11 chars.
+const getYouTubeVideoId = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+
+  let videoId = raw
+
+  try {
+    if (raw.includes('youtube.com') || raw.includes('youtu.be')) {
+      const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+
+      if (url.hostname.includes('youtu.be')) {
+        videoId = url.pathname.replace('/', '').split('/')[0]
+      } else if (url.pathname.includes('/embed/')) {
+        videoId = url.pathname.split('/embed/')[1]?.split('/')[0]
+      } else if (url.pathname.includes('/shorts/')) {
+        videoId = url.pathname.split('/shorts/')[1]?.split('/')[0]
+      } else {
+        videoId = url.searchParams.get('v') || ''
+      }
+    }
+  } catch {
+    videoId = raw
+  }
+
+  videoId = String(videoId || '').trim().replace(/[^a-zA-Z0-9_-]/g, '')
+
+  // ✅ Prevent black/invalid preview boxes for wrong YouTube data
+  if (videoId.length !== 11) return ''
+
+  return videoId
+}
+
+const getYouTubeWatchUrl = (value) => {
+  const id = getYouTubeVideoId(value)
+  return id ? `https://www.youtube.com/watch?v=${id}` : ''
+}
+
+const getYouTubeThumbnailUrl = (value) => {
+  const id = getYouTubeVideoId(value)
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ''
+}
+
 const Vendor = () => {
   const [error, setError] = useState('')
 
@@ -101,7 +145,7 @@ const Vendor = () => {
   const [txtactTripDetail, setactTripDetail] = useState('')
   const [txtactAdminNotes, setAdminNotes] = useState('')
 
-  // ⭐ Activity Rating (0–5 UI). We’ll validate by mapping to 1–10 scale internally.
+  // ⭐ Activity Rating (1–5 only)
   const [actRating, setactRating] = useState('')
 
   const [foods, setFoods] = useState([
@@ -1228,6 +1272,141 @@ const Vendor = () => {
   // ✅ NEW: Pink header background for the 3 columns
   const starHeaderPink = { backgroundColor: 'rgba(248, 234, 243, 1)' }
 
+  // ✅ Keep YouTube preview area visible.
+  // ✅ If YouTube data is empty, show "No Data Found" instead of hiding.
+  // ✅ Show preview only if YouTube data is a valid 11-character video ID.
+  const renderYouTubePreview = (videoValue, title) => {
+    const rawValue = String(videoValue || '').trim()
+
+    // ✅ Empty data: keep section visible and show No Data Found
+    if (!rawValue) {
+      return (
+        <div
+          style={{
+            marginTop: 10,
+            padding: '14px 12px',
+            border: '1px dashed #c9c9c9',
+            borderRadius: 10,
+            background: '#f8f8f8',
+            color: '#777',
+            fontSize: 13,
+            textAlign: 'center',
+            fontWeight: 600,
+          }}
+        >
+          No Data Found
+        </div>
+      )
+    }
+
+    const videoId = getYouTubeVideoId(rawValue)
+    const hasValidVideoId = !!videoId
+
+    const watchUrl = hasValidVideoId ? getYouTubeWatchUrl(rawValue) : ''
+    const thumbUrl = hasValidVideoId ? getYouTubeThumbnailUrl(rawValue) : ''
+
+    return (
+      <div style={{ marginTop: 10 }}>
+        {/* ✅ Display the actual YouTube data coming from API/input */}
+        <div
+          style={{
+            marginBottom: 8,
+            padding: '10px 12px',
+            border: hasValidVideoId ? '1px solid #d6e7d6' : '1px solid #cf2037',
+            borderRadius: 10,
+            background: hasValidVideoId ? '#f6fff2' : 'rgba(207, 32, 55, 0.06)',
+            color: '#222',
+            fontSize: 13,
+            lineHeight: 1.6,
+            wordBreak: 'break-word',
+          }}
+        >
+          <div><strong>YouTube Data:</strong> {rawValue}</div>
+          <div>
+            <strong>Video ID:</strong>{' '}
+            {hasValidVideoId ? videoId : 'Invalid YouTube ID / URL'}
+          </div>
+        </div>
+
+        {/* ✅ Invalid data: do NOT show black preview */}
+        {!hasValidVideoId ? null : (
+          <a
+            href={watchUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'block',
+              position: 'relative',
+              border: '1px solid #e2e2e2',
+              borderRadius: 12,
+              overflow: 'hidden',
+              background: '#000',
+              textDecoration: 'none',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                paddingTop: '56.25%',
+                background: '#000',
+              }}
+            >
+              <img
+                src={thumbUrl}
+                alt={title}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.2)',
+                }}
+              >
+                <div
+                  style={{
+                    width: 64,
+                    height: 46,
+                    borderRadius: 12,
+                    background: '#ff0000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      marginLeft: 4,
+                      width: 0,
+                      height: 0,
+                      borderTop: '12px solid transparent',
+                      borderBottom: '12px solid transparent',
+                      borderLeft: '20px solid #fff',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </a>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div>
       {/* STATUS BANNER */}
@@ -1376,15 +1555,40 @@ const Vendor = () => {
           <input
             name="actRating"
             type="number"
-            inputMode="decimal"
-            step="0.1"
-            min="0"
+            inputMode="numeric"
+            step="1"
+            min="1"
             max="5"
             className="vendor-input"
-            placeholder="e.g., 4.5"
+            placeholder="Enter rating 1 to 5"
             value={actRating}
-            onChange={(e) => setactRating(e.target.value)}
             style={{ width: 140 }}
+            onChange={(e) => {
+              let value = e.target.value
+
+              if (value === '') {
+                setactRating('')
+                return
+              }
+
+              const n = Number(value)
+              if (!Number.isFinite(n)) return
+
+              if (n < 1) {
+                setactRating('1')
+                return
+              }
+
+              if (n > 5) {
+                setactRating('5')
+                return
+              }
+
+              setactRating(String(Math.floor(n)))
+            }}
+            onKeyDown={(e) => {
+              if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault()
+            }}
           />
           {/* We still use errors.actRating from shared validator */}
           <ErrorText msg={errors.actRating} />
@@ -1517,6 +1721,7 @@ const Vendor = () => {
               value={txtactYouTubeID1}
               onChange={(e) => setYouTube1(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID1, 'Youtube Video Link 1')}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
@@ -1527,6 +1732,7 @@ const Vendor = () => {
               className="vendor-input"
               onChange={(e) => setYouTube2(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID2, 'Youtube Video Link 2')}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
@@ -1537,6 +1743,7 @@ const Vendor = () => {
               value={txtactYouTubeID3}
               onChange={(e) => setYouTube3(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID3, 'Youtube Video Link 3')}
           </div>
         </div>
       </div>

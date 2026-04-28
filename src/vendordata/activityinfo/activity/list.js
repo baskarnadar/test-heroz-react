@@ -1,5 +1,5 @@
 // (keep same path as your project) e.g. src/pages/vendordata/activityinfo/activity/ActivityList.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { CIcon } from '@coreui/icons-react'
@@ -68,6 +68,70 @@ const ActivityList = () => {
     return () => window.removeEventListener('heroz_lang_changed', onChange)
   }, [])
   // ------------------------------------
+
+  // ======================================================
+  // ✅ SCHOOL ONLY FILTER
+  // This screen must show only SCHOOL activities.
+  // It supports different API field names safely.
+  // ======================================================
+  const normalizeActivityType = (value) => {
+    const t = (value ?? '').toString().trim().toUpperCase()
+
+    if (!t) return ''
+
+    if (
+      t === 'SCHOOL' ||
+      t === 'TRIP' ||
+      t === 'ACTIVITY' ||
+      t === 'SCHOOLACTIVITY' ||
+      t === 'SCHOOL_ACTIVITY'
+    ) {
+      return 'SCHOOL'
+    }
+
+    if (
+      t === 'MEMBERSHIP' ||
+      t === 'MEMBER' ||
+      t === 'MEMBERS' ||
+      t === 'MEMBERSHIPACTIVITY' ||
+      t === 'MEMBERSHIP_ACTIVITY'
+    ) {
+      return 'MEMBERSHIP'
+    }
+
+    return t
+  }
+
+  const getRowActivityType = (row) => {
+    return normalizeActivityType(
+      row?.actTypeID ??
+        row?.ActivityType ??
+        row?.activitytype ??
+        row?.actType ??
+        row?.Type ??
+        row?.type ??
+        '',
+    )
+  }
+
+  const schoolOnlyActivity = useMemo(() => {
+    const result = (Activity || []).filter((row) => getRowActivityType(row) === 'SCHOOL')
+
+    console.groupCollapsed('🧪 Vendor Activity SCHOOL ONLY Filter')
+    console.log('Total rows from API:', Activity?.length || 0)
+    console.log('School rows only:', result.length)
+    console.table(
+      result.slice(0, 20).map((r) => ({
+        ActivityID: r?.ActivityID,
+        actName: r?.actName,
+        actTypeID: r?.actTypeID,
+        normalizedType: getRowActivityType(r),
+      })),
+    )
+    console.groupEnd()
+
+    return result
+  }, [Activity])
 
   useEffect(() => {
     fetchActivity()
@@ -240,7 +304,7 @@ const ActivityList = () => {
               </tr>
             </thead>
             <tbody>
-              {Activity.map((row, index) => (
+              {schoolOnlyActivity.map((row, index) => (
                 <tr key={row.PrdCodeNo || `${row.ActivityID}-${index}`}>
                   <td>
                     <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
@@ -251,7 +315,7 @@ const ActivityList = () => {
                     </div>
                   </td>
                   <td> {row.actName} </td>
-                  <td> {row.actTypeID} </td>
+                  <td> {getRowActivityType(row) || row.actTypeID} </td>
                   <td>
                     {row.EnCityName} {row.actAddress1}
                     {row.actAddress2}
@@ -339,6 +403,14 @@ const ActivityList = () => {
                   </td>
                 </tr>
               ))}
+
+              {schoolOnlyActivity.length === 0 && (
+                <tr>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+                    {tr('noSchoolActivities', 'No school activities found.')}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 

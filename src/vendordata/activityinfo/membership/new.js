@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -70,7 +70,7 @@ const Vendor = () => {
   const [selectedType, setactType] = useState('MEMBERSHIP')
 
   // default rating kept, now visible
-  const [actRating, setactRating] = useState('0') // 1..5 required
+  const [actRating, setactRating] = useState('1') // 1..5 required
 
   const [selectedCategories, setSelectedCategories] = useState([])
 
@@ -805,14 +805,39 @@ const Vendor = () => {
               id="actRating"
               name="actRating"
               type="number"
-              inputMode="decimal"
-              step="0.1"
+              inputMode="numeric"
+              step="1"
               min="1"
               max="5"
               className="admin-txt-box"
               placeholder={tr('phEnterRating', 'Enter rating 1 to 5')}
               value={actRating}
-              onChange={(e) => setactRating(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+
+                if (value === '') {
+                  setactRating('')
+                  return
+                }
+
+                const n = Number(value)
+                if (!Number.isFinite(n)) return
+
+                if (n < 1) {
+                  setactRating('1')
+                  return
+                }
+
+                if (n > 5) {
+                  setactRating('5')
+                  return
+                }
+
+                setactRating(String(Math.floor(n)))
+              }}
+              onKeyDown={(e) => {
+                if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault()
+              }}
             />
             <ErrorText msg={errors.actRating} />
           </div>

@@ -26,6 +26,44 @@ import arPack from '../../../i18n/arloc100.json'
 const ErrorText = ({ msg }) =>
   msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
 
+// ✅ YouTube helper: accepts ID / full URL / short URL
+const getYouTubeVideoId = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+
+  let videoId = raw
+
+  try {
+    if (raw.includes('youtube.com') || raw.includes('youtu.be')) {
+      const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+
+      if (url.hostname.includes('youtu.be')) {
+        videoId = url.pathname.replace('/', '').split('/')[0]
+      } else if (url.pathname.includes('/embed/')) {
+        videoId = url.pathname.split('/embed/')[1]?.split('/')[0]
+      } else if (url.pathname.includes('/shorts/')) {
+        videoId = url.pathname.split('/shorts/')[1]?.split('/')[0]
+      } else {
+        videoId = url.searchParams.get('v') || raw
+      }
+    }
+  } catch {
+    videoId = raw
+  }
+
+  return String(videoId || '').replace(/[^a-zA-Z0-9_-]/g, '')
+}
+
+const getYouTubeWatchUrl = (value) => {
+  const id = getYouTubeVideoId(value)
+  return id ? `https://www.youtube.com/watch?v=${id}` : ''
+}
+
+const getYouTubeThumbnailUrl = (value) => {
+  const id = getYouTubeVideoId(value)
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ''
+}
+
 const Vendor = () => {
   // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
@@ -104,7 +142,7 @@ const Vendor = () => {
   const [txtactName, setactName] = useState('')
   // 🔒 Force Activity Type to MEMBERSHIP only (default + guards below)
   const [selectedType, setactType] = useState('MEMBERSHIP')
-  const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
+  const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 only
   const [selectedCategories, setSelectedCategories] = useState([])
 
   // ✅ NEW: Kids Interest selected IDs (for MEMBERSHIP type)
@@ -462,7 +500,7 @@ const Vendor = () => {
     if (file) setter(file)
   }
 
-  // 🔒 Validate rating 1..5 (decimals allowed) and show as read-only
+  // 🔒 Validate rating 1..5 only
   const isValidActRating = (val) => {
     if (val === '' || val === null || typeof val === 'undefined') return false
     const n = Number(val)
@@ -491,11 +529,11 @@ const Vendor = () => {
       return
     }
 
-    // ❗ Enforce Activity Rating 1..5 (decimals allowed)
+    // ❗ Enforce Activity Rating 1..5 only
     if (!isValidActRating(actRating)) {
       setErrors((prev) => ({
         ...prev,
-        actRating: tr('errRatingRange', 'Activity Rating must be between 1 and 5 (decimals allowed).'),
+        actRating: tr('errRatingRange', 'Activity Rating must be between 1 and 5.'),
       }))
       setToastMessage(tr('fixRating', 'Please correct Activity Rating.'))
       setToastType('fail')
@@ -1183,6 +1221,111 @@ const Vendor = () => {
     handleSubmit('DRAFT')
   }
 
+  // ✅ Visible YouTube preview
+  const renderYouTubePreview = (videoValue, title) => {
+    const videoId = getYouTubeVideoId(videoValue)
+    const thumbUrl = getYouTubeThumbnailUrl(videoValue)
+    const watchUrl = getYouTubeWatchUrl(videoValue)
+
+    if (!videoId) {
+      return (
+        <div
+          style={{
+            marginTop: 10,
+            border: '1px dashed #ddd',
+            borderRadius: 10,
+            padding: '14px 12px',
+            color: '#777',
+            background: '#fafafa',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          {tr('youtubePreviewEmpty', 'No YouTube preview')}
+        </div>
+      )
+    }
+
+    return (
+      <a
+        href={watchUrl}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          marginTop: 10,
+          display: 'block',
+          position: 'relative',
+          border: '1px solid #e2e2e2',
+          borderRadius: 12,
+          overflow: 'hidden',
+          background: '#000',
+          textDecoration: 'none',
+        }}
+      >
+        <div
+          style={{
+            padding: '8px 10px',
+            fontSize: 13,
+            fontWeight: 700,
+            background: '#f7f7f7',
+            borderBottom: '1px solid #e2e2e2',
+            color: '#111',
+          }}
+        >
+          {title}
+        </div>
+
+        <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
+          <img
+            src={thumbUrl}
+            alt={title}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.2)',
+            }}
+          >
+            <div
+              style={{
+                width: 64,
+                height: 46,
+                borderRadius: 12,
+                background: '#ff0000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span
+                style={{
+                  marginLeft: 4,
+                  width: 0,
+                  height: 0,
+                  borderTop: '12px solid transparent',
+                  borderBottom: '12px solid transparent',
+                  borderLeft: '20px solid #fff',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </a>
+    )
+  }
+
   return (
     <div>
       <div className="divhbg">
@@ -1306,23 +1449,50 @@ const Vendor = () => {
           <ErrorText msg={errors.selectedType} />
         </div>
 
-        {/* ⭐ Activity Rating – read-only display, validated 1..5 (decimals allowed) */}
+        {/* ⭐ Activity Rating – editable 1..5 only */}
         <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
           <label className="vendor-label" style={{ margin: 0 }}>
             {tr('labelActivityRating', 'Activity Rating')} <span style={{ color: 'red' }}>*</span>
           </label>
-          <div
+
+          <input
+            type="number"
+            name="actRating"
             className="vendor-input"
-            style={{
-              background: '#f7f7f7',
-              cursor: 'not-allowed',
-              userSelect: 'none',
+            min="1"
+            max="5"
+            step="1"
+            inputMode="numeric"
+            value={actRating}
+            onChange={(e) => {
+              const value = e.target.value
+
+              if (value === '') {
+                setactRating('')
+                return
+              }
+
+              const n = Number(value)
+              if (!Number.isFinite(n)) return
+
+              if (n < 1) {
+                setactRating('1')
+                return
+              }
+
+              if (n > 5) {
+                setactRating('5')
+                return
+              }
+
+              setactRating(String(Math.floor(n)))
             }}
-            title={tr('titleReadOnly', 'This value is read-only')}
-          >
-            {actRating === '' ? '—' : actRating}
-          </div>
-          <input type="hidden" name="actRating" value={actRating} readOnly />
+            onKeyDown={(e) => {
+              if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault()
+            }}
+            placeholder={tr('phEnterRating', 'Enter rating 1 to 5')}
+          />
+
           <ErrorText msg={errors.actRating} />
         </div>
 
@@ -1499,6 +1669,7 @@ const Vendor = () => {
               value={txtactYouTubeID1}
               onChange={(e) => setYouTube1(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID1, tr('labelYouTube1', 'Youtube Video Link 1'))}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
@@ -1509,6 +1680,7 @@ const Vendor = () => {
               className="vendor-input"
               onChange={(e) => setYouTube2(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID2, tr('labelYouTube2', 'Youtube Video Link 2'))}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
@@ -1519,6 +1691,7 @@ const Vendor = () => {
               value={txtactYouTubeID3}
               onChange={(e) => setYouTube3(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID3, tr('labelYouTube3', 'Youtube Video Link 3'))}
           </div>
         </div>
       </div>

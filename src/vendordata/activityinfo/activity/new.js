@@ -67,7 +67,7 @@ const Vendor = () => {
   const [selectedType, setactType] = useState('SCHOOL')
 
   // default rating kept, now visible
-  const [actRating, setactRating] = useState('0') // 1..5 required
+  const [actRating, setactRating] = useState('') // 1..5 required
 
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
@@ -171,6 +171,35 @@ const Vendor = () => {
     return hour * 60 + minute
   }
 
+  // ✅ Display total time as HH:MM instead of decimal hours
+  const minutesToHHMM = (mins) => {
+    const totalMinutes = Number(mins || 0)
+    if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return '0:00'
+
+    const roundedMinutes = Math.round(totalMinutes)
+    const hours = Math.floor(roundedMinutes / 60)
+    const minutes = roundedMinutes % 60
+
+    return `${hours}:${String(minutes).padStart(2, '0')}`
+  }
+
+  const totalValueToMinutes = (value) => {
+    const str = String(value || '').trim()
+    if (!str) return 0
+
+    if (str.includes(':')) {
+      const [h, m] = str.split(':')
+      const hours = parseInt(h, 10)
+      const minutes = parseInt(m, 10)
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0
+      return hours * 60 + minutes
+    }
+
+    const decimalHours = Number(str)
+    if (!Number.isFinite(decimalHours)) return 0
+    return Math.round(decimalHours * 60)
+  }
+
   const hasOverlap = (daysObj) => {
     for (const [dayName, dayData] of Object.entries(daysObj)) {
       if (dayData.closed) continue
@@ -230,8 +259,7 @@ const Vendor = () => {
         const sMin = timeStringToMinutes(s)
         const eMin = timeStringToMinutes(e)
         if (sMin !== null && eMin !== null && eMin > sMin) {
-          const hrs = (eMin - sMin) / 60
-          next.total = hrs.toFixed(2)
+          next.total = minutesToHHMM(eMin - sMin)
         } else {
           next.total = ''
         }
@@ -240,8 +268,8 @@ const Vendor = () => {
       }
 
       updatedTimes[index] = next
-      const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
-      return { ...prev, [day]: { ...prev[day], times: updatedTimes, total: dayTotal.toFixed(2) } }
+      const dayTotalMinutes = updatedTimes.reduce((sum, t) => sum + totalValueToMinutes(t.total), 0)
+      return { ...prev, [day]: { ...prev[day], times: updatedTimes, total: minutesToHHMM(dayTotalMinutes) } }
     })
   }
 
@@ -249,8 +277,8 @@ const Vendor = () => {
     setDays((prev) => {
       const updatedTimes = [...prev[day].times]
       updatedTimes[index] = { ...(updatedTimes[index] || {}), note: value }
-      const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
-      return { ...prev, [day]: { ...prev[day], times: updatedTimes, total: dayTotal.toFixed(2) } }
+      const dayTotalMinutes = updatedTimes.reduce((sum, t) => sum + totalValueToMinutes(t.total), 0)
+      return { ...prev, [day]: { ...prev[day], times: updatedTimes, total: minutesToHHMM(dayTotalMinutes) } }
     })
   }
 
@@ -264,19 +292,19 @@ const Vendor = () => {
     }
     const newStart = lastEnd
     const newEnd = newStart + 60
-    const newTimes = [...existingTimes, { start: minutesToTime(newStart), end: minutesToTime(newEnd), total: '1.00', note: '' }]
+    const newTimes = [...existingTimes, { start: minutesToTime(newStart), end: minutesToTime(newEnd), total: '1:00', note: '' }]
     setDays({ ...days, [day]: { ...days[day], times: newTimes } })
   }
 
   const handleRemoveTimeRange = (day, index) => {
     const updatedTimes = days[day].times.filter((_, i) => i !== index)
-    const newTotal = updatedTimes.reduce((sum, t) => sum + parseFloat(t.total || 0), 0)
+    const newTotalMinutes = updatedTimes.reduce((sum, t) => sum + totalValueToMinutes(t.total), 0)
     setDays({
       ...days,
       [day]: {
         ...days[day],
         times: updatedTimes.length ? updatedTimes : [{ start: '', end: '', total: '', note: '' }],
-        total: newTotal.toFixed(2),
+        total: minutesToHHMM(newTotalMinutes),
       },
     })
   }
@@ -287,6 +315,31 @@ const Vendor = () => {
       updated[index][field] = value
       return updated
     })
+  }
+
+  // ✅ Activity Rating must accept only 1 to 5
+  const handleActivityRatingChange = (e) => {
+    const value = e.target.value
+
+    if (value === '') {
+      setactRating('')
+      return
+    }
+
+    const n = Number(value)
+    if (!Number.isFinite(n)) return
+
+    if (n < 1) {
+      setactRating('1')
+      return
+    }
+
+    if (n > 5) {
+      setactRating('5')
+      return
+    }
+
+    setactRating(value)
   }
 
   const handleAddRange = () => setPriceRanges((prev) => [...prev, { price: '', rangeFrom: '', rangeTo: '' }])
@@ -410,7 +463,7 @@ const Vendor = () => {
           StartTime: range.start,
           EndTime: range.end,
           Note: range.note || '',
-          Total: range.total || '0.00',
+          Total: range.total || '0:00',
           CreatedBy: getCurrentLoggedUserID(),
           ModifyBy: getCurrentLoggedUserID(),
         })
@@ -645,7 +698,7 @@ const Vendor = () => {
         actWhatsIncluded: txtactWhatsIncluded || '',
         actTripDetail: txtactTripDetail || '',
         actAdminNotes: txtactAdminNotes || '',
-        actRating: Number(actRating), // visible + submitted
+        actRating: actRating === '' ? '' : Number(actRating), // visible + submitted
         actStatus: actStatusVal,
         IsDataStatus: 1,
         CreatedBy: getCurrentLoggedUserID(),
@@ -796,7 +849,10 @@ const Vendor = () => {
               className="admin-txt-box"
               placeholder={tr('phEnterRating', 'Enter rating 1 to 5')}
               value={actRating}
-              onChange={(e) => setactRating(e.target.value)}
+              onChange={handleActivityRatingChange}
+              onKeyDown={(e) => {
+                if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault()
+              }}
             />
             <ErrorText msg={errors.actRating} />
           </div>
@@ -1248,7 +1304,7 @@ const Vendor = () => {
                         </label>
 
                         <div className="act-rangeHours">
-                          {tr('labelRangeHours', 'Range Hours')}: <strong>{range.total || '0.00'}</strong>
+                          {tr('labelRangeHours', 'Range Hours')}: <strong>{range.total || '0:00'}</strong>
                         </div>
 
                         {days[day].times.length > 1 && (

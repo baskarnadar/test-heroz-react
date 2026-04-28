@@ -26,6 +26,38 @@ import arPack from '../../../i18n/arloc100.json'
 const ErrorText = ({ msg }) =>
   msg ? <div style={{ color: '#cf2037', fontSize: 12, marginTop: 4 }}>{msg}</div> : null
 
+// ✅ YouTube helper: accepts video ID, normal URL, short URL, shorts URL, or embed URL
+const getYouTubeEmbedUrl = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+
+  let videoId = raw
+
+  try {
+    if (raw.includes('youtube.com') || raw.includes('youtu.be')) {
+      const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+
+      if (url.hostname.includes('youtu.be')) {
+        videoId = url.pathname.replace('/', '').split('/')[0]
+      } else if (url.pathname.includes('/embed/')) {
+        videoId = url.pathname.split('/embed/')[1]?.split('/')[0]
+      } else if (url.pathname.includes('/shorts/')) {
+        videoId = url.pathname.split('/shorts/')[1]?.split('/')[0]
+      } else {
+        videoId = url.searchParams.get('v') || raw
+      }
+    }
+  } catch {
+    videoId = raw
+  }
+
+  videoId = String(videoId || '').trim()
+  videoId = videoId.replace(/[^a-zA-Z0-9_-]/g, '')
+
+  if (!videoId) return ''
+  return `https://www.youtube.com/embed/${videoId}`
+}
+
 const Vendor = () => {
   // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
@@ -100,7 +132,7 @@ const Vendor = () => {
   const [txtactName, setactName] = useState('')
   // 🔒 Force Activity Type to SCHOOL only (default + guards below)
   const [selectedType, setactType] = useState('SCHOOL')
-  const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (decimals allowed) – read-only display
+  const [actRating, setactRating] = useState('') // ⭐ Activity Rating 1..5 (1 to 5 only) – read-only display
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -188,7 +220,7 @@ const Vendor = () => {
         start: newStart,
         end: newEnd,
         note: '',
-        total: '0.00',
+        total: '1:00',
       },
     ]
 
@@ -202,7 +234,7 @@ const Vendor = () => {
     const startMinutes = timeToMinutes(start)
     const endMinutes = timeToMinutes(end)
     if (startMinutes == null || endMinutes == null || endMinutes <= startMinutes) return ''
-    return ((endMinutes - startMinutes) / 60).toFixed(2)
+    return minutesToHHMM(endMinutes - startMinutes)
   }
 
   const [days, setDays] = useState({
@@ -281,6 +313,35 @@ const Vendor = () => {
     return hour * 60 + minute
   }
 
+  // ✅ HH:MM formatter for range totals
+  const minutesToHHMM = (mins) => {
+    const totalMinutes = Number(mins || 0)
+    if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return '0:00'
+
+    const rounded = Math.round(totalMinutes)
+    const hours = Math.floor(rounded / 60)
+    const minutes = rounded % 60
+
+    return `${hours}:${String(minutes).padStart(2, '0')}`
+  }
+
+  const totalValueToMinutes = (value) => {
+    const str = String(value || '').trim()
+    if (!str) return 0
+
+    if (str.includes(':')) {
+      const [h, m] = str.split(':')
+      const hours = parseInt(h, 10)
+      const minutes = parseInt(m, 10)
+      if (isNaN(hours) || isNaN(minutes)) return 0
+      return hours * 60 + minutes
+    }
+
+    const decimalHours = Number(str)
+    if (!Number.isFinite(decimalHours)) return 0
+    return Math.round(decimalHours * 60)
+  }
+
   const hasOverlap = (days) => {
     for (const [dayName, dayData] of Object.entries(days)) {
       if (dayData.closed) continue
@@ -322,7 +383,7 @@ const Vendor = () => {
           eMin = timeToMinutes(e)
         }
         if (sMin != null && eMin != null && eMin > sMin) {
-          nextRow.total = ((eMin - sMin) / 60).toFixed(2)
+          nextRow.total = minutesToHHMM(eMin - sMin)
         } else {
           nextRow.total = ''
         }
@@ -331,14 +392,14 @@ const Vendor = () => {
       }
 
       updatedTimes[index] = nextRow
-      const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
+      const dayTotalMinutes = updatedTimes.reduce((sum, t) => sum + totalValueToMinutes(t.total), 0)
 
       return {
         ...prevDays,
         [day]: {
           ...prevDays[day],
           times: updatedTimes,
-          total: dayTotal.toFixed(2),
+          total: minutesToHHMM(dayTotalMinutes),
         },
       }
     })
@@ -349,10 +410,10 @@ const Vendor = () => {
       const updatedTimes = [...prevDays[day].times]
       const prevRow = updatedTimes[index] || {}
       updatedTimes[index] = { ...prevRow, note: value }
-      const dayTotal = updatedTimes.reduce((sum, t) => sum + Number(t.total || 0), 0)
+      const dayTotalMinutes = updatedTimes.reduce((sum, t) => sum + totalValueToMinutes(t.total), 0)
       return {
         ...prevDays,
-        [day]: { ...prevDays[day], times: updatedTimes, total: dayTotal.toFixed(2) },
+        [day]: { ...prevDays[day], times: updatedTimes, total: minutesToHHMM(dayTotalMinutes) },
       }
     })
   }
@@ -451,7 +512,7 @@ const Vendor = () => {
     if (file) setter(file)
   }
 
-  // 🔒 Validate rating 1..5 (decimals allowed) and show as read-only
+  // 🔒 Validate rating 1..5 (1 to 5 only) and show as read-only
   const isValidActRating = (val) => {
     if (val === '' || val === null || typeof val === 'undefined') return false
     const n = Number(val)
@@ -473,13 +534,13 @@ const Vendor = () => {
       return
     }
 
-    // ❗ Enforce Activity Rating 1..5 (decimals allowed)
+    // ❗ Enforce Activity Rating 1..5 (1 to 5 only)
     if (!isValidActRating(actRating)) {
       setErrors((prev) => ({
         ...prev,
         actRating: tr(
           'errRatingRange',
-          'Activity Rating must be between 1 and 5 (decimals allowed).',
+          'Activity Rating must be between 1 and 5 (1 to 5 only).',
         ),
       }))
       setToastMessage(tr('fixRating', 'Please correct Activity Rating.'))
@@ -727,7 +788,7 @@ const Vendor = () => {
           StartTime: range.start,
           EndTime: range.end,
           Note: range.note || '',
-          Total: range.total || '0.00',
+          Total: range.total || '0:00',
           CreatedBy: getCurrentLoggedUserID(),
           ModifyBy: getCurrentLoggedUserID(),
           RemoveDays: range.ChkRemoveDays,
@@ -1030,7 +1091,7 @@ const Vendor = () => {
 
   const handleRemoveTimeRange = (day, index) => {
     const updatedTimes = days[day].times.filter((_, i) => i !== index)
-    const newTotal = updatedTimes.reduce((sum, t) => sum + parseFloat(t.total || 0), 0)
+    const newTotalMinutes = updatedTimes.reduce((sum, t) => sum + totalValueToMinutes(t.total), 0)
 
     setDays({
       ...days,
@@ -1040,7 +1101,7 @@ const Vendor = () => {
           updatedTimes.length > 0
             ? updatedTimes
             : [{ start: '', end: '', note: '', total: '' }],
-        total: newTotal.toFixed(2),
+        total: minutesToHHMM(newTotalMinutes),
       },
     })
   }
@@ -1185,6 +1246,79 @@ const Vendor = () => {
     handleSubmit('DRAFT')
   }
 
+  // ✅ Render YouTube video preview under each YouTube field
+  const renderYouTubePreview = (videoValue, title) => {
+    const embedUrl = getYouTubeEmbedUrl(videoValue)
+
+    if (!embedUrl) {
+      return (
+        <div
+          style={{
+            marginTop: 10,
+            border: '1px dashed #ddd',
+            borderRadius: 10,
+            padding: '14px 12px',
+            color: '#777',
+            background: '#fafafa',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          {tr('youtubePreviewEmpty', 'No YouTube preview')}
+        </div>
+      )
+    }
+
+    return (
+      <div
+        style={{
+          marginTop: 10,
+          border: '1px solid #e2e2e2',
+          borderRadius: 12,
+          overflow: 'hidden',
+          background: '#fff',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        }}
+      >
+        <div
+          style={{
+            padding: '8px 10px',
+            fontSize: 13,
+            fontWeight: 700,
+            background: '#f7f7f7',
+            borderBottom: '1px solid #e2e2e2',
+          }}
+        >
+          {title}
+        </div>
+
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            paddingTop: '56.25%',
+            background: '#000',
+          }}
+        >
+          <iframe
+            title={title}
+            src={embedUrl}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              border: 0,
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="divhbg">
@@ -1299,24 +1433,48 @@ const Vendor = () => {
           <ErrorText msg={errors.selectedType} />
         </div>
 
-        {/* ⭐ Activity Rating – read-only display, validated 1..5 (decimals allowed) */}
-        <div style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
-          <label className="vendor-label" style={{ margin: 0 }}>
+        {/* ⭐ Activity Rating – editable 1 to 5 only */}
+        <div className="form-group" style={{ marginTop: 15 }}>
+          <label className="vendor-label">
             {tr('labelActivityRating', 'Activity Rating')}{' '}
             <span style={{ color: 'red' }}>*</span>
           </label>
-          <div
-            className="vendor-input"
-            style={{
-              background: '#f7f7f7',
-              cursor: 'not-allowed',
-              userSelect: 'none',
+          <input
+            type="number"
+            name="actRating"
+            min="1"
+            max="5"
+            step="1"
+            className="admin-txt-box"
+            placeholder={tr('phEnterRating', 'Enter rating 1 to 5')}
+            value={actRating}
+            onChange={(e) => {
+              const value = e.target.value
+
+              if (value === '') {
+                setactRating('')
+                return
+              }
+
+              const n = Number(value)
+              if (!Number.isFinite(n)) return
+
+              if (n < 1) {
+                setactRating('1')
+                return
+              }
+
+              if (n > 5) {
+                setactRating('5')
+                return
+              }
+
+              setactRating(String(Math.floor(n)))
             }}
-            title={tr('titleReadOnly', 'This value is read-only')}
-          >
-            {actRating === '' ? '—' : actRating}
-          </div>
-          <input type="hidden" name="actRating" value={actRating} readOnly />
+            onKeyDown={(e) => {
+              if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault()
+            }}
+          />
           <ErrorText msg={errors.actRating} />
         </div>
 
@@ -1485,6 +1643,7 @@ const Vendor = () => {
               value={txtactYouTubeID1}
               onChange={(e) => setYouTube1(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID1, tr('labelYouTube1', 'Youtube Video Link 1'))}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
@@ -1495,6 +1654,7 @@ const Vendor = () => {
               className="vendor-input"
               onChange={(e) => setYouTube2(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID2, tr('labelYouTube2', 'Youtube Video Link 2'))}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
@@ -1505,6 +1665,7 @@ const Vendor = () => {
               value={txtactYouTubeID3}
               onChange={(e) => setYouTube3(e.target.value)}
             />
+            {renderYouTubePreview(txtactYouTubeID3, tr('labelYouTube3', 'Youtube Video Link 3'))}
           </div>
         </div>
       </div>
@@ -2054,7 +2215,7 @@ const Vendor = () => {
 
                           <div>
                             {tr('labelRangeHours', 'Range Hours')}:{' '}
-                            <strong>{range.total || '0.00'}</strong>
+                            <strong>{range.total || '0:00'}</strong>
                           </div>
 
                           {days[day].times.length > 1 &&

@@ -270,6 +270,18 @@ const Vendor = () => {
           </div>
         </div>
 
+        {/* ⭐ Activity Rating */}
+        <div className="form-group">
+          <label style={{ marginBottom: '10px', marginTop: '20px' }}>Activity Rating</label>
+          <div className="admin-lbl-box">
+            {ActivityData?.actRating !== undefined &&
+            ActivityData?.actRating !== null &&
+            String(ActivityData?.actRating).trim() !== ''
+              ? ActivityData?.actRating
+              : 'No Data Found'}
+          </div>
+        </div>
+
         <div style={{ marginBottom: '10px', marginTop: '20px' }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
             Activity Categories
@@ -331,22 +343,33 @@ const Vendor = () => {
         >
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 1</label>
-            <YouTubeEmbed videoId={ActivityData?.actYouTubeID1} />
+            {ActivityData?.actYouTubeID1 && String(ActivityData.actYouTubeID1).trim() !== '' ? (
+              <YouTubeEmbed videoId={ActivityData.actYouTubeID1} />
+            ) : (
+              <div className="admin-lbl-box text-center">No Data Found</div>
+            )}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 2</label>
-            <YouTubeEmbed videoId={ActivityData?.actYouTubeID2} />
+            {ActivityData?.actYouTubeID2 && String(ActivityData.actYouTubeID2).trim() !== '' ? (
+              <YouTubeEmbed videoId={ActivityData.actYouTubeID2} />
+            ) : (
+              <div className="admin-lbl-box text-center">No Data Found</div>
+            )}
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
             <label>Youtube Video Link 3</label>
-            <YouTubeEmbed videoId={ActivityData?.actYouTubeID3} />
+            {ActivityData?.actYouTubeID3 && String(ActivityData.actYouTubeID3).trim() !== '' ? (
+              <YouTubeEmbed videoId={ActivityData.actYouTubeID3} />
+            ) : (
+              <div className="admin-lbl-box text-center">No Data Found</div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="txtsubtitle">Activity Location </div>
 
       <div className="divbox">
         <div className="vendor-container">

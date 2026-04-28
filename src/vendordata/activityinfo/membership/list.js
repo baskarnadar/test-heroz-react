@@ -105,11 +105,14 @@ const ActivityList = () => {
 
       const data = await response.json()
       console.log('📦 API Response:', data)
-      setActivity(data.data || [])
-      setTotalPages(Math.ceil((data.totalCount || 0) / ActivityPerPage))
+      const membershipOnly = (data.data || []).filter(
+        (row) => (row.actTypeID || '').toString().toUpperCase() === 'MEMBERSHIP'
+      )
+      setActivity(membershipOnly)
+      setTotalPages(Math.max(1, Math.ceil(membershipOnly.length / ActivityPerPage)))
     } catch (error) {
       console.error(error)
-      setError(tr('errFetchActivities', 'Error fetching activities'))
+      setError(tr('errFetchActivities', 'Error fetching memberships'))
     } finally {
       setLoading(false)
     }
@@ -160,7 +163,7 @@ const ActivityList = () => {
 
       if (response.ok) {
         setToastType('success')
-        setToastMessage(tr('toastActivityDeleted', 'Activity deleted successfully!'))
+        setToastMessage(tr('toastActivityDeleted', 'Membership deleted successfully!'))
         setShowDeleteModal(false)
         setSelectedActivity(null)
         // Refresh list after successful delete
@@ -168,7 +171,7 @@ const ActivityList = () => {
       } else {
         setShowDeleteModal(false)
         // 🔹 Try to read the JSON error response
-        let errorMsg = tr('toastDeleteFailed', 'Failed to delete Activity!')
+        let errorMsg = tr('toastDeleteFailed', 'Failed to delete Membership!')
         try {
           const data = await response.json()
           if (data?.message) {
@@ -183,7 +186,7 @@ const ActivityList = () => {
       }
     } catch (error) {
       setToastType('fail')
-      setToastMessage(tr('toastErrorDeleting', 'Error deleting Activity'))
+      setToastMessage(tr('toastErrorDeleting', 'Error deleting Membership'))
     }
   }
 
@@ -209,12 +212,12 @@ const ActivityList = () => {
   return (
     <div>
       <div className="page-title">
-        <h3 style={{ margin: 0 }}>{tr('membershipListTitle', 'Activity')}</h3>
+        <h3 style={{ margin: 0 }}>{tr('membershipListTitle', 'Membership')}</h3>
         <button
           onClick={() => navigate('/vendordata/activityinfo/membership/new')}
           className="add-product-button"
         >
-          {tr('actNewBtn', 'New Activity')}
+          {tr('actNewBtn', 'New Membership')}
         </button>
       </div>
 
@@ -229,7 +232,7 @@ const ActivityList = () => {
               <tr>
                 <th>#</th>
                 <th>{tr('tblImage', 'Image')}</th>
-                <th>{tr('tblActivityName', 'Activity Name')}</th>
+                <th>{tr('tblActivityName', 'Membership Name')}</th>
                 <th>{tr('tblType', 'Type')}</th>
                 <th>{tr('tblLocation', 'Location')}</th>
                 <th>{tr('tblGender', 'Gender')}</th>
@@ -378,7 +381,7 @@ const ActivityList = () => {
           <div className="modal-content_50">
             <h4>{tr('confirmDeleteTitle', 'Confirm Delete')}</h4>
             <p>
-              {tr('confirmDeleteMsg', 'Are you sure you want to delete this Activity?')}
+              {tr('confirmDeleteMsg', 'Are you sure you want to delete this Membership?')}
               {selectedActivity?.actName && (
                 <>
                   {' '}
