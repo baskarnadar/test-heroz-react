@@ -1,5 +1,5 @@
 // (keep same path as your project) e.g. src/pages/vendordata/activityinfo/membership/ActivityList.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import { CIcon } from '@coreui/icons-react'
@@ -47,6 +47,11 @@ const ActivityList = () => {
   // ⭐ NEW: state for gallery modal
   const [showGalleryModal, setShowGalleryModal] = useState(false)
 
+  // ✅ NEW: search + filter states
+  const [searchText, setSearchText] = useState('')
+  const [genderFilter, setGenderFilter] = useState('ALL')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+
   const ActivityPerPage = 10
   const navigate = useNavigate()
 
@@ -82,7 +87,7 @@ const ActivityList = () => {
       if (timer) clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, navigate, toastMessage])
+  }, [navigate, toastMessage])
 
   const fetchActivity = async () => {
     setLoading(true)
@@ -93,8 +98,8 @@ const ActivityList = () => {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            page: currentPage,
-            limit: ActivityPerPage,
+            page: 1,
+            limit: 10000,
             VendorID: getCurrentLoggedUserID(),
           }),
         },
@@ -106,10 +111,9 @@ const ActivityList = () => {
       const data = await response.json()
       console.log('📦 API Response:', data)
       const membershipOnly = (data.data || []).filter(
-        (row) => (row.actTypeID || '').toString().toUpperCase() === 'MEMBERSHIP'
+        (row) => (row.actTypeID || '').toString().trim().toUpperCase() === 'MEMBERSHIP',
       )
       setActivity(membershipOnly)
-      setTotalPages(Math.max(1, Math.ceil(membershipOnly.length / ActivityPerPage)))
     } catch (error) {
       console.error(error)
       setError(tr('errFetchActivities', 'Error fetching memberships'))
@@ -118,7 +122,62 @@ const ActivityList = () => {
     }
   }
 
-  const handlePageClick = (pageNumber) => setCurrentPage(pageNumber)
+  const normalizeValue = (value) => (value || '').toString().trim().toUpperCase()
+
+  const filteredActivity = useMemo(() => {
+    const q = searchText.toString().trim().toLowerCase()
+
+    return (Activity || []).filter((row) => {
+      const rowGender = normalizeValue(row.actGender)
+      const rowStatus = normalizeValue(row.actStatus)
+
+      const isGenderMatch = genderFilter === 'ALL' || rowGender === genderFilter
+      const isStatusMatch = statusFilter === 'ALL' || rowStatus === statusFilter
+
+      const searchableText = [
+        row.actName,
+        row.actTypeID,
+        row.EnCityName,
+        row.actAddress1,
+        row.actAddress2,
+        row.actGender,
+        row.actStatus,
+        row.ActivityID,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      const isSearchMatch = !q || searchableText.includes(q)
+
+      return isGenderMatch && isStatusMatch && isSearchMatch
+    })
+  }, [Activity, searchText, genderFilter, statusFilter])
+
+  useEffect(() => {
+    const pages = Math.max(1, Math.ceil(filteredActivity.length / ActivityPerPage))
+    setTotalPages(pages)
+    if (currentPage > pages) {
+      setCurrentPage(pages)
+    }
+  }, [filteredActivity.length, currentPage])
+
+  const pagedActivity = useMemo(() => {
+    const startIndex = (currentPage - 1) * ActivityPerPage
+    return filteredActivity.slice(startIndex, startIndex + ActivityPerPage)
+  }, [filteredActivity, currentPage])
+
+  const resetFilters = () => {
+    setSearchText('')
+    setGenderFilter('ALL')
+    setStatusFilter('ALL')
+    setCurrentPage(1)
+  }
+
+  const handlePageClick = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return
+    setCurrentPage(pageNumber)
+  }
 
   const handleModifyClick = (ActivityID) => {
     navigate(`/vendordata/activityinfo/membership/modify?ActivityID=${ActivityID}`)
@@ -211,14 +270,120 @@ const ActivityList = () => {
 
   return (
     <div>
-      <div className="page-title">
-        <h3 style={{ margin: 0 }}>{tr('membershipListTitle', 'Membership')}</h3>
-        <button
-          onClick={() => navigate('/vendordata/activityinfo/membership/new')}
-          className="add-product-button"
-        >
-          {tr('actNewBtn', 'New Membership')}
-        </button>
+      <div
+        className="membership-header-filter-bar"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          padding: '14px 16px',
+          marginBottom: '14px',
+          background: '#fff',
+          border: '1px solid #e6e6e6',
+          borderRadius: '10px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: '26px', fontWeight: 700 }}>
+            {tr('membershipListTitle', 'Membership')}
+          </h3>
+          <div style={{ fontWeight: 700, fontSize: '16px' }}>
+            {tr('totalRecords', 'Total Records')}: {filteredActivity.length}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value)
+              setCurrentPage(1)
+            }}
+            placeholder={tr('searchMembership', 'Search membership...')}
+            style={{
+              height: '38px',
+              minWidth: '260px',
+              border: '1px solid #d5dbe3',
+              borderRadius: '8px',
+              padding: '0 12px',
+              outline: 'none',
+            }}
+          />
+
+          <select
+            value={genderFilter}
+            onChange={(e) => {
+              setGenderFilter(e.target.value)
+              setCurrentPage(1)
+            }}
+            style={{
+              height: '38px',
+              minWidth: '150px',
+              border: '1px solid #d5dbe3',
+              borderRadius: '8px',
+              padding: '0 10px',
+              outline: 'none',
+              background: '#fff',
+            }}
+          >
+            <option value="ALL">{tr('allGender', 'All Gender')}</option>
+            <option value="BOYS">{tr('boys', 'BOYS')}</option>
+            <option value="FEMALE">{tr('female', 'FEMALE')}</option>
+            <option value="BOTH">{tr('both', 'BOTH')}</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setCurrentPage(1)
+            }}
+            style={{
+              height: '38px',
+              minWidth: '150px',
+              border: '1px solid #d5dbe3',
+              borderRadius: '8px',
+              padding: '0 10px',
+              outline: 'none',
+              background: '#fff',
+            }}
+          >
+            <option value="ALL">{tr('allStatus', 'All Status')}</option>
+            <option value="APPROVED">{tr('approved', 'APPROVED')}</option>
+            <option value="PENDING">{tr('pending', 'PENDING')}</option>
+            <option value="REJECTED">{tr('rejected', 'REJECTED')}</option>
+            <option value="ACTIVE">{tr('active', 'ACTIVE')}</option>
+            <option value="INACTIVE">{tr('inactive', 'INACTIVE')}</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={resetFilters}
+            style={{
+              height: '38px',
+              minWidth: '80px',
+              border: 'none',
+              borderRadius: '8px',
+              background: '#62085f',
+              color: '#fff',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {tr('clear', 'Clear')}
+          </button>
+
+          <button
+            onClick={() => navigate('/vendordata/activityinfo/membership/new')}
+            className="add-product-button"
+            style={{ height: '38px', whiteSpace: 'nowrap' }}
+          >
+            {tr('actNewBtn', 'New Membership')}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -243,105 +408,113 @@ const ActivityList = () => {
               </tr>
             </thead>
             <tbody>
-              {Activity.map((row, index) => (
-                <tr key={row.PrdCodeNo || `${row.ActivityID}-${index}`}>
-                  <td>
-                    <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
-                  </td>
-                  <td>
-                    <div className="Activity-image-circle">
-                      <img src={logo} alt="logo" style={{ width: '75px' }} />
-                    </div>
-                  </td>
-                  <td> {row.actName} </td>
-                  <td> {row.actTypeID} </td>
-                  <td>
-                    {row.EnCityName} {row.actAddress1}
-                    {row.actAddress2}
-                  </td>
-                  <td> {row.actGender} </td>
-                  <td
-                    style={{
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '250px',
-                    }}
-                  >
-                    {row.priceList && row.priceList.length > 0 ? (
-                      row.priceList.map((price, i) => (
-                        <div key={i}>
-                          <img
-                            src={moneyv1}
-                            alt="logo"
-                            style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
-                          />{' '}
-                          {price.Price}{' '}
-                          {tr('rangeFromTo', 'from {from} to {to}')
-                            .replace('{from}', price.StudentRangeFrom)
-                            .replace('{to}', price.StudentRangeTo)}
-                        </div>
-                      ))
-                    ) : (
-                      tr('noPrices', 'No prices')
-                    )}
-                  </td>
-
-                  <td>{formatDate(row.CreatedDate)}</td>
-
-                  <td> {dspstatus(row.actStatus)} </td>
-
-                  <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
-                    <div
-                      className="text-align"
+              {pagedActivity.length > 0 ? (
+                pagedActivity.map((row, index) => (
+                  <tr key={row.PrdCodeNo || `${row.ActivityID}-${index}`}>
+                    <td>
+                      <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
+                    </td>
+                    <td>
+                      <div className="Activity-image-circle">
+                        <img src={logo} alt="logo" style={{ width: '75px' }} />
+                      </div>
+                    </td>
+                    <td> {row.actName} </td>
+                    <td> {row.actTypeID} </td>
+                    <td>
+                      {row.EnCityName} {row.actAddress1}
+                      {row.actAddress2}
+                    </td>
+                    <td> {row.actGender} </td>
+                    <td
                       style={{
-                        display: 'flex',
-                        gap: '6px',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '250px',
                       }}
                     >
-                      <button
-                        onClick={() => handleImageGalleryClick(row)}
-                        title={tr('btnImageGallery', 'Image Gallery')}
-                        className="btn btn-default graybox"
+                      {row.priceList && row.priceList.length > 0 ? (
+                        row.priceList.map((price, i) => (
+                          <div key={i}>
+                            <img
+                              src={moneyv1}
+                              alt="logo"
+                              style={{ width: '14px', marginRight: '6px', verticalAlign: 'middle' }}
+                            />{' '}
+                            {price.Price}{' '}
+                            {tr('rangeFromTo', 'from {from} to {to}')
+                              .replace('{from}', price.StudentRangeFrom || '')
+                              .replace('{to}', price.StudentRangeTo || '')}
+                          </div>
+                        ))
+                      ) : (
+                        tr('noPrices', 'No prices')
+                      )}
+                    </td>
+
+                    <td>{formatDate(row.CreatedDate)}</td>
+
+                    <td> {dspstatus(row.actStatus)} </td>
+
+                    <td align="center" style={{ width: '10%', whiteSpace: 'nowrap' }}>
+                      <div
+                        className="text-align"
                         style={{
-                          padding: '2px 6px',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
+                          display: 'flex',
+                          gap: '6px',
+                          justifyContent: 'center',
+                          flexWrap: 'wrap',
                         }}
-                        aria-label={tr('btnImageGallery', 'Image Gallery')}
                       >
-                        <i className="fa fa-picture-o" style={{ color: '#cf2037' }} aria-hidden="true" />
-                      </button>
+                        <button
+                          onClick={() => handleImageGalleryClick(row)}
+                          title={tr('btnImageGallery', 'Image Gallery')}
+                          className="btn btn-default graybox"
+                          style={{
+                            padding: '2px 6px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                          aria-label={tr('btnImageGallery', 'Image Gallery')}
+                        >
+                          <i className="fa fa-picture-o" style={{ color: '#cf2037' }} aria-hidden="true" />
+                        </button>
 
-                      <button
-                        onClick={() => handleModifyClick(row.ActivityID)}
-                        title={tr('btnEdit', 'Edit')}
-                        className="btn btnbtn-default graybox"
-                        style={{ padding: '2px', cursor: 'pointer' }}
-                        aria-label={tr('btnEdit', 'Edit')}
-                      >
-                        <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
-                      </button>
+                        <button
+                          onClick={() => handleModifyClick(row.ActivityID)}
+                          title={tr('btnEdit', 'Edit')}
+                          className="btn btnbtn-default graybox"
+                          style={{ padding: '2px', cursor: 'pointer' }}
+                          aria-label={tr('btnEdit', 'Edit')}
+                        >
+                          <i style={{ color: '#cf2037' }} className="fa fa-pencil" />
+                        </button>
 
-                      <button
-                        onClick={() => handleDeleteClick(row)}
-                        title={tr('btnDelete', 'Delete')}
-                        className="btn btnbtn-default graybox"
-                        style={{ padding: '2px', cursor: 'pointer' }}
-                        aria-label={tr('btnDelete', 'Delete')}
-                      >
-                        <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
-                      </button>
+                        <button
+                          onClick={() => handleDeleteClick(row)}
+                          title={tr('btnDelete', 'Delete')}
+                          className="btn btnbtn-default graybox"
+                          style={{ padding: '2px', cursor: 'pointer' }}
+                          aria-label={tr('btnDelete', 'Delete')}
+                        >
+                          <i style={{ color: '#cf2037' }} className="fa fa-trash-o" />
+                        </button>
 
-                      {/* ⭐ NEW: your existing button now opens modal */}
-                    </div>
+                        {/* ⭐ NEW: your existing button now opens modal */}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '18px', fontWeight: 600 }}>
+                    {tr('noDataFound', 'No data found')}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
 

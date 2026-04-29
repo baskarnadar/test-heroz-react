@@ -1,221 +1,236 @@
 // src/_nav/vendormenu.js
 import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
-import { cilSpeedometer, cilPuzzle, cilNotes, cilBasket } from '@coreui/icons'
+import {
+  cilSpeedometer,
+  cilPuzzle,
+  cilNotes,
+  cilHome,
+  cilCheckCircle,
+  cilClock,
+  cilXCircle,
+  cilUser,
+  cilBell,
+  cilSettings,
+} from '@coreui/icons'
 import { CNavItem, CNavTitle } from '@coreui/react'
 
 import { API_BASE_URL } from './config'
 import { getAuthHeaders, getCurrentLoggedUserID } from './utils/operation'
 
-// 🔤 i18n packs (default Arabic if not set)
-import enPack from './i18n/enloc100.json'
-import arPack from './i18n/arloc100.json'
-
 const GET_VDR_SUMMARY = `${API_BASE_URL}/vendordata/dashboard/getvdrsummary`
 
-// ---- tiny i18n helpers (local, no provider) ----
-const getLang = () => {
-  try {
-    const v = localStorage.getItem('heroz_lang')
-    return v === 'ar' || v === 'en' ? v : 'ar' // default AR
-  } catch {
-    return 'ar'
-  }
-}
-const getDict = () => (getLang() === 'ar' ? arPack : enPack)
-const t = (key, fb) => {
-  const d = getDict()
-  return (d && d[key]) || fb
+const modernItemStyle = {
+  margin: '2px 12px',
+  borderRadius: '10px',
+  padding: '2px 0',
 }
 
-// React node that renders a translated label
-const Txt = ({ k, fb }) => <span>{t(k, fb)}</span>
-// -------------------------------------------------
+function StatusCounter({ fallback, color, field }) {
+  const [count, setCount] = useState(null)
 
-function ApprovedActivityName() {
-  const [approved, setApproved] = useState(null)
   useEffect(() => {
     let alive = true
+
     ;(async () => {
       try {
         const resp = await fetch(GET_VDR_SUMMARY, {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ VendorID: getCurrentLoggedUserID() }),
+          body: JSON.stringify({
+            VendorID: getCurrentLoggedUserID(),
+          }),
         })
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-        const json = await resp.json()
-        if (!alive) return
-        const d = json?.data || {}
-        setApproved(d?.TotalApproved ?? 0)
-      } catch {
-        if (alive) setApproved(0)
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [])
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>
-        <Txt k="navApprovedTrips" fb="Approved Trips" />
-      </span>
-      <span style={{ color: 'yellow' }}>[{approved === null ? '…' : approved}]</span>
-    </div>
-  )
-}
 
-function PendingActivityName() {
-  const [pending, setPending] = useState(null)
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        const resp = await fetch(GET_VDR_SUMMARY, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ VendorID: getCurrentLoggedUserID() }),
-        })
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-        const json = await resp.json()
-        if (!alive) return
-        const d = json?.data || {}
-        setPending(d?.TotalPending ?? 0)
-      } catch {
-        if (alive) setPending(0)
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [])
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>
-        <Txt k="navPendingTrips" fb="Pending Trips" />
-      </span>
-      <span style={{ color: 'orange' }}>[{pending === null ? '…' : pending}]</span>
-    </div>
-  )
-}
 
-function RejectedActivityName() {
-  const [rejected, setRejected] = useState(null)
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        const resp = await fetch(GET_VDR_SUMMARY, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ VendorID: getCurrentLoggedUserID() }),
-        })
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         const json = await resp.json()
-        if (!alive) return
         const d = json?.data || {}
-        setRejected(d?.TotalRejected ?? 0)
+
+        if (alive) setCount(d?.[field] ?? 0)
       } catch {
-        if (alive) setRejected(0)
+        if (alive) setCount(0)
       }
     })()
+
     return () => {
       alive = false
     }
-  }, [])
+  }, [field])
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-      <span>
-        <Txt k="navRejectedTrips" fb="Rejected Trips" />
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+      }}
+    >
+      <span>{fallback}</span>
+
+      <span
+        style={{
+          background: color,
+          color: '#fff',
+          minWidth: '22px',
+          height: '22px',
+          borderRadius: '50%',
+          display: 'inline-flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: '11px',
+          fontWeight: '700',
+        }}
+      >
+        {count === null ? '…' : count}
       </span>
-      <span style={{ color: 'red' }}>[{rejected === null ? '…' : rejected}]</span>
     </div>
   )
 }
 
 const vendormenu = [
+  // ================= DASHBOARD =================
   {
     component: CNavItem,
-    name: <Txt k="navDashboard" fb="Dashboard" />,
+    name: 'Dashboard',
     to: '/vendor/dashboard',
     icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
+    style: modernItemStyle,
   },
+
+  // ================= SCHOOL MANAGEMENT =================
   {
     component: CNavTitle,
-    name: <Txt k="navActivityManagement" fb="Activity Management" />,
+    name: 'SCHOOL MANAGEMENT',
+    className: 'vendor-menu-title vendor-school-card',
   },
   {
     component: CNavItem,
-    name: <Txt k="menu_scholl_activities" fb="All Activity" />,
+    name: 'School Activities',
     to: '/vendordata/activityinfo/activity/list',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-school-card',
   },
-
-  // ✅ ADDED: Membership Activities
   {
     component: CNavItem,
-    name: <Txt k="navMembershipActivities" fb="Membership Activities" />,
-    to: '/vendordata/membership/activity/list',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-  },
-
-  // ✅ Match dashboard logic
-  {
-    component: CNavItem,
-    name: <ApprovedActivityName />,
+    name: (
+      <StatusCounter
+        fallback="Booked Trips"
+        color="#28c76f"
+        field="TotalApproved"
+      />
+    ),
     to: '/vendor/activity-requests?status=APPROVED',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-school-card',
   },
   {
     component: CNavItem,
-    name: <PendingActivityName />,
+    name: (
+      <StatusCounter
+        fallback="Pending Trips"
+        color="#ff9f43"
+        field="TotalPending"
+      />
+    ),
     to: '/vendor/activity-requests?status=WAITING-FOR-APPROVAL',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-school-card',
   },
   {
     component: CNavItem,
-    name: <RejectedActivityName />,
+    name: (
+      <StatusCounter
+        fallback="Rejected Trips"
+        color="#ea5455"
+        field="TotalRejected"
+      />
+    ),
     to: '/vendor/activity-requests?status=REJECTED',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilXCircle} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-school-card',
   },
+
+  // ================= REPORT =================
   {
     component: CNavTitle,
-    name: <Txt k="navFieldTrip" fb="Field Trip" />,
+    name: 'REPORT',
+    className: 'vendor-menu-title vendor-report-card',
   },
-  // 🚍 Trip Booked
   {
     component: CNavItem,
-    name: <Txt k="navTripBooked" fb="Trip Booked" />,
+    name: 'Trip Booked',
     to: '/vendordata/trip/tripbooked',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-report-card',
   },
-
-  // ✅ Completed Trips
   {
     component: CNavItem,
-    name: <Txt k="navCompletedTrips" fb="Completed Trips" />,
+    name: 'Completed Trips',
     to: '/vendordata/trip/completed',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-report-card',
   },
 
+  // ================= MEMBERSHIP =================
   {
-    component: CNavItem,
-    name: <Txt k="navPayment" fb="Payment" />,
-    to: '/vendordata/Payment/list',
-    icon: <CIcon icon={cilBasket} customClassName="nav-icon" />,
+    component: CNavTitle,
+    name: 'MEMBERSHIP',
+    className: 'vendor-menu-title vendor-membership-card',
   },
   {
     component: CNavItem,
-    name: <Txt k="navProfileSetting" fb="Profile Setting" />,
-    to: '/vendor/info',
+    name: 'Membership Activities',
+    to: '/vendordata/membership/activity/list',
+    icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-membership-card',
+  },
+  {
+    component: CNavItem,
+    name: 'Booked Activity',
+    to: '/vendordata/membership/booked',
+    icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-membership-card',
+  },
+  {
+    component: CNavItem,
+    name: 'Completed Activity',
+    to: '/vendordata/membership/completed',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-membership-card',
+  },
+
+  // ================= SETTINGS =================
+  {
+    component: CNavTitle,
+    name: 'SETTINGS',
+    className: 'vendor-menu-title vendor-settings-card',
   },
   {
     component: CNavItem,
-    name: <Txt k="navNotification" fb="Notification" />,
-    to: 'vendordata/note/list',
-    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+    name: 'Profile Setting',
+    to: '/vendor/info',
+    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-settings-card',
+  },
+  {
+    component: CNavItem,
+    name: 'Notification',
+    to: '/vendordata/note/list',
+    icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
+    style: modernItemStyle,
+    className: 'vendor-menu-item vendor-settings-card',
   },
 ]
 
