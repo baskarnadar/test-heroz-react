@@ -38,6 +38,11 @@ const ActivityList = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // ✅ NEW: Search / filter header states
+  const [searchText, setSearchText] = useState('')
+  const [genderFilter, setGenderFilter] = useState('ALL')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
   const [selectedActivity, setSelectedActivity] = useState(null)
@@ -132,6 +137,43 @@ const ActivityList = () => {
 
     return result
   }, [Activity])
+
+  // ✅ NEW: Normalize filter values safely from API
+  const normalizeFilterValue = (value) => (value ?? '').toString().trim().toUpperCase()
+
+  const filteredSchoolActivity = useMemo(() => {
+    const q = searchText.trim().toLowerCase()
+    const selectedGender = normalizeFilterValue(genderFilter)
+    const selectedStatus = normalizeFilterValue(statusFilter)
+
+    return (schoolOnlyActivity || []).filter((row) => {
+      const rowGender = normalizeFilterValue(row?.actGender)
+      const rowStatus = normalizeFilterValue(row?.actStatus)
+      const rowType = getRowActivityType(row)
+
+      const searchableText = [
+        row?.actName,
+        row?.EnCityName,
+        row?.actAddress1,
+        row?.actAddress2,
+        row?.ActivityID,
+        row?.actStatus,
+        row?.actGender,
+        rowType,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      const matchesSearch = !q || searchableText.includes(q)
+      const matchesGender = selectedGender === 'ALL' || rowGender === selectedGender
+      const matchesStatus = selectedStatus === 'ALL' || rowStatus === selectedStatus
+
+      return matchesSearch && matchesGender && matchesStatus
+    })
+  }, [schoolOnlyActivity, searchText, genderFilter, statusFilter])
+
+  const totalRecords = filteredSchoolActivity.length
 
   useEffect(() => {
     fetchActivity()
@@ -272,14 +314,107 @@ const ActivityList = () => {
 
   return (
     <div>
-      <div className="page-title">
-        <h3 style={{ margin: 0 }}>{tr('actListTitle', 'Activity')}</h3>
-        <button
-          onClick={() => navigate('/vendordata/activityinfo/activity/new')}
-          className="add-product-button"
+      {/* ✅ NEW: One header only: title + total records + search + filters + new button */}
+      <div
+        className="page-title activity-list-header"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap',
+          marginBottom: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0 }}>{tr('actListTitle', 'School Activities')}</h3>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '7px 12px',
+              borderRadius: '999px',
+              background: '#f3e8ff',
+              color: '#7a0878',
+              fontWeight: 700,
+              fontSize: '13px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {tr('totalRecords', 'Total Records')}: {totalRecords}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end',
+          }}
         >
-          {tr('actNewBtn', 'New Activity')}
-        </button>
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder={tr('searchActivities', 'Search activity, location, status...')}
+            style={{
+              height: '38px',
+              minWidth: '260px',
+              border: '1px solid #ddd',
+              borderRadius: '9px',
+              padding: '0 12px',
+              outline: 'none',
+              background: '#fff',
+            }}
+          />
+
+          <select
+            value={genderFilter}
+            onChange={(e) => setGenderFilter(e.target.value)}
+            style={{
+              height: '38px',
+              border: '1px solid #ddd',
+              borderRadius: '9px',
+              padding: '0 10px',
+              outline: 'none',
+              background: '#fff',
+            }}
+          >
+            <option value="ALL">{tr('filterAllGender', 'All Gender')}</option>
+            <option value="BOYS">{tr('genderBoys', 'BOYS')}</option>
+            <option value="FEMALE">{tr('genderFemale', 'FEMALE')}</option>
+            <option value="BOTH">{tr('genderBoth', 'BOTH')}</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              height: '38px',
+              border: '1px solid #ddd',
+              borderRadius: '9px',
+              padding: '0 10px',
+              outline: 'none',
+              background: '#fff',
+            }}
+          >
+            <option value="ALL">{tr('filterAllStatus', 'All Status')}</option>
+            <option value="DRAFT">{tr('statusDraft', 'DRAFT')}</option>
+            <option value="APPROVED">{tr('statusApproved', 'APPROVED')}</option>
+            <option value="PENDING">{tr('statusPending', 'PENDING')}</option>
+            <option value="REJECTED">{tr('statusRejected', 'REJECTED')}</option>
+          </select>
+
+          <button
+            onClick={() => navigate('/vendordata/activityinfo/activity/new')}
+            className="add-product-button"
+            style={{ height: '38px', whiteSpace: 'nowrap' }}
+          >
+            {tr('actNewBtn', 'New Activity')}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -304,7 +439,7 @@ const ActivityList = () => {
               </tr>
             </thead>
             <tbody>
-              {schoolOnlyActivity.map((row, index) => (
+              {filteredSchoolActivity.map((row, index) => (
                 <tr key={row.PrdCodeNo || `${row.ActivityID}-${index}`}>
                   <td>
                     <strong>{(currentPage - 1) * ActivityPerPage + index + 1}</strong>
@@ -404,7 +539,7 @@ const ActivityList = () => {
                 </tr>
               ))}
 
-              {schoolOnlyActivity.length === 0 && (
+              {filteredSchoolActivity.length === 0 && (
                 <tr>
                   <td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
                     {tr('noSchoolActivities', 'No school activities found.')}
