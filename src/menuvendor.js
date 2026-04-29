@@ -1,4 +1,4 @@
-// src/_nav/vendormenu.js
+ // src/_nav/vendormenu.js
 import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -22,6 +22,12 @@ const GET_VDR_SUMMARY = `${API_BASE_URL}/vendordata/dashboard/getvdrsummary`
 
 const modernItemStyle = {
   margin: '2px 12px',
+  borderRadius: '10px',
+  padding: '2px 0',
+}
+
+const reportSubItemStyle = {
+  margin: '2px 12px 2px 22px',
   borderRadius: '10px',
   padding: '2px 0',
 }
@@ -167,16 +173,16 @@ const vendormenu = [
     name: 'Trip Booked',
     to: '/vendordata/trip/tripbooked',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-    style: modernItemStyle,
-    className: 'vendor-menu-item vendor-report-card',
+    style: reportSubItemStyle,
+    className: 'vendor-menu-item vendor-report-card vendor-report-submenu',
   },
   {
     component: CNavItem,
     name: 'Completed Trips',
     to: '/vendordata/trip/completed',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-    style: modernItemStyle,
-    className: 'vendor-menu-item vendor-report-card',
+    style: reportSubItemStyle,
+    className: 'vendor-menu-item vendor-report-card vendor-report-submenu',
   },
 
   // ================= MEMBERSHIP =================
@@ -196,7 +202,8 @@ const vendormenu = [
   {
     component: CNavItem,
     name: 'Booked Activity',
-    to: '/vendordata/membership/booked',
+    // ✅ Pass status value in URL query string
+    to: '/vendordata/membership?status=BOOKED',
     icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
     style: modernItemStyle,
     className: 'vendor-menu-item vendor-membership-card',
@@ -204,7 +211,8 @@ const vendormenu = [
   {
     component: CNavItem,
     name: 'Completed Activity',
-    to: '/vendordata/membership/completed',
+    // ✅ Pass status value in URL query string
+    to: '/vendordata/membership?status=COMPLETED',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
     style: modernItemStyle,
     className: 'vendor-menu-item vendor-membership-card',

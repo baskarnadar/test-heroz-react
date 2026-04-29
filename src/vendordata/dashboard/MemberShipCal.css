@@ -1,0 +1,144 @@
+/* =========================
+   MODERN PINK CALENDAR THEME
+   CLEAN WHITE / NO RED BODY VERSION
+========================= */
+
+/* Main calendar wrapper */
+.vendor-calendar-modern-wrap,
+.vendor-calendar-modern-wrap .calendar-shell,
+.vendor-calendar-modern-wrap .calendar-container,
+.vendor-calendar-modern-wrap .vdr-calendar-wrap {
+  background: #ffffff !important;
+  border-radius: 28px !important;
+  box-shadow: 0 12px 30px rgba(123,17,79,0.08) !important;
+  padding: 20px !important;
+}
+
+/* REMOVE RED INNER CALENDAR BODY */
+.vendor-calendar-modern-wrap table,
+.vendor-calendar-modern-wrap .calendar-grid,
+.vendor-calendar-modern-wrap .calendar-body,
+.vendor-calendar-modern-wrap .calendar-inner,
+.vendor-calendar-modern-wrap .calendar-content,
+.vendor-calendar-modern-wrap .calendar-table-wrap {
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Calendar header */
+.vendor-calendar-modern-wrap .calendar-header,
+.vendor-calendar-modern-wrap .month-header {
+  background: linear-gradient(135deg, rgba(194,24,91,0.88), rgba(123,17,79,0.88)) !important;
+  border-radius: 22px !important;
+  color: #1A1A2E !important;
+  padding: 16px 24px !important;
+  box-shadow: 0 8px 20px rgba(123,17,79,0.15) !important;
+}
+
+/* Month navigation arrows */
+.vendor-calendar-modern-wrap .calendar-nav-btn,
+.vendor-calendar-modern-wrap .month-nav-btn {
+  background: rgba(194,24,91,0.92) !important;
+  color: #1A1A2E !important;
+  border: none !important;
+  border-radius: 14px !important;
+  width: 34px !important;
+  height: 34px !important;
+  font-weight: bold !important;
+  box-shadow: 0 6px 14px rgba(123,17,79,0.18) !important;
+}
+
+/* Default empty day cells */
+.vendor-calendar-modern-wrap td,
+.vendor-calendar-modern-wrap .calendar-day {
+  background: #ffffff !important;
+  border: 1px solid #f1d4e4 !important;
+  border-radius: 14px !important;
+  color: #222 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  box-shadow: none !important;
+}
+
+/* Day number centered */
+.vendor-calendar-modern-wrap td div,
+.vendor-calendar-modern-wrap .day-number {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+}
+
+/* Booked / occupied day */
+.vendor-calendar-modern-wrap td[class*="occupied"],
+.vendor-calendar-modern-wrap td[class*="booked"],
+.vendor-calendar-modern-wrap .occupied,
+.vendor-calendar-modern-wrap .booked {
+  background: linear-gradient(135deg, rgba(194,24,91,0.72), rgba(123,17,79,0.72)) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.28) !important;
+  box-shadow: 0 10px 24px rgba(123,17,79,0.20) !important;
+}
+
+/* Weekend */
+.vendor-calendar-modern-wrap td.weekend,
+.vendor-calendar-modern-wrap .weekend {
+  background: #ffffff !important;
+  color: #1A1A2E !important;
+}
+
+/* Today */
+.vendor-calendar-modern-wrap td.today,
+.vendor-calendar-modern-wrap .today {
+  border: 2px solid #7b1fa2 !important;
+  background: #f3e5f5 !important;
+  color: #7b1fa2 !important;
+}
+
+/* Booking count badge */
+.vendor-calendar-modern-wrap .booking-badge,
+.vendor-calendar-modern-wrap .vdr-chip-btn {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.24) !important;
+  color: #1A1A2E !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 4px !important;
+}
+
+/* Legend */
+.vendor-calendar-modern-wrap .calendar-legend {
+  color: #7b114f !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* Hover */
+.vendor-calendar-modern-wrap td:hover {
+  transform: translateY(-2px);
+  transition: 0.2s ease;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .vendor-calendar-modern-wrap,
+  .vendor-calendar-modern-wrap .calendar-shell {
+    padding: 12px !important;
+  }
+
+  .vendor-calendar-modern-wrap td {
+    min-height: 48px !important;
+    font-size: 12px !important;
+  }
+
+  .vendor-calendar-modern-wrap .calendar-header {
+    padding: 12px 14px !important;
+  }
+}

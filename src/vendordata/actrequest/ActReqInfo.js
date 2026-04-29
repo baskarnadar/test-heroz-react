@@ -11,35 +11,51 @@ import {
   CRow,
   CSpinner,
 } from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import {
+  cilArrowLeft,
+  cilCheckCircle,
+  cilImage,
+  cilInfo,
+  cilLocationPin,
+  cilMoney,
+  cilCalendar,
+  cilPeople,
+  cilMap,
+  cilRestaurant,
+  cilDescription,
+  cilStar,
+  cilTags,
+} from '@coreui/icons'
 
 // NOTE: this file lives in src/vendordata/activityinfo/activity/
 // so config/utils are three levels up
 import { API_BASE_URL } from '../../config'
 import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
-
-// ---------- Small helpers ----------
-const SectionTitle = ({ children }) => (
-  <div style={{ fontWeight: 700, fontSize: 18, margin: '16px 0 8px' }}>{children}</div>
-)
-
-const KeyValue = ({ label, value, strong }) => (
-  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-    <div style={{ fontWeight: 600, minWidth: 120 }}>{label}</div>
-    <div style={{ fontWeight: strong ? 700 : 400 }}>{value ?? '—'}</div>
+import "./../../scss/style.css";// ---------- Small helpers ----------
+const SectionTitle = ({ children, icon }) => (
+  <div className="act-detail-section-title">
+    {icon ? <CIcon icon={icon} className="act-detail-section-icon" /> : null}
+    <span>{children}</span>
   </div>
 )
 
-const Chip = ({ children, color = '#6c757d' }) => (
+const KeyValue = ({ label, value, strong }) => (
+  <div className="act-detail-kv-row">
+    <div className="act-detail-kv-label">{label}</div>
+    <div className={`act-detail-kv-value ${strong ? 'act-detail-kv-value-strong' : ''}`}>
+      {value ?? '—'}
+    </div>
+  </div>
+)
+
+const Chip = ({ children, color = '#d63384' }) => (
   <span
+    className="act-detail-chip"
     style={{
-      display: 'inline-block',
-      padding: '4px 10px',
-      margin: '4px',
-      background: `${color}22`,
-      color,
-      borderRadius: 999,
-      fontSize: 12,
-      fontWeight: 600,
+      '--chip-color': color,
+      '--chip-bg': `${color}18`,
+      '--chip-border': `${color}33`,
     }}
   >
     {children}
@@ -48,12 +64,15 @@ const Chip = ({ children, color = '#6c757d' }) => (
 
 const ImageCarousel = ({ images = [] }) => {
   const list = Array.isArray(images) ? images.filter(Boolean) : []
-  if (!list.length) return null
+  if (!list.length) {
+    return <div className="act-detail-empty-box">No images found</div>
+  }
+
   return (
-    <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+    <div className="act-detail-image-grid">
       {list.map((src, i) => (
-        <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #eee' }}>
-          <img src={src} alt={`activity-${i}`} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
+        <div key={i} className="act-detail-image-card">
+          <img src={src} alt={`activity-${i}`} className="act-detail-image" />
         </div>
       ))}
     </div>
@@ -61,10 +80,10 @@ const ImageCarousel = ({ images = [] }) => {
 }
 
 const AvailabilityTable = ({ rows = [] }) => {
-  if (!rows?.length) return <div>—</div>
+  if (!rows?.length) return <div className="act-detail-empty-box">—</div>
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table className="table table-sm">
+    <div className="act-detail-table-wrap">
+      <table className="table table-sm act-detail-table">
         <thead>
           <tr>
             <th>Day</th>
@@ -89,10 +108,10 @@ const AvailabilityTable = ({ rows = [] }) => {
 }
 
 const PriceList = ({ prices = [] }) => {
-  if (!prices?.length) return <div>—</div>
+  if (!prices?.length) return <div className="act-detail-empty-box">—</div>
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table className="table table-sm">
+    <div className="act-detail-table-wrap">
+      <table className="table table-sm act-detail-table">
         <thead>
           <tr>
             <th>Price</th>
@@ -117,33 +136,41 @@ const PriceList = ({ prices = [] }) => {
 const Meals = ({ included = [], excluded = [] }) => (
   <CRow>
     <CCol md={6}>
-      <SectionTitle>Included Meals</SectionTitle>
+      <SectionTitle icon={cilRestaurant}>Included Meals</SectionTitle>
       {included.length === 0 ? (
-        <div>—</div>
+        <div className="act-detail-empty-box">—</div>
       ) : (
-        included.map((m, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontWeight: 600 }}>{m.FoodName || '—'}</span>
-            <Chip color="#198754">Included</Chip>
-            {m.FoodNotes ? <span style={{ color: '#6c757d' }}>• {m.FoodNotes}</span> : null}
-          </div>
-        ))
+        <div className="act-detail-meal-list">
+          {included.map((m, i) => (
+            <div key={i} className="act-detail-meal-item">
+              <span className="act-detail-meal-name">{m.FoodName || '—'}</span>
+              <Chip color="#14532d">Included</Chip>
+              {m.FoodNotes && m.FoodNotes.toString().trim().toLowerCase() !== (m.FoodName || '').toString().trim().toLowerCase() ? (
+              <span className="act-detail-meal-note">• {m.FoodNotes}</span>
+            ) : null}
+            </div>
+          ))}
+        </div>
       )}
     </CCol>
     <CCol md={6}>
-      <SectionTitle>Additional Meals</SectionTitle>
+      <SectionTitle icon={cilRestaurant}>Additional Meals</SectionTitle>
       {excluded.length === 0 ? (
-        <div>—</div>
+        <div className="act-detail-empty-box">—</div>
       ) : (
-        excluded.map((m, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontWeight: 600 }}>{m.FoodName || '—'}</span>
-            <Chip color="#0d6efd">
-              {typeof m.FoodPrice === 'number' ? m.FoodPrice : (m.FoodPrice || '—')}
-            </Chip>
-            {m.FoodNotes ? <span style={{ color: '#6c757d' }}>• {m.FoodNotes}</span> : null}
-          </div>
-        ))
+        <div className="act-detail-meal-list">
+          {excluded.map((m, i) => (
+            <div key={i} className="act-detail-meal-item">
+              <span className="act-detail-meal-name">{m.FoodName || '—'}</span>
+              <Chip color="#d63384">
+                {typeof m.FoodPrice === 'number' ? m.FoodPrice : (m.FoodPrice || '—')}
+              </Chip>
+              {m.FoodNotes && m.FoodNotes.toString().trim().toLowerCase() !== (m.FoodName || '').toString().trim().toLowerCase() ? (
+              <span className="act-detail-meal-note">• {m.FoodNotes}</span>
+            ) : null}
+            </div>
+          ))}
+        </div>
       )}
     </CCol>
   </CRow>
@@ -354,200 +381,244 @@ const ActDetailInfo = () => {
   }, [ActivityID, VendorID])
 
   return (
-    <>
-      <CRow className="mb-3">
-        <CCol>
+    <div className="act-detail-page">
+      <div className="act-detail-shell">
+        <div className="act-detail-top-title-row">
+          <h4 className="act-detail-main-title act-detail-main-title-outside">
+            {data?.actName || '—'}
+          </h4>
+
           <button
-            className="btn btn-outline-secondary btn-sm"
+            className="act-detail-back-btn"
             onClick={() => navigate(-1)}
             type="button"
           >
-            ← Back
+            <span className="act-detail-back-circle">
+              <CIcon icon={cilArrowLeft} />
+            </span>
+            <span>Back</span>
           </button>
-        </CCol>
-      </CRow>
-
-      {loading && (
-        <div className="text-center my-5">
-          <CSpinner />
         </div>
-      )}
 
-      {!loading && error && (
-        <CAlert color="danger">
-          {error}
-        </CAlert>
-      )}
+        {loading && (
+          <div className="act-detail-loading-box">
+            <CSpinner />
+          </div>
+        )}
 
-      {/* Optional debug panel: add ?debug=1 to URL */}
-      {!loading && debug && rawJson && (
-        <CCard className="mb-3">
-          <CCardHeader>Debug • Raw API JSON</CCardHeader>
-          <CCardBody>
-            <pre style={{ maxHeight: 300, overflow: 'auto', background: '#f8f9fa', padding: 12, borderRadius: 8 }}>
-              {typeof rawJson === 'string' ? rawJson : JSON.stringify(rawJson, null, 2)}
-            </pre>
-          </CCardBody>
-        </CCard>
-      )}
+        {!loading && error && (
+          <CAlert color="danger" className="act-detail-alert">
+            {error}
+          </CAlert>
+        )}
 
-      {!loading && !error && data && (
-        <>
-          {/* Header Card */}
-          <CCard className="mb-3">
+        {/* Optional debug panel: add ?debug=1 to URL */}
+        {!loading && debug && rawJson && (
+          <CCard className="act-detail-card mb-3">
+            <CCardHeader className="act-detail-card-header">Debug • Raw API JSON</CCardHeader>
             <CCardBody>
-              <CRow className="align-items-center">
-                <CCol md={8}>
-                  <h4 className="mb-2" style={{ fontWeight: 700 }}>{data.actName || '—'}</h4>
-                  <div className="d-flex flex-wrap align-items-center" style={{ gap: 8 }}>
-                    {data.vendorNo && <Chip color="#6f42c1">Code: {data.vendorNo}</Chip>}
-                    {data.vdrStatus && (
-                      <Chip color={(data.vdrStatus || '').toUpperCase() === 'ACTIVE' ? '#2E7D32' : '#C62828'}>
-                        {data.vdrStatus}
-                      </Chip>
-                    )}
-                    {data.actTypeID && <Chip>{data.actTypeID}</Chip>}
-                  </div>
-                </CCol>
-                <CCol md={4} className="text-md-end text-start mt-3 mt-md-0">
-                  <div className="d-inline-flex align-items-center gap-2">
-                    <span className="text-warning" style={{ fontSize: 20 }}>★</span>
-                    <span className="fw-bold" style={{ fontSize: 18 }}>
-                      {data.actRating ?? '—'}
-                    </span>
-                  </div>
-                </CCol>
-              </CRow>
+              <pre className="act-detail-debug-pre">
+                {typeof rawJson === 'string' ? rawJson : JSON.stringify(rawJson, null, 2)}
+              </pre>
             </CCardBody>
           </CCard>
+        )}
 
-          {/* Images */}
-          <CCard className="mb-3">
-            <CCardHeader>Images</CCardHeader>
-            <CCardBody>
-              <ImageCarousel images={images} />
-            </CCardBody>
-          </CCard>
+        {!loading && !error && data && (
+          <CCard className="act-detail-one-card">
+            <CCardBody className="act-detail-one-card-body">
+              {/* Header Section */}
+              <div className="act-detail-hero-section">
+                <CRow className="align-items-center">
+                  <CCol md={8}>
+                    <div className="act-detail-type-rating-row">
+                      <div className="act-detail-type-box">
+                        <span className="act-detail-type-label">Activity Type</span>
+                        <span className="act-detail-type-value">{data.actTypeID || '—'}</span>
+                      </div>
 
-          {/* Basics */}
-          <CCard className="mb-3">
-            <CCardHeader>Basic Information</CCardHeader>
-            <CCardBody>
-              <CRow>
-                <CCol md={6}>
-                  <KeyValue label="Address" value={data.actAddress1 || '—'} />
-                  {data.actAddress2 ? <KeyValue label="Address 2" value={data.actAddress2} /> : null}
-                  <KeyValue label="Gender" value={data.actGender || '—'} />
-                  <KeyValue label="Age Range" value={
-                    [data.actMinAge, data.actMaxAge].filter(Boolean).join(' to ') || '—'
-                  } />
-                </CCol>
-                <CCol md={6}>
-                  <KeyValue label="Country" value={data.EnCountryName || data.actCountryName || data.actCountryID || '—'} />
-                  <KeyValue label="City" value={data.EnCityName || data.actCityName || data.actCityID || '—'} />
-                  <KeyValue label="Latitude" value={data.actGlat || '—'} />
-                  <KeyValue label="Longitude" value={data.actGlan || '—'} />
-                </CCol>
-              </CRow>
-            </CCardBody>
-          </CCard>
+                      <div className="act-detail-rating-box act-detail-rating-box-inline">
+                        <span className="act-detail-type-label">Rating</span>
+                        <span className="act-detail-rating-pill">
+                          <CIcon icon={cilStar} className="act-detail-rating-icon" />
+                          <span>{data.actRating ?? '—'}</span>
+                        </span>
+                      </div>
+                    </div>
 
-          {/* Description */}
-          <CCard className="mb-3">
-            <CCardHeader>Description</CCardHeader>
-            <CCardBody>
-              {data.actDesc ? (
-                <div
-                  style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}
-                  dangerouslySetInnerHTML={{ __html: data.actDesc.replace(/\n/g, '<br/>') }}
-                />
-              ) : (
-                <div>—</div>
-              )}
-            </CCardBody>
-          </CCard>
+                    <div className="act-detail-chip-row act-detail-chip-row-hidden-title">
+                      {data.vendorNo && <Chip color="#d63384">Code: {data.vendorNo}</Chip>}
+                      {data.vdrStatus && (
+                        <Chip color={(data.vdrStatus || '').toUpperCase() === 'ACTIVE' ? '#14532d' : '#C62828'}>
+                          <CIcon icon={cilCheckCircle} className="act-detail-chip-icon" />
+                          {data.vdrStatus}
+                        </Chip>
+                      )}
+                    </div>
+                  </CCol>
+                  <CCol md={4} className="text-md-end text-start mt-3 mt-md-0 act-detail-old-rating-col">
+                    <div className="act-detail-rating-pill">
+                      <CIcon icon={cilStar} className="act-detail-rating-icon" />
+                      <span>{data.actRating ?? '—'}</span>
+                    </div>
+                  </CCol>
+                </CRow>
+              </div>
 
-          {/* Categories */}
-          <CCard className="mb-3">
-            <CCardHeader>Categories</CCardHeader>
-            <CCardBody>
-              {categories.length === 0 ? (
-                <div>—</div>
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {categories.map((c, i) => (
-                    <CBadge key={`${c}-${i}`} color="secondary" className="me-1">{c}</CBadge>
-                  ))}
+              {/* Images */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilImage}>Images</SectionTitle>
                 </div>
-              )}
-            </CCardBody>
-          </CCard>
+                <div className="act-detail-section-body">
+                  <ImageCarousel images={images} />
+                </div>
+              </div>
 
-          {/* Prices */}
-          <CCard className="mb-3">
-            <CCardHeader>Price Per Student</CCardHeader>
-            <CCardBody>
-              <PriceList prices={data.priceList || data.actPrice || []} />
-            </CCardBody>
-          </CCard>
+              {/* Basics */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilInfo}>Basic Information</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                <CRow>
+                  <CCol md={6}>
+                    <KeyValue label="Address" value={data.actAddress1 || '—'} />
+                    {data.actAddress2 ? <KeyValue label="Address 2" value={data.actAddress2} /> : null}
+                    <KeyValue label="Gender" value={data.actGender || '—'} />
+                    <KeyValue label="Age Range" value={
+                      [data.actMinAge, data.actMaxAge].filter(Boolean).join(' to ') || '—'
+                    } />
+                  </CCol>
+                  <CCol md={6}>
+                    <KeyValue label="Country" value={data.EnCountryName || data.actCountryName || data.actCountryID || '—'} />
+                    <KeyValue label="City" value={data.EnCityName || data.actCityName || data.actCityID || '—'} />
+                    <KeyValue label="Latitude" value={data.actGlat || '—'} />
+                    <KeyValue label="Longitude" value={data.actGlan || '—'} />
+                  </CCol>
+                </CRow>
+                </div>
+              </div>
 
-          {/* Availability */}
-          <CCard className="mb-3">
-            <CCardHeader>Availability</CCardHeader>
-            <CCardBody>
-              <AvailabilityTable rows={availRows} />
-            </CCardBody>
-          </CCard>
+              {/* Description */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilDescription}>Description</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                {data.actDesc ? (
+                  <div
+                    className="act-detail-description"
+                    dangerouslySetInnerHTML={{ __html: data.actDesc.replace(/\n/g, '<br/>') }}
+                  />
+                ) : (
+                  <div className="act-detail-empty-box">—</div>
+                )}
+                </div>
+              </div>
 
-          {/* Capacity */}
-          <CCard className="mb-3">
-            <CCardHeader>Capacity</CCardHeader>
-            <CCardBody>
-              <CRow className="text-center">
-                <CCol md={6} className="mb-2">
-                  <div className="text-muted">Minimum Students</div>
-                  <div className="fs-5 fw-bold">{data.actMinStudent ?? '—'}</div>
-                </CCol>
-                <CCol md={6} className="mb-2">
-                  <div className="text-muted">Maximum Students</div>
-                  <div className="fs-5 fw-bold">{data.actMaxStudent ?? '—'}</div>
-                </CCol>
-              </CRow>
-            </CCardBody>
-          </CCard>
+              {/* Categories */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilTags}>Categories</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                {categories.length === 0 ? (
+                  <div className="act-detail-empty-box">—</div>
+                ) : (
+                  <div className="act-detail-category-list">
+                    {categories.map((c, i) => (
+                      <CBadge key={`${c}-${i}`} className="act-detail-category-badge">{c}</CBadge>
+                    ))}
+                  </div>
+                )}
+                </div>
+              </div>
 
-          {/* Location */}
-          <CCard className="mb-3">
-            <CCardHeader>Location</CCardHeader>
-            <CCardBody>
-              <KeyValue label="Google Map" value={
-                data.actGoogleMap ? (
-                  <a href={data.actGoogleMap} target="_blank" rel="noreferrer">
-                    Open Map
-                  </a>
-                ) : '—'
-              } />
-            </CCardBody>
-          </CCard>
+              {/* Prices */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilMoney}>Price Per Student</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                <PriceList prices={data.priceList || data.actPrice || []} />
+                </div>
+              </div>
 
-          {/* Meals */}
-          <CCard className="mb-3">
-            <CCardHeader>Meals</CCardHeader>
-            <CCardBody>
-              <Meals included={mealsIncluded} excluded={mealsExcluded} />
-            </CCardBody>
-          </CCard>
+              {/* Availability */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilCalendar}>Availability</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                <AvailabilityTable rows={availRows} />
+                </div>
+              </div>
 
-          {/* Terms */}
-          <CCard className="mb-5">
-            <CCardHeader>Terms & Conditions</CCardHeader>
-            <CCardBody>
-              {data.actAdminNotes ? <div style={{ whiteSpace: 'pre-wrap' }}>{data.actAdminNotes}</div> : '—'}
+              {/* Capacity */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilPeople}>Capacity</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                <CRow className="text-center">
+                  <CCol md={6} className="mb-2">
+                    <div className="act-detail-stat-card">
+                      <div className="act-detail-stat-label">Minimum Students</div>
+                      <div className="act-detail-stat-value">{data.actMinStudent ?? '—'}</div>
+                    </div>
+                  </CCol>
+                  <CCol md={6} className="mb-2">
+                    <div className="act-detail-stat-card">
+                      <div className="act-detail-stat-label">Maximum Students</div>
+                      <div className="act-detail-stat-value">{data.actMaxStudent ?? '—'}</div>
+                    </div>
+                  </CCol>
+                </CRow>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilLocationPin}>Location</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                <KeyValue label="Google Map" value={
+                  data.actGoogleMap ? (
+                    <a className="act-detail-map-link" href={data.actGoogleMap} target="_blank" rel="noreferrer">
+                      <CIcon icon={cilMap} />
+                      <span>Open Map</span>
+                    </a>
+                  ) : '—'
+                } />
+                </div>
+              </div>
+
+              {/* Meals */}
+              <div className="act-detail-section-block">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilRestaurant}>Meals</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                <Meals included={mealsIncluded} excluded={mealsExcluded} />
+                </div>
+              </div>
+
+              {/* Terms */}
+              <div className="act-detail-section-block act-detail-last-section">
+                <div className="act-detail-card-header">
+                  <SectionTitle icon={cilDescription}>Terms & Conditions</SectionTitle>
+                </div>
+                <div className="act-detail-section-body">
+                {data.actAdminNotes ? <div className="act-detail-description">{data.actAdminNotes}</div> : <div className="act-detail-empty-box">—</div>}
+                </div>
+              </div>
             </CCardBody>
           </CCard>
-        </>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   )
 }
 

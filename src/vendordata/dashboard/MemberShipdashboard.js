@@ -1,10 +1,10 @@
-// src/pages/dashboard/Dashboard.js
+// src/pages/dashboard/MemberShipdashboard.js
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IsUserAccessPage } from '../../utils/auth'
 import { API_BASE_URL } from '../../config'
 import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
-import VdrCalenderScreen from '../calender/VdrCalenderScreen'
+import MemberShipCalenderScreen from './MemberShipCalenderScreen'
 import {
   CCard,
   CCardBody,
@@ -232,12 +232,12 @@ function WalletCard({ label, amount, type = 'received' }) {
 }
 
 // ===============
-// Main Dashboard
+// Main MemberShip Dashboard
 // ===============
-const Dashboard = () => {
+const MemberShipdashboard = () => {
   const navigate = useNavigate()
 
-  const [activeDashboardTab, setActiveDashboardTab] = useState('school')
+  const [activeDashboardTab, setActiveDashboardTab] = useState('membership')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -297,16 +297,17 @@ const Dashboard = () => {
   }
 
   // ✅ Membership tab navigation
+  // Booked Activities   -> /vendordata/membership?status=BOOKED
+  // Completed Activities -> /vendordata/membership?status=COMPLETED
   const goToMembershipListByStatus = (statusKey) => {
     const query = `?status=${encodeURIComponent(statusKey)}`
     const usingHash =
       typeof window !== 'undefined' && window.location.hash.startsWith('#/')
 
-    // Keep route flexible: change this path only if your membership list route is different.
     if (usingHash) {
-      window.location.hash = `#/vendor/membership/activity-requests${query}`
+      window.location.hash = `#/vendordata/membership${query}`
     } else {
-      navigate(`/vendor/membership/activity-requests${query}`)
+      navigate(`/vendordata/membership${query}`)
     }
   }
 
@@ -949,14 +950,14 @@ const Dashboard = () => {
         <button
           type="button"
           className={`dashboard-tab-btn ${activeDashboardTab === 'school' ? 'active' : ''}`}
-          onClick={() => setActiveDashboardTab('school')}
+          onClick={() => navigate('/vendor/dashboard')}
         >
           {tr('dashSchoolTab', 'School')}
         </button>
         <button
           type="button"
           className={`dashboard-tab-btn ${activeDashboardTab === 'membership' ? 'active' : ''}`}
-          onClick={() => navigate('/dashboard/membership')}
+          onClick={() => setActiveDashboardTab('membership')}
         >
           {tr('dashMemberShipTab', 'MemberShip')}
         </button>
@@ -1036,7 +1037,7 @@ const Dashboard = () => {
 
       {/* Calendar */}
       <div className="vendor-calendar-modern-wrap">
-        <VdrCalenderScreen />
+        <MemberShipCalenderScreen />
       </div>
 
       {/* Loading / Error */}
@@ -1054,4 +1055,4 @@ const Dashboard = () => {
   )
 }
 
-export default Dashboard
+export default MemberShipdashboard

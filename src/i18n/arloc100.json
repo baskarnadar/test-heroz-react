@@ -199,5 +199,35 @@
   "list.view_paid_students": "عرض الطلاب المسددين",
   "list.waiting_for_approval_button": "في انتظار الموافقة",
   "list.approved_request_button": "عرض الطلب الموافق عليه",
-    "menu_scholl_activities": "School Activities"
+  "menu_scholl_activities": "School Activities",
+  "list.activity_requests": "طلبات الأنشطة",
+  "list.status_trip_booked": "تم حجز الرحلة",
+  "list.status_approved": "تمت الموافقة",
+  "list.status_waiting_for_approval": "في انتظار الموافقة",
+  "list.status_rejected": "تم الرفض",
+  "list.status_completed": "مكتمل",
+
+ 
+  "list.activity_requests": "طلبات الأنشطة",
+  "list.total_records": "إجمالي السجلات",
+  "list.search_placeholder": "ابحث باسم النشاط أو رقم المرجع أو التاريخ أو الوقت",
+  "list.no_search_result": "لا توجد طلبات مطابقة للبحث",
+  "list.status_trip_booked": "تم حجز الرحلة",
+  "list.status_approved": "تمت الموافقة",
+  "list.status_waiting_for_approval": "في انتظار الموافقة",
+  "list.status_rejected": "تم الرفض",
+  "list.status_completed": "مكتمل",
+    "list.total_records": "إجمالي السجلات",
+  "list.search_placeholder": "ابحث باسم النشاط أو رقم المرجع أو التاريخ أو الوقت",
+  "list.no_search_result": "لا توجد طلبات مطابقة للبحث",
+  "list.status_trip_booked": "تم حجز الرحلة",
+  "list.status_approved": "تمت الموافقة",
+  "list.status_waiting_for_approval": "في انتظار الموافقة",
+  "list.status_rejected": "تم الرفض",
+  "list.status_completed": "مكتمل",
+  "list.view": "عرض",
+  "list.showing": "عرض",
+  "list.of": "من", 
+  "kv.trip_no": "رقم الرحلة"
 }
+ 

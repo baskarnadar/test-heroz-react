@@ -29,8 +29,13 @@ const TripCompleted = React.lazy(() => import('./membership/trip/completed.js'))
 const routes = [
   { path: '/', name: 'Home' },
 
-  // Membership
+  // =======================
+  // Membership Main Dashboard Routes
+  // =======================
   { path: '/membership/dashboard', name: 'Dashboard', element: MembershipDashboard },
+  { path: '/dashboard/membership', name: 'Membership Dashboard', element: MembershipDashboard },
+
+  // Membership Core Pages
   { path: '/membership/activity-requests', name: 'Activity Requests', element: ActivityRequestList },
   { path: '/membership/info', name: 'Membership Info', element: MembershipInfoPage },
 
@@ -46,7 +51,7 @@ const routes = [
   { path: '/membership/activityinfo/activity/view', name: 'Activity View', element: ActivityView },
 
   // =======================
-  // ✅ Membership Activity (NEW base: activityinfo/membership)
+  // Membership Activity (Primary)
   // =======================
   { path: '/membership/activityinfo/membership/list', name: 'Membership Activity List', element: MembershipActivityList },
   { path: '/membership/activityinfo/membership/new', name: 'Membership Activity New', element: MembershipActivityNew },
@@ -54,21 +59,27 @@ const routes = [
   { path: '/membership/activityinfo/membership/view', name: 'Membership Activity View', element: MembershipActivityView },
 
   // =======================
-  // ✅ Membership Activity (ALIAS routes to match your menu URL)
+  // Membership Activity (Alias for sidebar/menu)
   // =======================
   { path: '/membership/membership/activity/list', name: 'Membership Activity List (Alias)', element: MembershipActivityList },
   { path: '/membership/membership/activity/new', name: 'Membership Activity New (Alias)', element: MembershipActivityNew },
   { path: '/membership/membership/activity/modify', name: 'Membership Activity Modify (Alias)', element: MembershipActivityModify },
   { path: '/membership/membership/activity/view', name: 'Membership Activity View (Alias)', element: MembershipActivityView },
 
+  // =======================
   // Membership Activity Screen
+  // =======================
   { path: '/membership/activity/ViewActivityScreen', name: 'ViewActivityScreen', element: ViewActivityScreen },
 
+  // =======================
   // Payment & Notes
+  // =======================
   { path: '/membership/payment/list', name: 'MembershipPaymentList', element: PaymentList },
   { path: '/membership/note/list', name: 'MembershipNoteList', element: membershipNoteList },
 
+  // =======================
   // Trips
+  // =======================
   { path: '/membership/trip/tripbooked', name: 'Trip Booked', element: TripBooked },
   { path: '/membership/trip/completed', name: 'Completed Trips', element: TripCompleted },
 ]

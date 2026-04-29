@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, isSameDay } from "date-fns";
-import "./cal.css";
+import "./MemberShipCal.css";
 import { API_BASE_URL } from "../../config";
 import {
   getAuthHeaders,

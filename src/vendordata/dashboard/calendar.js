@@ -5,6 +5,15 @@ import React, { useEffect, useState } from 'react'
 import enPack from '../../i18n/enloc100.json'
 import arPack from '../../i18n/arloc100.json'
 
+// ── Color tokens ──────────────────────────────────────────────
+const COLOR_BOOKED   = '#B5005B'  // dark pink  (was green)
+const COLOR_WAITING  = 'orange'
+const COLOR_REJECTED = 'red'
+const COLOR_MULTI    = '#4a0d52'
+const COLOR_WEEKEND_BG   = '#fdfdfd'  // dark red for Sat / Sun
+const COLOR_WEEKEND_TEXT = '#ffffff'  // white text on weekends
+// ─────────────────────────────────────────────────────────────
+
 export default function Calendar({ initialYear, initialMonth, events }) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
@@ -77,12 +86,21 @@ export default function Calendar({ initialYear, initialMonth, events }) {
           textAlign: 'center',
         }}
       >
-        {/* Weekday headers */}
-        {dayNames.map((day) => (
-          <div key={day} style={{ fontWeight: 'bold' }}>
-            {day}
-          </div>
-        ))}
+        {/* Weekday headers — Sat (idx 6) and Sun (idx 0) in dark red */}
+        {dayNames.map((day, idx) => {
+          const isWeekendHeader = idx === 0 || idx === 6
+          return (
+            <div
+              key={day}
+              style={{
+                fontWeight: 'bold',
+                color: isWeekendHeader ? COLOR_WEEKEND_BG : 'inherit',
+              }}
+            >
+              {day}
+            </div>
+          )
+        })}
 
         {/* Empty slots before the first day of the month */}
         {Array(firstDayIndex)
@@ -96,15 +114,20 @@ export default function Calendar({ initialYear, initialMonth, events }) {
           const dayEvents = events[day] || []
           const hasEvents = dayEvents.length > 0
 
+          // Day-of-week: 0 = Sun, 6 = Sat
+          const dayOfWeek = new Date(year, month, day).getDay()
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+          // Event background colour
           let backgroundColor = 'white'
           if (dayEvents.includes('BOOKED') && dayEvents.length === 1) {
-            backgroundColor = 'green'
+            backgroundColor = COLOR_BOOKED   // ← dark pink
           } else if (dayEvents.includes('WAITING') && dayEvents.length === 1) {
-            backgroundColor = 'orange'
+            backgroundColor = COLOR_WAITING
           } else if (dayEvents.includes('REJECTED') && dayEvents.length === 1) {
-            backgroundColor = 'red'
+            backgroundColor = COLOR_REJECTED
           } else if (dayEvents.length > 1) {
-            backgroundColor = '#4a0d52'
+            backgroundColor = COLOR_MULTI
           }
 
           const isToday =
@@ -112,17 +135,33 @@ export default function Calendar({ initialYear, initialMonth, events }) {
             month === today.getMonth() &&
             year === today.getFullYear()
 
+          // Resolve final cell bg and text color
+          let cellBg, cellColor
+          if (hasEvents) {
+            cellBg    = backgroundColor
+            cellColor = '#ffffff'
+          } else if (isWeekend) {
+            cellBg    = COLOR_WEEKEND_BG    // dark red
+            cellColor = COLOR_WEEKEND_TEXT  // white
+          } else if (isToday) {
+            cellBg    = '#def'
+            cellColor = '#000'
+          } else {
+            cellBg    = 'white'
+            cellColor = '#000'
+          }
+
           return (
             <div
               key={day}
               onMouseEnter={() => hasEvents && setHoveredDay(day)}
               onMouseLeave={() => setHoveredDay(null)}
               style={{
-                border: '1px solid #4a0d52',
+                border: `1px solid ${isWeekend && !hasEvents ? COLOR_WEEKEND_BG : '#4a0d52'}`,
                 borderRadius: 6,
                 padding: 6,
-                color: hasEvents ? 'white' : '#000',
-                backgroundColor: hasEvents ? backgroundColor : isToday ? '#def' : 'white',
+                color: cellColor,
+                backgroundColor: cellBg,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -135,7 +174,7 @@ export default function Calendar({ initialYear, initialMonth, events }) {
 
               {hasEvents &&
                 dayEvents.map((ev, idx) => {
-                  const url = routeMap[ev] || '#'
+                  const url   = routeMap[ev] || '#'
                   const label = labelMap[ev] || ev
                   return (
                     <a
@@ -148,9 +187,9 @@ export default function Calendar({ initialYear, initialMonth, events }) {
                         borderRadius: 3,
                         backgroundColor:
                           ev.toLowerCase() === 'booked'
-                            ? 'green'
+                            ? COLOR_BOOKED   // ← dark pink badge
                             : ev.toLowerCase() === 'rejected'
-                            ? 'red'
+                            ? COLOR_REJECTED
                             : 'gray',
                         marginTop: 2,
                         padding: '2px 4px',
@@ -162,7 +201,10 @@ export default function Calendar({ initialYear, initialMonth, events }) {
                         textDecoration: 'none',
                         cursor: 'pointer',
                       }}
-                      title={tr('calGoToActivity', 'Go to {type} activity page').replace('{type}', (label || '').toLowerCase())}
+                      title={tr('calGoToActivity', 'Go to {type} activity page').replace(
+                        '{type}',
+                        (label || '').toLowerCase()
+                      )}
                     >
                       {idx + 1}. {(label || '').toLowerCase()}
                     </a>
