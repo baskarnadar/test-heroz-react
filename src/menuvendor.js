@@ -1,10 +1,9 @@
- // src/_nav/vendormenu.js
+// src/_nav/vendormenu.js
 import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
 import {
   cilSpeedometer,
   cilPuzzle,
-  cilNotes,
   cilHome,
   cilCheckCircle,
   cilClock,
@@ -12,6 +11,7 @@ import {
   cilUser,
   cilBell,
   cilSettings,
+  cilMoney,
 } from '@coreui/icons'
 import { CNavItem, CNavTitle } from '@coreui/react'
 
@@ -28,6 +28,18 @@ const modernItemStyle = {
 
 const reportSubItemStyle = {
   margin: '2px 12px 2px 22px',
+  borderRadius: '10px',
+  padding: '2px 0',
+}
+
+const membershipSubItemStyle = {
+  margin: '2px 12px',
+  borderRadius: '10px',
+  padding: '2px 0',
+}
+
+const membershipReportSubItemStyle = {
+  margin: '2px 12px 2px 38px',
   borderRadius: '10px',
   padding: '2px 0',
 }
@@ -196,26 +208,47 @@ const vendormenu = [
     name: 'Membership Activities',
     to: '/vendordata/membership/activity/list',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-    style: modernItemStyle,
+    style: membershipSubItemStyle,
     className: 'vendor-menu-item vendor-membership-card',
   },
   {
     component: CNavItem,
     name: 'Booked Activity',
-    // ✅ Pass status value in URL query string
     to: '/vendordata/membership?status=BOOKED',
     icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
-    style: modernItemStyle,
+    style: membershipSubItemStyle,
     className: 'vendor-menu-item vendor-membership-card',
   },
   {
     component: CNavItem,
     name: 'Completed Activity',
-    // ✅ Pass status value in URL query string
     to: '/vendordata/membership?status=COMPLETED',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-    style: modernItemStyle,
+    style: membershipSubItemStyle,
     className: 'vendor-menu-item vendor-membership-card',
+  },
+
+  // ✅ Membership internal report submenu
+  {
+    component: CNavTitle,
+    name: 'REPORT',
+    className: 'vendor-menu-title vendor-membership-card',
+  },
+  {
+    component: CNavItem,
+    name: 'Payment',
+    to: '/vendordata/membership/report/payment',
+    icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
+    style: membershipReportSubItemStyle,
+    className: 'vendor-menu-item vendor-membership-card vendor-report-submenu',
+  },
+  {
+    component: CNavItem,
+    name: 'Completed Booking',
+    to: '/vendordata/membership/report/completed-booking?status=COMPLETED',
+    icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+    style: membershipReportSubItemStyle,
+    className: 'vendor-menu-item vendor-membership-card vendor-report-submenu',
   },
 
   // ================= SETTINGS =================

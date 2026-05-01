@@ -26,6 +26,13 @@ const membershipNoteList = React.lazy(() => import('./membership/note/list'))
 const TripBooked = React.lazy(() => import('./membership/trip/tripbooked.js'))
 const TripCompleted = React.lazy(() => import('./membership/trip/completed.js'))
 
+// ✅ Membership Report pages
+// File locations:
+// src/vendordata/membership/report/payment.js
+// src/vendordata/membership/report/bokcomplete.js
+const MembershipReportPayment = React.lazy(() => import('./vendordata/membership/report/payment.js'))
+const MembershipReportCompletedBooking = React.lazy(() => import('./vendordata/membership/report/bokcomplete.js'))
+
 const routes = [
   { path: '/', name: 'Home' },
 
@@ -82,6 +89,14 @@ const routes = [
   // =======================
   { path: '/membership/trip/tripbooked', name: 'Trip Booked', element: TripBooked },
   { path: '/membership/trip/completed', name: 'Completed Trips', element: TripCompleted },
-]
+
+  // =======================
+  // Membership Report
+  // =======================
+  { path: '/vendordata/membership/report/payment', name: 'Membership Report Payment', element: MembershipReportPayment },
+  { path: '/vendordata/membership/report/completed-booking', name: 'Membership Report Completed Booking', element: MembershipReportCompletedBooking },
+  { path: '/vendordata/membership/report/completed-booking?status=COMPLETED', name: 'Membership Report Completed Booking', element: MembershipReportCompletedBooking },
+
+ ]
 
 export default routes

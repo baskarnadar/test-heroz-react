@@ -34,6 +34,7 @@ import enPack from '../../i18n/enloc100.json'
 import arPack from '../../i18n/arloc100.json'
 
 const GET_VDR_SUMMARY = `${API_BASE_URL}/vendordata/dashboard/getvdrsummary`
+const GET_MEMBERSHIP_BOOKING_LIST = `${API_BASE_URL}/membership/booking/getbookinglist`
 
 const dashboardTheme = {
   warning: {
@@ -311,6 +312,63 @@ const MemberShipdashboard = () => {
     }
   }
 
+  // ✅ Same API used in membership booked/completed page.
+  // This loads exact BOOKED and COMPLETED record counts from:
+  // POST /membership/booking/getbookinglist
+  const loadMembershipBookingCounts = async () => {
+    const vendorId = getCurrentLoggedUserID()
+
+    const bookedPayload = {
+      BookingVendorID: vendorId,
+      BookingStatus: 'BOOKED',
+    }
+
+    const completedPayload = {
+      BookingVendorID: vendorId,
+      BookingStatus: 'COMPLETED',
+    }
+
+    console.log('MEMBERSHIP DASHBOARD BOOKED COUNT API:', GET_MEMBERSHIP_BOOKING_LIST)
+    console.log('MEMBERSHIP DASHBOARD BOOKED COUNT PAYLOAD:', bookedPayload)
+    console.log('MEMBERSHIP DASHBOARD COMPLETED COUNT API:', GET_MEMBERSHIP_BOOKING_LIST)
+    console.log('MEMBERSHIP DASHBOARD COMPLETED COUNT PAYLOAD:', completedPayload)
+
+    const [bookedResp, completedResp] = await Promise.all([
+      fetch(GET_MEMBERSHIP_BOOKING_LIST, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(bookedPayload),
+      }),
+      fetch(GET_MEMBERSHIP_BOOKING_LIST, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(completedPayload),
+      }),
+    ])
+
+    if (!bookedResp.ok) {
+      const txt = await bookedResp.text()
+      throw new Error(`Booked Activities API HTTP ${bookedResp.status}: ${txt}`)
+    }
+
+    if (!completedResp.ok) {
+      const txt = await completedResp.text()
+      throw new Error(`Completed Activities API HTTP ${completedResp.status}: ${txt}`)
+    }
+
+    const bookedJson = await bookedResp.json()
+    const completedJson = await completedResp.json()
+
+    console.log('MEMBERSHIP DASHBOARD BOOKED COUNT RESPONSE:', bookedJson)
+    console.log('MEMBERSHIP DASHBOARD COMPLETED COUNT RESPONSE:', completedJson)
+
+    const bookedData = Array.isArray(bookedJson?.data) ? bookedJson.data : []
+    const completedData = Array.isArray(completedJson?.data) ? completedJson.data : []
+
+    setTotalMembershipBookedActivities(bookedData.length)
+    setTotalMembershipCompletedActivities(completedData.length)
+  }
+
   useEffect(() => {
     let isMounted = true
     ;(async () => {
@@ -345,7 +403,7 @@ const MemberShipdashboard = () => {
           setTotalTodayTrip(d.TotalTodayTrip ?? 0)
           setTotalPayableSchoolAmount(d.TotalPayableSchoolAmount ?? 0)
 
-          // ✅ Membership fields: accepts multiple possible backend key names without breaking old response
+          // ✅ Membership fields from summary kept as fallback / existing logic
           setTotalMembershipBookedActivities(
             d.TotalMembershipBookedActivities ??
               d.TotalBookedActivities ??
@@ -379,6 +437,9 @@ const MemberShipdashboard = () => {
               d.TotalPayableSchoolAmount ??
               0,
           )
+
+          // ✅ Override dashboard membership cards using exact same list API
+          await loadMembershipBookingCounts()
         } else {
           if (!isMounted) return
           setError(json?.message || 'Failed to load dashboard')
@@ -445,7 +506,6 @@ const MemberShipdashboard = () => {
       dict,
     ],
   )
-
 
   const membershipStatCards = useMemo(
     () => [
@@ -575,7 +635,6 @@ const MemberShipdashboard = () => {
             overflow: hidden;
           }
 
-          /* Month title row */
           .vendor-calendar-modern-wrap h1,
           .vendor-calendar-modern-wrap h2,
           .vendor-calendar-modern-wrap h3,
@@ -587,7 +646,6 @@ const MemberShipdashboard = () => {
             text-shadow: 0 1px 0 rgba(255,255,255,0.65);
           }
 
-          /* Make month arrows modern */
           .vendor-calendar-modern-wrap button,
           .vendor-calendar-modern-wrap [role="button"],
           .vendor-calendar-modern-wrap a[href="#"],
@@ -651,7 +709,6 @@ const MemberShipdashboard = () => {
             text-align: center !important;
           }
 
-          /* Weekend headers — no special background, same as weekdays */
           .vendor-calendar-modern-wrap th:first-child,
           .vendor-calendar-modern-wrap th:nth-child(6),
           .vendor-calendar-modern-wrap th:nth-child(7) {
@@ -675,7 +732,6 @@ const MemberShipdashboard = () => {
             filter: saturate(1.04);
           }
 
-          /* Weekend cells — plain white, same as regular days */
           .vendor-calendar-modern-wrap tbody tr td:first-child,
           .vendor-calendar-modern-wrap tbody tr td:nth-child(6),
           .vendor-calendar-modern-wrap tbody tr td:nth-child(7) {
@@ -691,9 +747,6 @@ const MemberShipdashboard = () => {
             color: inherit !important;
           }
 
-          /* Red/pink inline styles — leave as-is, no forced dark red override */
-
-          /* ── Booked/Occupied cells: SOLID DARK PINK #B5005B ── */
           .vendor-calendar-modern-wrap [style*="background-color: green"],
           .vendor-calendar-modern-wrap [style*="background-color:green"],
           .vendor-calendar-modern-wrap [style*="background: green"],
@@ -750,8 +803,6 @@ const MemberShipdashboard = () => {
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.30);
           }
 
-
-          /* Force occupied calendar day green cells to solid dark pink */
           .vendor-calendar-modern-wrap td[style*="green"],
           .vendor-calendar-modern-wrap td[style*="rgb(0, 128, 0"],
           .vendor-calendar-modern-wrap td[style*="#8f"],
@@ -786,7 +837,6 @@ const MemberShipdashboard = () => {
             color: #fff !important;
           }
 
-          /* ================= MODERN ROLLOVER DATE MODAL ================= */
           .vendor-dashboard-modern .modal,
           .vendor-dashboard-modern .modal-overlay,
           .vendor-dashboard-modern [class*="modal-overlay"] {
@@ -864,8 +914,6 @@ const MemberShipdashboard = () => {
             padding: 10px 18px !important;
           }
 
-
-          /* FINAL OVERRIDE: remove all green occupied/day backgrounds and make them solid dark pink */
           .vendor-calendar-modern-wrap tbody td[style*="green"],
           .vendor-calendar-modern-wrap tbody td[style*="Green"],
           .vendor-calendar-modern-wrap tbody td[style*="#008000"],
@@ -922,6 +970,39 @@ const MemberShipdashboard = () => {
           .vendor-calendar-modern-wrap tbody td[class*="booked"] *,
           .vendor-calendar-modern-wrap tbody td[class*="Booked"] * {
             color: #fff !important;
+          }
+
+
+          /* ✅ FINAL MEMBERSHIP CALENDAR OVERRIDE: BOOKED / COMPLETED dates must be GREEN */
+          .vendor-calendar-modern-wrap .membership-cal-day.has-booked,
+          .vendor-calendar-modern-wrap .membership-cal-day.has-completed,
+          .vendor-calendar-modern-wrap tbody td.has-booked,
+          .vendor-calendar-modern-wrap tbody td.has-completed,
+          .vendor-calendar-modern-wrap tbody td[class*="has-booked"],
+          .vendor-calendar-modern-wrap tbody td[class*="has-completed"] {
+            background: linear-gradient(135deg, #16a34a, #22c55e) !important;
+            background-color: #16a34a !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255,255,255,0.35) !important;
+            box-shadow: 0 14px 32px rgba(22, 163, 74, 0.35) !important;
+          }
+
+          .vendor-calendar-modern-wrap .membership-cal-day.has-completed,
+          .vendor-calendar-modern-wrap tbody td.has-completed,
+          .vendor-calendar-modern-wrap tbody td[class*="has-completed"] {
+            background: linear-gradient(135deg, #047857, #16a34a) !important;
+            background-color: #047857 !important;
+            color: #ffffff !important;
+            box-shadow: 0 14px 32px rgba(4, 120, 87, 0.35) !important;
+          }
+
+          .vendor-calendar-modern-wrap .membership-cal-day.has-booked *,
+          .vendor-calendar-modern-wrap .membership-cal-day.has-completed *,
+          .vendor-calendar-modern-wrap tbody td.has-booked *,
+          .vendor-calendar-modern-wrap tbody td.has-completed *,
+          .vendor-calendar-modern-wrap tbody td[class*="has-booked"] *,
+          .vendor-calendar-modern-wrap tbody td[class*="has-completed"] * {
+            color: #ffffff !important;
           }
 
           @media (max-width: 768px) {
@@ -985,7 +1066,6 @@ const MemberShipdashboard = () => {
       {/* Wallet */}
       <CRow className="mb-2">
         <CCol xs={12} md={6}>
-          {/* No explicit "received" value in summary yet, keep as 0 */}
           <WalletCard
             label={tr('dashAmountReceived', 'Amount Received')}
             amount={activeAmountReceived}
@@ -993,7 +1073,6 @@ const MemberShipdashboard = () => {
           />
         </CCol>
         <CCol xs={12} md={6}>
-          {/* Use TotalPayableSchoolAmount as current balance */}
           <WalletCard
             label={tr('dashBalance', 'Balance')}
             amount={activeBalance}
