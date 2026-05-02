@@ -1,5 +1,14 @@
-.sidebar-dark {
-  --cui-body-bg: #4a0d52;
+ .sidebar-dark {
+  --cui-sidebar-bg: #4a0d52;
+  background-color: #4a0d52 !important;
+}
+
+/* Keep sidebar purple in ALL states: full, narrow, transitioning */
+.sidebar,
+.sidebar-narrow,
+.sidebar-narrow-unfoldable,
+.sidebar-narrow-unfoldable:not(:hover) {
+  background-color: #4a0d52 !important;
 }
 
 .sidebar-nav .nav-link {

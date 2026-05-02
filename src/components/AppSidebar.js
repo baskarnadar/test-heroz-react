@@ -34,7 +34,10 @@ const AppSidebar = () => {
       unfoldable={unfoldable}
       visible={sidebarShow}
       onVisibleChange={(visible) => {
-        dispatch({ type: 'set', sidebarShow: visible })
+        // Only auto-hide sidebar on mobile; desktop uses unfoldable (narrow) mode
+        if (window.innerWidth < 992) {
+          dispatch({ type: 'set', sidebarShow: visible })
+        }
       }}
     >
       <CSidebarHeader className="border-bottom">

@@ -10,13 +10,12 @@ import {
   CDropdownToggle,
   CHeader,
   CHeaderNav,
-  CHeaderToggler,
   CNavItem,
   CButton,
   useColorModes,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilBell, cilContrast, cilMenu, cilMoon, cilSun } from '@coreui/icons'
+import { cilBell, cilContrast, cilMoon, cilSun } from '@coreui/icons'
 
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
@@ -47,6 +46,7 @@ const AppHeader = () => {
   const { colorMode, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
   const dispatch = useDispatch()
   const sidebarShow = useSelector((state) => state.sidebarShow)
+  const sidebarUnfoldable = useSelector((state) => state.sidebarUnfoldable)
 
   // Language (default AR), persisted and applies dir/lang on <html>
   const getStoredLang = () => {
@@ -162,12 +162,6 @@ const AppHeader = () => {
   return (
     <CHeader position="sticky" className="mb-4 p-0" ref={headerRef}>
       <CContainer className="border-bottom px-4" fluid>
-        <CHeaderToggler
-          onClick={() => dispatch({ type: 'set', sidebarShow: !sidebarShow })}
-          style={{ marginInlineStart: '-14px' }}
-        >
-          <CIcon icon={cilMenu} size="lg" />
-        </CHeaderToggler>
 
         <div className="flex-grow-1 text-center">
           <h4>
