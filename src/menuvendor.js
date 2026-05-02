@@ -1,4 +1,4 @@
-// src/_nav/vendormenu.js
+// src/menuvendor.js
 import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -13,35 +13,27 @@ import {
   cilSettings,
   cilMoney,
 } from '@coreui/icons'
-import { CNavItem, CNavTitle } from '@coreui/react'
+import { CNavItem, CNavTitle, CNavGroup } from '@coreui/react'
 
 import { API_BASE_URL } from './config'
 import { getAuthHeaders, getCurrentLoggedUserID } from './utils/operation'
 
-const GET_VDR_SUMMARY = `${API_BASE_URL}/vendordata/dashboard/getvdrsummary`
+const GET_VDR_SUMMARY = API_BASE_URL + '/vendordata/dashboard/getvdrsummary'
+const ROOT_MENU_FONT_SIZE = '15px'
+const ROOT_MENU_FONT_WEIGHT = '600'
 
 const modernItemStyle = {
-  margin: '2px 12px',
+  margin: '2px 8px',
   borderRadius: '10px',
   padding: '2px 0',
+  fontSize: '14px',
 }
 
-const reportSubItemStyle = {
-  margin: '2px 12px 2px 22px',
+const subItemStyle = {
+  margin: '2px 8px 2px 24px',
   borderRadius: '10px',
   padding: '2px 0',
-}
-
-const membershipSubItemStyle = {
-  margin: '2px 12px',
-  borderRadius: '10px',
-  padding: '2px 0',
-}
-
-const membershipReportSubItemStyle = {
-  margin: '2px 12px 2px 38px',
-  borderRadius: '10px',
-  padding: '2px 0',
+  fontSize: '13px',
 }
 
 function StatusCounter({ fallback, color, field }) {
@@ -49,7 +41,6 @@ function StatusCounter({ fallback, color, field }) {
 
   useEffect(() => {
     let alive = true
-
     ;(async () => {
       try {
         const resp = await fetch(GET_VDR_SUMMARY, {
@@ -60,7 +51,7 @@ function StatusCounter({ fallback, color, field }) {
           }),
         })
 
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        if (!resp.ok) throw new Error('HTTP ' + resp.status)
 
         const json = await resp.json()
         const d = json?.data || {}
@@ -77,27 +68,19 @@ function StatusCounter({ fallback, color, field }) {
   }, [field])
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        width: '100%',
-      }}
-    >
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
       <span>{fallback}</span>
-
       <span
         style={{
           background: color,
           color: '#fff',
-          minWidth: '22px',
-          height: '22px',
+          minWidth: '20px',
+          height: '20px',
           borderRadius: '50%',
           display: 'inline-flex',
           justifyContent: 'center',
           alignItems: 'center',
-          fontSize: '11px',
+          fontSize: '10px',
           fontWeight: '700',
         }}
       >
@@ -108,7 +91,6 @@ function StatusCounter({ fallback, color, field }) {
 }
 
 const vendormenu = [
-  // ================= DASHBOARD =================
   {
     component: CNavItem,
     name: 'Dashboard',
@@ -117,145 +99,116 @@ const vendormenu = [
     style: modernItemStyle,
   },
 
-  // ================= SCHOOL MANAGEMENT =================
   {
-    component: CNavTitle,
-    name: 'SCHOOL MANAGEMENT',
-    className: 'vendor-menu-title vendor-school-card',
-  },
-  {
-    component: CNavItem,
-    name: 'School Activities',
-    to: '/vendordata/activityinfo/activity/list',
-    icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
-    style: modernItemStyle,
-    className: 'vendor-menu-item vendor-school-card',
-  },
-  {
-    component: CNavItem,
-    name: (
-      <StatusCounter
-        fallback="Booked Trips"
-        color="#28c76f"
-        field="TotalApproved"
-      />
+    component: CNavGroup,
+    toggler: (
+      <>
+        <CIcon icon={cilHome} className="nav-icon" />
+        <span style={{ paddingLeft:3,fontSize: ROOT_MENU_FONT_SIZE, fontWeight: ROOT_MENU_FONT_WEIGHT }}>
+          School Management
+        </span>
+      </>
     ),
-    to: '/vendor/activity-requests?status=APPROVED',
-    icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
     style: modernItemStyle,
-    className: 'vendor-menu-item vendor-school-card',
+    items: [
+      {
+        component: CNavItem,
+        name: 'School Activities',
+        to: '/vendordata/activityinfo/activity/list',
+        icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: <StatusCounter fallback="Booked Trips" color="#28c76f" field="TotalApproved" />,
+        to: '/vendor/activity-requests?status=APPROVED',
+        icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: <StatusCounter fallback="Pending Trips" color="#ff9f43" field="TotalPending" />,
+        to: '/vendor/activity-requests?status=WAITING-FOR-APPROVAL',
+        icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: <StatusCounter fallback="Rejected Trips" color="#ea5455" field="TotalRejected" />,
+        to: '/vendor/activity-requests?status=REJECTED',
+        icon: <CIcon icon={cilXCircle} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Trip Booked',
+        to: '/vendordata/trip/tripbooked',
+        icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Completed Trips',
+        to: '/vendordata/trip/completed',
+        icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+    ],
   },
+
   {
-    component: CNavItem,
-    name: (
-      <StatusCounter
-        fallback="Pending Trips"
-        color="#ff9f43"
-        field="TotalPending"
-      />
+    component: CNavGroup,
+    toggler: (
+      <>
+        <CIcon icon={cilUser} className="nav-icon" />
+        <span style={{ fontSize: ROOT_MENU_FONT_SIZE, fontWeight: ROOT_MENU_FONT_WEIGHT }}>
+          Membership
+        </span>
+      </>
     ),
-    to: '/vendor/activity-requests?status=WAITING-FOR-APPROVAL',
-    icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
     style: modernItemStyle,
-    className: 'vendor-menu-item vendor-school-card',
-  },
-  {
-    component: CNavItem,
-    name: (
-      <StatusCounter
-        fallback="Rejected Trips"
-        color="#ea5455"
-        field="TotalRejected"
-      />
-    ),
-    to: '/vendor/activity-requests?status=REJECTED',
-    icon: <CIcon icon={cilXCircle} customClassName="nav-icon" />,
-    style: modernItemStyle,
-    className: 'vendor-menu-item vendor-school-card',
-  },
-
-  // ================= REPORT =================
-  {
-    component: CNavTitle,
-    name: 'REPORT',
-    className: 'vendor-menu-title vendor-report-card',
-  },
-  {
-    component: CNavItem,
-    name: 'Trip Booked',
-    to: '/vendordata/trip/tripbooked',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-    style: reportSubItemStyle,
-    className: 'vendor-menu-item vendor-report-card vendor-report-submenu',
-  },
-  {
-    component: CNavItem,
-    name: 'Completed Trips',
-    to: '/vendordata/trip/completed',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-    style: reportSubItemStyle,
-    className: 'vendor-menu-item vendor-report-card vendor-report-submenu',
-  },
-
-  // ================= MEMBERSHIP =================
-  {
-    component: CNavTitle,
-    name: 'MEMBERSHIP',
-    className: 'vendor-menu-title vendor-membership-card',
-  },
-  {
-    component: CNavItem,
-    name: 'Membership Activities',
-    to: '/vendordata/membership/activity/list',
-    icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-    style: membershipSubItemStyle,
-    className: 'vendor-menu-item vendor-membership-card',
-  },
-  {
-    component: CNavItem,
-    name: 'Booked Activity',
-    to: '/vendordata/membership?status=BOOKED',
-    icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
-    style: membershipSubItemStyle,
-    className: 'vendor-menu-item vendor-membership-card',
-  },
-  {
-    component: CNavItem,
-    name: 'Completed Activity',
-    to: '/vendordata/membership?status=COMPLETED',
-    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-    style: membershipSubItemStyle,
-    className: 'vendor-menu-item vendor-membership-card',
+    items: [
+      {
+        component: CNavItem,
+        name: 'Membership Activities',
+        to: '/vendordata/membership/activity/list',
+        icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Booked Activity',
+        to: '/vendordata/membership?status=BOOKED',
+        icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Completed Activity',
+        to: '/vendordata/membership?status=COMPLETED',
+        icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Payment',
+        to: '/vendordata/membership/report/payment',
+        icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Completed Booking',
+        to: '/vendordata/membership/report/completed-booking?status=COMPLETED',
+        icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+        style: subItemStyle,
+      },
+    ],
   },
 
-  // ✅ Membership internal report submenu
-  {
-    component: CNavTitle,
-    name: 'REPORT',
-    className: 'vendor-menu-title vendor-membership-card',
-  },
-  {
-    component: CNavItem,
-    name: 'Payment',
-    to: '/vendordata/membership/report/payment',
-    icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
-    style: membershipReportSubItemStyle,
-    className: 'vendor-menu-item vendor-membership-card vendor-report-submenu',
-  },
-  {
-    component: CNavItem,
-    name: 'Completed Booking',
-    to: '/vendordata/membership/report/completed-booking?status=COMPLETED',
-    icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
-    style: membershipReportSubItemStyle,
-    className: 'vendor-menu-item vendor-membership-card vendor-report-submenu',
-  },
-
-  // ================= SETTINGS =================
   {
     component: CNavTitle,
     name: 'SETTINGS',
-    className: 'vendor-menu-title vendor-settings-card',
   },
   {
     component: CNavItem,
@@ -263,7 +216,6 @@ const vendormenu = [
     to: '/vendor/info',
     icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
     style: modernItemStyle,
-    className: 'vendor-menu-item vendor-settings-card',
   },
   {
     component: CNavItem,
@@ -271,7 +223,6 @@ const vendormenu = [
     to: '/vendordata/note/list',
     icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
     style: modernItemStyle,
-    className: 'vendor-menu-item vendor-settings-card',
   },
 ]
 

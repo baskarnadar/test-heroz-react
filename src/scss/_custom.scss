@@ -1115,3 +1115,50 @@ html[dir] .wrapper {
     padding-right: 17% !important;
   }
 }
+.nav-group-toggle {
+  min-height: 38px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.nav-group-toggle::after {
+  transform: scale(1.2);
+  transition: transform 0.25s ease;
+}
+
+.nav-group.show .nav-group-toggle::after {
+  transform: rotate(90deg) scale(1.2);
+}
+
+.nav-group-items .nav-link {
+  min-height: 30px !important;
+  font-size: 16px !important;
+  padding: 5px 12px 5px 36px !important;
+  border-radius: 8px !important;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.sidebar .nav-link {
+  margin-bottom: 2px;
+}
+
+.sidebar .nav-group-items {
+  padding-left: 4px !important;
+}
+
+.sidebar .nav-icon {
+  font-size: 16px !important;
+}
+
+.sidebar .nav-title {
+  font-size: 14px !important;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
