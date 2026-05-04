@@ -1146,7 +1146,7 @@ html[dir] .wrapper {
 .nav-group-items .nav-link {
   min-height: 30px !important;
   font-size: 16px !important;
-  padding: 5px 12px 5px 36px !important;
+  padding: 5px 12px 5px 6px !important;
   border-radius: 8px !important;
 }
 
@@ -1170,4 +1170,23 @@ html[dir] .wrapper {
   font-size: 14px !important;
   margin-top: 10px;
   margin-bottom: 4px;
+}
+/* Make School Management & Membership togglers look like CNavTitle */
+.nav-section-group > .nav-link {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  margin-top: 8px;
+}
+
+.nav-section-group > .nav-link:hover {
+  background: transparent !important;
+}
+
+/* Style the caret/arrow to match the muted title color */
+.nav-section-group > .nav-link .nav-icon,
+.nav-section-group > .nav-link svg {
+  color: rgba(255, 255, 255, 0.55) !important;
+  width: 12px !important;
+  height: 12px !important;
 }

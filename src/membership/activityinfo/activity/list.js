@@ -96,6 +96,7 @@ const ActivityList = () => {
             page: currentPage,
             limit: ActivityPerPage,
             VendorID: getCurrentLoggedUserID(),
+            actTypeID: 'MEMBERSHIP', // ✅ Pass MEMBERSHIP type to backend so totalCount and pagination are correct
           }),
         },
       )

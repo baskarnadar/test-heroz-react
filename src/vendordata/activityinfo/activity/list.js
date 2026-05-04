@@ -202,6 +202,7 @@ const ActivityList = () => {
             page: currentPage,
             limit: ActivityPerPage,
             VendorID: getCurrentLoggedUserID(),
+            actTypeID: 'SCHOOL', // ✅ Pass SCHOOL type to backend so totalCount and pagination are correct
           }),
         },
       )

@@ -554,6 +554,32 @@ const MspBookedList = () => {
       background: #ffffff !important;
       margin-bottom: 0 !important;
     }
+
+    /* ✅ Bigger status badge inside each card only */
+    .modern-reference-status .modern-status-pill {
+      min-height: 34px !important;
+      padding: 8px 14px !important;
+      border-radius: 12px !important;
+      font-size: 12px !important;
+      font-weight: 900 !important;
+      letter-spacing: 0.05em !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 7px !important;
+      white-space: nowrap !important;
+    }
+    .modern-reference-status .modern-status-icon {
+      width: 15px !important;
+      height: 15px !important;
+      flex: 0 0 auto !important;
+    }
+    .modern-reference-status {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      min-width: 118px !important;
+    }
+
     @media (max-width: 575px) {
       .msp-clear-datetime-row {
         grid-template-columns: 1fr !important;
@@ -616,10 +642,6 @@ const MspBookedList = () => {
           </CCardHeader>
 
           <CCardBody>
-            <div className="mb-3">
-              <StatusBadge status={status} isRTL={isRTL}/>
-            </div>
-
             {loading&&<div className="modern-loading-box"><CSpinner/></div>}
 
             {!loading&&error&&(

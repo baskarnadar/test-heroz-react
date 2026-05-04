@@ -40,12 +40,14 @@ body {
 
 .sidebar-toggler {
   @include ltr-rtl("margin-left", auto);
+  display: none !important;
 }
 
 .sidebar-narrow,
 .sidebar-narrow-unfoldable:not(:hover) {
   .sidebar-toggler {
     @include ltr-rtl("margin-right", auto);
+    display: none !important;
   }
 }
 

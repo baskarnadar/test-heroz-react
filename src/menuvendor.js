@@ -3,8 +3,6 @@ import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
 import {
   cilSpeedometer,
-  cilPuzzle,
-  cilHome,
   cilCheckCircle,
   cilClock,
   cilXCircle,
@@ -12,6 +10,11 @@ import {
   cilBell,
   cilSettings,
   cilMoney,
+  cilLibrary,
+  cilTask,
+  cilCalendar,
+  cilClipboard,
+  cilFolder,
 } from '@coreui/icons'
 import { CNavItem, CNavTitle, CNavGroup } from '@coreui/react'
 
@@ -19,22 +22,94 @@ import { API_BASE_URL } from './config'
 import { getAuthHeaders, getCurrentLoggedUserID } from './utils/operation'
 
 const GET_VDR_SUMMARY = API_BASE_URL + '/vendordata/dashboard/getvdrsummary'
-const ROOT_MENU_FONT_SIZE = '15px'
-const ROOT_MENU_FONT_WEIGHT = '600'
 
+// ✅ Root menu item style
 const modernItemStyle = {
-  margin: '2px 8px',
-  borderRadius: '10px',
-  padding: '2px 0',
+  margin: '1px 4px',
+  borderRadius: '9px',
+  padding: '1px 0',
   fontSize: '14px',
 }
 
+// ✅ Submenu item style — reduced left margin
 const subItemStyle = {
-  margin: '2px 8px 2px 24px',
-  borderRadius: '10px',
-  padding: '2px 0',
+  margin: '1px 4px 1px 6px',
+  borderRadius: '9px',
+  padding: '1px 0',
   fontSize: '13px',
 }
+
+// ✅ Nested sub-submenu (Report children) — slightly more indent
+const subSubItemStyle = {
+  margin: '1px 4px 1px 12px',
+  borderRadius: '9px',
+  padding: '1px 0',
+  fontSize: '12px',
+}
+
+// ✅ Modern circular icon
+const iconCircleStyle = {
+  width: '26px',
+  height: '26px',
+  minWidth: '26px',
+  borderRadius: '50%',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'rgba(255,255,255,0.1)',
+  marginRight: '6px',
+}
+
+const menuIcon = (iconName) => (
+  <span style={iconCircleStyle}>
+    <CIcon
+      icon={iconName}
+      style={{
+        color: '#ffffff',
+        width: '14px',
+        height: '14px',
+      }}
+    />
+  </span>
+)
+
+// ✅ Section header toggler styled like CNavTitle but collapsible
+const sectionToggler = (label) => (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      width: '100%',
+      padding: '4px 4px 2px 4px',
+      cursor: 'pointer',
+    }}
+  >
+    <span
+      style={{
+        fontSize: '15px',
+        fontWeight: '700', 
+        color: 'rgba(255, 255, 255, 1)',
+        textTransform: 'uppercase',
+      }}
+    >
+      {label}
+    </span>
+  </div>
+)
+
+// ✅ Report sub-group toggler
+const reportToggler = (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      width: '100%',
+    }}
+  >
+    {menuIcon(cilFolder)}
+    <span style={{ fontSize: '13px', color: '#ffffff' }}>Report</span>
+  </div>
+)
 
 function StatusCounter({ fallback, color, field }) {
   const [count, setCount] = useState(null)
@@ -68,14 +143,21 @@ function StatusCounter({ fallback, color, field }) {
   }, [field])
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+      }}
+    >
       <span>{fallback}</span>
       <span
         style={{
           background: color,
           color: '#fff',
-          minWidth: '20px',
-          height: '20px',
+          minWidth: '18px',
+          height: '18px',
           borderRadius: '50%',
           display: 'inline-flex',
           justifyContent: 'center',
@@ -91,121 +173,127 @@ function StatusCounter({ fallback, color, field }) {
 }
 
 const vendormenu = [
+  // ================= DASHBOARD =================
+  {
+    component: CNavTitle,
+    name: 'DASHBOARD',
+  },
   {
     component: CNavItem,
     name: 'Dashboard',
     to: '/vendor/dashboard',
-    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
+    icon: menuIcon(cilSpeedometer),
     style: modernItemStyle,
   },
 
+  // ================= SCHOOL MANAGEMENT =================
   {
     component: CNavGroup,
-    toggler: (
-      <>
-        <CIcon icon={cilHome} className="nav-icon" />
-        <span style={{ paddingLeft:3,fontSize: ROOT_MENU_FONT_SIZE, fontWeight: ROOT_MENU_FONT_WEIGHT }}>
-          School Management
-        </span>
-      </>
-    ),
-    style: modernItemStyle,
+    toggler: sectionToggler('School Management'),
+    visible: true,
+    className: 'nav-section-group',
     items: [
       {
         component: CNavItem,
         name: 'School Activities',
         to: '/vendordata/activityinfo/activity/list',
-        icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
+        icon: menuIcon(cilLibrary),
         style: subItemStyle,
       },
       {
         component: CNavItem,
         name: <StatusCounter fallback="Booked Trips" color="#28c76f" field="TotalApproved" />,
         to: '/vendor/activity-requests?status=APPROVED',
-        icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+        icon: menuIcon(cilCheckCircle),
         style: subItemStyle,
       },
       {
         component: CNavItem,
         name: <StatusCounter fallback="Pending Trips" color="#ff9f43" field="TotalPending" />,
         to: '/vendor/activity-requests?status=WAITING-FOR-APPROVAL',
-        icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
+        icon: menuIcon(cilClock),
         style: subItemStyle,
       },
       {
         component: CNavItem,
         name: <StatusCounter fallback="Rejected Trips" color="#ea5455" field="TotalRejected" />,
         to: '/vendor/activity-requests?status=REJECTED',
-        icon: <CIcon icon={cilXCircle} customClassName="nav-icon" />,
+        icon: menuIcon(cilXCircle),
         style: subItemStyle,
       },
+
+      // ✅ Report nested group
       {
-        component: CNavItem,
-        name: 'Trip Booked',
-        to: '/vendordata/trip/tripbooked',
-        icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+        component: CNavGroup,
+        toggler: reportToggler,
+        visible: true,
         style: subItemStyle,
-      },
-      {
-        component: CNavItem,
-        name: 'Completed Trips',
-        to: '/vendordata/trip/completed',
-        icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
-        style: subItemStyle,
+        items: [
+          {
+            component: CNavItem,
+            name: 'Trip Booked',
+            to: '/vendordata/trip/tripbooked',
+            icon: menuIcon(cilTask),
+            style: subSubItemStyle,
+          },
+          {
+            component: CNavItem,
+            name: 'Completed Trips',
+            to: '/vendordata/trip/completed',
+            icon: menuIcon(cilCalendar),
+            style: subSubItemStyle,
+          },
+        ],
       },
     ],
   },
 
+  // ================= MEMBERSHIP =================
   {
     component: CNavGroup,
-    toggler: (
-      <>
-        <CIcon icon={cilUser} className="nav-icon" />
-        <span style={{ fontSize: ROOT_MENU_FONT_SIZE, fontWeight: ROOT_MENU_FONT_WEIGHT }}>
-          Membership
-        </span>
-      </>
-    ),
-    style: modernItemStyle,
+    toggler: sectionToggler('Membership'),
+    visible: true,
+    className: 'nav-section-group',
     items: [
       {
         component: CNavItem,
         name: 'Membership Activities',
         to: '/vendordata/membership/activity/list',
-        icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+        icon: menuIcon(cilLibrary),
         style: subItemStyle,
       },
       {
         component: CNavItem,
         name: 'Booked Activity',
         to: '/vendordata/membership?status=BOOKED',
-        icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+        icon: menuIcon(cilClipboard),
         style: subItemStyle,
       },
       {
         component: CNavItem,
         name: 'Completed Activity',
         to: '/vendordata/membership?status=COMPLETED',
-        icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+        icon: menuIcon(cilCalendar),
         style: subItemStyle,
       },
       {
         component: CNavItem,
         name: 'Payment',
         to: '/vendordata/membership/report/payment',
-        icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
+        icon: menuIcon(cilMoney),
         style: subItemStyle,
       },
       {
         component: CNavItem,
         name: 'Completed Booking',
         to: '/vendordata/membership/report/completed-booking?status=COMPLETED',
-        icon: <CIcon icon={cilCheckCircle} customClassName="nav-icon" />,
+        icon: menuIcon(cilCheckCircle),
         style: subItemStyle,
       },
     ],
   },
 
+  // ================= SETTINGS =================
   {
     component: CNavTitle,
     name: 'SETTINGS',
@@ -214,14 +302,14 @@ const vendormenu = [
     component: CNavItem,
     name: 'Profile Setting',
     to: '/vendor/info',
-    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
+    icon: menuIcon(cilSettings),
     style: modernItemStyle,
   },
   {
     component: CNavItem,
     name: 'Notification',
     to: '/vendordata/note/list',
-    icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
+    icon: menuIcon(cilBell),
     style: modernItemStyle,
   },
 ]
