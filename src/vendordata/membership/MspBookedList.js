@@ -616,9 +616,7 @@ const MspBookedList = () => {
           </CCardHeader>
 
           <CCardBody>
-            <div className="mb-3">
-              <StatusBadge status={status} isRTL={isRTL}/>
-            </div>
+           
 
             {loading&&<div className="modern-loading-box"><CSpinner/></div>}
 
