@@ -48,6 +48,12 @@ const TrupSummary = ({
   onSubmit,
   tripPriceInclVat = 0,
   extraPriceInclVat = 0,
+
+  // ✅ VAT display support - keep existing names, only add optional props
+  tripVatAmount = null,
+  extraVatAmount = null,
+  totalVatAmount = null,
+
   selectedMethodId, // optional if passed (ignored safely)
 
   // ✅ FIX: support hidePaymentPicker from program.jsx
@@ -74,7 +80,175 @@ const TrupSummary = ({
   const netForKids =
     validKidsCount > 0 ? basePerStudent * validKidsCount + extraTotal : totalPayable;
 
-  const tripPriceDisplay = basePerStudent;
+  // ✅ KEEP ORIGINAL VALUE: tripPriceInclVat / basePerStudent is still available above.
+  // ✅ Display rule requested: Trip Price must be Net/Base price BEFORE VAT.
+  //    Trip Price = Base Price - Total VAT, calculated below after VAT values are ready.
+  const tripPriceDisplayRaw = basePerStudent;
+
+  // --------------------------
+  // ✅ VAT display helpers
+  // Do not rename existing variables. These helpers only read the existing data/props.
+  // Priority:
+  // 1) Use optional values passed from parent if available.
+  // 2) Read VAT amount fields from ActivityData / TripData / checked food items if available.
+  // 3) If no VAT amount exists but VAT percentage exists, calculate VAT included inside the price.
+  // --------------------------
+  const toNum = (v) => {
+    const n = Number(v || 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const firstNumber = (...values) => {
+    for (const v of values) {
+      const n = toNum(v);
+      if (n > 0) return n;
+    }
+    return 0;
+  };
+
+  const getIncludedVatFromTotal = (amountWithVat, vatPercentage) => {
+    const amount = toNum(amountWithVat);
+    const pct = toNum(vatPercentage);
+    if (amount <= 0 || pct <= 0) return 0;
+    return amount - amount / (1 + pct / 100);
+  };
+
+  // ✅ Read VAT totals from ActivityData.priceList also.
+  // Your API returns VAT inside priceList, not only at ActivityData top level.
+  const priceListVatTotals = useMemo(() => {
+    const list = Array.isArray(ActivityData?.priceList) ? ActivityData.priceList : [];
+
+    return list.reduce(
+      (acc, item) => {
+        acc.actVat += toNum(item?.actPriceVatAmount);
+        acc.herozVat += toNum(item?.HerozStudentPriceVatAmount);
+        acc.schoolVat += toNum(item?.RequestSchoolPriceVatAmount ?? item?.SchoolPriceVatAmount);
+        return acc;
+      },
+      { actVat: 0, herozVat: 0, schoolVat: 0 }
+    );
+  }, [ActivityData]);
+
+  const activityPriceVatAmount = firstNumber(
+    ActivityData?.actPriceVatAmount,
+    ActivityData?.ActPriceVatAmount,
+    ActivityData?.PriceVatAmount,
+    ActivityData?.priceVatAmount,
+    priceListVatTotals.actVat
+  );
+
+  const herozStudentPriceVatAmount = firstNumber(
+    ActivityData?.HerozStudentPriceVatAmount,
+    ActivityData?.herozStudentPriceVatAmount,
+    ActivityData?.HerozPriceVatAmount,
+    ActivityData?.herozPriceVatAmount,
+    priceListVatTotals.herozVat
+  );
+
+  const schoolPriceVatAmount = firstNumber(
+    ActivityData?.SchoolPriceVatAmount,
+    ActivityData?.schoolPriceVatAmount,
+    TripData?.SchoolPriceVatAmount,
+    TripData?.schoolPriceVatAmount,
+    priceListVatTotals.schoolVat
+  );
+
+  const tripVatFromFields = activityPriceVatAmount + herozStudentPriceVatAmount + schoolPriceVatAmount;
+
+  const tripVatFromPercentage = getIncludedVatFromTotal(
+    basePerStudent,
+    firstNumber(
+      ActivityData?.actPriceVatPercentage,
+      ActivityData?.ActPriceVatPercentage,
+      ActivityData?.VatPercentage,
+      ActivityData?.vatPercentage,
+      TripData?.actPriceVatPercentage,
+      TripData?.vatPercentage
+    )
+  );
+
+  const selectedFoodVatTotal = useMemo(() => {
+    const selectedList = Array.isArray(checkedFoodItems) ? checkedFoodItems : [];
+    const qtySource = foodQty || {};
+
+    return selectedList.reduce((sum, item) => {
+      if (!item) return sum;
+
+      const itemId =
+        item.FoodID ||
+        item.foodID ||
+        item.FoodId ||
+        item.foodId ||
+        item.id ||
+        item._id ||
+        item.foodid;
+
+      const qty = Math.max(1, toNum(qtySource?.[itemId] || item.qty || item.Qty || item.quantity || 1));
+
+      const directVat = firstNumber(
+        item.foodVatAmount,
+        item.FoodVatAmount,
+        item.VatAmount,
+        item.vatAmount,
+        item.foodPriceVatAmount,
+        item.FoodPriceVatAmount,
+        item.ExtraVatAmount,
+        item.extraVatAmount
+      );
+
+      if (directVat > 0) return sum + directVat * qty;
+
+      const itemPriceInclVat = firstNumber(
+        item.foodPriceInclVat,
+        item.FoodPriceInclVat,
+        item.PriceInclVat,
+        item.priceInclVat,
+        item.FoodPrice,
+        item.foodPrice,
+        item.Price,
+        item.price
+      );
+
+      const itemVatPct = firstNumber(
+        item.foodVatPercentage,
+        item.FoodVatPercentage,
+        item.VatPercentage,
+        item.vatPercentage,
+        item.foodPriceVatPercentage,
+        item.FoodPriceVatPercentage
+      );
+
+      return sum + getIncludedVatFromTotal(itemPriceInclVat * qty, itemVatPct);
+    }, 0);
+  }, [checkedFoodItems, foodQty]);
+
+  const tripVatDisplay =
+    tripVatAmount !== null && tripVatAmount !== undefined
+      ? toNum(tripVatAmount)
+      : tripVatFromFields > 0
+      ? tripVatFromFields
+      : tripVatFromPercentage;
+
+  const extraVatDisplay =
+    extraVatAmount !== null && extraVatAmount !== undefined
+      ? toNum(extraVatAmount)
+      : selectedFoodVatTotal;
+
+  const totalVatDisplay =
+    totalVatAmount !== null && totalVatAmount !== undefined
+      ? toNum(totalVatAmount)
+      : tripVatDisplay * Math.max(1, toNum(validKidsCount) || 1) + extraVatDisplay;
+
+  // ✅ FINAL DISPLAY RULE REQUESTED:
+  // Summary must show:
+  // 1) Trip Price = Trip Price - Trip VAT Amount
+  //    Example: 40 - 6 = 34
+  // 2) Trip VAT Amount = Trip VAT Amount
+  // 3) Net Payable = Trip Price + VAT Total (+ extras if any)
+  //
+  // basePerStudent/tripPriceInclVat from parent remains unchanged for payment logic.
+  const tripPriceDisplay = Math.max(0, basePerStudent - tripVatDisplay);
+  const netPayableDisplay = tripPriceDisplay + totalVatDisplay + extraTotal;
 
   // --------------------------
   // ✅ Payment UI state
@@ -210,6 +384,34 @@ const TrupSummary = ({
 
       <div className="divider" />
 
+      {/* VAT details */}
+      <div className="price-row">
+        <span className="price-label fontsize20">
+          {dict.tripVatAmount || (isArabic ? "ضريبة الرحلة" : "Trip VAT Amount")}
+        </span>
+        <span className="price-value fontsize20">
+          {to2(tripVatDisplay)} <img src={icon5} alt="HEROZ" />
+        </span>
+      </div>
+
+      <div className="price-row">
+        <span className="price-label fontsize20">
+          {dict.extraVatAmount || (isArabic ? "ضريبة الإضافات" : "Extra VAT Amount")}
+        </span>
+        <span className="price-value fontsize20">
+          {to2(extraVatDisplay)} <img src={icon5} alt="HEROZ" />
+        </span>
+      </div>
+
+      <div className="summary-row total trip-gradient-color">
+        <span>{dict.totalVatAmount || (isArabic ? "إجمالي الضريبة" : "Total VAT Amount")}</span>
+        <span>
+          {to2(totalVatDisplay)} <img src={icon5} alt="HEROZ" />
+        </span>
+      </div>
+
+      <div className="divider" />
+
       {/* Food block */}
       {hasAnyFood && (
         <>
@@ -232,11 +434,11 @@ const TrupSummary = ({
       {/* Total Payable – trip (1 kid) + ALL extras (Inc VAT) */}
       <div className="summary-row total trip-gradient-color">
         <span>
-          <div>{dict.totalPayable}</div>
+          <div>{dict.netPayable || dict.totalPayable || (isArabic ? "صافي المبلغ المستحق" : "Net Payable")}</div>
           <div>({dict.ar_inc_vat})</div>
         </span>
         <span>
-          {to2(totalPayable)} <img src={icon5} alt="HEROZ" />
+          {to2(netPayableDisplay)} <img src={icon5} alt="HEROZ" />
         </span>
       </div>
 

@@ -2,11 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import {
   CCard,
-  CCardHeader,
   CCardBody,
-  CRow,
-  CCol,
-  CButtonGroup,
   CButton,
   CBadge,
   CModal,
@@ -28,362 +24,101 @@ import { getAuthHeaders } from "../../../utils/operation";
 const DEBUG_MODE = false;
 const IS_DEBUG = DEBUG_MODE || (typeof window !== "undefined" && window.__DBG_API === true);
 
-/**
- * Status palettes (includes both generic & trip-prefixed variants)
- */
+const BRAND = {
+  dark: "#560955",
+  main: "#7b116f",
+  bright: "#b01886",
+  soft: "#fff7ff",
+  border: "rgba(123, 17, 111, 0.12)",
+};
+
 const STATUS_COLORS = {
-  APPROVED: "#22c55e",                // green
-  "WAITING-FOR-APPROVAL": "#f59e0b",  // amber
-  REJECTED: "#ef4444",                // red
-  "TRIP-BOOKED": "#3b82f6",           // blue
-  BOOKED: "#3b82f6",
-  COMPLETED: "#22c55e",
+  APPROVED: "#16a34a",
+  "WAITING-FOR-APPROVAL": "#f59e0b",
+  REJECTED: "#ef4444",
+  "TRIP-BOOKED": "#078761",
+  BOOKED: "#078761",
+  COMPLETED: "#075c46",
   "TRIP-REJECTED": "#ef4444",
-  "TRIP-APPROVED": "#22c55e",
+  "TRIP-APPROVED": "#16a34a",
 };
 
 const STATUS_BADGE = {
   APPROVED: "success",
   "WAITING-FOR-APPROVAL": "warning",
   REJECTED: "danger",
-  "TRIP-BOOKED": "info",
-  BOOKED: "info",
+  "TRIP-BOOKED": "success",
+  BOOKED: "success",
   COMPLETED: "success",
   "TRIP-REJECTED": "danger",
   "TRIP-APPROVED": "success",
 };
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
-// UI tokens
 const UI = {
-  radius: 14,
+  radius: 28,
   surface: "#ffffff",
-  softBg: "#f8fafc",
-  border: "#e5e7eb",
-  shadowCard: "0 12px 24px rgba(17, 24, 39, 0.08)",
-  shadowItem: "0 2px 6px rgba(17, 24, 39, 0.08)",
-  headerGrad: "linear-gradient(135deg, #0f172a 0%, #111827 55%, #1f2937 100%)",
+  pageBg: "#f7f4fb",
+  border: "#ece7f2",
+  softBorder: "rgba(15, 23, 42, 0.08)",
+  shadowCard: "0 24px 60px rgba(86, 9, 85, 0.10)",
+  shadowSoft: "0 18px 35px rgba(86, 9, 85, 0.12)",
+  gradientButton: "linear-gradient(135deg, #65075f 0%, #9c168a 55%, #b01886 100%)",
 };
 
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
 function daysInMonth(d) { return endOfMonth(d).getDate(); }
-function toKeyDate(dateStr) { return dateStr?.trim(); }
-function parseYmd(dateStr) { return new Date(`${dateStr}T00:00:00`); }
-
-const Legend = () => (
-  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-    {Object.entries({
-      APPROVED: STATUS_COLORS.APPROVED,
-      "TRIP-BOOKED": STATUS_COLORS["TRIP-BOOKED"],
-      REJECTED: STATUS_COLORS.REJECTED,
-      "WAITING-FOR-APPROVAL": STATUS_COLORS["WAITING-FOR-APPROVAL"],
-    }).map(([status, color]) => (
-      <span
-        key={status}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "6px 10px",
-          borderRadius: 999,
-          background: UI.softBg,
-          border: `1px solid ${UI.border}`,
-          fontSize: 12,
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)",
-        }}
-      >
-        <span
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: 999,
-            background: color,
-            display: "inline-block",
-            boxShadow: "0 0 0 2px rgba(0,0,0,0.05)",
-          }}
-        />
-        {status}
-      </span>
-    ))}
-  </div>
-);
-
-// Helpers to derive background rgba(0.3) by status
-const statusBg = (statusRaw) => {
-  const s = (statusRaw || "").toUpperCase();
-  if (s === "APPROVED" || s === "TRIP-APPROVED" || s === "COMPLETED") {
-    return "rgba(34, 197, 94, 0.3)"; // green 0.3
-  }
-  if (s === "TRIP-BOOKED" || s === "BOOKED") {
-    return "rgba(59, 130, 246, 0.3)"; // blue 0.3
-  }
-  if (s === "REJECTED" || s === "TRIP-REJECTED") {
-    return "rgba(239, 68, 68, 0.3)"; // red 0.3
-  }
-  if (s === "WAITING-FOR-APPROVAL") {
-    return "rgba(245, 158, 11, 0.3)"; // amber 0.3
-  }
-  return "rgba(15, 23, 42, 0.06)"; // fallback light slate
-};
-
-const statusBorderLeft = (statusRaw) => {
-  const s = (statusRaw || "").toUpperCase();
-  return STATUS_COLORS[s] || "#94a3b8";
-};
-
-const statusBadge = (statusRaw) => {
-  const s = (statusRaw || "").toUpperCase();
+function pad(n) { return String(n).padStart(2, "0"); }
+function dateKeyFromParts(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
+function parseYmd(dateStr) {
+  if (!dateStr) return null;
+  const clean = String(dateStr).slice(0, 10);
+  return new Date(`${clean}T00:00:00`);
+}
+function getDateKeyFromItem(item) {
+  return String(item?.actRequestDate || item?.RequestDate || item?.CreatedDate || "").slice(0, 10);
+}
+function getStatus(item) {
+  return String(item?.actRequestStatus || item?.BookingStatus || item?.RequestStatus || "").trim();
+}
+function getStatusColor(statusRaw) {
+  const s = String(statusRaw || "").toUpperCase();
+  return STATUS_COLORS[s] || BRAND.main;
+}
+function getStatusBadge(statusRaw) {
+  const s = String(statusRaw || "").toUpperCase();
   return STATUS_BADGE[s] || "secondary";
-};
+}
+function getActivityName(item) {
+  return item?.actName || item?.ActivityName || item?.activityName || item?.ActivityTitle || "Activity";
+}
+function getVendorName(item) {
+  return item?.vdrName || item?.VendorName || item?.vendorName || "-";
+}
+function getSchoolName(item) {
+  return item?.schName || item?.SchoolName || item?.schoolName || "-";
+}
 
-// Resolve a solid color for a single item (mini-circle)
-const statusSolidColor = (statusRaw) => {
-  const s = (statusRaw || "").toUpperCase();
-  return STATUS_COLORS[s] || "#64748b";
-};
-
-// Per-day cell
-const DayCell = ({ dayNumber, items, onItemClick, dateKey }) => {
-  const MAX_ROWS = 6;
-  const visible = (items || []).slice(0, MAX_ROWS);
-  const hasOverflowRows = (items?.length || 0) > MAX_ROWS;
-
-  const TODAY_KEY = new Date().toISOString().slice(0, 10);
-  const isToday = dateKey === TODAY_KEY;
-
-  // Only show day header if there are trips
-  const dayHasTrips = (items?.length || 0) > 0;
-
-  // Day number circle (always maroon for days with trips)
-  const MAROON = "#800000";
-  const dayCircleStyle = {
-    width: 30,
-    height: 30,
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-    fontSize: 13,
-    border: `1px solid ${MAROON}`,
-    color: "#ffffff",
-    background: isToday ? MAROON : "rgba(128, 0, 0, .9)",
-    boxShadow: isToday ? "0 2px 8px rgba(128,0,0,.35)" : "none",
-  };
-
-  // Mini numbered chips for each event (now at the BOTTOM)
-  const miniChipBase = {
-    minWidth: 22,
-    height: 22,
-    borderRadius: "50%",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-    fontSize: 11,
-    padding: 0,
-    lineHeight: "22px",
-    color: "#0f172a",
-    border: `1px solid ${UI.border}`,
-  };
-
-  return (
-    <div
-      style={{
-        border: `1px solid ${UI.border}`,
-        minHeight: 120,
-        padding: 8,
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        background: UI.surface,
-        borderRadius: 12,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)",
-      }}
-    >
-      {/* Top row: maroon day circle (only when trips exist) */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 30 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {dayHasTrips ? <div style={dayCircleStyle}>{dayNumber}</div> : null}
-        </div>
-        <div style={{ display: "none" }} />
-      </div>
-
-      {/* Items list: status-tinted backgrounds */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          maxHeight: 140,
-          overflow: "auto",
-        }}
-      >
-        {visible.map((it, idx) => {
-          const bg = statusBg(it.actRequestStatus);
-          const left = statusBorderLeft(it.actRequestStatus);
-          const badge = statusBadge(it.actRequestStatus);
-          const title = `${it.actName || ""} • ${it.actRequestStatus || ""}`;
-
-          return (
-            <div
-              key={it._id || idx}
-              title={title}
-              onClick={() => onItemClick && onItemClick(it)}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                padding: "10px 10px",
-                borderRadius: 10,
-                background: bg,
-                border: `1px solid ${UI.border}`,
-                borderLeft: `4px solid ${left}`,
-                cursor: "pointer",
-                boxShadow: UI.shadowItem,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  letterSpacing: ".2px",
-                }}
-              >
-                {it.actName || "-"}
-              </div>
-              <div>
-                <CBadge
-                  color={badge}
-                  shape="rounded-pill"
-                  style={{ fontSize: 11, lineHeight: "14px", padding: "2px 8px" }}
-                >
-                  {it.actRequestStatus || "—"}
-                </CBadge>
-              </div>
-            </div>
-          );
-        })}
-        {hasOverflowRows && (
-          <div style={{ fontSize: 11, color: "#64748b" }}>
-            +{items.length - MAX_ROWS} more…
-          </div>
-        )}
-      </div>
-
-      {/* Bottom chips row: numbered by order, colored by status */}
-      {dayHasTrips && (
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            flexWrap: "wrap",
-            marginTop: "auto",
-            paddingTop: 6,
-            borderTop: `1px dashed ${UI.border}`,
-          }}
-        >
-          {items.map((it, idx) => {
-            const c = statusSolidColor(it.actRequestStatus);
-            return (
-              <span
-                key={`${it._id || idx}-chip`}
-                title={String(it.actRequestStatus || "").trim() || "Status"}
-                aria-label={String(it.actRequestStatus || "").trim() || "Status"}
-                style={{
-                  ...miniChipBase,
-                  background: `${c}22`, // light tint
-                  borderColor: c,
-                  color: "#0f172a",
-                  cursor: "default",
-                }}
-              >
-                {idx + 1}
-              </span>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
-DayCell.propTypes = {
-  dayNumber: PropTypes.number.isRequired,
-  items: PropTypes.array,
-  onItemClick: PropTypes.func,
-  dateKey: PropTypes.string,
-};
-
-// Small utility
-const copyText = async (txt) => {
-  try {
-    await navigator.clipboard.writeText(txt);
-  } catch {}
-};
-
-// ============ Debug Panel ============
 const DebugPanel = ({ show, apiUrl, requestBody, httpStatus, rawJson, onClose }) => {
   if (!show) return null;
-  const prettyReq = requestBody ? JSON.stringify(requestBody, null, 2) : "{}";
-  const prettyRes = rawJson ? JSON.stringify(rawJson, null, 2) : "null";
-
   return (
-    <div
-      style={{
-        border: `1px solid ${UI.border}`,
-        borderRadius: 12,
-        background: "#0b1220",
-        color: "#e2e8f0",
-        padding: 12,
-        marginTop: 12,
-      }}
-    >
+    <div style={{ border: `1px solid ${UI.border}`, borderRadius: 18, background: "#0b1220", color: "#e2e8f0", padding: 12, marginBottom: 18 }}>
       <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: 8 }}>
-        <strong style={{ color: "#93c5fd" }}>Debug Panel</strong>
-        <CButton size="sm" color="secondary" variant="outline" onClick={onClose}>
-          Hide
-        </CButton>
+        <strong style={{ color: "#f9a8d4" }}>Debug Panel</strong>
+        <CButton size="sm" color="secondary" variant="outline" onClick={onClose}>Hide</CButton>
       </div>
-
       <div style={{ fontSize: 13, marginBottom: 8 }}>
         <div><strong>API:</strong> <code style={{ color: "#fef08a" }}>{apiUrl}</code></div>
         <div><strong>Status:</strong> {httpStatus ?? "-"}</div>
       </div>
-
-      <div className="mb-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div style={{ background: "#0f172a", border: `1px solid ${UI.border}`, borderRadius: 10, overflow: "hidden" }}>
-          <div
-            className="d-flex justify-content-between align-items-center"
-            style={{ padding: "6px 10px", borderBottom: `1px solid ${UI.border}` }}
-          >
-            <strong>Request Body</strong>
-            <CButton size="sm" color="dark" onClick={() => copyText(prettyReq)}>
-              Copy
-            </CButton>
-          </div>
-          <pre style={{ margin: 0, padding: 10, fontSize: 12, maxHeight: 240, overflow: "auto" }}>{prettyReq}</pre>
-        </div>
-
-        <div style={{ background: "#0f172a", border: `1px solid ${UI.border}`, borderRadius: 10, overflow: "hidden" }}>
-          <div
-            className="d-flex justify-content-between align-items-center"
-            style={{ padding: "6px 10px", borderBottom: `1px solid ${UI.border}` }}
-          >
-            <strong>Response JSON</strong>
-            <CButton size="sm" color="dark" onClick={() => copyText(prettyRes)}>
-              Copy
-            </CButton>
-          </div>
-          <pre style={{ margin: 0, padding: 10, fontSize: 12, maxHeight: 240, overflow: "auto" }}>{prettyRes}</pre>
-        </div>
-      </div>
+      <pre style={{ margin: 0, padding: 10, fontSize: 12, maxHeight: 240, overflow: "auto", background: "#0f172a", borderRadius: 12 }}>
+        {JSON.stringify({ requestBody, response: rawJson }, null, 2)}
+      </pre>
     </div>
   );
 };
@@ -397,37 +132,126 @@ DebugPanel.propTypes = {
   onClose: PropTypes.func,
 };
 
+const DayCell = ({ dayNumber, muted, items, isToday, onClick }) => {
+  const count = items?.length || 0;
+  const hasItems = count > 0;
+  const hasCompleted = (items || []).some((x) => String(getStatus(x)).toUpperCase() === "COMPLETED");
+  const statusColor = hasCompleted ? STATUS_COLORS.COMPLETED : STATUS_COLORS["TRIP-BOOKED"];
+
+  return (
+    <button
+      type="button"
+      onClick={hasItems ? onClick : undefined}
+      disabled={!hasItems}
+      style={{
+        position: "relative",
+        height: 74,
+        border: hasItems ? "none" : `1px solid ${UI.softBorder}`,
+        borderRadius: 14,
+        background: hasItems
+          ? `linear-gradient(180deg, rgba(255,255,255,0.10) 0%, ${statusColor} 46%, ${statusColor} 100%)`
+          : "#ffffff",
+        color: hasItems ? "#ffffff" : muted ? "#9ca3af" : "#111827",
+        fontWeight: 900,
+        fontSize: 16,
+        boxShadow: hasItems ? "0 16px 28px rgba(7, 92, 70, 0.22)" : "0 5px 12px rgba(15, 23, 42, 0.04)",
+        cursor: hasItems ? "pointer" : "default",
+        outline: isToday ? `3px solid ${BRAND.bright}` : "none",
+        outlineOffset: isToday ? 2 : 0,
+        overflow: "hidden",
+        transition: "transform .14s ease, box-shadow .14s ease",
+      }}
+      onMouseEnter={(e) => {
+        if (hasItems) {
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow = "0 18px 34px rgba(7, 92, 70, 0.28)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (hasItems) {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "0 16px 28px rgba(7, 92, 70, 0.22)";
+        }
+      }}
+    >
+      {hasItems && (
+        <span
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 25,
+            borderBottomLeftRadius: "45%",
+            borderBottomRightRadius: "45%",
+            background: "rgba(255,255,255,0.14)",
+          }}
+        />
+      )}
+      <span style={{ position: "relative", zIndex: 1 }}>{dayNumber}</span>
+      {hasItems && (
+        <span
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 10,
+            transform: "translateX(-50%)",
+            minWidth: 24,
+            height: 24,
+            padding: "0 7px",
+            borderRadius: 999,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 12,
+            fontWeight: 900,
+            color: "#ffffff",
+            background: "rgba(255,255,255,0.14)",
+            border: "1px solid rgba(255,255,255,0.36)",
+          }}
+        >
+          {count}
+        </span>
+      )}
+    </button>
+  );
+};
+
+DayCell.propTypes = {
+  dayNumber: PropTypes.number.isRequired,
+  muted: PropTypes.bool,
+  items: PropTypes.array,
+  isToday: PropTypes.bool,
+  onClick: PropTypes.func,
+};
+
 const DBCalendar = ({ apiUrl, title = "Activities Calendar" }) => {
   const [loading, setLoading] = useState(false);
   const [raw, setRaw] = useState([]);
   const [error, setError] = useState("");
   const [viewDate, setViewDate] = useState(() => new Date());
 
-  // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedDateKey, setSelectedDateKey] = useState("");
+  const [selectedItems, setSelectedItems] = useState([]);
 
-  // Filter form + params (includes status)
   const [form, setForm] = useState({ q: "", vendor: "", status: "", startDate: "", endDate: "" });
   const [params, setParams] = useState(null);
 
-  // ===== Debug states =====
   const [debugOpen, setDebugOpen] = useState(IS_DEBUG);
   const [lastRequestBody, setLastRequestBody] = useState(null);
   const [lastResponse, setLastResponse] = useState(null);
   const [lastHttpStatus, setLastHttpStatus] = useState(null);
 
-  // Build unique vendor list from data
   const vendorOptions = useMemo(() => {
     const s = new Set();
-    raw.forEach((t) => { if (t?.vdrName) s.add(t.vdrName); });
+    raw.forEach((t) => { const v = getVendorName(t); if (v && v !== "-") s.add(v); });
     return Array.from(s).sort((a, b) => a.localeCompare(b));
   }, [raw]);
 
-  // Build unique status list from data
   const statusOptions = useMemo(() => {
     const s = new Set();
-    raw.forEach((t) => { if (t?.actRequestStatus) s.add(String(t.actRequestStatus)); });
+    raw.forEach((t) => { const v = getStatus(t); if (v) s.add(v); });
     return Array.from(s).sort((a, b) => a.localeCompare(b));
   }, [raw]);
 
@@ -438,7 +262,6 @@ const DBCalendar = ({ apiUrl, title = "Activities Calendar" }) => {
       setError("");
       setLastHttpStatus(null);
       setLastResponse(null);
-
       const requestBody = params || {};
       setLastRequestBody(requestBody);
 
@@ -450,26 +273,21 @@ const DBCalendar = ({ apiUrl, title = "Activities Calendar" }) => {
         });
 
         setLastHttpStatus(res.status);
-
-        // If response is JSON, parse it; else record text
         let payload = null;
-        let text = null;
-        try {
-          payload = await res.json();
-        } catch {
-          try {
-            text = await res.text();
-            payload = { rawText: text };
-          } catch {
-            payload = null;
-          }
-        }
+        try { payload = await res.json(); } catch { payload = null; }
         setLastResponse(payload);
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        // Support both {data:[...]} and plain [...]
-        const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.data?.Data)
+          ? payload.data.Data
+          : Array.isArray(payload?.Data)
+          ? payload.Data
+          : [];
+
         if (isMounted) setRaw(list);
       } catch (e) {
         if (isMounted) {
@@ -484,25 +302,16 @@ const DBCalendar = ({ apiUrl, title = "Activities Calendar" }) => {
     return () => { isMounted = false; };
   }, [apiUrl, params]);
 
-  // Client-side fallback filter (in case backend ignores JSON body)
   const filtered = useMemo(() => {
     let arr = raw;
     if (params?.q) {
       const q = params.q.toLowerCase();
-      arr = arr.filter((t) => (t?.actName || "").toLowerCase().includes(q));
+      arr = arr.filter((t) => getActivityName(t).toLowerCase().includes(q));
     }
-    if (params?.vendor) {
-      arr = arr.filter((t) => t?.vdrName === params.vendor);
-    }
-    if (params?.status) {
-      arr = arr.filter((t) => String(t?.actRequestStatus) === params.status);
-    }
-    if (params?.startDate) {
-      arr = arr.filter((t) => (t?.actRequestDate || "") >= params.startDate);
-    }
-    if (params?.endDate) {
-      arr = arr.filter((t) => (t?.actRequestDate || "") <= params.endDate);
-    }
+    if (params?.vendor) arr = arr.filter((t) => getVendorName(t) === params.vendor);
+    if (params?.status) arr = arr.filter((t) => getStatus(t) === params.status);
+    if (params?.startDate) arr = arr.filter((t) => getDateKeyFromItem(t) >= params.startDate);
+    if (params?.endDate) arr = arr.filter((t) => getDateKeyFromItem(t) <= params.endDate);
     return arr;
   }, [raw, params]);
 
@@ -510,14 +319,14 @@ const DBCalendar = ({ apiUrl, title = "Activities Calendar" }) => {
   const totalDays = daysInMonth(viewDate);
   const offset = monthStart.getDay();
   const monthEnd = endOfMonth(viewDate);
+  const todayKey = new Date().toISOString().slice(0, 10);
 
-  // Group items by date inside visible month
   const byDate = useMemo(() => {
     const map = new Map();
     filtered.forEach((t) => {
-      if (!t?.actRequestDate) return;
-      const key = toKeyDate(t.actRequestDate);
+      const key = getDateKeyFromItem(t);
       const d = parseYmd(key);
+      if (!d) return;
       if (d >= monthStart && d <= monthEnd) {
         const arr = map.get(key) || [];
         arr.push(t);
@@ -529,240 +338,213 @@ const DBCalendar = ({ apiUrl, title = "Activities Calendar" }) => {
 
   const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
-  const thisMonth = () => {
-    const today = new Date();
-    setViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
-  };
-
-  const handleOpenItem = (item) => { setSelectedItem(item); setShowModal(true); };
-  const handleClose = () => { setShowModal(false); setSelectedItem(null); };
 
   const onApplyFilters = () => {
-    const payload = {
+    setParams({
       q: form.q?.trim() || undefined,
       vendor: form.vendor || undefined,
       status: form.status || undefined,
       startDate: form.startDate || undefined,
       endDate: form.endDate || undefined,
-    };
-    setParams(payload);
+    });
   };
+
   const onResetFilters = () => {
     setForm({ q: "", vendor: "", status: "", startDate: "", endDate: "" });
     setParams(null);
   };
 
-  return (
-    <CCard style={{ border: "none", borderRadius: UI.radius, boxShadow: UI.shadowCard, overflow: "hidden" }}>
-      <CCardHeader
-        className="d-flex justify-content-between align-items-center"
-        style={{ background: UI.headerGrad, color: "#fff", border: "none" }}
-      >
-        <div>
-          <div style={{ fontWeight: 800, letterSpacing: ".2px" }}>{title}</div>
-          <div className="text-body-secondary" style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>
-            {viewDate.toLocaleString(undefined, { month: "long", year: "numeric" })}
-          </div>
-        </div>
-        <CButtonGroup>
-          <CButton color="light" variant="ghost" onClick={prevMonth} style={{ color: "#fff", borderColor: "rgba(255,255,255,.25)" }}>
-            <CIcon icon={cilChevronLeft} /> Prev
-          </CButton>
-          <CButton color="light" variant="ghost" onClick={thisMonth} style={{ color: "#fff", borderColor: "rgba(255,255,255,.25)" }}>
-            Today
-          </CButton>
-          <CButton color="light" variant="ghost" onClick={nextMonth} style={{ color: "#fff", borderColor: "rgba(255,255,255,.25)" }}>
-            Next <CIcon icon={cilChevronRight} />
-          </CButton>
-        </CButtonGroup>
-      </CCardHeader>
+  const openDateModal = (dateKey, items) => {
+    setSelectedDateKey(dateKey);
+    setSelectedItems(Array.isArray(items) ? items : []);
+    setShowModal(true);
+  };
 
-      <CCardBody style={{ background: "#fbfcfe" }}>
-        {/* FILTER BAR – single row modern look */}
+  const closeDateModal = () => {
+    setShowModal(false);
+    setSelectedDateKey("");
+    setSelectedItems([]);
+  };
+
+  const gridItems = [];
+  const prevMonthDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+  const prevMonthTotal = daysInMonth(prevMonthDate);
+
+  for (let i = 0; i < offset; i += 1) {
+    gridItems.push({ day: prevMonthTotal - offset + i + 1, muted: true, key: `prev-${i}`, items: [] });
+  }
+
+  for (let day = 1; day <= totalDays; day += 1) {
+    const key = dateKeyFromParts(viewDate.getFullYear(), viewDate.getMonth(), day);
+    gridItems.push({ day, muted: false, key, items: byDate.get(key) || [] });
+  }
+
+  while (gridItems.length % 7 !== 0) {
+    const day = gridItems.length - offset - totalDays + 1;
+    gridItems.push({ day, muted: true, key: `next-${day}`, items: [] });
+  }
+
+  return (
+    <CCard style={{ border: "none", borderRadius: UI.radius, boxShadow: UI.shadowCard, overflow: "hidden", background: "#ffffff", marginBottom: 22 }}>
+      <CCardBody style={{ background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)", padding: 28 }}>
         <div
-          className="mb-3"
           style={{
             display: "flex",
-            gap: 8,
+            gap: 10,
             alignItems: "stretch",
             flexWrap: "nowrap",
             overflowX: "auto",
-            padding: 6,
+            padding: 10,
             background: "#ffffff",
-            borderRadius: 12,
+            borderRadius: 16,
             border: `1px solid ${UI.border}`,
-            boxShadow: "0 2px 10px rgba(15,23,42,.05)",
+            boxShadow: "0 12px 28px rgba(86, 9, 85, 0.08)",
+            marginBottom: 28,
           }}
         >
           <CInputGroup style={{ minWidth: 260, maxWidth: 360, flex: "1 1 260px" }}>
-            <CInputGroupText style={{ background: "#f1f5f9", borderRight: `1px solid ${UI.border}` }}>
+            <CInputGroupText style={{ background: BRAND.soft, borderColor: UI.border, color: BRAND.main }}>
               <CIcon icon={cilSearch} />
             </CInputGroupText>
             <CFormInput
-              placeholder="Search activity name…"
+              placeholder="Search activity name..."
               value={form.q}
               onChange={(e) => setForm((f) => ({ ...f, q: e.target.value }))}
-              style={{ borderLeft: "none" }}
+              style={{ borderColor: UI.border }}
             />
           </CInputGroup>
 
-          <CFormSelect
-            value={form.vendor}
-            onChange={(e) => setForm((f) => ({ ...f, vendor: e.target.value }))}
-            style={{ maxWidth: 220 }}
-          >
+          <CFormSelect value={form.vendor} onChange={(e) => setForm((f) => ({ ...f, vendor: e.target.value }))} style={{ maxWidth: 220, borderColor: UI.border }}>
             <option value="">All Vendors</option>
-            {vendorOptions.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
+            {vendorOptions.map((v) => <option key={v} value={v}>{v}</option>)}
           </CFormSelect>
 
-          <CFormSelect
-            value={form.status}
-            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            style={{ maxWidth: 220 }}
-          >
+          <CFormSelect value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} style={{ maxWidth: 220, borderColor: UI.border }}>
             <option value="">All Statuses</option>
-            {statusOptions.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
+            {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
           </CFormSelect>
 
-          <CFormInput
-            type="date"
-            value={form.startDate}
-            onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-            style={{ maxWidth: 180 }}
-          />
-          <CFormInput
-            type="date"
-            value={form.endDate}
-            onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-            style={{ maxWidth: 180 }}
-          />
+          <CFormInput type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} style={{ maxWidth: 180, borderColor: UI.border }} />
+          <CFormInput type="date" value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} style={{ maxWidth: 180, borderColor: UI.border }} />
 
           <div style={{ display: "flex", gap: 8 }}>
-            <CButton color="primary" onClick={onApplyFilters}>Apply</CButton>
-            <CButton color="secondary" variant="outline" onClick={onResetFilters}>Reset</CButton>
+            <CButton onClick={onApplyFilters} style={{ border: "none", background: UI.gradientButton, fontWeight: 900, paddingInline: 18 }}>Apply</CButton>
+            <CButton color="secondary" variant="outline" onClick={onResetFilters} style={{ fontWeight: 800 }}>Reset</CButton>
           </div>
         </div>
 
-        {/* Debug panel */}
-        <DebugPanel
-          show={debugOpen}
-          apiUrl={apiUrl}
-          requestBody={lastRequestBody}
-          httpStatus={lastHttpStatus}
-          rawJson={lastResponse}
-          onClose={() => setDebugOpen(false)}
-        />
-
-        <CRow className="mb-3">
-          <CCol>
-            <Legend />
-          </CCol>
-        </CRow>
+        <DebugPanel show={debugOpen} apiUrl={apiUrl} requestBody={lastRequestBody} httpStatus={lastHttpStatus} rawJson={lastResponse} onClose={() => setDebugOpen(false)} />
 
         {error && (
-          <div className="mb-3">
-            <CBadge color="danger" shape="rounded-pill">
-              {error}
-            </CBadge>
+          <div style={{ marginBottom: 16, padding: 12, borderRadius: 14, background: "#fff1f2", color: "#991b1b", border: "1px solid #fecaca", fontWeight: 800 }}>
+            {error}
           </div>
         )}
 
-        {/* Weekday header */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8 }}>
-          {WEEKDAY_LABELS.map((w) => (
-            <div
-              key={w}
-              style={{
-                textAlign: "center",
-                fontWeight: 700,
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: ".6px",
-                fontSize: 11,
-              }}
-            >
-              {w}
+        <div style={{ maxWidth: 1030, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 26 }}>
+            <CButton onClick={prevMonth} aria-label="Previous month" style={{ width: 48, height: 48, borderRadius: 13, border: "none", background: UI.gradientButton, boxShadow: UI.shadowSoft }}>
+              <CIcon icon={cilChevronLeft} />
+            </CButton>
+
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#111827" }}>
+                {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
+              </div>
+              <div style={{ fontSize: 12, color: "#7b7280", fontWeight: 700 }}>{title}</div>
             </div>
-          ))}
-        </div>
 
-        {/* Calendar grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
-          {/* Leading blanks */}
-          {Array.from({ length: offset }).map((_, i) => (
-            <div
-              key={`blank-${i}`}
-              style={{ minHeight: 120, border: `1px dashed ${UI.border}`, background: UI.softBg, borderRadius: 12 }}
-            />
-          ))}
+            <CButton onClick={nextMonth} aria-label="Next month" style={{ width: 48, height: 48, borderRadius: 13, border: "none", background: UI.gradientButton, boxShadow: UI.shadowSoft }}>
+              <CIcon icon={cilChevronRight} />
+            </CButton>
+          </div>
 
-          {/* Actual days */}
-          {Array.from({ length: totalDays }).map((_, i) => {
-            const day = i + 1;
-            const key = new Date(viewDate.getFullYear(), viewDate.getMonth(), day).toISOString().slice(0, 10);
-            const items = byDate.get(key) || [];
-            return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 10 }}>
+            {WEEKDAY_LABELS.map((w) => (
+              <div key={w} style={{ textAlign: "center", fontWeight: 900, color: "#4b4769", textTransform: "uppercase", letterSpacing: ".8px", fontSize: 13 }}>{w}</div>
+            ))}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+            {gridItems.map((cell) => (
               <DayCell
-                key={key}
-                dayNumber={day}
-                items={items}
-                onItemClick={handleOpenItem}
-                dateKey={key}
+                key={cell.key}
+                dayNumber={cell.day}
+                muted={cell.muted}
+                items={cell.items}
+                isToday={cell.key === todayKey}
+                onClick={() => openDateModal(cell.key, cell.items)}
               />
-            );
-          })}
+            ))}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center", gap: 22, flexWrap: "wrap", marginTop: 26, fontSize: 13, color: "#4b5563", fontWeight: 700 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: 999, background: STATUS_COLORS["TRIP-BOOKED"] }} />Booked Activity</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: 999, background: STATUS_COLORS.COMPLETED }} />Completed Activity</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: 999, background: BRAND.main }} />Today</span>
+          </div>
         </div>
 
         {loading && (
-          <div className="mt-4 d-flex align-items-center" style={{ gap: 10 }}>
+          <div className="mt-4 d-flex align-items-center justify-content-center" style={{ gap: 10, color: BRAND.main, fontWeight: 800 }}>
             <CSpinner size="sm" />
-            <span className="text-body-secondary">Loading calendar…</span>
+            <span>Loading calendar...</span>
           </div>
         )}
       </CCardBody>
 
-      {/* Details modal */}
-      <CModal visible={showModal} onClose={handleClose} alignment="center" scrollable>
-        <CModalHeader style={{ background: "transparent", color: "#0f172a", borderBottom: `1px solid ${UI.border}` }}>
-          <CModalTitle style={{ fontWeight: 800 }}>
-            {selectedItem?.actName || "Activity"}
+      <CModal visible={showModal} onClose={closeDateModal} alignment="center" scrollable size="lg">
+        <CModalHeader style={{ background: UI.gradientButton, color: "#ffffff", borderBottom: "none", padding: "20px 24px" }}>
+          <CModalTitle style={{ fontWeight: 900 }}>
+            Activity Details
+            {selectedDateKey ? <span style={{ marginLeft: 10, fontSize: 14, fontWeight: 700, opacity: 0.9 }}>({selectedDateKey})</span> : null}
           </CModalTitle>
         </CModalHeader>
-        <CModalBody style={{ background: "#f8fafc" }}>
-          {selectedItem ? (
-            <div style={{ display: "grid", rowGap: 10 }}>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12, padding: "4px 10px", borderRadius: 999, background: "#fff", border: `1px solid ${UI.border}` }}>
-                  Ref: <strong>{selectedItem.actRequestRefNo || "-"}</strong>
-                </span>
-                <span style={{ fontSize: 12, padding: "4px 10px", borderRadius: 999, background: "#fff", border: `1px solid ${UI.border}` }}>
-                  {selectedItem.actRequestDate || "-"}
-                </span>
-                {selectedItem.actRequestStatus && (
-                  <CBadge color={statusBadge(selectedItem.actRequestStatus)} shape="rounded-pill" style={{ fontSize: 11 }}>
-                    {selectedItem.actRequestStatus}
-                  </CBadge>
-                )}
-              </div>
-
-              <div style={{ background: "#fff", border: `1px solid ${UI.border}`, borderRadius: 12, padding: 12, boxShadow: UI.shadowItem }}>
-                <div style={{ display: "grid", rowGap: 6, fontSize: 13.5, color: "#0f172a" }}>
-                  <div><strong>Total Students:</strong> {selectedItem.actTotalNoStudents ?? "-"}</div>
-                  <div><strong>Vendor:</strong> {selectedItem.vdrName || "-"}</div>
-                  <div><strong>School:</strong> {selectedItem.schName || "-"}</div>
-                  <div><strong>Message:</strong> {selectedItem.actRequestMessage || "-"}</div>
-                  <div><strong>Created:</strong> {selectedItem.CreatedDate || "-"}</div>
-                </div>
-              </div>
+        <CModalBody style={{ background: "#fbf7ff", padding: 20, minHeight: 120 }}>
+          {selectedItems.length === 0 ? (
+            <div style={{ padding: 18, borderRadius: 14, background: "#ffffff", border: `1px solid ${UI.border}`, color: "#6b7280", fontWeight: 800 }}>
+              No activity details found for this date.
             </div>
-          ) : null}
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {selectedItems.map((item, index) => {
+                const status = getStatus(item);
+                const color = getStatusColor(status);
+                return (
+                  <div
+                    key={item?._id || item?.RequestID || item?.ActivityID || index}
+                    style={{
+                      background: "#ffffff",
+                      border: `1px solid ${UI.border}`,
+                      borderLeft: `6px solid ${color}`,
+                      borderRadius: 16,
+                      padding: 16,
+                      boxShadow: "0 14px 28px rgba(86, 9, 85, 0.08)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 17, fontWeight: 900, color: "#111827" }}>{index + 1}. {getActivityName(item)}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700 }}>Ref: {item?.actRequestRefNo || item?.RequestID || item?.ActivityID || "-"}</div>
+                      </div>
+                      <CBadge color={getStatusBadge(status)} shape="rounded-pill" style={{ alignSelf: "flex-start", padding: "7px 12px", fontSize: 12 }}>{status || "Status"}</CBadge>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, fontSize: 13.5, color: "#1f2937" }}>
+                      <div><strong>Date:</strong> {getDateKeyFromItem(item) || "-"}</div>
+                      <div><strong>Total Students:</strong> {item?.actTotalNoStudents ?? item?.TotalStudents ?? "-"}</div>
+                      <div><strong>Vendor:</strong> {getVendorName(item)}</div>
+                      <div><strong>School:</strong> {getSchoolName(item)}</div>
+                      <div style={{ gridColumn: "1 / -1" }}><strong>Message:</strong> {item?.actRequestMessage || item?.Message || "-"}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CModalBody>
-        <CModalFooter style={{ background: "#f8fafc" }}>
-          <CButton color="secondary" variant="outline" onClick={handleClose}>Close</CButton>
+        <CModalFooter style={{ background: "#fbf7ff", borderTop: `1px solid ${UI.border}` }}>
+          <CButton color="secondary" variant="outline" onClick={closeDateModal}>Close</CButton>
         </CModalFooter>
       </CModal>
     </CCard>

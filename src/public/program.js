@@ -465,7 +465,10 @@ const ProposalPage = () => {
     return round2(total);
   }, [ActivityData]);
 
-  const tripPerStudentIncVat = round2(priceTotal + tripVatAmount);
+  // ✅ UPDATED: Do not add VAT again to the trip amount.
+  // The API price total is treated as VAT-included for display/payment.
+  // Summary will show: Trip Price = Trip Price - Trip VAT Amount.
+  const tripPerStudentIncVat = round2(priceTotal);
 
   useEffect(() => {
     if (
@@ -494,11 +497,15 @@ const ProposalPage = () => {
       const vendor = parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
       const heroz = parseFloat(item?.FoodHerozPrice) || 0;
 
+      // ✅ UPDATED: Do not add VAT again while summing extras.
+      // VAT is already included/handled separately for display.
       const schoolVat = parseFloat(item?.RequestFoodSchoolPriceVatAmount) || 0;
       const vendorVat = parseFloat(item?.FoodPriceVatAmount) || 0;
       const herozVat = parseFloat(item?.FoodHerozPriceVatAmount) || 0;
 
-      total += (school + vendor + heroz + schoolVat + vendorVat + herozVat) * qty;
+      // Keep VAT variables above because existing code/data may depend on them,
+      // but do NOT include them in the amount total.
+      total += (school + vendor + heroz) * qty;
     }
 
     return round2(total);
@@ -1106,6 +1113,7 @@ const ProposalPage = () => {
               onSubmit={handleSubmit}
               tripPriceInclVat={tripPriceInclVat}
               extraPriceInclVat={extraPriceInclVat}
+              tripVatAmount={tripVatAmount}
               hidePaymentPicker={true}
             />
 

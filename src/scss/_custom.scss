@@ -1190,3 +1190,118 @@ html[dir] .wrapper {
   width: 12px !important;
   height: 12px !important;
 }
+/* Fix CoreUI submenu icon hidden on left side */
+.sidebar .nav-group-items {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+.sidebar .nav-group-items .nav-item {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+.sidebar .nav-group-items .nav-link {
+  padding-left: 18px !important;
+  margin-left: 0 !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+
+.sidebar .nav-group-items .nav-link .nav-icon,
+.sidebar .nav-group-items .nav-icon {
+  position: static !important;
+  left: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+  min-width: 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+  flex: 0 0 20px !important;
+  opacity: 1 !important;
+  color: #ffffff !important;
+}
+
+/* Give submenu text enough space */
+.sidebar .nav-group-items .nav-link {
+  white-space: nowrap !important;
+}
+
+/* Active/open management look */
+.sidebar .nav-group.show > .nav-link,
+.sidebar .nav-group[aria-expanded='true'] > .nav-link {
+  background: rgba(255, 255, 255, 0.13) !important;
+  border-radius: 10px !important;
+}/* =========================================================
+   HEROZ ADMIN SIDEBAR SUBMENU SHIFT RIGHT
+   Adds more LEFT SPACE so submenu moves inward properly
+   ========================================================= */
+
+.sidebar .nav-group-items {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Submenu links move RIGHT */
+.sidebar .nav-group-items .nav-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+
+  /* MORE LEFT SPACE = PUSH CONTENT RIGHT */
+  padding: 6px 10px 6px 28px !important;
+
+  margin-left: 0 !important;
+  position: relative !important;
+  transform: none !important;
+
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  min-height: 34px !important;
+
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  white-space: nowrap !important;
+}
+
+/* Icons aligned properly */
+.sidebar .nav-group-items .nav-link .nav-icon,
+.sidebar .nav-group-items .nav-icon {
+  min-width: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
+
+  margin-left: 0 !important;
+  margin-right: 2px !important;
+
+  position: static !important;
+  transform: none !important;
+  color: #ffffff !important;
+}
+
+/* Hover */
+.sidebar .nav-group-items .nav-link:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Active */
+.sidebar .nav-group-items .nav-link.active {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Parent open */
+.sidebar .nav-group.show > .nav-link,
+.sidebar .nav-group[aria-expanded='true'] > .nav-link {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+}
+
+/* Remove default line */
+.sidebar .nav-group-items .nav-link::before {
+  display: none !important;
+}
