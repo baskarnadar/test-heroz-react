@@ -32,7 +32,109 @@ import {
 // so config/utils are three levels up
 import { API_BASE_URL } from '../../config'
 import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
-import "./../../scss/style.css";// ---------- Small helpers ----------
+import './../../scss/style.css'
+
+// ✅ Local page CSS added here also so the Meals design is guaranteed to apply even if style.css cache/path is not updating.
+const ActDetailLocalStyles = () => (
+  <style>{`
+    .act-detail-meals-row {
+      row-gap: 18px !important;
+    }
+
+    .act-detail-meal-panel {
+      height: 100% !important;
+      padding: 16px !important;
+      border-radius: 18px !important;
+      background: linear-gradient(135deg, #fff7fb 0%, #ffffff 100%) !important;
+      border: 1px solid rgba(214, 51, 132, 0.16) !important;
+      box-shadow: 0 10px 24px rgba(114, 28, 80, 0.06) !important;
+    }
+
+    .act-detail-meal-list {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 12px !important;
+      margin-top: 14px !important;
+    }
+
+    .act-detail-meal-card {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 14px !important;
+      padding: 14px 16px !important;
+      border-radius: 16px !important;
+      background: #ffffff !important;
+      border: 1px solid rgba(214, 51, 132, 0.14) !important;
+      box-shadow: 0 8px 18px rgba(114, 28, 80, 0.06) !important;
+      min-height: 60px !important;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease !important;
+    }
+
+    .act-detail-meal-card:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 12px 24px rgba(114, 28, 80, 0.10) !important;
+      border-color: rgba(214, 51, 132, 0.26) !important;
+    }
+
+    .act-detail-meal-card.additional {
+      border-left: 5px solid #d63384 !important;
+    }
+
+    .act-detail-meal-card.included {
+      border-left: 5px solid #14532d !important;
+    }
+
+    .act-detail-meal-name {
+      font-size: 15px !important;
+      font-weight: 800 !important;
+      color: #2d1439 !important;
+      text-transform: capitalize !important;
+      line-height: 1.3 !important;
+    }
+
+    .act-detail-meal-note {
+      margin-top: 4px !important;
+      font-size: 12px !important;
+      color: #7a5470 !important;
+      font-weight: 600 !important;
+      line-height: 1.35 !important;
+    }
+
+    .act-detail-meal-price {
+      min-width: 44px !important;
+      height: 44px !important;
+      padding: 0 13px !important;
+      border-radius: 999px !important;
+      background: rgba(214, 51, 132, 0.10) !important;
+      border: 1px solid rgba(214, 51, 132, 0.30) !important;
+      color: #d63384 !important;
+      font-size: 14px !important;
+      font-weight: 900 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.60) !important;
+      flex-shrink: 0 !important;
+    }
+
+    .act-detail-chip {
+      flex-shrink: 0 !important;
+    }
+
+    @media (max-width: 768px) {
+      .act-detail-meal-panel {
+        margin-bottom: 14px !important;
+      }
+
+      .act-detail-meal-card {
+        padding: 12px 14px !important;
+      }
+    }
+  `}</style>
+)
+
+// ---------- Small helpers ----------
 const SectionTitle = ({ children, icon }) => (
   <div className="act-detail-section-title">
     {icon ? <CIcon icon={icon} className="act-detail-section-icon" /> : null}
@@ -134,44 +236,63 @@ const PriceList = ({ prices = [] }) => {
 }
 
 const Meals = ({ included = [], excluded = [] }) => (
-  <CRow>
+  <CRow className="act-detail-meals-row">
     <CCol md={6}>
-      <SectionTitle icon={cilRestaurant}>Included Meals</SectionTitle>
-      {included.length === 0 ? (
-        <div className="act-detail-empty-box">—</div>
-      ) : (
-        <div className="act-detail-meal-list">
-          {included.map((m, i) => (
-            <div key={i} className="act-detail-meal-item">
-              <span className="act-detail-meal-name">{m.FoodName || '—'}</span>
-              <Chip color="#14532d">Included</Chip>
-              {m.FoodNotes && m.FoodNotes.toString().trim().toLowerCase() !== (m.FoodName || '').toString().trim().toLowerCase() ? (
-              <span className="act-detail-meal-note">• {m.FoodNotes}</span>
-            ) : null}
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="act-detail-meal-panel">
+        <SectionTitle icon={cilRestaurant}>Included Meals</SectionTitle>
+
+        {included.length === 0 ? (
+          <div className="act-detail-empty-box">—</div>
+        ) : (
+          <div className="act-detail-meal-list">
+            {included.map((m, i) => (
+              <div key={i} className="act-detail-meal-card included">
+                <div>
+                  <div className="act-detail-meal-name">{m.FoodName || '—'}</div>
+
+                  {m.FoodNotes &&
+                  m.FoodNotes.toString().trim().toLowerCase() !==
+                    (m.FoodName || '').toString().trim().toLowerCase() ? (
+                    <div className="act-detail-meal-note">{m.FoodNotes}</div>
+                  ) : null}
+                </div>
+
+                <Chip color="#14532d">Included</Chip>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </CCol>
+
     <CCol md={6}>
-      <SectionTitle icon={cilRestaurant}>Additional Meals</SectionTitle>
-      {excluded.length === 0 ? (
-        <div className="act-detail-empty-box">—</div>
-      ) : (
-        <div className="act-detail-meal-list">
-          {excluded.map((m, i) => (
-            <div key={i} className="act-detail-meal-item">
-              <span className="act-detail-meal-name">{m.FoodName || '—'}</span>
-              <Chip color="#d63384">
-                {typeof m.FoodPrice === 'number' ? m.FoodPrice : (m.FoodPrice || '—')}
-              </Chip>
-              {m.FoodNotes && m.FoodNotes.toString().trim().toLowerCase() !== (m.FoodName || '').toString().trim().toLowerCase() ? (
-              <span className="act-detail-meal-note">• {m.FoodNotes}</span>
-            ) : null}
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="act-detail-meal-panel">
+        <SectionTitle icon={cilRestaurant}>Additional Meals</SectionTitle>
+
+        {excluded.length === 0 ? (
+          <div className="act-detail-empty-box">—</div>
+        ) : (
+          <div className="act-detail-meal-list">
+            {excluded.map((m, i) => (
+              <div key={i} className="act-detail-meal-card additional">
+                <div>
+                  <div className="act-detail-meal-name">{m.FoodName || '—'}</div>
+
+                  {m.FoodNotes &&
+                  m.FoodNotes.toString().trim().toLowerCase() !==
+                    (m.FoodName || '').toString().trim().toLowerCase() ? (
+                    <div className="act-detail-meal-note">{m.FoodNotes}</div>
+                  ) : null}
+                </div>
+
+                <span className="act-detail-meal-price">
+                  {typeof m.FoodPrice === 'number' ? m.FoodPrice : m.FoodPrice || '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </CCol>
   </CRow>
 )
@@ -382,6 +503,7 @@ const ActDetailInfo = () => {
 
   return (
     <div className="act-detail-page">
+      <ActDetailLocalStyles />
       <div className="act-detail-shell">
         <div className="act-detail-top-title-row">
           <h4 className="act-detail-main-title act-detail-main-title-outside">
