@@ -592,7 +592,11 @@ const ProposalPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, ActivityData, priceTotal]);
 
-  const tripCostPerStudent = round2(priceTotal);
+  // ✅ UPDATED: TripCost must be BASE amount before VAT.
+  // Example: Trip Price 40.00 includes VAT 6.00, so TripCost = 34.00,
+  // TripTaxAmount = 6.00, TripFullAmount = 40.00.
+  // This keeps the submit payload consistent and avoids backend rejection.
+  const tripCostPerStudent = round2(Math.max(0, (Number(tripPriceInclVat) || 0) - (Number(tripVatAmount) || 0)));
   const tripFoodCostPerStudent = 0;
   const tripTaxPerStudent = round2(tripVatAmount);
   const tripFullPerStudent = round2(tripPriceInclVat);
@@ -820,7 +824,15 @@ const ProposalPage = () => {
         response: { ok: response.ok, status: response.status, json: submitJson },
       });
 
-      if (!response.ok) throw new Error("Failed to submit data");
+      if (!response.ok || submitJson?.ok === false || submitJson?.success === false || submitJson?.statusCode === 400) {
+        const apiMessage =
+          submitJson?.message ||
+          submitJson?.error ||
+          submitJson?.Message ||
+          submitJson?.Error ||
+          (submitJson ? safeStringify(submitJson) : "Failed to submit data");
+        throw new Error(apiMessage);
+      }
 
       setConfirmOpen(false);
 
@@ -856,7 +868,12 @@ const ProposalPage = () => {
     } catch (err) {
       console.error("Submit error:", err);
       setConfirmOpen(false);
-      showError(dict.errSubmissionFailed);
+      const apiErrorMessage = String(err?.message || "").trim();
+      showError(
+        apiErrorMessage
+          ? `${dict.errSubmissionFailed || "Submission failed."}\n\n${apiErrorMessage}`
+          : dict.errSubmissionFailed
+      );
       setApiDebug({ action: "TRIPADD_ERROR", url: endpoint, payload: pendingPayload, response: null, errorObj: err });
     } finally {
       setSubmitting(false);
