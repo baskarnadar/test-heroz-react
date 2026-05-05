@@ -62,6 +62,7 @@ const Vendor = () => {
   // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_FOOD_IMAGE = true // ⬅️ Hide Extra Image everywhere (UI + payload)
+  const HIDE_VAT_UI = true // ✅ Hide all VAT badges/columns in screen only
 
   // === VAT SETUP (global default from settings) ===
   // getVatAmount() may return 15  OR  0.15
@@ -1923,7 +1924,7 @@ const Vendor = () => {
           <span style={{ color: 'red' }}>*</span>
         </div>
 
-        {effectiveVatPercent > 0 && (
+        {!HIDE_VAT_UI && effectiveVatPercent > 0 && (
           <div
             style={{
               padding: '4px 16px',
@@ -1944,7 +1945,7 @@ const Vendor = () => {
       <div className="divbox">
         <CRow className="fw-bold   mb-2">
           <CCol sm={3}>
-            {tr('colBasePricePerStudent', 'Price Per Student (Excl. VAT)')}{' '}
+            {tr('colPricePerStudent', 'Price Per Student')}{' '}
             <span style={{ color: 'red' }}>*</span>
           </CCol>
           <CCol
@@ -1988,7 +1989,7 @@ const Vendor = () => {
                   min="0"
                 />
                 {index === 0 && <ErrorText msg={errors.price} />} {/* show once under first input */}
-                {priceNum > 0 && effectiveVatPercent > 0 && (
+                {!HIDE_VAT_UI && priceNum > 0 && effectiveVatPercent > 0 && (
                   <div
                     style={{
                       marginTop: 6,
@@ -2289,7 +2290,7 @@ const Vendor = () => {
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
             <CCol sm={2}>
-              {tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}
+              {tr('colFoodPrice', 'Extra Price')}
             </CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>}
@@ -2336,7 +2337,7 @@ const Vendor = () => {
                     step="0.01"
                     disabled={item.include}
                   />
-                  {basePrice > 0 && effectiveVatPercent > 0 && (
+                  {!HIDE_VAT_UI && basePrice > 0 && effectiveVatPercent > 0 && (
                     <div
                       style={{
                         marginTop: 6,
@@ -2530,7 +2531,7 @@ const Vendor = () => {
         {tr('sectionSummary', 'Summary')}
       </div>
       <div className="divbox">
-        {/* Main summary card: Description / Amount / VAT / Total */}
+        {/* Main summary card: Description / Amount only (VAT and Total columns hidden) */}
         <div
           style={{
             maxWidth: 650,
@@ -2553,17 +2554,11 @@ const Vendor = () => {
             <div style={{ flex: 0.5 }}>
               {tr('summaryNo', '#')}
             </div>
-            <div style={{ flex: 1.5 }}>
+            <div style={{ flex: 2 }}>
               {tr('summaryDescription', 'Description')}
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryAmount', 'Amount')} 
-            </div>
-            <div style={{ flex: 1.7, textAlign: 'right', color: '#cf2037' }}>
-              {tr('summaryVat', 'VAT')} <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
-            </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryTotal', 'Total')}
+              {tr('summaryAmount', 'Amount')}
             </div>
           </div>
 
@@ -2579,22 +2574,9 @@ const Vendor = () => {
               }}
             >
               <div style={{ flex: 0.5 }}>1.</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
+              <div style={{ flex: 2 }}>{tr('summaryTrip', 'Trip')}</div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {tripPriceBase.toFixed(2)}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  color: '#cf2037',
-                }}
-              >
-                {tripVatAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {tripTotalWithVat.toFixed(2)}
               </div>
             </div>
 
@@ -2608,22 +2590,9 @@ const Vendor = () => {
               }}
             >
               <div style={{ flex: 0.5 }}>2.</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Extra')}</div>
+              <div style={{ flex: 2 }}>{tr('summaryFood', 'Extra')}</div>
               <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
                 {foodBaseAmount.toFixed(2)}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  color: '#cf2037',
-                }}
-              >
-                {foodVatAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {foodTotalWithVat.toFixed(2)}
               </div>
             </div>
 
@@ -2637,23 +2606,11 @@ const Vendor = () => {
               }}
             >
               <div style={{ flex: 0.5 }}></div>
-              <div style={{ flex: 1.5 }}>
+              <div style={{ flex: 2 }}>
                 {tr('summaryTotal', 'Total')}
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
                 {totalBaseAmount.toFixed(2)}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  textAlign: 'right',
-                  color: '#cf2037',
-                }}
-              >
-                {totalVatAmount.toFixed(2)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {totalWithVat.toFixed(2)}
               </div>
             </div>
           </div>
@@ -2676,12 +2633,12 @@ const Vendor = () => {
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              {tr('summaryTotalCostInclVat', 'Your Total Price Including VAT')}
+              {tr('summaryTotalCost', 'Your Total Price')}
             </div>
             <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
               {tr(
-                'summaryTotalCostEquation',
-                'Total Amount + Total VAT Amount'
+                'summaryTotalCostEquationNoVat',
+                'Trip Amount + Extra Amount'
               )}
             </div>
           </div>
@@ -2693,7 +2650,7 @@ const Vendor = () => {
               marginTop: 8,
             }}
           >
-            {totalWithVat.toFixed(2)}
+            {totalBaseAmount.toFixed(2)}
           </div>
         </div>
       </div>

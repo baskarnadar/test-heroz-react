@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getAuthHeaders, getVatAmount } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -37,16 +37,15 @@ const Vendor = () => {
 
   // === VAT SETUP (global default from settings) ===
   // getVatAmount() may return 15  OR  0.15
-  const vatRaw = Number(getVatAmount() || 0) // 15  or  0.15
-  const vatPercentValue = vatRaw > 1 ? vatRaw : vatRaw * 100 // always 15-style
-  const vatRateValue = vatPercentValue / 100 // always 0.15-style (decimal)
+  const vatPercentValue = 0 // VAT is already included in the entered price
+  const vatRateValue = 0
 
   // 🔢 VAT from server (override) – taken from ActivityData.priceList[0].actPriceVatPercentage
   const [vatPercentFromServer, setVatPercentFromServer] = useState(null)
 
   // ✅ Effective VAT to use everywhere (price + food)
-  const effectiveVatPercent = vatPercentFromServer ?? vatPercentValue
-  const effectiveVatRate = effectiveVatPercent / 100
+  const effectiveVatPercent = 0 // VAT is already included in the entered price
+  const effectiveVatRate = 0
 
   // ✅ Safe 2-decimal helper (ONLY for VAT / totals, NOT base price)
   const dec = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100
@@ -949,8 +948,8 @@ const Vendor = () => {
       // ✅ Get VAT % from first row if present
       const firstVat = Number(ActivityData.priceList[0].actPriceVatPercentage)
       if (Number.isFinite(firstVat) && firstVat > 0) {
-        console.log('🐞 DEBUG VAT from server first row:', firstVat)
-        setVatPercentFromServer(firstVat)
+        console.log('🐞 DEBUG VAT from server ignored because VAT is included:', firstVat)
+        setVatPercentFromServer(null)
       }
     } else {
       setPriceRanges([{ PriceID: '', price: '', rangeFrom: '', rangeTo: '', ChkRemovePrice: false }])
@@ -1193,20 +1192,22 @@ const Vendor = () => {
     return result
   }
 
-  // -------------------- SUMMARY VALUES (VAT) --------------------
+  // -------------------- SUMMARY VALUES (VAT INCLUDED - DO NOT ADD VAT) --------------------
   const tripPriceBase = Number(priceRanges[0]?.price || 0)
-  const tripVatAmount = tripPriceBase > 0 && effectiveVatPercent > 0 ? dec(tripPriceBase * effectiveVatRate) : 0
+  const tripVatAmount = 0
 
   const foodBaseAmount = foods.reduce((sum, item) => sum + (item.include ? 0 : Number(item.price || 0)), 0)
-  const foodVatAmount = foodBaseAmount > 0 && effectiveVatPercent > 0 ? dec(foodBaseAmount * effectiveVatRate) : 0
+  const foodVatAmount = 0
 
   const totalBaseAmount = tripPriceBase + foodBaseAmount
-  const totalVatAmount = dec(tripVatAmount + foodVatAmount)
-  const totalWithVat = dec(totalBaseAmount + totalVatAmount)
+  const totalVatAmount = 0
+  const totalWithVat = dec ? dec(totalBaseAmount) : totalBaseAmount
 
-  // NEW: per-row totals for summary
-  const tripTotalWithVat = dec(tripPriceBase + tripVatAmount)
-  const foodTotalWithVat = dec(foodBaseAmount + foodVatAmount)
+  // per-row totals; VAT is already included in the entered prices
+  const tripTotalWithVat = dec ? dec(tripPriceBase) : tripPriceBase
+  const foodTotalWithVat = dec ? dec(foodBaseAmount) : foodBaseAmount
+  const tripTotalWithVatRow = tripTotalWithVat
+  const foodTotalWithVatRow = foodTotalWithVat
   // -------------------------------------------------------------
 
   //Send to Admin Approval
@@ -1804,7 +1805,7 @@ const Vendor = () => {
       <div className="divbox">
         <CRow className="fw-bold   mb-2">
           <CCol sm={3}>
-            {tr('colBasePricePerMember', 'Activity Price Per Member (Excl. VAT)')} <span style={{ color: 'red' }}>*</span>
+            {tr('colBasePricePerMember', 'Activity Price Per Member')} <span style={{ color: 'red' }}>*</span>
           </CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -1861,7 +1862,7 @@ const Vendor = () => {
                       <span style={{ fontWeight: 800 }}>{vatAmt.toFixed(2)}</span>
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>
-                      {tr('labelPriceWithVatShort', 'Total incl. VAT')}: <span>{totalWithVatRow.toFixed(2)}</span>
+                      {tr('labelPriceWithVatShort', 'Total')}: <span>{totalWithVatRow.toFixed(2)}</span>
                     </div>
                   </div>
                 )}
@@ -2042,7 +2043,7 @@ const Vendor = () => {
           <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
             <CRow className="mb-2 fw-bold hbg">
               <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-              <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
+              <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price')}</CCol>
               <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
               {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>}
               <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -2095,7 +2096,7 @@ const Vendor = () => {
                         </div>
 
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>
-                          {tr('labelPriceWithVatShort', 'Total incl. VAT')}: <span>{foodTotalWithVat.toFixed(2)}</span>
+                          {tr('labelPriceWithVatShort', 'Total')}: <span>{foodTotalWithVat.toFixed(2)}</span>
                         </div>
                       </div>
                     )}
@@ -2211,78 +2212,59 @@ const Vendor = () => {
         <div className="divbox">
           <div
             style={{
-              maxWidth: 650,
+              maxWidth: 980,
               margin: '0 auto',
-              border: '1px solid #ddd',
-              borderRadius: 12,
+              border: '1px solid rgba(126, 0, 98, 0.14)',
+              borderRadius: 18,
               overflow: 'hidden',
+              background: '#ffffff',
+              boxShadow: '0 14px 35px rgba(80, 0, 80, 0.10)',
               fontSize: 14,
             }}
           >
-            <div style={{ display: 'flex', background: '#f7f7f7', fontWeight: 600, padding: '8px 12px' }}>
-              <div style={{ flex: 0.5 }}>{tr('summaryNo', '#')}</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryDescription', 'Description')}</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>{tr('summaryAmount', 'Amount')}</div>
-              <div style={{ flex: 1.7, textAlign: 'right', color: '#cf2037' }}>
-                {tr('summaryVat', 'VAT')} <span style={vatPillStyle}> ({vatPercentValue.toFixed(2)}%)</span>
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>{tr('summaryTotal', 'Total')}</div>
+            <div
+              style={{
+                padding: '16px 18px',
+                background: 'linear-gradient(135deg, rgba(252, 228, 239, 0.95), rgba(255, 255, 255, 0.95))',
+                borderBottom: '1px solid rgba(126, 0, 98, 0.10)',
+                fontWeight: 900,
+                fontSize: 18,
+                color: '#4d0047',
+              }}
+            >
+              {tr('sectionSummary', 'Summary')}
             </div>
 
-            <div style={{ padding: '8px 12px' }}>
-              <div style={{ display: 'flex', padding: '6px 0', borderBottom: '1px solid #eee', alignItems: 'center' }}>
-                <div style={{ flex: 0.5 }}>1.</div>
-                <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
-                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>{tripPriceBase.toFixed(2)}</div>
-                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600, color: '#cf2037' }}>{tripVatAmount.toFixed(2)}</div>
-                <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>{tripTotalWithVat.toFixed(2)}</div>
-              </div>
-
-              <div style={{ display: 'flex', padding: '6px 0', borderBottom: '1px solid #eee', alignItems: 'center' }}>
-                <div style={{ flex: 0.5 }}>2.</div>
-                <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Extra')}</div>
-                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>{foodBaseAmount.toFixed(2)}</div>
-                <div style={{ flex: 1, textAlign: 'right', fontWeight: 600, color: '#cf2037' }}>{foodVatAmount.toFixed(2)}</div>
-                <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>{foodTotalWithVat.toFixed(2)}</div>
-              </div>
-
-              <div style={{ display: 'flex', padding: '8px 0 4px', fontWeight: 700, alignItems: 'center' }}>
-                <div style={{ flex: 0.5 }}></div>
-                <div style={{ flex: 1.5 }}>{tr('summaryTotal', 'Total')}</div>
-                <div style={{ flex: 1, textAlign: 'right' }}>{totalBaseAmount.toFixed(2)}</div>
-                <div style={{ flex: 1, textAlign: 'right', color: '#cf2037' }}>{totalVatAmount.toFixed(2)}</div>
-                <div style={{ flex: 1, textAlign: 'right' }}>{totalWithVat.toFixed(2)}</div>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr', gap: 0, background: '#faf7fb', fontWeight: 800, color: '#1f1f1f' }}>
+              <div style={{ padding: '14px 16px' }}>{tr('summaryDescription', 'Description')}</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right' }}>{tr('summaryVendorBasePrice', 'Base Price (Vendor)')}</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right' }}>{tr('summaryHerozBasePrice', 'Base Price (Heroz)')}</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right' }}>{tr('summaryTotal', 'Total')}</div>
             </div>
-          </div>
 
-          <div
-            style={{
-              maxWidth: 650,
-              margin: '16px auto 0',
-              border: '3px solid #2e7d32',
-              borderRadius: 16,
-              padding: '12px 16px',
-              backgroundColor: 'rgba(46, 125, 50, 0.15)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-                {tr('summaryTotalCostInclVat', 'Your Total Price Including VAT')}
-              </div>
-              <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
-                {tr('summaryTotalCostEquation', 'Total Amount + Total VAT Amount')}
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr', borderTop: '1px solid #eee' }}>
+              <div style={{ padding: '14px 16px' }}>{tr('summaryTrip', 'Trip')}</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700 }}>{tripPriceBase.toFixed(2)}</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700 }}>0.00</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 900 }}>{tripTotalWithVat.toFixed(2)}</div>
             </div>
-            <div style={{ fontWeight: 800, fontSize: 24, color: '#1b5e20', marginTop: 8 }}>{totalWithVat.toFixed(2)}</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr', borderTop: '1px solid #eee' }}>
+              <div style={{ padding: '14px 16px' }}>{tr('summaryFood', 'Extra')}</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700 }}>{foodBaseAmount.toFixed(2)}</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700 }}>0.00</div>
+              <div style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 900 }}>{foodTotalWithVat.toFixed(2)}</div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr', borderTop: '2px solid #e9d9e8', background: '#fffafa', fontWeight: 900 }}>
+              <div style={{ padding: '16px' }}>{tr('summaryTotal', 'Total')}</div>
+              <div style={{ padding: '16px', textAlign: 'right' }}>{totalBaseAmount.toFixed(2)}</div>
+              <div style={{ padding: '16px', textAlign: 'right' }}>0.00</div>
+              <div style={{ padding: '16px', textAlign: 'right', color: '#4d0047', fontSize: 17 }}>{totalWithVat.toFixed(2)}</div>
+            </div>
           </div>
         </div>
       </div>
-
       <div className="button-container">
         <button className="admin-buttonv1" onClick={handlebtnSendToApprovalClick}>
           {tr('btnSendToAdmin', 'Send To Admin Approval')}

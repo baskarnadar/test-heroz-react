@@ -1090,7 +1090,7 @@ const Vendor = () => {
       <div className="divbox">
         <CRow className="fw-bold mb-2">
           <CCol sm={3}>
-            {tr('colBasePricePerStudent', 'Price Per Student (Excl. VAT)')} <span className="act-required">*</span>
+            {tr('colBasePricePerStudent', 'Price Per Student  ')} <span className="act-required">*</span>
           </CCol>
           <CCol sm={3} className={HIDE_PRICE_RANGE_UI ? 'act-hide' : ''}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -1256,7 +1256,7 @@ const Vendor = () => {
         <div className="act-foodWrap">
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-            <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
+            <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price  ')}</CCol>
             <CCol sm={3}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Extra Image')}</CCol>}

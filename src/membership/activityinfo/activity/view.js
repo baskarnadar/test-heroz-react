@@ -657,7 +657,7 @@ const Vendor = () => {
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
             <CCol sm={2}>
-              {tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}
+              {tr('colBaseFoodPrice', 'Extra Price  ')}
             </CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>

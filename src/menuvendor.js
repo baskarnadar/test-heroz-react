@@ -6,7 +6,6 @@ import {
   cilCheckCircle,
   cilClock,
   cilXCircle,
-  cilUser,
   cilBell,
   cilSettings,
   cilMoney,
@@ -23,7 +22,7 @@ import { getAuthHeaders, getCurrentLoggedUserID } from './utils/operation'
 
 const GET_VDR_SUMMARY = API_BASE_URL + '/vendordata/dashboard/getvdrsummary'
 
-// ✅ Root menu item style
+// ================= ROOT MENU STYLE =================
 const modernItemStyle = {
   margin: '1px 4px',
   borderRadius: '9px',
@@ -31,7 +30,7 @@ const modernItemStyle = {
   fontSize: '14px',
 }
 
-// ✅ Submenu item style — reduced left margin
+// ================= SUBMENU STYLE =================
 const subItemStyle = {
   margin: '1px 4px 1px 6px',
   borderRadius: '9px',
@@ -39,7 +38,7 @@ const subItemStyle = {
   fontSize: '13px',
 }
 
-// ✅ Nested sub-submenu (Report children) — slightly more indent
+// ================= SUB-SUBMENU STYLE =================
 const subSubItemStyle = {
   margin: '1px 4px 1px 12px',
   borderRadius: '9px',
@@ -47,7 +46,7 @@ const subSubItemStyle = {
   fontSize: '12px',
 }
 
-// ✅ Modern circular icon
+// ================= ICON STYLE =================
 const iconCircleStyle = {
   width: '26px',
   height: '26px',
@@ -73,7 +72,7 @@ const menuIcon = (iconName) => (
   </span>
 )
 
-// ✅ Section header toggler styled like CNavTitle but collapsible
+// ================= SECTION TOGGLER =================
 const sectionToggler = (label) => (
   <div
     style={{
@@ -87,8 +86,8 @@ const sectionToggler = (label) => (
     <span
       style={{
         fontSize: '15px',
-        fontWeight: '700', 
-        color: 'rgba(255, 255, 255, 1)',
+        fontWeight: '700',
+        color: 'rgba(255,255,255,1)',
         textTransform: 'uppercase',
       }}
     >
@@ -97,7 +96,7 @@ const sectionToggler = (label) => (
   </div>
 )
 
-// ✅ Report sub-group toggler
+// ================= REPORT TOGGLER =================
 const reportToggler = (
   <div
     style={{
@@ -111,11 +110,13 @@ const reportToggler = (
   </div>
 )
 
+// ================= STATUS COUNTER =================
 function StatusCounter({ fallback, color, field }) {
   const [count, setCount] = useState(null)
 
   useEffect(() => {
     let alive = true
+
     ;(async () => {
       try {
         const resp = await fetch(GET_VDR_SUMMARY, {
@@ -131,9 +132,13 @@ function StatusCounter({ fallback, color, field }) {
         const json = await resp.json()
         const d = json?.data || {}
 
-        if (alive) setCount(d?.[field] ?? 0)
+        if (alive) {
+          setCount(d?.[field] ?? 0)
+        }
       } catch {
-        if (alive) setCount(0)
+        if (alive) {
+          setCount(0)
+        }
       }
     })()
 
@@ -152,6 +157,7 @@ function StatusCounter({ fallback, color, field }) {
       }}
     >
       <span>{fallback}</span>
+
       <span
         style={{
           background: color,
@@ -172,6 +178,7 @@ function StatusCounter({ fallback, color, field }) {
   )
 }
 
+// ================= VENDOR MENU =================
 const vendormenu = [
   // ================= DASHBOARD =================
   {
@@ -189,9 +196,12 @@ const vendormenu = [
   // ================= SCHOOL MANAGEMENT =================
   {
     component: CNavGroup,
+    name: 'School Management',
+    menuKey: 'school-management',
+    autoOpen: true,
     toggler: sectionToggler('School Management'),
-    visible: true,
-    className: 'nav-section-group',
+    visible: true, // ✅ AUTO OPEN ON INITIAL LOAD
+    className: 'nav-section-group auto-open-school-management',
     items: [
       {
         component: CNavItem,
@@ -222,11 +232,14 @@ const vendormenu = [
         style: subItemStyle,
       },
 
-      // ✅ Report nested group
+      // ================= REPORT =================
       {
         component: CNavGroup,
+        name: 'Report',
+        menuKey: 'school-report',
+        autoOpen: false,
         toggler: reportToggler,
-        visible: true,
+        visible: false,
         style: subItemStyle,
         items: [
           {
@@ -251,8 +264,11 @@ const vendormenu = [
   // ================= MEMBERSHIP =================
   {
     component: CNavGroup,
+    name: 'Membership',
+    menuKey: 'membership',
+    autoOpen: false,
     toggler: sectionToggler('Membership'),
-    visible: true,
+    visible: false,
     className: 'nav-section-group',
     items: [
       {

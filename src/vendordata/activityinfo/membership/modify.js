@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react'
+  import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -72,6 +72,7 @@ const Vendor = () => {
   // ✅ NEW: hide sections requested (do not remove code)
   const HIDE_EXTRA_INFORMATION_UI = true
   const HIDE_SUMMARY_UI = true
+  const HIDE_VAT_BADGE_UI = true // ⬅️ Hide all VAT badges/columns in UI (VAT remains included internally)
 
   // === VAT SETUP (global default from settings) ===
   // getVatAmount() may return 15  OR  0.15
@@ -1896,7 +1897,7 @@ const Vendor = () => {
           {tr('sectionPricePerMember', 'Activity Price Per Member')} <span style={{ color: 'red' }}>*</span>
         </div>
 
-        {effectiveVatPercent > 0 && (
+        {effectiveVatPercent > 0 && !HIDE_VAT_BADGE_UI && (
           <div
             style={{
               padding: '4px 16px',
@@ -1918,7 +1919,7 @@ const Vendor = () => {
         <CRow className="fw-bold   mb-2">
           <CCol sm={3}>
             {/* ✅ CHANGED LABEL */}
-            {tr('colBasePricePerMember', 'Activity Price Per Member (Excl. VAT)')} <span style={{ color: 'red' }}>*</span>
+            {tr('colBasePricePerMember', 'Activity Price Per Member  ')} <span style={{ color: 'red' }}>*</span>
           </CCol>
           <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -1949,7 +1950,7 @@ const Vendor = () => {
                   min="0"
                 />
                 {index === 0 && <ErrorText msg={errors.price} />} {/* show once under first input */}
-                {priceNum > 0 && effectiveVatPercent > 0 && (
+                {priceNum > 0 && effectiveVatPercent > 0 && !HIDE_VAT_BADGE_UI && (
                   <div
                     style={{
                       marginTop: 6,
@@ -2160,7 +2161,7 @@ const Vendor = () => {
           <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
             <CRow className="mb-2 fw-bold hbg">
               <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-              <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
+              <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price  ')}</CCol>
               <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
               {!HIDE_FOOD_IMAGE && <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>}
               <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -2195,7 +2196,7 @@ const Vendor = () => {
                       step="0.01"
                       disabled={item.include}
                     />
-                    {basePrice > 0 && effectiveVatPercent > 0 && (
+                    {basePrice > 0 && effectiveVatPercent > 0 && !HIDE_VAT_BADGE_UI && (
                       <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                         <div
                           style={{

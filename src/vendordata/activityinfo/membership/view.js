@@ -653,7 +653,7 @@ const Vendor = () => {
             <div style={{ margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
               <CRow className="mb-2 fw-bold hbg">
                 <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-                <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
+                <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price  ')}</CCol>
                 <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
                 <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>
                 <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>

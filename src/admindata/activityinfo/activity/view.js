@@ -7,7 +7,6 @@ import {
   dspstatusv1,
   getAuthHeaders,
   IsAdminLoginIsValid,
-  getVatAmount, // ✅ VAT helper
 } from '../../../utils/operation'
 import FilePreview from '../../../views/widgets/FilePreview'
 import {
@@ -34,20 +33,13 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
-  // ================= VAT (same logic as Vendor Add form) =================
-  // Assume getVatAmount() returns PERCENT (e.g. 15 for 15%)
-  const vatPercentValue = Number(getVatAmount() || 0) // e.g. 15
-  const vatRateValue = vatPercentValue / 100 // e.g. 0.15
+  // ================= VAT REMOVED FROM DISPLAY/CALCULATION =================
+  // VAT is already included in the entered prices, so do not add or display VAT separately.
+  const vatPercentValue = 0
+  const vatRateValue = 0
 
   const vatPillStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    border: '1px solid #cf2037',
-    borderRadius: 999,
-    padding: '3px 10px',
-    backgroundColor: 'rgba(207, 32, 55, 0.15)',
-    color: '#cf2037',
-    whiteSpace: 'nowrap',
+    display: 'none',
   }
 
   // ⭐ FIXED FINANCIAL ROUNDING (2.447 → 2.45, etc.)
@@ -830,153 +822,98 @@ const Vendor = () => {
           </div>
           {/* =================================================================== */}
 
-          {/* ====================== SUMMARY ====================== */}
+          {/* ====================== SUMMARY (VAT INCLUDED - NO EXTRA VAT CALCULATION) ====================== */}
           <div className="txtsubtitle">Summary</div>
-          <div className="divbox">
+          <div className="divbox" style={{ background: 'linear-gradient(135deg, #fff7fd 0%, #ffffff 48%, #f7efff 100%)' }}>
             <div
               style={{
-                display: 'flex',
-                gap: '20px',
-                flexWrap: 'wrap',
-                alignItems: 'stretch',
+                maxWidth: 1120,
+                margin: '0 auto',
+                borderRadius: 18,
+                border: '1px solid rgba(112, 20, 108, 0.16)',
+                overflow: 'hidden',
+                backgroundColor: '#fff',
+                boxShadow: '0 18px 45px rgba(76, 0, 72, 0.10)',
               }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '16px 20px',
+                  background: 'linear-gradient(90deg, rgba(94, 0, 91, 0.96), rgba(202, 28, 151, 0.90))',
+                  color: '#fff',
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 0.2 }}>Summary</div>
                 <div
                   style={{
-                    fontWeight: 'bold',
-                    padding: '10px 14px',
-                    borderRadius: '10px 10px 0 0',
-                    backgroundColor: '#f4f0ff',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    padding: '6px 12px',
+                    borderRadius: 999,
+                    backgroundColor: 'rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.28)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  Vendor Summary
+                  VAT Included
                 </div>
-                <table
-                  style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    backgroundColor: '#fff',
-                    borderRadius: '0 0 10px 10px',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <thead>
-                    <tr style={{ backgroundColor: '#f9f9f9' }}>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'left' }}>
-                        Description
-                      </th>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                        Base Price
-                      </th>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                        VAT ({to2(vatPercentValue)}%)
-                      </th>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td style={{ padding: 8 }}>Trip</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(firstPriceRowBase)}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(tripVatAmountComputed)}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(firstPriceRowBase + tripVatAmountComputed)}
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td style={{ padding: 8 }}>Extra</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(foodBaseAmountComputed)}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(foodVatAmountComputed)}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(foodBaseAmountComputed + foodVatAmountComputed)}
-                      </td>
-                    </tr>
-
-                    <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
-                      <td style={{ padding: 8 }}>Total</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(totalBaseAmount)}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(totalVatAmount)}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(totalWithVat)}</td>
-                    </tr>
-                  </tbody>
-                </table>
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontWeight: 'bold',
-                    padding: '10px 14px',
-                    borderRadius: '10px 10px 0 0',
-                    backgroundColor: '#f4f0ff',
-                  }}
-                >
-                  Heroz Summary
-                </div>
+              <div style={{ overflowX: 'auto' }}>
                 <table
                   style={{
                     width: '100%',
-                    borderCollapse: 'collapse',
+                    borderCollapse: 'separate',
+                    borderSpacing: 0,
                     backgroundColor: '#fff',
-                    borderRadius: '0 0 10px 10px',
-                    overflow: 'hidden',
+                    fontSize: 15,
                   }}
                 >
                   <thead>
-                    <tr style={{ backgroundColor: '#f9f9f9' }}>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                    <tr style={{ backgroundColor: '#fff4fb' }}>
+                      <th style={{ padding: '14px 16px', borderBottom: '1px solid #f0ddeb', textAlign: 'left', color: '#36033a', fontWeight: 900 }}>
                         Description
                       </th>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                        Heroz Profit
+                      <th style={{ padding: '14px 16px', borderBottom: '1px solid #f0ddeb', textAlign: 'right', color: '#36033a', fontWeight: 900 }}>
+                        Base Price (Vendor)
                       </th>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
-                        Heroz VAT ({to2(vatPercentValue)}%)
+                      <th style={{ padding: '14px 16px', borderBottom: '1px solid #f0ddeb', textAlign: 'right', color: '#36033a', fontWeight: 900 }}>
+                        Base Price (Heroz)
                       </th>
-                      <th style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'right' }}>
+                      <th style={{ padding: '14px 16px', borderBottom: '1px solid #f0ddeb', textAlign: 'right', color: '#36033a', fontWeight: 900 }}>
                         Total
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td style={{ padding: 8 }}>Trip</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>{to2(firstHerozPriceRowBase)}</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(tripHerozVatAmountComputed)}
-                      </td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(firstHerozPriceRowBase + tripHerozVatAmountComputed)}
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', fontWeight: 700 }}>Trip</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', textAlign: 'right', fontWeight: 700 }}>{to2(firstPriceRowBase)}</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', textAlign: 'right', fontWeight: 700 }}>{to2(firstHerozPriceRowBase)}</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', textAlign: 'right', fontWeight: 900, color: '#4f0754' }}>
+                        {to2(firstPriceRowBase + firstHerozPriceRowBase)}
                       </td>
                     </tr>
 
                     <tr>
-                      <td style={{ padding: 8 }}>Extra</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(foodHerozBaseAmountComputed)}
-                      </td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(foodHerozVatAmountComputed)}
-                      </td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(foodHerozBaseAmountComputed + foodHerozVatAmountComputed)}
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', fontWeight: 700 }}>Extra</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', textAlign: 'right', fontWeight: 700 }}>{to2(foodBaseAmountComputed)}</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', textAlign: 'right', fontWeight: 700 }}>{to2(foodHerozBaseAmountComputed)}</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f5edf4', textAlign: 'right', fontWeight: 900, color: '#4f0754' }}>
+                        {to2(foodBaseAmountComputed + foodHerozBaseAmountComputed)}
                       </td>
                     </tr>
 
-                    <tr style={{ fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
-                      <td style={{ padding: 8 }}>Total</td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(totalHerozBaseAmountComputed)}
-                      </td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(totalHerozVatAmountComputed)}
-                      </td>
-                      <td style={{ padding: 8, textAlign: 'right' }}>
-                        {to2(totalHerozWithVatComputed)}
+                    <tr style={{ background: 'linear-gradient(90deg, #fff7fd, #f8eaf6)' }}>
+                      <td style={{ padding: '16px', fontWeight: 950, color: '#2d022f' }}>Total</td>
+                      <td style={{ padding: '16px', textAlign: 'right', fontWeight: 950, color: '#2d022f' }}>{to2(firstPriceRowBase + foodBaseAmountComputed)}</td>
+                      <td style={{ padding: '16px', textAlign: 'right', fontWeight: 950, color: '#2d022f' }}>{to2(firstHerozPriceRowBase + foodHerozBaseAmountComputed)}</td>
+                      <td style={{ padding: '16px', textAlign: 'right', fontWeight: 950, color: '#7b006d', fontSize: 17 }}>
+                        {to2(firstPriceRowBase + foodBaseAmountComputed + firstHerozPriceRowBase + foodHerozBaseAmountComputed)}
                       </td>
                     </tr>
                   </tbody>
@@ -985,142 +922,6 @@ const Vendor = () => {
             </div>
           </div>
           {/* =================================================================== */}
-
-          {/* ====================== School Price Summary (Incl. VAT) ====================== */}
-          <div
-            style={{
-              maxWidth: 900,
-              margin: '0 auto 24px',
-              border: '4px solid #512da8',
-              borderRadius: 20,
-              padding: '18px 24px',
-              backgroundColor: '#f3e5f5',
-              fontSize: 16,
-              fontWeight: 600,
-            }}
-          >
-            <div
-              style={{
-                marginBottom: 10,
-                fontSize: 18,
-                fontWeight: 800,
-                textAlign: 'center',
-                color: '#311b92',
-              }}
-            >
-              School Price Summary (Incl. VAT)
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '2.2fr 4fr 1.3fr',
-                rowGap: 10,
-                columnGap: 16,
-                alignItems: 'center',
-              }}
-            >
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#d1c4e9',
-                  fontWeight: 700,
-                }}
-              >
-                Name
-              </div>
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#d1c4e9',
-                  fontWeight: 700,
-                }}
-              >
-                Description (Vendor Price) +(Heroz Profit  )
-              </div>
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#d1c4e9',
-                  fontWeight: 700,
-                  textAlign: 'right',
-                }}
-              >
-                Total
-              </div>
-
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#ede7f6',
-                  fontWeight: 700,
-                }}
-              >
-                School Price (Incl. VAT)
-              </div>
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#ede7f6',
-                }}
-              >
-                <span style={{ color: '#1b5e20' }}>{to2(_tripTotalVendorOnly)}</span> +{' '}
-                <span style={{ color: '#1a237e' }}>{to2(tripTotalHerozOnly)}</span>
-              </div>
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#ede7f6',
-                  textAlign: 'right',
-                  fontWeight: 800,
-                  color: '#c62828',
-                }}
-              >
-                {to2(schoolPriceTripOnly)}
-              </div>
-
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#f8eaf6',
-                  fontWeight: 700,
-                }}
-              >
-                Additional Items (Incl. VAT)
-              </div>
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#f8eaf6',
-                }}
-              >
-                <span style={{ color: '#1b5e20' }}>{to2(foodTotalVendorOnly)}</span> +{' '}
-                <span style={{ color: '#1a237e' }}>{to2(foodTotalHerozOnly)}</span>
-              </div>
-              <div
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 12,
-                  backgroundColor: '#f8eaf6',
-                  textAlign: 'right',
-                  fontWeight: 800,
-                  color: '#c62828',
-                }}
-              >
-                {to2(schoolFoodOnly)}
-              </div>
-
-              {/* Row 3 (final school price) is still commented out */}
-            </div>
-          </div>
           {/* =================================================================== */}
         </>
       )}

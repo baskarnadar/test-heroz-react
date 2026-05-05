@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -27,6 +27,7 @@ const Vendor = () => {
   // ✅ NEW: page-level switches (do not remove code, only hide UI)
   const HIDE_EXTRA_INFORMATION_UI = true
   const HIDE_SUMMARY_UI = true
+  const HIDE_VAT_BADGE_UI = true // ✅ hide VAT badges only; keep VAT calculation/payload code
 
   // ✅ Vendor login guard: runs once when this page mounts
   useEffect(() => {
@@ -62,6 +63,10 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
+  // ✅ NEW: Kids Interest states
+  const [fetchKidsInterests, setFetchKidsInterests] = useState([])
+  const [selectedKidsInterests, setSelectedKidsInterests] = useState([])
+
   // form fields
   const [txtactName, setactName] = useState('')
 
@@ -70,14 +75,9 @@ const Vendor = () => {
   const [selectedType, setactType] = useState('MEMBERSHIP')
 
   // default rating kept, now visible
-  const [actRating, setactRating] = useState('1') // 1..5 required
+  const [actRating, setactRating] = useState('0') // 1..5 required
 
   const [selectedCategories, setSelectedCategories] = useState([])
-
-  // ✅ NEW: Kids Interest selected IDs (for MEMBERSHIP type)
-  const [selectedKidsInterests, setSelectedKidsInterests] = useState([])
-  const [fetchKidsInterests, setFetchKidsInterests] = useState([])
-
   const [txtactDesc, setactDesc] = useState('')
 
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -169,6 +169,21 @@ const Vendor = () => {
     } catch {}
   }, [lang])
   // ----------------------
+
+  // ✅ NEW: Kids Interest helpers
+  const getKidsInterestDisplayName = (item) => {
+    return lang === 'ar'
+      ? item?.ArkidsinterestName || item?.EnkidsinterestName || ''
+      : item?.EnkidsinterestName || item?.ArkidsinterestName || ''
+  }
+
+  const handleKidsInterestCheckboxChange = (kidsinterestID) => {
+    setSelectedKidsInterests((prevSelected) =>
+      prevSelected.includes(kidsinterestID)
+        ? prevSelected.filter((id) => id !== kidsinterestID)
+        : [...prevSelected, kidsinterestID],
+    )
+  }
 
   // utils
   const timeStringToMinutes = (timeStr) => {
@@ -338,13 +353,6 @@ const Vendor = () => {
     )
   }
 
-  // ✅ NEW: Kids Interest checkbox handler
-  const handleKidsInterestChange = (kidsinterestID) => {
-    setSelectedKidsInterests((prevSelected) =>
-      prevSelected.includes(kidsinterestID) ? prevSelected.filter((id) => id !== kidsinterestID) : [...prevSelected, kidsinterestID],
-    )
-  }
-
   // food
   const uploadFoodImage = async (file) => {
     const formdata = new FormData()
@@ -436,24 +444,24 @@ const Vendor = () => {
     return { actAvailDaysHours: val, rows }
   }
 
-  // -------------------- SUMMARY VALUES (VAT) --------------------
+  // -------------------- SUMMARY VALUES (VAT INCLUDED - DO NOT ADD VAT) --------------------
   const tripPriceBase = Number(priceRanges[0]?.price || 0)
-  const tripVatAmount = tripPriceBase * vatRateValue
+  const tripVatAmount = 0
 
   const foodBaseAmount = foods.reduce((sum, item) => sum + (item.include ? 0 : Number(item.price || 0)), 0)
-  const foodVatAmount = foodBaseAmount * vatRateValue
+  const foodVatAmount = 0
 
   const totalBaseAmount = tripPriceBase + foodBaseAmount
-  const totalVatAmount = tripVatAmount + foodVatAmount
-  const totalWithVat = totalBaseAmount + totalVatAmount
+  const totalVatAmount = 0
+  const totalWithVat = totalBaseAmount
 
-  // per-row totals (Amount + VAT)
-  const tripTotalWithVatRow = tripPriceBase + tripVatAmount
-  const foodTotalWithVatRow = foodBaseAmount + foodVatAmount
+  // per-row totals; VAT is already included in the entered prices
+  const tripTotalWithVatRow = tripPriceBase
+  const foodTotalWithVatRow = foodBaseAmount
 
   // values to send in payload for Activity-level price VAT
-  const actPriceVatPercentageVal = vatPercentValue
-  const actPriceVatAmountVal = tripVatAmount
+  const actPriceVatPercentageVal = 0
+  const actPriceVatAmountVal = 0
 
   // load lookups
   useEffect(() => {
@@ -491,13 +499,19 @@ const Vendor = () => {
       } catch {}
     }
 
-    // ✅ NEW: Fetch Kids Interests from external API
-    const FetchKidsInterests = async () => {
+    // ✅ NEW: Fetch Kids Interest
+    const FetchKidsInterest = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/lookupdata/kidsinterest/getkidsinterestlist`, {
+        const response = await fetch(
+          `${API_BASE_URL}/lookupdata/kidsinterest/getkidsinterestlist` , {
           method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({}),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            page: 1,
+            limit: 1000,
+          }),
         })
         const result = await response.json()
         if (result.data) setFetchKidsInterests(result.data)
@@ -507,7 +521,7 @@ const Vendor = () => {
     fetchCities()
     fetchCountries()
     FetchCategory()
-    FetchKidsInterests()
+    FetchKidsInterest()
   }, [])
 
   // submit
@@ -535,7 +549,7 @@ const Vendor = () => {
     const validation = validateActivityForm({
       txtactName,
       selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP' (but UI shows MEMBERSHIP only)
-      selectedCategories: selectedType === 'MEMBERSHIP' ? ['SKIP'] : selectedCategories,
+      selectedCategories,
       txtactDesc,
       txtactImageName1,
       txtactImageName2,
@@ -640,7 +654,7 @@ const Vendor = () => {
       actName: txtactName || '',
       actTypeID: 'MEMBERSHIP', // ✅ enforce membership in payload
       actCategoryID: selectedCategories,
-      actKidsInterestID: selectedKidsInterests, // ✅ NEW: Kids Interest IDs for MEMBERSHIP
+      actKidsInterestID: selectedKidsInterests, // ✅ ADDED
       actDesc: txtactDesc || '',
 
       actImageName1: img1,
@@ -720,7 +734,7 @@ const Vendor = () => {
 
       setToastMessage(tr('toastActivityAdded', 'Activity added successfully!'))
       setToastType('success')
-      setTimeout(() => navigate('/vendordata/activityinfo/membership/list'), 2000)
+      setTimeout(() => navigate('/membership/activityinfo/membership/list'), 2000)
     } catch (err) {
       console.error('❌ createActivity error:', err)
       setToastMessage(tr('toastActivityAddFailed', 'Failed to add Activity.'))
@@ -752,7 +766,7 @@ const Vendor = () => {
           <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
             {tr('btnSave', 'Save')}
           </button>
-          <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/membership/list')}>
+          <button type="button" className="admin-buttonv1" onClick={() => navigate('/membership/activityinfo/membership/list')}>
             {tr('btnReturn', 'Return')}
           </button>
         </div>
@@ -805,101 +819,95 @@ const Vendor = () => {
               id="actRating"
               name="actRating"
               type="number"
-              inputMode="numeric"
-              step="1"
+              inputMode="decimal"
+              step="0.1"
               min="1"
               max="5"
               className="admin-txt-box"
               placeholder={tr('phEnterRating', 'Enter rating 1 to 5')}
               value={actRating}
-              onChange={(e) => {
-                const value = e.target.value
-
-                if (value === '') {
-                  setactRating('')
-                  return
-                }
-
-                const n = Number(value)
-                if (!Number.isFinite(n)) return
-
-                if (n < 1) {
-                  setactRating('1')
-                  return
-                }
-
-                if (n > 5) {
-                  setactRating('5')
-                  return
-                }
-
-                setactRating(String(Math.floor(n)))
-              }}
-              onKeyDown={(e) => {
-                if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault()
-              }}
+              onChange={(e) => setactRating(e.target.value)}
             />
             <ErrorText msg={errors.actRating} />
           </div>
         )}
 
-        {/* ✅ Activity Categories: hidden when MEMBERSHIP is selected */}
-        {selectedType !== 'MEMBERSHIP' && (
-          <div className="act-categoriesWrap">
-            <label className="act-categoriesLabel">
-              {tr('labelCategories', 'Activity Categories')} <span className="act-required">*</span>
-            </label>
+        <div className="act-categoriesWrap">
+          <label className="act-categoriesLabel">
+            {tr('labelCategories', 'Activity Categories')} <span className="act-required">*</span>
+          </label>
 
-            <div className="act-categoriesGrid">
-              {fetchcategories.map((item) => (
-                <label key={item.CategoryID} className="act-categoryItem">
-                  <div className="act-categoryCheckWrap">
-                    <input
-                      type="checkbox"
-                      name="selectedCategories"
-                      value={item.CategoryID}
-                      checked={selectedCategories.includes(item.CategoryID)}
-                      onChange={() => handleCheckboxChange(item.CategoryID)}
-                      className="act-categoryCheckbox"
-                    />
-                  </div>
-                  <div className="pink-shadow4">{lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}</div>
-                </label>
-              ))}
-            </div>
-
-            <ErrorText msg={errors.selectedCategories} />
+          <div className="act-categoriesGrid">
+            {fetchcategories.map((item) => (
+              <label key={item.CategoryID} className="act-categoryItem">
+                <div className="act-categoryCheckWrap">
+                  <input
+                    type="checkbox"
+                    name="selectedCategories"
+                    value={item.CategoryID}
+                    checked={selectedCategories.includes(item.CategoryID)}
+                    onChange={() => handleCheckboxChange(item.CategoryID)}
+                    className="act-categoryCheckbox"
+                  />
+                </div>
+                <div className="pink-shadow4">{lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}</div>
+              </label>
+            ))}
           </div>
-        )}
 
-        {/* ✅ NEW: Kids Interest — shown when MEMBERSHIP is selected, same style as Activity Categories */}
-        {selectedType === 'MEMBERSHIP' && (
-          <div className="act-categoriesWrap">
-            <label className="act-categoriesLabel">
-              {tr('labelKidsInterest', 'Membership Interest')}
-            </label>
+          <ErrorText msg={errors.selectedCategories} />
+        </div>
 
-            <div className="act-categoriesGrid">
-              {fetchKidsInterests.map((item) => (
-                <label key={item.kidsinterestID} className="act-categoryItem">
-                  <div className="act-categoryCheckWrap">
-                    <input
-                      type="checkbox"
-                      name="selectedKidsInterests"
-                      value={item.kidsinterestID}
-                      checked={selectedKidsInterests.includes(item.kidsinterestID)}
-                      onChange={() => handleKidsInterestChange(item.kidsinterestID)}
-                      className="act-categoryCheckbox"
+        {/* ✅ NEW: Kids Interest section below categories */}
+        <div className="act-categoriesWrap">
+          <label className="act-categoriesLabel">
+            {tr('labelKidsInterest', 'Kids Interest')}
+          </label>
+
+          <div className="act-categoriesGrid">
+            {fetchKidsInterests.map((item) => (
+              <label key={item.kidsinterestID} className="act-categoryItem">
+                <div className="act-categoryCheckWrap">
+                  <input
+                    type="checkbox"
+                    name="actKidsInterestID"
+                    value={item.kidsinterestID}
+                    checked={selectedKidsInterests.includes(item.kidsinterestID)}
+                    onChange={() => handleKidsInterestCheckboxChange(item.kidsinterestID)}
+                    className="act-categoryCheckbox"
+                  />
+                </div>
+
+                <div
+                  className="pink-shadow4"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {item.kidsinterestImageNameUrl ? (
+                    <img
+                      src={item.kidsinterestImageNameUrl}
+                      alt={getKidsInterestDisplayName(item)}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        objectFit: 'cover',
+                        borderRadius: '50%',
+                        border: '1px solid #ddd',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
                     />
-                  </div>
-                  <div className="pink-shadow4">{lang === 'ar' ? item.ArkidsinterestName : item.EnkidsinterestName}</div>
-                </label>
-              ))}
-            </div>
-
-            <ErrorText msg={errors.selectedKidsInterests} />
+                  ) : null}
+                  {getKidsInterestDisplayName(item)}
+                </div>
+              </label>
+            ))}
           </div>
-        )}
+        </div>
 
         <div className="form-group">
           <label className="act-requiredLabel">
@@ -1179,7 +1187,7 @@ const Vendor = () => {
       {/* ✅ CHANGE #2: Per Student -> Activity Price Per Member */}
       <div className="txtsubtitle">
         {tr('sectionPerMember', 'Activity Price Per Member')}
-        {vatPercentValue > 0 && <span className="act-vatPercentPill">{`+ VAT ${to2(vatPercentValue)}%`}</span>}
+        {vatPercentValue > 0 && <span className={`act-vatPercentPill ${HIDE_VAT_BADGE_UI ? 'act-hide' : ''}`}>{`+ VAT ${to2(vatPercentValue)}%`}</span>}
         <span className="act-required">*</span>
       </div>
 
@@ -1187,7 +1195,7 @@ const Vendor = () => {
         <CRow className="fw-bold mb-2">
           {/* ✅ CHANGE #3: Price Per Student -> Activity Price Per Member */}
           <CCol sm={3}>
-            {tr('colPricePerMember', 'Activity Price Per Member (Excl. VAT)')} <span className="act-required">*</span>
+            {tr('colPricePerMember', 'Activity Price Per Member')} <span className="act-required">*</span>
           </CCol>
           <CCol sm={3} className={HIDE_PRICE_RANGE_UI ? 'act-hide' : ''}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -1217,7 +1225,7 @@ const Vendor = () => {
                 {index === 0 && <ErrorText msg={errors.price} />}
 
                 {priceNum > 0 && vatPercentValue > 0 && (
-                  <div className="act-vatPillWrap">
+                  <div className={`act-vatPillWrap ${HIDE_VAT_BADGE_UI ? 'act-hide' : ''}`}>
                     <span className="act-vatPill">
                       {tr('labelVatAmount', 'VAT Amount')} ({to2(vatPercentValue)}%):{' '}
                       <strong className="act-vatStrong">{to2(vatAmount)}</strong>
@@ -1356,8 +1364,7 @@ const Vendor = () => {
             <div className="act-foodWrap">
               <CRow className="mb-2 fw-bold hbg">
                 <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-                <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
-                <CCol sm={3}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
+                <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price')}</CCol>
                 <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
                 {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Extra Image')}</CCol>}
                 <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -1391,17 +1398,6 @@ const Vendor = () => {
                         step="0.01"
                         disabled={item.include}
                       />
-                    </CCol>
-
-                    <CCol sm={3}>
-                      {baseFoodPrice > 0 && vatPercentValue > 0 && (
-                        <div className="act-foodVatCell">
-                          <span className="act-vatPill">
-                            {tr('labelVatAmount', 'VAT Amount')} ({to2(vatPercentValue)}%):{' '}
-                            <strong className="act-vatStrong">{to2(foodVat)}</strong>
-                          </span>
-                        </div>
-                      )}
                     </CCol>
 
                     <CCol sm={3}>
@@ -1501,50 +1497,40 @@ const Vendor = () => {
           <div className="txtsubtitle">{tr('sectionSummary', 'Summary')}</div>
 
           <div className="divbox">
-            <div className="act-summaryCard">
-              <div className="act-summaryHeader">
-                <div className="act-summaryNo">{tr('summaryNo', '#')}</div>
+            <div className="act-summaryCard" style={{ maxWidth: 980, margin: '0 auto', borderRadius: 18, overflow: 'hidden', boxShadow: '0 14px 35px rgba(80, 0, 80, 0.10)', border: '1px solid rgba(126, 0, 98, 0.14)', background: '#fff' }}>
+              <div style={{ padding: '16px 18px', background: 'linear-gradient(135deg, rgba(252, 228, 239, 0.95), rgba(255, 255, 255, 0.95))', borderBottom: '1px solid rgba(126, 0, 98, 0.10)', fontWeight: 900, fontSize: 18, color: '#4d0047' }}>
+                {tr('sectionSummary', 'Summary')}
+              </div>
+
+              <div className="act-summaryHeader" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                 <div className="act-summaryDesc">{tr('summaryDescription', 'Description')}</div>
-                <div className="act-summaryAmount">
-                  {tr('summaryAmount', 'Amount')} <span className="act-vatPill">({to2(vatPercentValue)}%)</span>
-                </div>
-                <div className="act-summaryVat">{tr('summaryVat', 'VAT')}</div>
-                <div className="act-summaryTotal">{tr('summaryTotalInclVat', 'Total')}</div>
+                <div className="act-summaryAmount">{tr('summaryVendorBasePrice', 'Base Price (Vendor)')}</div>
+                <div className="act-summaryAmount">{tr('summaryHerozBasePrice', 'Base Price (Heroz)')}</div>
+                <div className="act-summaryTotal">{tr('summaryTotal', 'Total')}</div>
               </div>
 
               <div className="act-summaryBody">
-                <div className="act-summaryRow">
-                  <div className="act-summaryNo">1.</div>
+                <div className="act-summaryRow" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                   <div className="act-summaryDesc">{tr('summaryTrip', 'Trip')}</div>
                   <div className="act-summaryAmountVal">{to2(tripPriceBase)}</div>
-                  <div className="act-summaryVatVal">{to2(tripVatAmount)}</div>
+                  <div className="act-summaryAmountVal">0.00</div>
                   <div className="act-summaryTotalVal">{to2(tripTotalWithVatRow)}</div>
                 </div>
 
-                <div className="act-summaryRow">
-                  <div className="act-summaryNo">2.</div>
+                <div className="act-summaryRow" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                   <div className="act-summaryDesc">{tr('summaryFood', 'Extra')}</div>
                   <div className="act-summaryAmountVal">{to2(foodBaseAmount)}</div>
-                  <div className="act-summaryVatVal">{to2(foodVatAmount)}</div>
+                  <div className="act-summaryAmountVal">0.00</div>
                   <div className="act-summaryTotalVal">{to2(foodTotalWithVatRow)}</div>
                 </div>
 
-                <div className="act-summaryTotalRow">
-                  <div className="act-summaryNo"></div>
+                <div className="act-summaryTotalRow" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                   <div className="act-summaryDesc">{tr('summaryTotal', 'Total')}</div>
                   <div className="act-summaryAmountVal">{to2(totalBaseAmount)}</div>
-                  <div className="act-summaryVatVal">{to2(totalVatAmount)}</div>
+                  <div className="act-summaryAmountVal">0.00</div>
                   <div className="act-summaryTotalVal">{to2(totalWithVat)}</div>
                 </div>
               </div>
-            </div>
-
-            <div className="act-totalGreenBox">
-              <div>
-                <div className="act-totalGreenTitle">{tr('summaryTotalCostInclVat', 'Your Total Price Included VAT')}</div>
-                <div className="act-totalGreenSub">{tr('summaryTotalCostEquation', 'Total Amount + Total VAT Amount')}</div>
-              </div>
-              <div className="act-totalGreenValue">{to2(totalWithVat)}</div>
             </div>
           </div>
         </>
@@ -1557,7 +1543,7 @@ const Vendor = () => {
         <button className="admin-buttonv1" onClick={(e) => handleSubmit('DRAFT', e)}>
           {tr('btnSave', 'Save')}
         </button>
-        <button type="button" className="admin-buttonv1" onClick={() => navigate('/vendordata/activityinfo/membership/list')}>
+        <button type="button" className="admin-buttonv1" onClick={() => navigate('/membership/activityinfo/membership/list')}>
           {tr('btnCancel', 'Cancel')}
         </button>
       </div>

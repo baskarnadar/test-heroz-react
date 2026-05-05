@@ -7,7 +7,6 @@ import {
   dspstatusv1,
   getAuthHeaders,
   IsVendorLoginIsValid,
-  getVatAmount,
 } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import {
@@ -66,11 +65,9 @@ const Vendor = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
 
-  // -------------------- VAT VALUES + SUMMARY (READ-ONLY) --------------------
-  // Use same VAT setup as Add Activity screen
-  const vatPercentValue = Number(getVatAmount() || 0) // e.g. 15
-  const vatRateValue = vatPercentValue / 100 // e.g. 0.15
-
+  // -------------------- SUMMARY VALUES (VAT INCLUDED - DO NOT ADD VAT) --------------------
+  // ✅ IMPORTANT: All prices returned from API are already VAT included.
+  // ✅ Do not add VAT again and do not show VAT badges/columns.
   const priceList = ActivityData?.priceList || []
   const foodList = ActivityData?.foodList || []
 
@@ -81,36 +78,17 @@ const Vendor = () => {
     return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2)
   }
 
-  // Base trip price: first price row
+  // Trip price: first price row (already VAT included)
   const tripPriceBase = priceList.length > 0 ? Number(priceList[0].Price || 0) : 0
-  const tripVatAmount = tripPriceBase * vatRateValue
 
-  // Food base: sum of non-included Extra prices
+  // Extra price: sum of non-included extras only (already VAT included)
   const foodBaseAmount = foodList.reduce(
     (sum, item) => sum + (item.Include ? 0 : Number(item.FoodPrice || 0)),
     0,
   )
-  const foodVatAmount = foodBaseAmount * vatRateValue
 
+  // ✅ Final total = Trip + Extra only. VAT is already included in each price.
   const totalBaseAmount = tripPriceBase + foodBaseAmount
-  const totalVatAmount = tripVatAmount + foodVatAmount
-  const totalWithVat = totalBaseAmount + totalVatAmount
-
-  // Per-row totals (Trip + Food)
-  const tripTotalWithVat = tripPriceBase + tripVatAmount
-  const foodTotalWithVat = foodBaseAmount + foodVatAmount
-
-  const vatPillStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    border: '1px solid #cf2037',
-    borderRadius: 999,
-    padding: '3px 10px',
-    backgroundColor: 'rgba(207, 32, 55, 0.15)',
-    color: '#cf2037',
-    fontSize: 12,
-    marginTop: 4,
-  }
   // -------------------------------------------------------------------------
 
   const fetchActivity = async (ActivityIDVal) => {
@@ -456,23 +434,6 @@ const Vendor = () => {
 
       <div className="txtsubtitle">
         {tr('sectionPricePerStudent', 'Price Per Student')}
-        {vatPercentValue > 0 && (
-          <span
-            style={{
-              marginInlineStart: 8,
-              fontSize: 13,
-              border: '1px solid #cf2037',
-              borderRadius: 999,
-              padding: '3px 10px',
-              backgroundColor: 'rgba(207, 32, 55, 0.15)',
-              color: '#cf2037',
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-          >
-            {`+ VAT ${to2(vatPercentValue)}%`}
-          </span>
-        )}
       </div>
 
       <div className="divbox">
@@ -490,10 +451,6 @@ const Vendor = () => {
 
         {/* Dynamic Form Rows */}
         {ActivityData?.priceList?.map((priceItem, index) => {
-          const basePrice = Number(priceItem.Price || 0)
-          const vatAmount = basePrice * vatRateValue
-          const totalWithVatRow = basePrice + vatAmount
-
           return (
             <CRow className="align-items-center mb-2" key={index}>
               <CCol sm={12}>
@@ -505,38 +462,6 @@ const Vendor = () => {
                   />
                   {to2(priceItem.Price)}
                 </div>
-
-                {/* VAT pill + Total incl. VAT under price (read-only) */}
-                {basePrice > 0 && vatPercentValue > 0 && (
-                  <div
-                    style={{
-                      marginTop: 6,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <span style={vatPillStyle}>
-                      {tr('labelVatAmount', 'VAT Amount')}{' '}
-                      ({to2(vatPercentValue)}%):{' '}
-                      <strong style={{ marginInlineStart: 4 }}>
-                        {to2(vatAmount)}
-                      </strong>
-                    </span>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: '#333',
-                      }}
-                    >
-                      {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
-                      <span>{to2(totalWithVatRow)}</span>
-                    </div>
-                  </div>
-                )}
               </CCol>
               <CCol sm={3} style={{ display: HIDE_PRICE_RANGE_UI ? 'none' : undefined }}>
                 <div className="admin-lbl-box text-center pink-shadow2">
@@ -657,7 +582,7 @@ const Vendor = () => {
           <CRow className="mb-2 fw-bold hbg">
             <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
             <CCol sm={2}>
-              {tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}
+              {tr('colBaseFoodPrice', 'Extra Price')}
             </CCol>
             <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
             <CCol sm={2}>{tr('colFoodImage', 'Extra Image')}</CCol>
@@ -666,10 +591,6 @@ const Vendor = () => {
           </CRow>
 
           {ActivityData?.foodList?.map((foodItem, index) => {
-            const baseFoodPrice = foodItem.Include ? 0 : Number(foodItem.FoodPrice || 0)
-            const foodVat = baseFoodPrice * vatRateValue
-            const foodTotalWithVatRow = baseFoodPrice + foodVat
-
             return (
               <CRow key={index} className="mb-3 align-items-center">
                 {/* Extra Name */}
@@ -682,36 +603,6 @@ const Vendor = () => {
                   <div className="admin-lbl-box text-center">
                     {to2(foodItem.FoodPrice)}
                   </div>
-                  {baseFoodPrice > 0 && vatPercentValue > 0 && (
-                    <div
-                      style={{
-                        marginTop: 6,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 8,
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <span style={vatPillStyle}>
-                        {tr('labelVatAmount', 'VAT Amount')}{' '}
-                        ({to2(vatPercentValue)}%):{' '}
-                        <strong style={{ marginInlineStart: 4 }}>
-                          {to2(foodVat)}
-                        </strong>
-                      </span>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: '#333',
-                        }}
-                      >
-                        {tr('labelPriceWithVatShort', 'Total incl. VAT')}:{' '}
-                        <span>{to2(foodTotalWithVatRow)}</span>
-                      </div>
-                    </div>
-                  )}
                 </CCol>
 
                 {/* Notes */}
@@ -749,152 +640,127 @@ const Vendor = () => {
         {tr('sectionSummary', 'Summary')}
       </div>
       <div className="divbox">
-        {/* Main summary card: Trip / Food / Total */}
         <div
           style={{
-            maxWidth: 650,
+            maxWidth: 900,
             margin: '0 auto',
-            border: '1px solid #ddd',
-            borderRadius: 12,
+            border: '1px solid rgba(122, 0, 92, 0.14)',
+            borderRadius: 18,
             overflow: 'hidden',
+            background: 'linear-gradient(180deg, #ffffff 0%, #fff7fd 100%)',
+            boxShadow: '0 12px 30px rgba(94, 0, 83, 0.10)',
             fontSize: 14,
           }}
         >
-          {/* Header row */}
           <div
             style={{
+              padding: '16px 18px',
+              borderBottom: '1px solid rgba(122, 0, 92, 0.10)',
               display: 'flex',
-              background: '#f7f7f7',
-              fontWeight: 600,
-              padding: '8px 12px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              background: 'linear-gradient(90deg, rgba(122,0,92,0.08), rgba(207,32,122,0.05))',
             }}
           >
-            <div style={{ flex: 0.5 }}>
-              {tr('summaryNo', '#')}
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#25001f' }}>
+                {tr('sectionSummary', 'Summary')}
+              </div>
+              <div style={{ fontSize: 12, color: '#6b5566', marginTop: 3 }}>
+                {tr('summaryVatIncludedNote', 'VAT is already included in the prices. No VAT is added again.')}
+              </div>
             </div>
-            <div style={{ flex: 1.5 }}>
-              {tr('summaryDescription', 'Description')}
-            </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryAmount', 'Amount Exc VAT')}
-            </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryVat', 'VAT')}{' '}
-              <span style={vatPillStyle}>({(vatPercentValue)}%)</span>
-            </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              {tr('summaryTotal', 'Total Inc Vat')}
+            <div
+              style={{
+                borderRadius: 999,
+                padding: '7px 12px',
+                fontSize: 12,
+                fontWeight: 800,
+                color: '#6f005d',
+                background: 'rgba(122, 0, 92, 0.10)',
+                border: '1px solid rgba(122, 0, 92, 0.16)',
+              }}
+            >
+              {tr('summaryVatIncluded', 'VAT Included')}
             </div>
           </div>
 
-          {/* Body rows */}
-          <div style={{ padding: '8px 12px' }}>
-            {/* 1. Trip */}
-            <div
+          <div style={{ overflowX: 'auto' }}>
+            <table
               style={{
-                display: 'flex',
-                padding: '6px 0',
-                borderBottom: '1px solid #eee',
-                alignItems: 'center',
+                width: '100%',
+                borderCollapse: 'separate',
+                borderSpacing: 0,
+                minWidth: 620,
               }}
             >
-              <div style={{ flex: 0.5 }}>1.</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryTrip', 'Trip')}</div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {to2(tripPriceBase)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {to2(tripVatAmount)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {to2(tripTotalWithVat)}
-              </div>
-            </div>
-
-            {/* 2. Food */}
-            <div
-              style={{
-                display: 'flex',
-                padding: '6px 0',
-                borderBottom: '1px solid ' +
-                  '#eee',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ flex: 0.5 }}>2.</div>
-              <div style={{ flex: 1.5 }}>{tr('summaryFood', 'Food')}</div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {to2(foodBaseAmount)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>
-                {to2(foodVatAmount)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right', fontWeight: 700 }}>
-                {to2(foodTotalWithVat)}
-              </div>
-            </div>
-
-            {/* Total row */}
-            <div
-              style={{
-                display: 'flex',
-                padding: '8px 0 4px',
-                fontWeight: 700,
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ flex: 0.5 }}></div>
-              <div style={{ flex: 1.5 }}>
-                {tr('summaryTotal', 'Total')}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {to2(totalBaseAmount)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {to2(totalVatAmount)}
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                {to2(totalWithVat)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Final big Total Price box */}
-        <div
-          style={{
-            maxWidth: 650,
-            margin: '16px auto 0',
-            border: '3px solid #2e7d32',
-            borderRadius: 16,
-            padding: '12px 16px',
-            backgroundColor: 'rgba(46, 125, 50, 0.15)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1b5e20' }}>
-              {tr('summaryTotalCostInclVat', 'Your Total Price Including VAT')}
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.9, color: '#1b5e20' }}>
-              {tr(
-                'summaryTotalCostEquation',
-                'Total Amount + Total VAT Amount',
-              )}
-            </div>
-          </div>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 24,
-              color: '#1b5e20',
-              marginTop: 8,
-            }}
-          >
-            {to2(totalWithVat)}
+              <thead>
+                <tr style={{ background: '#fff' }}>
+                  <th style={{ textAlign: 'left', padding: '14px 16px', fontWeight: 900, color: '#1f1f1f' }}>
+                    {tr('summaryDescription', 'Description')}
+                  </th>
+                  <th style={{ textAlign: 'right', padding: '14px 16px', fontWeight: 900, color: '#1f1f1f' }}>
+                    {tr('summaryBasePrice', 'Base Price')}
+                  </th>
+                  <th style={{ textAlign: 'right', padding: '14px 16px', fontWeight: 900, color: '#1f1f1f' }}>
+                    {tr('summaryTotal', 'Total')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '14px 16px', borderTop: '1px solid #f0e4ee', fontWeight: 700 }}>
+                    {tr('summaryTrip', 'Trip')}
+                  </td>
+                  <td style={{ padding: '14px 16px', borderTop: '1px solid #f0e4ee', textAlign: 'right', fontWeight: 700 }}>
+                    {to2(tripPriceBase)}
+                  </td>
+                  <td style={{ padding: '14px 16px', borderTop: '1px solid #f0e4ee', textAlign: 'right', fontWeight: 900, color: '#25001f' }}>
+                    {to2(tripPriceBase)}
+                  </td>
+                </tr>
+                <tr style={{ background: 'rgba(122, 0, 92, 0.025)' }}>
+                  <td style={{ padding: '14px 16px', borderTop: '1px solid #f0e4ee', fontWeight: 700 }}>
+                    {tr('summaryExtra', 'Extra')}
+                  </td>
+                  <td style={{ padding: '14px 16px', borderTop: '1px solid #f0e4ee', textAlign: 'right', fontWeight: 700 }}>
+                    {to2(foodBaseAmount)}
+                  </td>
+                  <td style={{ padding: '14px 16px', borderTop: '1px solid #f0e4ee', textAlign: 'right', fontWeight: 900, color: '#25001f' }}>
+                    {to2(foodBaseAmount)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '16px', borderTop: '2px solid #ead4e6', fontWeight: 900, fontSize: 15 }}>
+                    {tr('summaryTotal', 'Total')}
+                  </td>
+                  <td style={{ padding: '16px', borderTop: '2px solid #ead4e6', textAlign: 'right', fontWeight: 900, fontSize: 15 }}>
+                    {to2(totalBaseAmount)}
+                  </td>
+                  <td style={{ padding: '16px', borderTop: '2px solid #ead4e6', textAlign: 'right' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 110,
+                        borderRadius: 999,
+                        padding: '8px 14px',
+                        background: 'linear-gradient(135deg, #5f0055, #cf207a)',
+                        color: '#fff',
+                        fontWeight: 900,
+                        fontSize: 16,
+                        boxShadow: '0 8px 18px rgba(122, 0, 92, 0.22)',
+                      }}
+                    >
+                      {to2(totalBaseAmount)}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

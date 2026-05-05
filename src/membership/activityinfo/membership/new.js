@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
-import { DspToastMessage, getAuthHeaders, IsMemberShipLoginIsValid, getVatAmount } from '../../../utils/operation'
+import { DspToastMessage, getAuthHeaders, IsMemberShipLoginIsValid } from '../../../utils/operation'
 import FilePreview from '../../widgets/FilePreview'
 import { getFileNameFromUrl, getCurrentLoggedUserID } from '../../../utils/operation'
 import { CRow, CCol } from '@coreui/react'
@@ -35,8 +35,8 @@ const Vendor = () => {
 
   // ✅ VAT rate:
   //    Assume getVatAmount() returns PERCENT (ex: 15 for 15%)
-  const vatPercentValue = Number(getVatAmount() || 0) // 15
-  const vatRateValue = vatPercentValue / 100 // 0.15
+  const vatPercentValue = 0 // VAT is already included in the entered price
+  const vatRateValue = 0
 
   // ⭐ Standard money rounding (2.447 → 2.45, etc.)
   const to2 = (v) => {
@@ -443,24 +443,24 @@ const Vendor = () => {
     return { actAvailDaysHours: val, rows }
   }
 
-  // -------------------- SUMMARY VALUES (VAT) --------------------
+  // -------------------- SUMMARY VALUES (VAT INCLUDED - DO NOT ADD VAT) --------------------
   const tripPriceBase = Number(priceRanges[0]?.price || 0)
-  const tripVatAmount = tripPriceBase * vatRateValue
+  const tripVatAmount = 0
 
   const foodBaseAmount = foods.reduce((sum, item) => sum + (item.include ? 0 : Number(item.price || 0)), 0)
-  const foodVatAmount = foodBaseAmount * vatRateValue
+  const foodVatAmount = 0
 
   const totalBaseAmount = tripPriceBase + foodBaseAmount
-  const totalVatAmount = tripVatAmount + foodVatAmount
-  const totalWithVat = totalBaseAmount + totalVatAmount
+  const totalVatAmount = 0
+  const totalWithVat = totalBaseAmount
 
-  // per-row totals (Amount + VAT)
-  const tripTotalWithVatRow = tripPriceBase + tripVatAmount
-  const foodTotalWithVatRow = foodBaseAmount + foodVatAmount
+  // per-row totals; VAT is already included in the entered prices
+  const tripTotalWithVatRow = tripPriceBase
+  const foodTotalWithVatRow = foodBaseAmount
 
   // values to send in payload for Activity-level price VAT
-  const actPriceVatPercentageVal = vatPercentValue
-  const actPriceVatAmountVal = tripVatAmount
+  const actPriceVatPercentageVal = 0
+  const actPriceVatAmountVal = 0
 
   // load lookups
   useEffect(() => {
@@ -1194,7 +1194,7 @@ const Vendor = () => {
         <CRow className="fw-bold mb-2">
           {/* ✅ CHANGE #3: Price Per Student -> Activity Price Per Member */}
           <CCol sm={3}>
-            {tr('colPricePerMember', 'Activity Price Per Member (Excl. VAT)')} <span className="act-required">*</span>
+            {tr('colPricePerMember', 'Activity Price Per Member')} <span className="act-required">*</span>
           </CCol>
           <CCol sm={3} className={HIDE_PRICE_RANGE_UI ? 'act-hide' : ''}>
             {tr('labelStudentRangeFrom', 'Student Range From')}
@@ -1363,8 +1363,7 @@ const Vendor = () => {
             <div className="act-foodWrap">
               <CRow className="mb-2 fw-bold hbg">
                 <CCol sm={3}>{tr('colFoodName', 'Extra Name')}</CCol>
-                <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price (Excl. VAT)')}</CCol>
-                <CCol sm={3}>{tr('colFoodVatAmount', 'VAT Amount')}</CCol>
+                <CCol sm={2}>{tr('colBaseFoodPrice', 'Extra Price')}</CCol>
                 <CCol sm={3}>{tr('colNotes', 'Notes')}</CCol>
                 {!HIDE_FOOD_IMAGE && <CCol sm={1}>{tr('colFoodImage', 'Extra Image')}</CCol>}
                 <CCol sm={1}>{tr('colInclude', 'Include')}</CCol>
@@ -1398,17 +1397,6 @@ const Vendor = () => {
                         step="0.01"
                         disabled={item.include}
                       />
-                    </CCol>
-
-                    <CCol sm={3}>
-                      {baseFoodPrice > 0 && vatPercentValue > 0 && (
-                        <div className="act-foodVatCell">
-                          <span className="act-vatPill">
-                            {tr('labelVatAmount', 'VAT Amount')} ({to2(vatPercentValue)}%):{' '}
-                            <strong className="act-vatStrong">{to2(foodVat)}</strong>
-                          </span>
-                        </div>
-                      )}
                     </CCol>
 
                     <CCol sm={3}>
@@ -1508,50 +1496,40 @@ const Vendor = () => {
           <div className="txtsubtitle">{tr('sectionSummary', 'Summary')}</div>
 
           <div className="divbox">
-            <div className="act-summaryCard">
-              <div className="act-summaryHeader">
-                <div className="act-summaryNo">{tr('summaryNo', '#')}</div>
+            <div className="act-summaryCard" style={{ maxWidth: 980, margin: '0 auto', borderRadius: 18, overflow: 'hidden', boxShadow: '0 14px 35px rgba(80, 0, 80, 0.10)', border: '1px solid rgba(126, 0, 98, 0.14)', background: '#fff' }}>
+              <div style={{ padding: '16px 18px', background: 'linear-gradient(135deg, rgba(252, 228, 239, 0.95), rgba(255, 255, 255, 0.95))', borderBottom: '1px solid rgba(126, 0, 98, 0.10)', fontWeight: 900, fontSize: 18, color: '#4d0047' }}>
+                {tr('sectionSummary', 'Summary')}
+              </div>
+
+              <div className="act-summaryHeader" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                 <div className="act-summaryDesc">{tr('summaryDescription', 'Description')}</div>
-                <div className="act-summaryAmount">
-                  {tr('summaryAmount', 'Amount')} <span className="act-vatPill">({to2(vatPercentValue)}%)</span>
-                </div>
-                <div className="act-summaryVat">{tr('summaryVat', 'VAT')}</div>
-                <div className="act-summaryTotal">{tr('summaryTotalInclVat', 'Total')}</div>
+                <div className="act-summaryAmount">{tr('summaryVendorBasePrice', 'Base Price (Vendor)')}</div>
+                <div className="act-summaryAmount">{tr('summaryHerozBasePrice', 'Base Price (Heroz)')}</div>
+                <div className="act-summaryTotal">{tr('summaryTotal', 'Total')}</div>
               </div>
 
               <div className="act-summaryBody">
-                <div className="act-summaryRow">
-                  <div className="act-summaryNo">1.</div>
+                <div className="act-summaryRow" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                   <div className="act-summaryDesc">{tr('summaryTrip', 'Trip')}</div>
                   <div className="act-summaryAmountVal">{to2(tripPriceBase)}</div>
-                  <div className="act-summaryVatVal">{to2(tripVatAmount)}</div>
+                  <div className="act-summaryAmountVal">0.00</div>
                   <div className="act-summaryTotalVal">{to2(tripTotalWithVatRow)}</div>
                 </div>
 
-                <div className="act-summaryRow">
-                  <div className="act-summaryNo">2.</div>
+                <div className="act-summaryRow" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                   <div className="act-summaryDesc">{tr('summaryFood', 'Extra')}</div>
                   <div className="act-summaryAmountVal">{to2(foodBaseAmount)}</div>
-                  <div className="act-summaryVatVal">{to2(foodVatAmount)}</div>
+                  <div className="act-summaryAmountVal">0.00</div>
                   <div className="act-summaryTotalVal">{to2(foodTotalWithVatRow)}</div>
                 </div>
 
-                <div className="act-summaryTotalRow">
-                  <div className="act-summaryNo"></div>
+                <div className="act-summaryTotalRow" style={{ gridTemplateColumns: '2fr 1.3fr 1.3fr 1.1fr' }}>
                   <div className="act-summaryDesc">{tr('summaryTotal', 'Total')}</div>
                   <div className="act-summaryAmountVal">{to2(totalBaseAmount)}</div>
-                  <div className="act-summaryVatVal">{to2(totalVatAmount)}</div>
+                  <div className="act-summaryAmountVal">0.00</div>
                   <div className="act-summaryTotalVal">{to2(totalWithVat)}</div>
                 </div>
               </div>
-            </div>
-
-            <div className="act-totalGreenBox">
-              <div>
-                <div className="act-totalGreenTitle">{tr('summaryTotalCostInclVat', 'Your Total Price Included VAT')}</div>
-                <div className="act-totalGreenSub">{tr('summaryTotalCostEquation', 'Total Amount + Total VAT Amount')}</div>
-              </div>
-              <div className="act-totalGreenValue">{to2(totalWithVat)}</div>
             </div>
           </div>
         </>

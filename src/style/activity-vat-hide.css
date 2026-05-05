@@ -1,0 +1,30 @@
+
+/* Hide all VAT badges/labels visually while keeping calculations intact */
+.act-vatPercentPill,
+.act-vatPillWrap,
+.act-vatPill,
+.act-foodVatCell,
+.act-summaryVat,
+.act-summaryVatVal,
+.act-summaryHeader .act-summaryVat,
+.act-summaryRow .act-summaryVatVal,
+.act-summaryTotalRow .act-summaryVatVal {
+  display: none !important;
+}
+
+/* Hide VAT column spacing in summary */
+.act-summaryHeader,
+.act-summaryRow,
+.act-summaryTotalRow {
+  grid-template-columns: 60px 1fr 1fr 1fr !important;
+}
+
+/* Optional: hide any red VAT border badges globally in activity form */
+[class*="vat"],
+[class*="Vat"] {
+  border-color: transparent !important;
+}
+
+.act-vatStrong {
+  display: none !important;
+}

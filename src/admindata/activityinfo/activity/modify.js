@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL, HerozStarValue } from '../../../config'
@@ -1228,25 +1228,28 @@ const Vendor = () => {
   const tripBasePrice = firstRange ? Number(firstRange.price || 0) : 0
   const tripBaseHerozPrice = firstRange ? Number(firstRange.HerozStudentPrice || 0) : 0
 
-  const tripVatAmount = tripBasePrice * vatRateValue
-  const tripHerozVatAmount = tripBaseHerozPrice * vatRateValue
+  // ✅ SUMMARY MUST NOT ADD VAT
+  // VAT is already included in the entered Vendor/Heroz prices, so the summary uses the entered values directly.
+  // Keep the VAT variables as 0 only for backward compatibility with old code references.
+  const tripVatAmount = 0
+  const tripHerozVatAmount = 0
 
   const foodBaseAmount = foods.reduce((sum, item) => sum + (item.include ? 0 : Number(item.price || 0)), 0)
   const foodHerozBaseAmount = foods.reduce((sum, item) => sum + (item.include ? 0 : Number(item.herozprice || 0)), 0)
 
-  const foodVatAmount = foodBaseAmount * vatRateValue
-  const foodHerozVatAmount = foodHerozBaseAmount * vatRateValue
+  const foodVatAmount = 0
+  const foodHerozVatAmount = 0
 
   const totalBaseAmount = tripBasePrice + foodBaseAmount
   const totalHerozBaseAmount = tripBaseHerozPrice + foodHerozBaseAmount
 
-  const totalVatAmount = tripVatAmount + foodVatAmount
-  const totalHerozVatAmount = tripHerozVatAmount + foodHerozVatAmount
+  const totalVatAmount = 0
+  const totalHerozVatAmount = 0
 
-  const totalWithVat = totalBaseAmount + totalVatAmount
-  const totalHerozWithVat = totalHerozBaseAmount + totalHerozVatAmount
+  const totalWithVat = totalBaseAmount
+  const totalHerozWithVat = totalHerozBaseAmount
 
-  const totalTripCost = totalWithVat + totalHerozWithVat
+  const totalTripCost = totalBaseAmount + totalHerozBaseAmount
 
   const starBoxStyle = {
     border: '1px solid #9b9b9b',
@@ -1972,7 +1975,7 @@ const Vendor = () => {
       {/* ✅ TITLE CHANGES BASED ON actTypeID (selectedType) */}
       <div className="txtsubtitle">
         {priceSectionTitle} <span style={{ color: 'red' }}>*</span>
-        {vatPercentValue > 0 && (
+        {false && vatPercentValue > 0 && (
           <span
             style={{
               marginLeft: 8,
@@ -2066,7 +2069,7 @@ const Vendor = () => {
                     (index === 0 ? errors.price : '')
                   }
                 />
-                {vatPercentValue > 0 && (
+                {false && vatPercentValue > 0 && (
                   <div>
                     <span style={vatPillStyle}>{vatAmount.toFixed(2)}</span>
                   </div>
@@ -2092,7 +2095,7 @@ const Vendor = () => {
                         : ''
                     }
                   />
-                  {vatPercentValue > 0 && (
+                  {false && vatPercentValue > 0 && (
                     <div>
                       <span style={vatPillStyle}>{vatHerozAmount.toFixed(2)}</span>
                     </div>
@@ -2150,7 +2153,7 @@ const Vendor = () => {
         <>
           <div className="txtsubtitle">
             Extra Information
-            {vatPercentValue > 0 && (
+            {false && vatPercentValue > 0 && (
               <span
                 style={{
                   marginLeft: 8,
@@ -2212,7 +2215,7 @@ const Vendor = () => {
                         onChange={(e) => handleFoodChange(index, 'price', e.target.value)}
                         disabled={item.include === true}
                       />
-                      {vatPercentValue > 0 && (
+                      {false && vatPercentValue > 0 && (
                         <div>
                           <span style={vatPillStyle}>{foodVat.toFixed(2)}</span>
                         </div>
@@ -2228,7 +2231,7 @@ const Vendor = () => {
                         onChange={(e) => handleFoodChange(index, 'herozprice', e.target.value)}
                         disabled={item.include === true}
                       />
-                      {vatPercentValue > 0 && (
+                      {false && vatPercentValue > 0 && (
                         <div>
                           <span style={vatPillStyle}>{foodHerozVat.toFixed(2)}</span>
                         </div>
@@ -2312,23 +2315,128 @@ const Vendor = () => {
 
           <div className="txtsubtitle">Summary</div>
           <div className="divbox">
-            <TripSummaryVat
-              vatPercentValue={vatPercentValue}
-              tripBasePrice={tripBasePrice}
-              tripVatAmount={tripVatAmount}
-              tripBaseHerozPrice={tripBaseHerozPrice}
-              tripHerozVatAmount={tripHerozVatAmount}
-              foodBaseAmount={foodBaseAmount}
-              foodVatAmount={foodVatAmount}
-              foodHerozBaseAmount={foodHerozBaseAmount}
-              foodHerozVatAmount={foodHerozVatAmount}
-              totalBaseAmount={totalBaseAmount}
-              totalVatAmount={totalVatAmount}
-              totalHerozBaseAmount={totalHerozBaseAmount}
-              totalHerozVatAmount={totalHerozVatAmount}
-              totalWithVat={totalWithVat}
-              totalHerozWithVat={totalHerozWithVat}
-            />
+            {/* ✅ UPDATED: Modern clean summary. VAT is already included in entered prices, so nothing is added here. */}
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 980,
+                margin: '0 auto',
+                border: '1px solid rgba(111, 0, 95, 0.14)',
+                borderRadius: 18,
+                overflow: 'hidden',
+                background: 'linear-gradient(180deg, #ffffff 0%, #fff7fd 100%)',
+                boxShadow: '0 14px 35px rgba(84, 0, 76, 0.10)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '16px 18px',
+                  borderBottom: '1px solid rgba(111, 0, 95, 0.10)',
+                  background: 'linear-gradient(90deg, rgba(111, 0, 95, 0.09), rgba(207, 32, 130, 0.08))',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 18, color: '#2a1230' }}>Summary</div>
+                  <div style={{ fontSize: 12, color: '#75506d', marginTop: 3 }}>
+                    VAT is included in the entered prices. No VAT is added again.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    borderRadius: 999,
+                    padding: '7px 12px',
+                    backgroundColor: '#ffffff',
+                    color: '#6f005f',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    border: '1px solid rgba(111, 0, 95, 0.14)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  VAT Included
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#fff' }}>
+                      <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: '1px solid #f0e3ee', color: '#3b243d', fontSize: 13 }}>
+                        Description
+                      </th>
+                      <th style={{ textAlign: 'right', padding: '14px 16px', borderBottom: '1px solid #f0e3ee', color: '#3b243d', fontSize: 13 }}>
+                        Base Price (Vendor)
+                      </th>
+                      <th style={{ textAlign: 'right', padding: '14px 16px', borderBottom: '1px solid #f0e3ee', color: '#3b243d', fontSize: 13 }}>
+                        Base Price (Heroz)
+                      </th>
+                      <th style={{ textAlign: 'right', padding: '14px 16px', borderBottom: '1px solid #f0e3ee', color: '#3b243d', fontSize: 13 }}>
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', color: '#211525', fontWeight: 700 }}>Trip</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', textAlign: 'right', color: '#211525' }}>
+                        {to2(tripBasePrice)}
+                      </td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', textAlign: 'right', color: '#211525' }}>
+                        {to2(tripBaseHerozPrice)}
+                      </td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', textAlign: 'right', fontWeight: 900, color: '#111' }}>
+                        {to2(tripBasePrice + tripBaseHerozPrice)}
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', color: '#211525', fontWeight: 700 }}>Extra</td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', textAlign: 'right', color: '#211525' }}>
+                        {to2(foodBaseAmount)}
+                      </td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', textAlign: 'right', color: '#211525' }}>
+                        {to2(foodHerozBaseAmount)}
+                      </td>
+                      <td style={{ padding: '15px 16px', borderBottom: '1px solid #f6edf4', textAlign: 'right', fontWeight: 900, color: '#111' }}>
+                        {to2(foodBaseAmount + foodHerozBaseAmount)}
+                      </td>
+                    </tr>
+
+                    <tr style={{ background: 'linear-gradient(90deg, rgba(111, 0, 95, 0.07), rgba(207, 32, 130, 0.06))' }}>
+                      <td style={{ padding: '16px', fontWeight: 900, color: '#2a1230' }}>Total</td>
+                      <td style={{ padding: '16px', textAlign: 'right', fontWeight: 900, color: '#2a1230' }}>
+                        {to2(totalBaseAmount)}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'right', fontWeight: 900, color: '#2a1230' }}>
+                        {to2(totalHerozBaseAmount)}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'right' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: 96,
+                            borderRadius: 999,
+                            padding: '9px 14px',
+                            background: 'linear-gradient(135deg, #6f005f, #cf2082)',
+                            color: '#fff',
+                            fontWeight: 900,
+                            boxShadow: '0 8px 18px rgba(111, 0, 95, 0.22)',
+                          }}
+                        >
+                          {to2(totalTripCost)}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </>
       )}

@@ -1,0 +1,12 @@
+/* Optional safety CSS for School Management auto-open */
+.vendor-sidebar .auto-open-school-management.show > .nav-group-items {
+  display: block !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.vendor-sidebar .nav-group.show > .nav-group-items {
+  display: block !important;
+  height: auto !important;
+  overflow: visible !important;
+}

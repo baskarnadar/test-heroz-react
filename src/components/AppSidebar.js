@@ -20,21 +20,18 @@ const AppSidebar = () => {
   const unfoldable = useSelector((state) => state.sidebarUnfoldable)
   const sidebarShow = useSelector((state) => state.sidebarShow)
 
-  // Get usertype from Redux or localStorage
   const usertype = useSelector((state) => state.auth?.usertype) || localStorage.getItem('usertype')
 
-  // Generate nav items dynamically
   const navigation = getNav(usertype)
 
   return (
     <CSidebar
-      className="border-end"
+      className="vendor-sidebar border-end"
       colorScheme="dark"
       position="fixed"
-      unfoldable={unfoldable}
+      unfoldable={false}
       visible={sidebarShow}
       onVisibleChange={(visible) => {
-        // Only auto-hide sidebar on mobile; desktop uses unfoldable (narrow) mode
         if (window.innerWidth < 992) {
           dispatch({ type: 'set', sidebarShow: visible })
         }

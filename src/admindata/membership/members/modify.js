@@ -54,6 +54,7 @@ const Vendor = () => {
 
   // === NEW: single flag to hide price-range & delete UI (kept logic, just hidden)
   const HIDE_PRICE_RANGE_UI = false
+  const HIDE_VAT_BADGE_UI = true // ✅ Hide all VAT badges/text in UI only; keep VAT logic + payload intact
 
   // ✅ ADD (no removals): prevent runtime errors for code you already have
   const [formData, setFormData] = useState({
@@ -149,7 +150,7 @@ const Vendor = () => {
   const starValueNum = Number(HerozStarValue || 0)
 
   const vatPillStyle = {
-    display: 'inline-flex',
+    display: HIDE_VAT_BADGE_UI ? 'none' : 'inline-flex',
     alignItems: 'center',
     border: '1px solid #cf2037',
     borderRadius: 999,
@@ -1545,7 +1546,7 @@ console.log(selectedKidsInterests);
         <>
           <div className="txtsubtitle">
             Membership Price (Star) Information
-            {vatPercentValue > 0 && (
+            {vatPercentValue > 0 && !HIDE_VAT_BADGE_UI && (
               <span
                 style={{
                   marginInlineStart: 8,
@@ -1585,7 +1586,7 @@ console.log(selectedKidsInterests);
               const vendorBase = Number(row.price || 0)
               const vendorVat = vendorBase * vatRateValue
               const computed = vendorBase + vendorVat
-              const computedHint = `Auto: ${to2(computed)} (Price + VAT)`
+              const computedHint = HIDE_VAT_BADGE_UI ? `Auto: ${to2(computed)}` : `Auto: ${to2(computed)} (Price + VAT)`
 
               return (
                 <CRow key={index} className="align-items-center mb-2">
@@ -1598,7 +1599,7 @@ console.log(selectedKidsInterests);
                       onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
                       placeholder="Vendor Price"
                     />
-                    {vatPercentValue > 0 && (
+                    {vatPercentValue > 0 && !HIDE_VAT_BADGE_UI && (
                       <div style={{ fontSize: 12 }}>
                         <span style={vatPillStyle}>{to2(vendorVat)}</span>
                       </div>
