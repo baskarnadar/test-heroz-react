@@ -1,4 +1,4 @@
- // src/public/component/tripsummary.js
+// src/public/component/tripsummary.js
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import icon5 from "../../assets/icon/icon5.png";
 import FoodInfo from "../component/foodinfo";
@@ -239,16 +239,10 @@ const TrupSummary = ({
       ? toNum(totalVatAmount)
       : tripVatDisplay * Math.max(1, toNum(validKidsCount) || 1) + extraVatDisplay;
 
-  // ✅ FINAL DISPLAY RULE REQUESTED:
-  // Summary must show:
-  // 1) Trip Price = Trip Price - Trip VAT Amount
-  //    Example: 40 - 6 = 34
-  // 2) Trip VAT Amount = Trip VAT Amount
-  // 3) Net Payable = Trip Price + VAT Total (+ extras if any)
-  //
-  // basePerStudent/tripPriceInclVat from parent remains unchanged for payment logic.
-  const tripPriceDisplay = Math.max(0, basePerStudent - tripVatDisplay);
-  const netPayableDisplay = tripPriceDisplay + totalVatDisplay + extraTotal;
+  // Display trip price as-is (no VAT subtraction)
+  const tripPriceDisplay = basePerStudent;
+  // Single total payable = trip * kids + extras
+  const totalPayableDisplay = netForKids;
 
   // --------------------------
   // ✅ Payment UI state
@@ -384,34 +378,6 @@ const TrupSummary = ({
 
       <div className="divider" />
 
-      {/* VAT details */}
-      <div className="price-row">
-        <span className="price-label fontsize20">
-          {dict.tripVatAmount || (isArabic ? "ضريبة الرحلة" : "Trip VAT Amount")}
-        </span>
-        <span className="price-value fontsize20">
-          {to2(tripVatDisplay)} <img src={icon5} alt="HEROZ" />
-        </span>
-      </div>
-
-      <div className="price-row">
-        <span className="price-label fontsize20">
-          {dict.extraVatAmount || (isArabic ? "ضريبة الإضافات" : "Extra VAT Amount")}
-        </span>
-        <span className="price-value fontsize20">
-          {to2(extraVatDisplay)} <img src={icon5} alt="HEROZ" />
-        </span>
-      </div>
-
-      <div className="summary-row total trip-gradient-color">
-        <span>{dict.totalVatAmount || (isArabic ? "إجمالي الضريبة" : "Total VAT Amount")}</span>
-        <span>
-          {to2(totalVatDisplay)} <img src={icon5} alt="HEROZ" />
-        </span>
-      </div>
-
-      <div className="divider" />
-
       {/* Food block */}
       {hasAnyFood && (
         <>
@@ -431,28 +397,15 @@ const TrupSummary = ({
         </>
       )}
 
-      {/* Total Payable – trip (1 kid) + ALL extras (Inc VAT) */}
+      {/* Single Total Payable */}
       <div className="summary-row total trip-gradient-color">
         <span>
-          <div>{dict.netPayable || dict.totalPayable || (isArabic ? "صافي المبلغ المستحق" : "Net Payable")}</div>
-          <div>({dict.ar_inc_vat})</div>
+          {dict.totalPayable || (isArabic ? "إجمالي المبلغ المستحق" : "Total Payable")}
         </span>
         <span>
-          {to2(netPayableDisplay)} <img src={icon5} alt="HEROZ" />
+          {to2(totalPayableDisplay)} <img src={icon5} alt="HEROZ" />
         </span>
       </div>
-
-      {/* Net payable for multiple kids – trip * kids + extra once */}
-      {validKidsCount > 1 && (
-        <div className="summary-row total net-payable trip-gradient-color">
-          <span>
-            {dict.netPayableAmount.replace("{count}", validKidsCount)} <div>({dict.ar_inc_vat})</div>
-          </span>
-          <span>
-            {to2(netForKids)} <img src={icon5} alt="HEROZ" />
-          </span>
-        </div>
-      )}
 
       <div className="divider" />
 

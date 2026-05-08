@@ -497,15 +497,12 @@ const ProposalPage = () => {
       const vendor = parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
       const heroz = parseFloat(item?.FoodHerozPrice) || 0;
 
-      // ✅ UPDATED: Do not add VAT again while summing extras.
-      // VAT is already included/handled separately for display.
+      // Include food VAT so the extra total matches the amounts shown in the food table
       const schoolVat = parseFloat(item?.RequestFoodSchoolPriceVatAmount) || 0;
       const vendorVat = parseFloat(item?.FoodPriceVatAmount) || 0;
       const herozVat = parseFloat(item?.FoodHerozPriceVatAmount) || 0;
 
-      // Keep VAT variables above because existing code/data may depend on them,
-      // but do NOT include them in the amount total.
-      total += (school + vendor + heroz) * qty;
+      total += (school + vendor + heroz + schoolVat + vendorVat + herozVat) * qty;
     }
 
     return round2(total);

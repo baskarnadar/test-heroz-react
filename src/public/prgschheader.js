@@ -10,8 +10,8 @@ import enPack from "../i18n/enlangpack.json";
 import arPack from "../i18n/arlangpack.json";
 
 // Backend "empty folder" URL
-const EMPTY_ACTIVITY_PREFIX =
-  "https://dev-heroz-assets.s3.me-central-1.amazonaws.com/activity/";
+ const EMPTY_ACTIVITY_PREFIX =
+  "https://dev-heroz-assets-eu.s3.eu-central-1.amazonaws.com/activity/";
 
 /**
  * Returns TRUE only if the URL is a real image with filename.
