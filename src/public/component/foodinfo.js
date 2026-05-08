@@ -225,7 +225,7 @@ const FoodInfo = ({
         schoolPrice,
         vendorPrice,
         herozPrice,
-        totalWithVat: unitIncVat,
+        totalBase: unitBase,
       } = getPrices(foodItem);
       const displayName = getDisplayName(foodItem);
 
@@ -234,8 +234,8 @@ const FoodInfo = ({
 
       const qty = isChecked ? (rawQty > 0 ? rawQty : 1) : 0;
 
-      // Total INCLUDING VAT for this extra line (per booking)
-      const lineIncVat = isChecked ? unitIncVat * qty : unitIncVat;
+      // ✅ FIX: Total is base price only (no VAT) for this extra line
+      const lineIncVat = isChecked ? unitBase * qty : unitBase;
 
       const handleQtyButton = (delta) => {
         if (!onQtyChange) return;

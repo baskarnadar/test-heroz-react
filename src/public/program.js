@@ -497,12 +497,8 @@ const ProposalPage = () => {
       const vendor = parseFloat(item?.FoodVendorPrice ?? item?.FoodPrice) || 0;
       const heroz = parseFloat(item?.FoodHerozPrice) || 0;
 
-      // Include food VAT so the extra total matches the amounts shown in the food table
-      const schoolVat = parseFloat(item?.RequestFoodSchoolPriceVatAmount) || 0;
-      const vendorVat = parseFloat(item?.FoodPriceVatAmount) || 0;
-      const herozVat = parseFloat(item?.FoodHerozPriceVatAmount) || 0;
-
-      total += (school + vendor + heroz + schoolVat + vendorVat + herozVat) * qty;
+      // ✅ FIX: Do NOT add VAT to extra items — use base prices only
+      total += (school + vendor + heroz) * qty;
     }
 
     return round2(total);
