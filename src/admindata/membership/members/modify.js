@@ -394,8 +394,8 @@ const Vendor = () => {
     const validation = validateActivityForm({
       txtactName,
       selectedType,
-      // ✅ bypass selectedCategories validation for MEMBERSHIP
-      selectedCategories: isMemberType ? ['SKIP'] : selectedCategories,
+      // ✅ Category Information is hidden and no longer mandatory
+      selectedCategories: ['SKIP'],
       txtactDesc,
       txtactImageName1: txtactImageName1 || OrgtxtactImageName1,
       txtactImageName2: txtactImageName2 || OrgtxtactImageName2,
@@ -414,14 +414,25 @@ const Vendor = () => {
       actRating: ratingForValidation,
       txtactMinAge,
       txtactMaxAge,
-      txtactMinStudent,
-      txtactMaxStudent,
+      // ✅ Capacity Information hidden and not mandatory now
+      // txtactMinStudent,
+      // txtactMaxStudent,
       txtactTripDetail,
       txtactWhatsIncluded,
     })
 
-    if (!validation.ok) {
-      setErrors(validation.errors || {})
+    // ✅ Capacity Information is hidden and no longer mandatory.
+    // Remove only capacity validation errors and continue if no other errors exist.
+    const filteredValidationErrors = { ...(validation.errors || {}) }
+    delete filteredValidationErrors.txtactMinStudent
+    delete filteredValidationErrors.txtactMaxStudent
+    // ✅ Category Information is hidden and no longer mandatory.
+    delete filteredValidationErrors.selectedCategories
+    delete filteredValidationErrors.txtactCategoryID
+    delete filteredValidationErrors.actCategoryID
+
+    if (!validation.ok && Object.keys(filteredValidationErrors).length > 0) {
+      setErrors(filteredValidationErrors)
       setToastMessage(validation.message || 'Please correct the highlighted fields.')
       setToastType('fail')
       return
@@ -1429,37 +1440,7 @@ console.log(selectedKidsInterests);
           <ErrorText msg={errors.actRating} />
         </div>
 
-        {/* ✅ Activity Categories: hidden when MEMBERSHIP is selected */}
-        {!isMemberType && (
-          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
-              Activity Categories <span style={{ color: 'red' }}>*</span>
-            </label>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-              {fetchcategories.map((item, i) => (
-                <label key={`${item.CategoryID}-${i}`}>
-                  <input
-                    type="checkbox"
-                    name="txtactCategoryID"
-                    value={item.CategoryID}
-                    checked={selectedCategories.includes(item.CategoryID)}
-                    onChange={() => handleCheckboxChange(item.CategoryID)}
-                    style={{
-                      marginRight: 18,
-                      marginLeft: 18,
-                      transform: 'scale(2.0)',
-                      cursor: 'pointer',
-                      accentColor: 'red',
-                    }}
-                  />
-                  <span className="pink-shadow4">{item.EnCategoryName}</span>
-                </label>
-              ))}
-            </div>
-            <ErrorText msg={errors.selectedCategories} />
-          </div>
-        )}
+        {/* ✅ Category Information section hidden and no longer mandatory */}
 
         {/* ✅ Kids Interest: shown only when MEMBERSHIP is selected */}
         {isMemberType && (

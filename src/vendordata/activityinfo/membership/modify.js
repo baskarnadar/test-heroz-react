@@ -542,11 +542,11 @@ const Vendor = () => {
     }
 
     // ✅ Run validation first (uses original images if no new upload)
-    // ✅ bypass selectedCategories validation for MEMBERSHIP
+    // ✅ Category Information is hidden and not mandatory.
     const validation = validateActivityForm({
       txtactName,
       selectedType,
-      selectedCategories: selectedType === 'MEMBERSHIP' ? ['SKIP'] : selectedCategories,
+      selectedCategories: ['SKIP'],
       txtactDesc,
       txtactImageName1: txtactImageName1 || OrgtxtactImageName1,
       txtactImageName2: txtactImageName2 || OrgtxtactImageName2,
@@ -573,8 +573,15 @@ const Vendor = () => {
       actWhatsIncluded,
     })
 
-    if (!validation.ok) {
-      setErrors(validation.errors || {}) // ✅ show under fields
+    // ✅ Category Information + Capacity Information are optional and hidden.
+    // ✅ Keep existing state/payload, but remove mandatory validation for these hidden fields.
+    const filteredValidationErrors = { ...(validation.errors || {}) }
+    delete filteredValidationErrors.selectedCategories
+    delete filteredValidationErrors.txtactMinStudent
+    delete filteredValidationErrors.txtactMaxStudent
+
+    if (Object.keys(filteredValidationErrors).length > 0) {
+      setErrors(filteredValidationErrors) // ✅ show under fields
       setToastMessage(validation.message || tr('fixHighlighted', 'Please correct the highlighted fields.'))
       setToastType('fail')
       return
@@ -1497,8 +1504,8 @@ const Vendor = () => {
           <ErrorText msg={errors.actRating} />
         </div>
 
-        {/* ✅ Activity Categories: hidden when MEMBERSHIP is selected */}
-        {selectedType !== 'MEMBERSHIP' && (
+        {/* ✅ Category Information removed from mandatory UI and hidden. */}
+        {false && selectedType !== 'MEMBERSHIP' && (
           <div style={{ marginBottom: '10px', marginTop: '20px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
               {tr('labelCategories', 'Activity Categories')} <span style={{ color: 'red' }}>*</span>

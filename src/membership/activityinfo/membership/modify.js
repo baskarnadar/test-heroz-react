@@ -547,8 +547,6 @@ const Vendor = () => {
       actRating,
       txtactMinAge,
       txtactMaxAge,
-      txtactMinStudent,
-      txtactMaxStudent,
 
       // ✅ NEW fields (safe: validator will ignore if not implemented)
       actTripDetail,
