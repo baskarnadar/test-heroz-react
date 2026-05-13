@@ -1278,6 +1278,205 @@ console.log(selectedKidsInterests);
 
   const totalTripCost = totalWithVat + totalHerozWithVat
 
+  // ✅ ADDED: Show full activity image preview for existing URL or newly selected File
+  // ✅ UPDATED: Do not display empty S3 activity folder URL like:
+  // https://dev-heroz-assets-eu.s3.eu-central-1.amazonaws.com/activity/
+  const isEmptyActivityImageUrl = (url) => {
+    const cleanUrl = String(url || '').trim()
+    if (!cleanUrl) return true
+
+    const normalizedUrl = cleanUrl.split('?')[0].replace(/\/+$/, '')
+    const emptyActivityFolders = [
+      'https://dev-heroz-assets-eu.s3.eu-central-1.amazonaws.com/activity',
+      'https://dev-heroz-assets.s3.me-central-1.amazonaws.com/activity',
+      'https://dev-heroz-assets-me.s3.me-central-1.amazonaws.com/activity',
+    ]
+
+    return emptyActivityFolders.includes(normalizedUrl)
+  }
+
+  const renderActivityImagePreview = (fileOrUrl, label) => {
+    const previewUrl = fileOrUrl instanceof File ? URL.createObjectURL(fileOrUrl) : String(fileOrUrl || '').trim()
+
+    if (isEmptyActivityImageUrl(previewUrl)) {
+      return (
+        <div
+          style={{
+            marginTop: 10,
+            border: '1px dashed #ddd',
+            borderRadius: 10,
+            padding: 12,
+            color: '#777',
+            background: '#fafafa',
+            fontSize: 13,
+          }}
+        >
+          No image selected
+        </div>
+      )
+    }
+
+    return (
+      <div style={{ marginTop: 10 }}>
+        <img
+          src={previewUrl}
+          alt={label}
+          style={{
+            width: '100%',
+            maxHeight: 220,
+            objectFit: 'cover',
+            borderRadius: 12,
+            border: '1px solid #e2e2e2',
+            background: '#fafafa',
+          }}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+      </div>
+    )
+  }
+
+  // ✅ ADDED: Show Youtube video preview like the school activity screen
+  const getYouTubeVideoId = (value) => {
+    const raw = String(value || '').trim()
+    if (!raw) return ''
+
+    let videoId = raw
+    try {
+      if (raw.includes('youtube.com') || raw.includes('youtu.be')) {
+        const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+        if (url.hostname.includes('youtu.be')) {
+          videoId = url.pathname.replace('/', '').split('/')[0]
+        } else if (url.pathname.includes('/embed/')) {
+          videoId = url.pathname.split('/embed/')[1]?.split('/')[0]
+        } else if (url.pathname.includes('/shorts/')) {
+          videoId = url.pathname.split('/shorts/')[1]?.split('/')[0]
+        } else {
+          videoId = url.searchParams.get('v') || raw
+        }
+      }
+    } catch {
+      videoId = raw
+    }
+
+    return String(videoId || '').replace(/[^a-zA-Z0-9_-]/g, '')
+  }
+
+  const getYouTubeWatchUrl = (value) => {
+    const id = getYouTubeVideoId(value)
+    return id ? `https://www.youtube.com/watch?v=${id}` : ''
+  }
+
+  const getYouTubeThumbnailUrl = (value) => {
+    const id = getYouTubeVideoId(value)
+    return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ''
+  }
+
+  const renderYouTubePreview = (videoValue, title) => {
+    const videoId = getYouTubeVideoId(videoValue)
+    const thumbUrl = getYouTubeThumbnailUrl(videoValue)
+    const watchUrl = getYouTubeWatchUrl(videoValue)
+
+    if (!videoId) {
+      return (
+        <div
+          style={{
+            marginTop: 10,
+            border: '1px dashed #ddd',
+            borderRadius: 10,
+            padding: '14px 12px',
+            color: '#777',
+            background: '#fafafa',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          No YouTube preview
+        </div>
+      )
+    }
+
+    return (
+      <a
+        href={watchUrl}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          marginTop: 10,
+          display: 'block',
+          position: 'relative',
+          border: '1px solid #e2e2e2',
+          borderRadius: 12,
+          overflow: 'hidden',
+          background: '#000',
+          textDecoration: 'none',
+        }}
+      >
+        <div
+          style={{
+            padding: '8px 10px',
+            fontSize: 13,
+            fontWeight: 700,
+            background: '#f7f7f7',
+            borderBottom: '1px solid #e2e2e2',
+            color: '#111',
+          }}
+        >
+          {title}
+        </div>
+        <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
+          <img
+            src={thumbUrl}
+            alt={title}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.2)',
+            }}
+          >
+            <div
+              style={{
+                width: 64,
+                height: 46,
+                borderRadius: 12,
+                background: '#ff0000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span
+                style={{
+                  marginLeft: 4,
+                  width: 0,
+                  height: 0,
+                  borderTop: '12px solid transparent',
+                  borderBottom: '12px solid transparent',
+                  borderLeft: '20px solid #fff',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </a>
+    )
+  }
+
+  const getDayDisplayName = (day) => day.charAt(0).toUpperCase() + day.slice(1)
+
   return (
     <div>
       {/* STATUS BANNER */}
@@ -1520,6 +1719,330 @@ console.log(selectedKidsInterests);
           />
           <ErrorText msg={errors.txtactDesc} />
         </div>
+      </div>
+
+      {/* ✅ ADDED: Activity Images - needed for admin approval full details */}
+      <div className="txtsubtitle">
+        Activity Images <span style={{ color: 'red' }}>*</span>
+      </div>
+      <div className="divbox">
+        <div
+          style={{
+            border: '1px solid #cf2037',
+            borderRadius: 10,
+            padding: '10px 12px',
+            background: 'rgba(207, 32, 55, 0.06)',
+            color: '#cf2037',
+            fontWeight: 700,
+            marginTop: 10,
+            marginBottom: 10,
+          }}
+        >
+          Upload image (JPG / JPEG / PNG)
+        </div>
+
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px', marginBottom: '20px' }}>
+          <div className="form-group" style={{ flex: '1', minWidth: 240 }}>
+            <label>Activity Image 1</label>
+            <input
+              name="txtactImageName1"
+              className="admin-txt-box"
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={(e) => setactImageName1(e.target.files[0])}
+              style={{ height: 50, width: '100%' }}
+            />
+            {txtactImageName1 instanceof File && <FilePreview file={txtactImageName1} />}
+            {renderActivityImagePreview(txtactImageName1 || ActivityData?.actImageName1Url, 'Activity Image 1')}
+          </div>
+
+          <div className="form-group" style={{ flex: '1', minWidth: 240 }}>
+            <label>Activity Image 2</label>
+            <input
+              name="txtactImageName2"
+              className="admin-txt-box"
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={(e) => setactImageName2(e.target.files[0])}
+              style={{ height: 50, width: '100%' }}
+            />
+            {txtactImageName2 instanceof File && <FilePreview file={txtactImageName2} />}
+            {renderActivityImagePreview(txtactImageName2 || ActivityData?.actImageName2Url, 'Activity Image 2')}
+          </div>
+
+          <div className="form-group" style={{ flex: '1', minWidth: 240 }}>
+            <label>Activity Image 3</label>
+            <input
+              name="txtactImageName3"
+              className="admin-txt-box"
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={(e) => setactImageName3(e.target.files[0])}
+              style={{ height: 50, width: '100%' }}
+            />
+            {txtactImageName3 instanceof File && <FilePreview file={txtactImageName3} />}
+            {renderActivityImagePreview(txtactImageName3 || ActivityData?.actImageName3Url, 'Activity Image 3')}
+          </div>
+        </div>
+        <ErrorText msg={errors.images} />
+      </div>
+
+      {/* ✅ ADDED: YouTube Videos - needed for admin approval full details */}
+      <div className="txtsubtitle">Activity Youtube Videos</div>
+      <div className="divbox">
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px', marginBottom: '20px' }}>
+          <div className="form-group" style={{ flex: '1', minWidth: 240 }}>
+            <label>Youtube Video Link 1</label>
+            <input
+              name="txtactYouTubeID1"
+              className="vendor-input"
+              value={txtactYouTubeID1}
+              onChange={(e) => setYouTube1(e.target.value)}
+            />
+            {renderYouTubePreview(txtactYouTubeID1, 'Youtube Video Link 1')}
+          </div>
+
+          <div className="form-group" style={{ flex: '1', minWidth: 240 }}>
+            <label>Youtube Video Link 2</label>
+            <input
+              name="txtactYouTubeID2"
+              className="vendor-input"
+              value={txtactYouTubeID2}
+              onChange={(e) => setYouTube2(e.target.value)}
+            />
+            {renderYouTubePreview(txtactYouTubeID2, 'Youtube Video Link 2')}
+          </div>
+
+          <div className="form-group" style={{ flex: '1', minWidth: 240 }}>
+            <label>Youtube Video Link 3</label>
+            <input
+              name="txtactYouTubeID3"
+              className="vendor-input"
+              value={txtactYouTubeID3}
+              onChange={(e) => setYouTube3(e.target.value)}
+            />
+            {renderYouTubePreview(txtactYouTubeID3, 'Youtube Video Link 3')}
+          </div>
+        </div>
+      </div>
+
+      {/* ✅ ADDED: Activity Location - needed for admin approval full details */}
+      <div className="txtsubtitle">
+        Activity Location <span style={{ color: 'red' }}>*</span>
+      </div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="vendor-row">
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Google Map Location <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactGoogleMap"
+                className="vendor-input"
+                value={txtactGoogleMap}
+                onChange={(e) => setactGoogleMap(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactGoogleMap} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Google Latitude <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactGlat"
+                className="vendor-input"
+                value={txtactGlat}
+                onChange={(e) => setGlat(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactGlat} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Google Longitude <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactGlan"
+                className="vendor-input"
+                value={txtactGlan}
+                onChange={(e) => setGlan(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactGlan} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="vendor-row">
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Country <span style={{ color: 'red' }}>*</span>
+              </label>
+              <select
+                onChange={(e) => setCountryID(e.target.value)}
+                name="txtactCountryID"
+                value={ddactCountryID}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+                required
+              >
+                <option value="">Select a country</option>
+                {countries.map((country) => (
+                  <option key={country.CountryID} value={country.CountryID}>
+                    {country.EnCountryName || country.ArCountryName || country.CountryName}
+                  </option>
+                ))}
+              </select>
+              <ErrorText msg={errors.ddactCountryID} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">
+                City <span style={{ color: 'red' }}>*</span>
+              </label>
+              <select
+                value={ddactCityID}
+                name="txtactCityID"
+                className="admin-txt-box"
+                onChange={(e) => setSelectedCityID(e.target.value)}
+                required
+              >
+                <option value="">Select City</option>
+                {cityList.map((city) => (
+                  <option key={city.CityID} value={city.CityID}>
+                    {city.EnCityName || city.ArCityName || city.CityName}
+                  </option>
+                ))}
+              </select>
+              <ErrorText msg={errors.ddactCityID} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">Location</label>
+              <input
+                value={txtactAddress1}
+                name="txtactAddress1"
+                className="vendor-input"
+                onChange={(e) => setAddress1(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactAddress1} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">Address2</label>
+              <input
+                value={txtactAddress2}
+                name="txtactAddress2"
+                className="vendor-input"
+                onChange={(e) => setAddress2(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ✅ ADDED: Activity Available Days / Times - needed for admin approval full details */}
+      <div className="txtsubtitle">
+        Activity Available Days / Hours <span style={{ color: 'red' }}>*</span>
+      </div>
+      <div className="divbox">
+        {Object.entries(days).map(([day, dayData]) => (
+          <div
+            key={day}
+            style={{
+              border: '1px solid #e5e5e5',
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 12,
+              background: dayData.closed ? '#fafafa' : '#fff',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                flexWrap: 'wrap',
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ fontWeight: 700 }}>{getDayDisplayName(day)}</div>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={dayData.closed}
+                  onChange={(e) => handleClosedChange(day, e.target.checked)}
+                />
+                Closed
+              </label>
+            </div>
+
+            {!dayData.closed &&
+              dayData.times.map((timeRow, index) => (
+                <div
+                  key={`${day}-${index}`}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr auto',
+                    gap: 10,
+                    alignItems: 'end',
+                    marginBottom: 10,
+                  }}
+                >
+                  <div>
+                    <label className="vendor-label">Start Time</label>
+                    <input
+                      className="vendor-input"
+                      type="time"
+                      value={timeRow.start || ''}
+                      onChange={(e) => handleTimeChange(day, index, 'start', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="vendor-label">End Time</label>
+                    <input
+                      className="vendor-input"
+                      type="time"
+                      value={timeRow.end || ''}
+                      onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="vendor-label">Note</label>
+                    <input
+                      className="vendor-input"
+                      value={timeRow.note || ''}
+                      onChange={(e) => handleTimeChange(day, index, 'note', e.target.value)}
+                    />
+                    <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>Total: {timeRow.total || '0.00'} Hours</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="admin-buttonv1"
+                    style={{ backgroundColor: '#cf2037', color: '#fff' }}
+                    onClick={() => handleRemoveTimeRange(day, index)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+
+            {!dayData.closed && (
+              <button type="button" className="admin-buttonv1" onClick={() => handleAddMore(day)}>
+                Add More
+              </button>
+            )}
+          </div>
+        ))}
+        <ErrorText msg={errors.days} />
       </div>
 
       {/* ✅ MEMBERSHIP: STAR VALUE SECTION (EDITABLE) */}
