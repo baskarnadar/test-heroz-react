@@ -1,4 +1,4 @@
-// src/menuvendor.js
+ // src/menuvendor.js
 import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -193,15 +193,64 @@ const vendormenu = [
     style: modernItemStyle,
   },
 
+  // ================= MEMBERSHIP =================
+  // ✅ MOVED: now directly below Dashboard
+  {
+    component: CNavGroup,
+    name: 'Membership',
+    menuKey: 'membership',
+    autoOpen: true,
+    toggler: sectionToggler('Membership'),
+    visible: true,
+    className: 'nav-section-group',
+    items: [
+      {
+        component: CNavItem,
+        name: 'Membership Activities',
+        to: '/vendordata/membership/activity/list',
+        icon: menuIcon(cilLibrary),
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Booked Activity',
+        to: '/vendordata/membership?status=BOOKED',
+        icon: menuIcon(cilClipboard),
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Completed Activity',
+        to: '/vendordata/membership?status=COMPLETED',
+        icon: menuIcon(cilCalendar),
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Payment',
+        to: '/vendordata/membership/report/payment',
+        icon: menuIcon(cilMoney),
+        style: subItemStyle,
+      },
+      {
+        component: CNavItem,
+        name: 'Completed Booking',
+        to: '/vendordata/membership/report/completed-booking?status=COMPLETED',
+        icon: menuIcon(cilCheckCircle),
+        style: subItemStyle,
+      },
+    ],
+  },
+
   // ================= SCHOOL MANAGEMENT =================
   {
     component: CNavGroup,
     name: 'School Management',
     menuKey: 'school-management',
-    autoOpen: true,
+    autoOpen: false,
     toggler: sectionToggler('School Management'),
-    visible: true, // ✅ AUTO OPEN ON INITIAL LOAD
-    className: 'nav-section-group auto-open-school-management',
+    visible: false,
+    className: 'nav-section-group',
     items: [
       {
         component: CNavItem,
@@ -257,54 +306,6 @@ const vendormenu = [
             style: subSubItemStyle,
           },
         ],
-      },
-    ],
-  },
-
-  // ================= MEMBERSHIP =================
-  {
-    component: CNavGroup,
-    name: 'Membership',
-    menuKey: 'membership',
-    autoOpen: false,
-    toggler: sectionToggler('Membership'),
-    visible: false,
-    className: 'nav-section-group',
-    items: [
-      {
-        component: CNavItem,
-        name: 'Membership Activities',
-        to: '/vendordata/membership/activity/list',
-        icon: menuIcon(cilLibrary),
-        style: subItemStyle,
-      },
-      {
-        component: CNavItem,
-        name: 'Booked Activity',
-        to: '/vendordata/membership?status=BOOKED',
-        icon: menuIcon(cilClipboard),
-        style: subItemStyle,
-      },
-      {
-        component: CNavItem,
-        name: 'Completed Activity',
-        to: '/vendordata/membership?status=COMPLETED',
-        icon: menuIcon(cilCalendar),
-        style: subItemStyle,
-      },
-      {
-        component: CNavItem,
-        name: 'Payment',
-        to: '/vendordata/membership/report/payment',
-        icon: menuIcon(cilMoney),
-        style: subItemStyle,
-      },
-      {
-        component: CNavItem,
-        name: 'Completed Booking',
-        to: '/vendordata/membership/report/completed-booking?status=COMPLETED',
-        icon: menuIcon(cilCheckCircle),
-        style: subItemStyle,
       },
     ],
   },

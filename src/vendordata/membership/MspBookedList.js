@@ -157,7 +157,7 @@ function BookingDetailModal({ row, isRTL, onClose }) {
           <div className="msp-detail-grid-2 msp-side-detail-grid">
             <DetailTile icon={cilChild}       label={isRTL?'اسم الطفل':'Kid Name'}       value={valOrDash(row.kidsName)}/>
             <DetailTile icon={cilPeople}      label={isRTL?'اسم ولي الأمر':'Parents Name'}      value={valOrDash(row.parentName)}/>
-            <DetailTile icon={cilPhone}       label={isRTL?'جوال ولي الأمر':'Parents Mobile NO'} value={valOrDash(row.parentMobile)}/>
+            
             <DetailTile icon={cilInstitution} label={isRTL?'اسم المزود':'Vendor Name'} value={valOrDash(row.vdrName)}/>
           </div>
 
@@ -652,7 +652,7 @@ const MspBookedList = () => {
 
                       <MiniLine label={isRTL?'اسم الطفل':'Kids Name'} value={valOrDash(r.kidsName)}/>
                       <MiniLine label={isRTL?'اسم ولي الأمر':'Parents Name'} value={valOrDash(r.parentName)}/>
-                      <MiniLine label={isRTL?'جوال ولي الأمر':'Parents Mobile'} value={valOrDash(r.parentMobile)}/>
+                     
                       <DateTimeClearLine row={r}/>
 
                       {r.bookingStatus.toUpperCase()==='COMPLETED'&&(

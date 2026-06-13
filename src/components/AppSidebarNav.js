@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+ import React, { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 
@@ -46,10 +46,9 @@ export const AppSidebarNav = ({ items }) => {
         if (item?.items) {
           const key = getGroupKey(item, index, parentKey)
 
-          // ✅ This is the main fix:
-          // School Management opens automatically on first load using autoOpen/menuKey,
-          // not by reading the React toggler text.
-          openState[key] = item?.autoOpen === true || item?.menuKey === 'school-management' || hasActiveChild(item)
+          // ✅ Open state now driven purely by each item's own `autoOpen` flag
+          // (or if one of its children is the active route).
+          openState[key] = item?.autoOpen === true || hasActiveChild(item)
 
           scan(item.items, key)
         }
