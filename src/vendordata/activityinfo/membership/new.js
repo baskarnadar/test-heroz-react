@@ -549,8 +549,7 @@ const Vendor = () => {
     const validation = validateActivityForm({
       txtactName,
       selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP' (but UI shows MEMBERSHIP only)
-      // ✅ Category Information is hidden and not mandatory.
-      selectedCategories: ['SKIP'],
+      selectedCategories,
       txtactDesc,
       txtactImageName1,
       txtactImageName2,
@@ -576,19 +575,12 @@ const Vendor = () => {
       actWhatsIncluded,
     })
 
-    // ✅ Category Information + Capacity Information are optional and hidden.
-    // ✅ Keep existing state/payload, but remove mandatory validation for these hidden fields.
-    const filteredValidationErrors = { ...(validation.errors || {}) }
-    delete filteredValidationErrors.selectedCategories
-    delete filteredValidationErrors.txtactMinStudent
-    delete filteredValidationErrors.txtactMaxStudent
-
-    if (Object.keys(filteredValidationErrors).length > 0) {
-      setErrors(filteredValidationErrors)
+    if (!validation.ok) {
+      setErrors(validation.errors || {})
       setToastMessage(validation.message || tr('fixHighlighted', 'Please fix the highlighted fields.'))
       setToastType('fail')
 
-      const firstField = Object.keys(filteredValidationErrors)[0]
+      const firstField = Object.keys(validation.errors || {})[0]
       if (firstField) {
         const el = document.querySelector(`[name="${firstField}"]`)
         if (el?.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -840,7 +832,31 @@ const Vendor = () => {
           </div>
         )}
 
-        {/* ✅ Category Information removed from mandatory UI and hidden. */}
+        <div className="act-categoriesWrap">
+          <label className="act-categoriesLabel">
+            {tr('labelCategories', 'Activity Categories')} <span className="act-required">*</span>
+          </label>
+
+          <div className="act-categoriesGrid">
+            {fetchcategories.map((item) => (
+              <label key={item.CategoryID} className="act-categoryItem">
+                <div className="act-categoryCheckWrap">
+                  <input
+                    type="checkbox"
+                    name="selectedCategories"
+                    value={item.CategoryID}
+                    checked={selectedCategories.includes(item.CategoryID)}
+                    onChange={() => handleCheckboxChange(item.CategoryID)}
+                    className="act-categoryCheckbox"
+                  />
+                </div>
+                <div className="pink-shadow4">{lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}</div>
+              </label>
+            ))}
+          </div>
+
+          <ErrorText msg={errors.selectedCategories} />
+        </div>
 
         {/* ✅ NEW: Kids Interest section below categories */}
         <div className="act-categoriesWrap">
@@ -1127,50 +1143,45 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ Capacity Information removed from mandatory UI and hidden for Membership Activity. */}
-      {false && (
-        <>
-          <div className="txtsubtitle">
-            {tr('sectionCapacity', 'Capacity Information')}
-          </div>
+      <div className="txtsubtitle">
+        {tr('sectionCapacity', 'Capacity Information')} <span className="act-required">*</span>
+      </div>
 
-          <div className="divbox">
-            <div className="vendor-container">
-              <div className="act-twoColRow">
-                <div className="vendor-column">
-                  <label className="vendor-label">
-                    {tr('labelMinStudents', 'Minimum Students')}
-                  </label>
-                  <input
-                    name="txtactMinStudent"
-                    type="number"
-                    min="1"
-                    className="vendor-input"
-                    value={txtactMinStudent}
-                    onChange={(e) => setMinStudent(e.target.value)}
-                  />
-                  <ErrorText msg={errors.txtactMinStudent} />
-                </div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="act-twoColRow">
+            <div className="vendor-column">
+              <label className="vendor-label">
+                {tr('labelMinStudents', 'Minimum Students')} <span className="act-required">*</span>
+              </label>
+              <input
+                name="txtactMinStudent"
+                type="number"
+                min="1"
+                className="vendor-input"
+                value={txtactMinStudent}
+                onChange={(e) => setMinStudent(e.target.value)}
+              />
+              <ErrorText msg={errors.txtactMinStudent} />
+            </div>
 
-                <div className="vendor-column">
-                  <label className="vendor-label">
-                    {tr('labelMaxStudents', 'Maximum Students')}
-                  </label>
-                  <input
-                    name="txtactMaxStudent"
-                    type="number"
-                    min="1"
-                    className="vendor-input"
-                    value={txtactMaxStudent}
-                    onChange={(e) => setMaxStudent(e.target.value)}
-                  />
-                  <ErrorText msg={errors.txtactMaxStudent} />
-                </div>
-              </div>
+            <div className="vendor-column">
+              <label className="vendor-label">
+                {tr('labelMaxStudents', 'Maximum Students')} <span className="act-required">*</span>
+              </label>
+              <input
+                name="txtactMaxStudent"
+                type="number"
+                min="1"
+                className="vendor-input"
+                value={txtactMaxStudent}
+                onChange={(e) => setMaxStudent(e.target.value)}
+              />
+              <ErrorText msg={errors.txtactMaxStudent} />
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
 
       {/* -------------------- VAT / PRICE SECTION -------------------- */}
       {/* ✅ CHANGE #2: Per Student -> Activity Price Per Member */}

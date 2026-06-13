@@ -294,7 +294,21 @@ const Vendor = () => {
           </div>
         </div>
 
-        {/* ✅ Category Information section hidden */}
+        {/* ✅ Activity Categories: hidden when MEMBERSHIP */}
+        {!isMemberType && (
+          <div style={{ marginBottom: '10px', marginTop: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
+              Activity Categories
+            </label>
+            <div>
+              {ActivityData?.categoryInfo?.map((cat, index) => (
+                <span key={index} className="admin-lbl-box pink-badge">
+                  {cat.EnCategoryName}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ✅ NEW: Membership Interest — shown only when MEMBERSHIP */}
         {isMemberType && (
@@ -501,7 +515,28 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ Capacity Information section hidden and no longer mandatory */}
+      <div className="txtsubtitle">Capacity Information </div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
+            <div
+              className="vendor-column"
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <label className="vendor-label">Minimum Students</label>
+              <div className="admin-lbl-box"> {ActivityData?.actMinStudent} </div>
+            </div>
+
+            <div
+              className="vendor-column"
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <label className="vendor-label">Maximum Students</label>
+              <div className="admin-lbl-box"> {ActivityData?.actMaxStudent} </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ================== PRICE PER STUDENT (APPLIED SAME CONCEPT + LAYOUT) ================== */}
       <div className="txtsubtitle">

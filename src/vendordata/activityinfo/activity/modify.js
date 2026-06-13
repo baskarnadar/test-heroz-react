@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -231,10 +231,12 @@ const Vendor = () => {
     })
   }
 
+  // ✅ FIX: Support overnight ranges (End Time < Start Time => treat End as next day)
   const calculateTotal = (start, end) => {
     const startMinutes = timeToMinutes(start)
-    const endMinutes = timeToMinutes(end)
-    if (startMinutes == null || endMinutes == null || endMinutes <= startMinutes) return ''
+    let endMinutes = timeToMinutes(end)
+    if (startMinutes == null || endMinutes == null) return ''
+    if (endMinutes <= startMinutes) endMinutes += 24 * 60 // ✅ overnight support
     return minutesToHHMM(endMinutes - startMinutes)
   }
 
@@ -343,6 +345,8 @@ const Vendor = () => {
     return Math.round(decimalHours * 60)
   }
 
+  // ✅ FIX: Support overnight ranges in overlap detection
+  // If End Time <= Start Time, treat End as next day (add 24h) before comparing.
   const hasOverlap = (days) => {
     for (const [dayName, dayData] of Object.entries(days)) {
       if (dayData.closed) continue
@@ -350,13 +354,15 @@ const Vendor = () => {
       const times = dayData.times.filter((t) => t.start && t.end)
       for (let i = 0; i < times.length; i++) {
         const startA = timeStringToMinutes(times[i].start)
-        const endA = timeStringToMinutes(times[i].end)
+        let endA = timeStringToMinutes(times[i].end)
         if (startA === null || endA === null) continue
+        if (endA <= startA) endA += 24 * 60 // ✅ overnight support
 
         for (let j = i + 1; j < times.length; j++) {
           const startB = timeStringToMinutes(times[j].start)
-          const endB = timeStringToMinutes(times[j].end)
+          let endB = timeStringToMinutes(times[j].end)
           if (startB === null || endB === null) continue
+          if (endB <= startB) endB += 24 * 60 // ✅ overnight support
 
           if (startA < endB && endA > startB) {
             return { day: dayName, range1: times[i], range2: times[j] }
@@ -368,6 +374,7 @@ const Vendor = () => {
   }
 
   // ✅ compute row total + day total
+  // ✅ FIX: Support overnight ranges (End Time <= Start Time => treat End as next day)
   const handleTimeChange = (day, index, field, value) => {
     setDays((prevDays) => {
       const updatedTimes = [...prevDays[day].times]
@@ -383,7 +390,8 @@ const Vendor = () => {
           sMin = timeToMinutes(s)
           eMin = timeToMinutes(e)
         }
-        if (sMin != null && eMin != null && eMin > sMin) {
+        if (sMin != null && eMin != null) {
+          if (eMin <= sMin) eMin += 24 * 60 // ✅ overnight support
           nextRow.total = minutesToHHMM(eMin - sMin)
         } else {
           nextRow.total = ''

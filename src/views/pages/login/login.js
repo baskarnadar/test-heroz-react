@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CButton,
@@ -40,6 +40,7 @@ const Login = () => {
       return 'ar'
     }
   }
+
   const [lang, setLang] = useState(getStoredLang())
   const dict = lang === 'ar' ? arPack : enPack
   const tr = (key, fallback) => (dict && dict[key]) || fallback
@@ -49,6 +50,7 @@ const Login = () => {
     try {
       localStorage.setItem('heroz_lang', lang)
     } catch {}
+
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
       document.documentElement.setAttribute('lang', lang)
@@ -60,6 +62,7 @@ const Login = () => {
     console.log('username')
     console.log(password)
     console.log(`${API_BASE_URL}/subadmin/signin`)
+
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
         method: 'POST',
@@ -75,46 +78,40 @@ const Login = () => {
       const data = await response.json()
       console.log(`${API_BASE_URL}/subadmin/signin`)
       console.log('API Response1:', data)
-      console.log('data.data.token', data.data.token)
 
       if (response.ok && data.data && data.data.token) {
+        console.log('data.data.token', data.data.token)
+
         // ✅ Save token to localStorage
-        localStorage.setItem('allowedPages', JSON.stringify(data.allowedPages))
+        localStorage.setItem('allowedPages', JSON.stringify(data.allowedPages || []))
         localStorage.setItem('token', data.data.token)
 
-        // ✅ Optionally save user data
-        localStorage.setItem('prtuserid', data.data.prtuserid)
-        localStorage.setItem('username', data.data.username)
-        localStorage.setItem('usertype', data.data.usertype)
-        localStorage.setItem('loggedusername', data.data.loggedusername);
+        // ✅ Save user data
+        localStorage.setItem('prtuserid', data.data.prtuserid || '')
+        localStorage.setItem('username', data.data.username || '')
+        localStorage.setItem('usertype', data.data.usertype || '')
+        localStorage.setItem('loggedusername', data.data.loggedusername || '')
 
-        // ✅ NEW: Save VatAmount from backend (tblloksetting) to localStorage
-        // supports both VatAmount and VatAmount keys just in case
-        if (
-          data.data.VatAmount !== undefined &&
-          data.data.VatAmount !== null
-        ) {
-           
+        // ✅ Save profile name and profile image from API
+        localStorage.setItem('ProfileName', data.data.ProfileName || data.data.loggedusername || '')
+        localStorage.setItem('ProfileImageName', data.data.ProfileImageName || '')
+
+        console.log('Saved ProfileName:', data.data.ProfileName || data.data.loggedusername || '')
+        console.log('Saved ProfileImageName:', data.data.ProfileImageName || '')
+
+        // ✅ Save VatAmount from backend
+        if (data.data.VatAmount !== undefined && data.data.VatAmount !== null) {
           localStorage.setItem('VatAmount', data.data.VatAmount.toString())
           console.log('Saved VatAmount to localStorage:', data.data.VatAmount)
-        } else if (
-          data.data.VatAmount !== undefined &&
-          data.data.VatAmount !== null
-        ) {
-          localStorage.setItem('VatAmount', data.data.VatAmount.toString())
-          console.log('Saved VatAmount to localStorage (VatAmount):', data.data.VatAmount)
         }
-        
 
-        if (data.data.usertype == 'ADMIN')
+        if (data.data.usertype === 'ADMIN') {
           navigate('/admin/dashboard')
-
-        if ((data.data.usertype == 'VENDOR-SUBADMIN'))
+        } else if (data.data.usertype === 'VENDOR-SUBADMIN') {
           navigate('/vendor/dashboard')
-
-          if (  (data.data.usertype == 'MEMBERSHIP'))
+        } else if (data.data.usertype === 'MEMBERSHIP') {
           navigate('/membership/dashboard')
-
+        }
       } else {
         handleLogout()
         setError(data.message || tr('errInvalidCredentials', 'Invalid credentials'))
@@ -143,7 +140,7 @@ const Login = () => {
         style={{
           position: 'fixed',
           top: 12,
-          insetInlineEnd: 12, // RTL/LTR aware
+          insetInlineEnd: 12,
           display: 'flex',
           gap: 8,
           zIndex: 1050,
@@ -163,6 +160,7 @@ const Login = () => {
           </span>{' '}
           AR
         </CButton>
+
         <CButton
           size="sm"
           color={lang === 'en' ? 'primary' : 'light'}
@@ -229,6 +227,7 @@ const Login = () => {
                           {tr('loginBtn', 'Login')}
                         </CButton>
                       </CCol>
+
                       <CCol xs={6} className="text-right">
                         <CButton color="link" className="px-0">
                           {tr('forgotPassword', 'Forgot password?')}

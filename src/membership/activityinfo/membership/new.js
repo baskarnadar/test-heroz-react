@@ -563,6 +563,8 @@ const Vendor = () => {
       txtactMinAge,
       txtactMaxAge,
       actRating, // now visible
+      txtactMinStudent,
+      txtactMaxStudent,
       priceRanges,
       days,
       foods,
@@ -1140,7 +1142,45 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ Capacity Information section hidden: Minimum/Maximum Students are no longer mandatory */}
+      <div className="txtsubtitle">
+        {tr('sectionCapacity', 'Capacity Information')} <span className="act-required">*</span>
+      </div>
+
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="act-twoColRow">
+            <div className="vendor-column">
+              <label className="vendor-label">
+                {tr('labelMinStudents', 'Minimum Students')} <span className="act-required">*</span>
+              </label>
+              <input
+                name="txtactMinStudent"
+                type="number"
+                min="1"
+                className="vendor-input"
+                value={txtactMinStudent}
+                onChange={(e) => setMinStudent(e.target.value)}
+              />
+              <ErrorText msg={errors.txtactMinStudent} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">
+                {tr('labelMaxStudents', 'Maximum Students')} <span className="act-required">*</span>
+              </label>
+              <input
+                name="txtactMaxStudent"
+                type="number"
+                min="1"
+                className="vendor-input"
+                value={txtactMaxStudent}
+                onChange={(e) => setMaxStudent(e.target.value)}
+              />
+              <ErrorText msg={errors.txtactMaxStudent} />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* -------------------- VAT / PRICE SECTION -------------------- */}
       {/* ✅ CHANGE #2: Per Student -> Activity Price Per Member */}

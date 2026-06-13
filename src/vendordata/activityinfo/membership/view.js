@@ -225,8 +225,8 @@ const Vendor = () => {
           </div>
         </div>
 
-        {/* ✅ Category Information hidden as requested. */}
-        {false && ActivityData?.actTypeID !== 'MEMBERSHIP' && (
+        {/* ✅ Activity Categories: hidden when MEMBERSHIP, show Membership Interest instead */}
+        {ActivityData?.actTypeID !== 'MEMBERSHIP' && (
           <div style={{ marginBottom: '10px', marginTop: '20px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
               {tr('labelCategories', 'Activity Categories')}
@@ -457,37 +457,49 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* ✅ Capacity Information hidden for Membership Activity. */}
-      {false && (
-        <>
-          <div className="txtsubtitle">{tr('sectionCapacityInfo', 'Capacity Information ')}</div>
-          <div className="divbox">
-            <div className="vendor-container">
-              <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
-                <div
-                  className="vendor-column"
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-                >
-                  <label className="vendor-label">{tr('labelMinStudents', 'Minimum Students')}</label>
-                  <div className="admin-lbl-box"> {ActivityData?.actMinStudent} </div>
-                </div>
+      <div className="txtsubtitle">{tr('sectionCapacityInfo', 'Capacity Information ')}</div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
+            <div
+              className="vendor-column"
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <label className="vendor-label">{tr('labelMinStudents', 'Minimum Students')}</label>
+              <div className="admin-lbl-box"> {ActivityData?.actMinStudent} </div>
+            </div>
 
-                <div
-                  className="vendor-column"
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-                >
-                  <label className="vendor-label">{tr('labelMaxStudents', 'Maximum Students')}</label>
-                  <div className="admin-lbl-box"> {ActivityData?.actMaxStudent} </div>
-                </div>
-              </div>
+            <div
+              className="vendor-column"
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <label className="vendor-label">{tr('labelMaxStudents', 'Maximum Students')}</label>
+              <div className="admin-lbl-box"> {ActivityData?.actMaxStudent} </div>
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
 
       {/* ✅ Activity Price Per Member */}
       <div className="txtsubtitle">
         {tr('sectionActivityPricePerMember', 'Activity Price Per Member')}
+        {vatPercentValue > 0 && (
+          <span
+            style={{
+              marginInlineStart: 8,
+              fontSize: 13,
+              border: '1px solid #cf2037',
+              borderRadius: 999,
+              padding: '3px 10px',
+              backgroundColor: 'rgba(207, 32, 55, 0.15)',
+              color: '#cf2037',
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            {`+ VAT ${to2(vatPercentValue)}%`}
+          </span>
+        )}
       </div>
 
       <div className="divbox">
@@ -519,7 +531,7 @@ const Vendor = () => {
                   {to2(priceItem.Price)}
                 </div>
 
-                {false && basePrice > 0 && vatPercentValue > 0 && (
+                {basePrice > 0 && vatPercentValue > 0 && (
                   <div
                     style={{
                       marginTop: 6,
@@ -661,7 +673,7 @@ const Vendor = () => {
 
                     <CCol sm={2}>
                       <div className="admin-lbl-box text-center">{to2(foodItem.FoodPrice)}</div>
-                      {false && baseFoodPrice > 0 && vatPercentValue > 0 && (
+                      {baseFoodPrice > 0 && vatPercentValue > 0 && (
                         <div
                           style={{
                             marginTop: 6,

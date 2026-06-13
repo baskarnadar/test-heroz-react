@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -207,12 +207,14 @@ const Vendor = () => {
       const times = dayData.times.filter((t) => t.start && t.end)
       for (let i = 0; i < times.length; i++) {
         const startA = timeStringToMinutes(times[i].start)
-        const endA = timeStringToMinutes(times[i].end)
+        let endA = timeStringToMinutes(times[i].end)
         if (startA === null || endA === null) continue
+        if (endA <= startA) endA += 24 * 60 // ✅ overnight range
         for (let j = i + 1; j < times.length; j++) {
           const startB = timeStringToMinutes(times[j].start)
-          const endB = timeStringToMinutes(times[j].end)
+          let endB = timeStringToMinutes(times[j].end)
           if (startB === null || endB === null) continue
+          if (endB <= startB) endB += 24 * 60 // ✅ overnight range
           if (startA < endB && endA > startB) {
             return { day: dayName, range1: times[i], range2: times[j] }
           }
@@ -258,8 +260,10 @@ const Vendor = () => {
       const e = String(next.end || '').trim()
       if (s && e) {
         const sMin = timeStringToMinutes(s)
-        const eMin = timeStringToMinutes(e)
-        if (sMin !== null && eMin !== null && eMin > sMin) {
+        let eMin = timeStringToMinutes(e)
+        if (sMin !== null && eMin !== null) {
+          // ✅ Overnight support: if end <= start, treat end as next day
+          if (eMin <= sMin) eMin += 24 * 60
           next.total = minutesToHHMM(eMin - sMin)
         } else {
           next.total = ''
