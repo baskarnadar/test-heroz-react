@@ -353,6 +353,8 @@ export function IsAdminLoginIsValid() {
   };
 }
 
-export function GenerateUniqueNumber() {
-  return crypto.randomUUID().replace(/-/g, '');
+ export function GenerateUniqueNumber() {
+  return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/[x]/g, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  );
 }
