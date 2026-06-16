@@ -1,6 +1,6 @@
 // Structured validator with per-field errors.
 // Returns: { ok: boolean, message: string, errors: Record<string,string> }
-
+//validate.js
 function parseFlexibleTimeToMinutes(str) {
   if (!str) return null;
   const raw = String(str).trim().toLowerCase();
@@ -189,7 +189,12 @@ export function validateActivityForm(payload) {
         break;
       }
 
-      if (eMin <= sMin) {
+      // ✅ Overnight-aware: if End Time is earlier than Start Time, the slot
+      // continues past midnight into the next day (e.g. 9:00 pm -> 1:00 am = 4h).
+      // Only an exact zero-length slot (end === start) is still rejected.
+      const eMinAdjusted = eMin < sMin ? eMin + 24 * 60 : eMin;
+
+      if (eMinAdjusted <= sMin) {
         errors.availability = `End time must be after Start time on ${d} (row ${i + 1}).`;
         break;
       }

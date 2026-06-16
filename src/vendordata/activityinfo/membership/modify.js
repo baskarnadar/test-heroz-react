@@ -68,6 +68,7 @@ const Vendor = () => {
   // === Feature flags ===
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_FOOD_IMAGE = true // ⬅️ Hide Extra Image everywhere (UI + payload)
+  const HIDE_ACTIVITY_CATEGORIES_UI = true // ✅ Hide Activity Categories section in Membership edit page
 
   // ✅ NEW: hide sections requested (do not remove code)
   const HIDE_EXTRA_INFORMATION_UI = true
@@ -249,10 +250,9 @@ const Vendor = () => {
   }
 
   const calculateTotal = (start, end) => {
-    const startMinutes = timeToMinutes(start)
-    const endMinutes = timeToMinutes(end)
-    if (startMinutes == null || endMinutes == null || endMinutes <= startMinutes) return ''
-    return ((endMinutes - startMinutes) / 60).toFixed(2)
+    const { startMin, endMin } = getOvernightAwareMinutes(start, end)
+    if (startMin == null || endMin == null || endMin <= startMin) return ''
+    return ((endMin - startMin) / 60).toFixed(2)
   }
 
   const [days, setDays] = useState({
@@ -331,22 +331,49 @@ const Vendor = () => {
     return hour * 60 + minute
   }
 
+  // ✅ NEW: Overnight-aware range helper.
+  // Accepts start/end as either "HH:MM" (native <input type="time">) or "h:mm AM/PM".
+  // If End Time < Start Time, the slot is treated as continuing past midnight into
+  // the next calendar day (e.g. Mon 09:00 PM → Tue 01:00 AM), and the end minute
+  // value is pushed forward by 24h (1440 minutes) so duration math stays correct.
+  // The row itself still belongs to the original day (DayName is untouched) —
+  // this only affects how the duration/overlap math interprets the clock time.
+  const getOvernightAwareMinutes = (startStr, endStr) => {
+    let sMin = timeStringToMinutes(startStr)
+    let eMin = timeStringToMinutes(endStr)
+    if (sMin == null || eMin == null) {
+      sMin = timeToMinutes(startStr)
+      eMin = timeToMinutes(endStr)
+    }
+    if (sMin == null || eMin == null) {
+      return { startMin: null, endMin: null, isOvernight: false }
+    }
+
+    let isOvernight = false
+    let endMin = eMin
+    if (eMin < sMin) {
+      // Crosses midnight — roll the end time into the next day.
+      endMin = eMin + 24 * 60
+      isOvernight = true
+    }
+
+    return { startMin: sMin, endMin, isOvernight }
+  }
+
   const hasOverlap = (days) => {
     for (const [dayName, dayData] of Object.entries(days)) {
       if (dayData.closed) continue
 
       const times = dayData.times.filter((t) => t.start && t.end)
       for (let i = 0; i < times.length; i++) {
-        const startA = timeStringToMinutes(times[i].start)
-        const endA = timeStringToMinutes(times[i].end)
-        if (startA === null || endA === null) continue
+        const a = getOvernightAwareMinutes(times[i].start, times[i].end)
+        if (a.startMin === null || a.endMin === null) continue
 
         for (let j = i + 1; j < times.length; j++) {
-          const startB = timeStringToMinutes(times[j].start)
-          const endB = timeStringToMinutes(times[j].end)
-          if (startB === null || endB === null) continue
+          const b = getOvernightAwareMinutes(times[j].start, times[j].end)
+          if (b.startMin === null || b.endMin === null) continue
 
-          if (startA < endB && endA > startB) {
+          if (a.startMin < b.endMin && a.endMin > b.startMin) {
             return { day: dayName, range1: times[i], range2: times[j] }
           }
         }
@@ -365,19 +392,19 @@ const Vendor = () => {
       const s = String(nextRow.start || '').trim()
       const e = String(nextRow.end || '').trim()
       if (s && e) {
-        let sMin = timeStringToMinutes(s)
-        let eMin = timeStringToMinutes(e)
-        if (sMin == null || eMin == null) {
-          sMin = timeToMinutes(s)
-          eMin = timeToMinutes(e)
-        }
-        if (sMin != null && eMin != null && eMin > sMin) {
-          nextRow.total = ((eMin - sMin) / 60).toFixed(2)
+        // ✅ Overnight-aware duration: End Time < Start Time means the slot
+        // continues past midnight (e.g. 09:00 PM → 01:00 AM = 4 hours), not invalid.
+        const { startMin, endMin, isOvernight } = getOvernightAwareMinutes(s, e)
+        if (startMin != null && endMin != null && endMin > startMin) {
+          nextRow.total = ((endMin - startMin) / 60).toFixed(2)
+          nextRow.isOvernight = isOvernight
         } else {
           nextRow.total = ''
+          nextRow.isOvernight = false
         }
       } else {
         nextRow.total = ''
+        nextRow.isOvernight = false
       }
 
       updatedTimes[index] = nextRow
@@ -546,7 +573,7 @@ const Vendor = () => {
     const validation = validateActivityForm({
       txtactName,
       selectedType,
-      selectedCategories: selectedType === 'MEMBERSHIP' ? ['SKIP'] : selectedCategories,
+      selectedCategories: HIDE_ACTIVITY_CATEGORIES_UI || selectedType === 'MEMBERSHIP' ? ['SKIP'] : selectedCategories,
       txtactDesc,
       txtactImageName1: txtactImageName1 || OrgtxtactImageName1,
       txtactImageName2: txtactImageName2 || OrgtxtactImageName2,
@@ -693,7 +720,7 @@ const Vendor = () => {
       VendorID: getCurrentLoggedUserID(),
       actName: txtactName || '',
       actTypeID: selectedType,
-      actCategoryID: selectedCategories,
+      actCategoryID: HIDE_ACTIVITY_CATEGORIES_UI ? [] : selectedCategories,
       actKidsInterestID: selectedKidsInterests, // ✅ NEW: Kids Interest IDs for MEMBERSHIP
       actDesc: txtactDesc || '',
 
@@ -992,12 +1019,15 @@ const Vendor = () => {
         const day = item.DayName.toLowerCase()
         if (!dayMap[day]) return
 
+        const { isOvernight } = getOvernightAwareMinutes(item.StartTime, item.EndTime)
+
         dayMap[day].times.push({
           AvailDaysHoursID: item.AvailDaysHoursID,
           start: item.StartTime,
           end: item.EndTime,
           note: item.Note || '',
           total: item.Total || '0.00',
+          isOvernight, // ✅ NEW: so the "Ends next day" badge shows for existing data too
         })
 
         dayMap[day].closed = false
@@ -1497,8 +1527,8 @@ const Vendor = () => {
           <ErrorText msg={errors.actRating} />
         </div>
 
-        {/* ✅ Activity Categories: hidden when MEMBERSHIP is selected */}
-        {selectedType !== 'MEMBERSHIP' && (
+        {/* ✅ Activity Categories: hidden in Membership edit page */}
+        {!HIDE_ACTIVITY_CATEGORIES_UI && selectedType !== 'MEMBERSHIP' && (
           <div style={{ marginBottom: '10px', marginTop: '20px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8 }}>
               {tr('labelCategories', 'Activity Categories')} <span style={{ color: 'red' }}>*</span>
@@ -2088,6 +2118,24 @@ const Vendor = () => {
                             onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
                           />
                         </label>
+
+                        {/* ✅ NEW: overnight indicator — purely informational, does not block saving */}
+                        {range.isOvernight && (
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#6b3fa0',
+                              backgroundColor: '#f1e9fb',
+                              border: '1px solid #6b3fa0',
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {tr('labelOvernightNextDay', 'Ends next day')}
+                          </span>
+                        )}
 
                         <label>
                           {tr('labelNotes', 'Notes')}:{' '}

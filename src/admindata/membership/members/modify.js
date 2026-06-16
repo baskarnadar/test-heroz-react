@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL, HerozStarValue } from '../../../config'
@@ -38,6 +38,14 @@ const Vendor = () => {
   const [txtactImageName2, setactImageName2] = useState(null)
   const [txtactImageName3, setactImageName3] = useState(null)
 
+  // ✅ Activity image validation states (JPG/JPEG/PNG only)
+  const [imgErr1, setImgErr1] = useState('')
+  const [imgErr2, setImgErr2] = useState('')
+  const [imgErr3, setImgErr3] = useState('')
+  const [imgInvalid1, setImgInvalid1] = useState(false)
+  const [imgInvalid2, setImgInvalid2] = useState(false)
+  const [imgInvalid3, setImgInvalid3] = useState(false)
+
   const navigate = useNavigate()
   const [fetchedCategories, setFetchedCategories] = useState([])
 
@@ -55,6 +63,8 @@ const Vendor = () => {
   // === NEW: single flag to hide price-range & delete UI (kept logic, just hidden)
   const HIDE_PRICE_RANGE_UI = false
   const HIDE_VAT_BADGE_UI = true // ✅ Hide all VAT badges/text in UI only; keep VAT logic + payload intact
+  const HIDE_ACTIVITY_TYPE_OPTIONS = true // ✅ Membership admin page: keep MEMBERSHIP only
+  const HIDE_FOOD_IMAGE = true // ✅ Hide food image upload/send blank image
 
   // ✅ ADD (no removals): prevent runtime errors for code you already have
   const [formData, setFormData] = useState({
@@ -81,7 +91,7 @@ const Vendor = () => {
 
   // Define state for each input
   const [txtactName, setactName] = useState('')
-  const [selectedType, setactType] = useState('') // was []; used like a string everywhere
+  const [selectedType, setactType] = useState('MEMBERSHIP') // force membership page
   const [selectedCategories, setSelectedCategories] = useState([])
   const [txtactDesc, setactDesc] = useState('')
   const [txtactYouTubeID1, setYouTube1] = useState('')
@@ -123,9 +133,19 @@ const Vendor = () => {
   }, [])
 
   // ---------------- VAT & SUMMARY NUMBERS (READ-ONLY) ----------------
-  const vatPercentValue = Number(getVatAmount() || 0) // e.g. 15
-  const vatRateValue = vatPercentValue / 100 // e.g. 0.15
+  const vatRaw = Number(getVatAmount() || 0) // may be 15 or 0.15
+  const vatPercentDefault = vatRaw > 1 ? vatRaw : vatRaw * 100
+  const [vatPercentFromServer, setVatPercentFromServer] = useState(null)
+  const vatPercentValue = vatPercentFromServer ?? vatPercentDefault
+  const vatRateValue = vatPercentValue / 100
   // -------------------------------------------------------------------
+
+  // ✅ Membership page guard
+  useEffect(() => {
+    if (HIDE_ACTIVITY_TYPE_OPTIONS && selectedType !== 'MEMBERSHIP') {
+      setactType('MEMBERSHIP')
+    }
+  }, [selectedType])
 
   // ✅ MEMBERSHIP detection (no removals)
   const typeUpper = String(selectedType || '').toUpperCase()
@@ -212,6 +232,195 @@ const Vendor = () => {
     return lang === 'ar' ? item?.ArkidsinterestName || item?.EnkidsinterestName || '' : item?.EnkidsinterestName || item?.ArkidsinterestName || ''
   }
 
+
+  // ✅ YouTube helper: accepts video ID / full URL / short URL / shorts / embed
+  const getYouTubeVideoId = (value) => {
+    const raw = String(value || '').trim()
+    if (!raw) return ''
+
+    let videoId = raw
+
+    try {
+      if (raw.includes('youtube.com') || raw.includes('youtu.be')) {
+        const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`)
+
+        if (url.hostname.includes('youtu.be')) {
+          videoId = url.pathname.replace('/', '').split('/')[0]
+        } else if (url.pathname.includes('/embed/')) {
+          videoId = url.pathname.split('/embed/')[1]?.split('/')[0]
+        } else if (url.pathname.includes('/shorts/')) {
+          videoId = url.pathname.split('/shorts/')[1]?.split('/')[0]
+        } else {
+          videoId = url.searchParams.get('v') || raw
+        }
+      }
+    } catch {
+      videoId = raw
+    }
+
+    return String(videoId || '').replace(/[^a-zA-Z0-9_-]/g, '')
+  }
+
+  const getYouTubeWatchUrl = (value) => {
+    const id = getYouTubeVideoId(value)
+    return id ? `https://www.youtube.com/watch?v=${id}` : ''
+  }
+
+  const getYouTubeThumbnailUrl = (value) => {
+    const id = getYouTubeVideoId(value)
+    return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ''
+  }
+
+  const isAllowedImageFile = (file) => {
+    if (!file) return false
+    const name = String(file.name || '').toLowerCase()
+    const ext = name.includes('.') ? name.split('.').pop() : ''
+    const mime = String(file.type || '').toLowerCase()
+    return ['jpg', 'jpeg', 'png'].includes(ext) && ['image/jpeg', 'image/png', 'image/jpg'].includes(mime)
+  }
+
+  const handleActivityImageUpload = (imgIndex, setter) => (e) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
+
+    const setErrorForIndex = (msg, invalid) => {
+      if (imgIndex === 1) {
+        setImgErr1(msg)
+        setImgInvalid1(invalid)
+      } else if (imgIndex === 2) {
+        setImgErr2(msg)
+        setImgInvalid2(invalid)
+      } else if (imgIndex === 3) {
+        setImgErr3(msg)
+        setImgInvalid3(invalid)
+      }
+    }
+
+    if (!file) {
+      setter(null)
+      setErrorForIndex('', false)
+      return
+    }
+
+    if (!isAllowedImageFile(file)) {
+      const msg = 'Invalid file. Only JPG/JPEG/PNG allowed.'
+      setter(null)
+      setErrorForIndex(msg, true)
+      setToastMessage(msg)
+      setToastType('fail')
+      try {
+        e.target.value = ''
+      } catch (err) {}
+      return
+    }
+
+    setErrorForIndex('', false)
+    setter(file)
+  }
+
+  const renderYouTubePreview = (videoValue, title) => {
+    const videoId = getYouTubeVideoId(videoValue)
+    const thumbUrl = getYouTubeThumbnailUrl(videoValue)
+    const watchUrl = getYouTubeWatchUrl(videoValue)
+
+    if (!videoId) {
+      return (
+        <div
+          style={{
+            marginTop: 10,
+            border: '1px dashed #ddd',
+            borderRadius: 10,
+            padding: '14px 12px',
+            color: '#777',
+            background: '#fafafa',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          No YouTube preview
+        </div>
+      )
+    }
+
+    return (
+      <a
+        href={watchUrl}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          marginTop: 10,
+          display: 'block',
+          position: 'relative',
+          border: '1px solid #e2e2e2',
+          borderRadius: 12,
+          overflow: 'hidden',
+          background: '#000',
+          textDecoration: 'none',
+        }}
+      >
+        <div
+          style={{
+            padding: '8px 10px',
+            fontSize: 13,
+            fontWeight: 700,
+            background: '#f7f7f7',
+            borderBottom: '1px solid #e2e2e2',
+            color: '#111',
+          }}
+        >
+          {title}
+        </div>
+
+        <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
+          <img
+            src={thumbUrl}
+            alt={title}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.2)',
+            }}
+          >
+            <div
+              style={{
+                width: 64,
+                height: 46,
+                borderRadius: 12,
+                background: '#ff0000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span
+                style={{
+                  marginLeft: 4,
+                  width: 0,
+                  height: 0,
+                  borderTop: '12px solid transparent',
+                  borderBottom: '12px solid transparent',
+                  borderLeft: '20px solid #fff',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </a>
+    )
+  }
+
   const handleKidsInterestCheckboxChange = (kidsinterestID) => {
     setSelectedKidsInterests((prevSelected) =>
       prevSelected.includes(kidsinterestID)
@@ -277,9 +486,9 @@ const Vendor = () => {
   }
 
   const calculateTotal = (start, end) => {
-    const startMinutes = timeToMinutes(start)
-    const endMinutes = timeToMinutes(end)
-    return ((endMinutes - startMinutes) / 60).toFixed(2)
+    const { startMin, endMin } = getOvernightAwareMinutes(start, end)
+    if (startMin == null || endMin == null || endMin <= startMin) return ''
+    return ((endMin - startMin) / 60).toFixed(2)
   }
 
   const [days, setDays] = useState({
@@ -321,22 +530,35 @@ const Vendor = () => {
     return hour * 60 + minute
   }
 
+  const getOvernightAwareMinutes = (startStr, endStr) => {
+    const sMin = timeToMinutes(startStr)
+    const eMin = timeToMinutes(endStr)
+
+    if (sMin == null || eMin == null) {
+      return { startMin: null, endMin: null, isOvernight: false }
+    }
+
+    if (eMin < sMin) {
+      return { startMin: sMin, endMin: eMin + 24 * 60, isOvernight: true }
+    }
+
+    return { startMin: sMin, endMin: eMin, isOvernight: false }
+  }
+
   const hasOverlap = (days) => {
     for (const [dayName, dayData] of Object.entries(days)) {
       if (dayData.closed) continue
 
       const times = dayData.times.filter((t) => t.start && t.end)
       for (let i = 0; i < times.length; i++) {
-        const startA = timeStringToMinutes(times[i].start)
-        const endA = timeStringToMinutes(times[i].end)
-        if (startA === null || endA === null) continue
+        const a = getOvernightAwareMinutes(times[i].start, times[i].end)
+        if (a.startMin === null || a.endMin === null) continue
 
         for (let j = i + 1; j < times.length; j++) {
-          const startB = timeStringToMinutes(times[j].start)
-          const endB = timeStringToMinutes(times[j].end)
-          if (startB === null || endB === null) continue
+          const b = getOvernightAwareMinutes(times[j].start, times[j].end)
+          if (b.startMin === null || b.endMin === null) continue
 
-          if (startA < endB && endA > startB) {
+          if (a.startMin < b.endMin && a.endMin > b.startMin) {
             return { day: dayName, range1: times[i], range2: times[j] }
           }
         }
@@ -355,7 +577,9 @@ const Vendor = () => {
       const s = updatedTimes[index].start
       const e = updatedTimes[index].end
       if (s && e) {
+        const { isOvernight } = getOvernightAwareMinutes(s, e)
         updatedTimes[index].total = calculateTotal(s, e)
+        updatedTimes[index].isOvernight = isOvernight
       }
       return {
         ...prevDays,
@@ -387,6 +611,12 @@ const Vendor = () => {
 
   const handleSubmit = async (actStatusVal, e) => {
     if (e && e.preventDefault) e.preventDefault()
+
+    if (imgInvalid1 || imgInvalid2 || imgInvalid3) {
+      setToastMessage('Please fix Activity Images (JPG/JPEG/PNG only).')
+      setToastType('fail')
+      return
+    }
 
     const ratingForValidation =
       actRating === '' ? '' : String(Math.min(10, Math.max(0, Number(actRating) * 2)))
@@ -524,7 +754,6 @@ const Vendor = () => {
 
     const actPriceVatPercentageVal = effectiveVatPercent
     const actPriceVatAmountVal = dec(firstPriceNum * effectiveVatRate)
-console.log(selectedKidsInterests);
     try {
       const response = await fetch(`${API_BASE_URL}/vendordata/activityinfo/activity/updateActivity`, {
         method: 'POST',
@@ -534,8 +763,8 @@ console.log(selectedKidsInterests);
           VendorID: getVendorIDVal,
           actName: txtactName || '',
           actTypeID: selectedType,
-          actCategoryID: selectedCategories,
-          actKidsInterestID: selectedKidsInterests, // ✅ ADDED
+          actCategoryID: isMemberType ? [] : selectedCategories,
+          actKidsInterestID: selectedKidsInterests, // ✅ Membership Interest IDs
           actDesc: txtactDesc || '',
           actImageName1: txtactImageName1Val,
           actImageName2: txtactImageName2Val,
@@ -668,9 +897,7 @@ console.log(selectedKidsInterests);
         // ✅ NEW: FETCH KIDS INTEREST LIST
         const kidsInterestRes = await fetch(`${API_BASE_URL}/lookupdata/kidsinterest/getkidsinterestlist`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             page: 1,
             limit: 1000,
@@ -714,7 +941,7 @@ console.log(selectedKidsInterests);
     setOrgsetactImageName3(ActivityData.actImageName3)
 
     setactName(ActivityData.actName || '')
-    setactType(ActivityData.actTypeID || '')
+    setactType('MEMBERSHIP')
     setSelectedCategories(ActivityData.actCategoryID || [])
 
     // ✅ NEW: SET actKidsInterestID
@@ -785,6 +1012,11 @@ console.log(selectedKidsInterests);
       null
 
     if (Array.isArray(ActivityData.priceList) && ActivityData.priceList.length > 0) {
+      const firstVat = Number(ActivityData.priceList[0]?.actPriceVatPercentage)
+      if (Number.isFinite(firstVat) && firstVat > 0) {
+        setVatPercentFromServer(firstVat > 1 ? firstVat : firstVat * 100)
+      }
+
       const formattedPriceRanges = ActivityData.priceList.map((item) => {
         const vendorBase = Number(item.Price || 0)
         const vendorVat = vendorBase * vatRateValue
@@ -889,7 +1121,7 @@ console.log(selectedKidsInterests);
         price: item.FoodPrice || '',
         herozprice: item.FoodHerozPrice || '',
         notes: item.FoodNotes || '',
-        image: item.FoodImage || null,
+        image: HIDE_FOOD_IMAGE ? null : item.FoodImage || null,
         include: item.Include || false,
         ChkRemoveFood: false,
       }))
@@ -1055,7 +1287,7 @@ console.log(selectedKidsInterests);
     const foodData = await Promise.all(
       foods.map(async (item) => {
         let uploadedImageKey = ''
-        if (item.image instanceof File) {
+        if (!HIDE_FOOD_IMAGE && item.image instanceof File) {
           uploadedImageKey = await uploadFoodImage(item.image)
         }
 
@@ -1077,7 +1309,7 @@ console.log(selectedKidsInterests);
           FoodHerozPrice: herozOut,
           FoodHerozPriceVatAmount: herozVat.toFixed(2),
           FoodNotes: item.notes || '',
-          FoodImage: uploadedImageKey || '',
+          FoodImage: HIDE_FOOD_IMAGE ? '' : uploadedImageKey || '',
           Include: item.include || false,
           RemoveFood: item.ChkRemoveFood || false,
         }
@@ -1367,30 +1599,34 @@ console.log(selectedKidsInterests);
             Activity Type <span style={{ color: 'red' }}>*</span>
           </label>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactTyper"
-                value="SCHOOL"
-                checked={selectedType === 'SCHOOL'}
-                onChange={(e) => setactType(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> School</div>
-            </label>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {!HIDE_ACTIVITY_TYPE_OPTIONS && (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <input
+                    type="radio"
+                    name="rdoactTyper"
+                    value="SCHOOL"
+                    checked={selectedType === 'SCHOOL'}
+                    onChange={(e) => setactType(e.target.value)}
+                    style={{ width: '24px', height: '24px' }}
+                  />
+                  <div className="pink-shadow4"> School</div>
+                </label>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <input
-                type="radio"
-                name="rdoactTyper"
-                value="INDIVIDUAL"
-                checked={selectedType === 'INDIVIDUAL'}
-                onChange={(e) => setactType(e.target.value)}
-                style={{ width: '24px', height: '24px' }}
-              />
-              <div className="pink-shadow4"> Individual</div>
-            </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <input
+                    type="radio"
+                    name="rdoactTyper"
+                    value="INDIVIDUAL"
+                    checked={selectedType === 'INDIVIDUAL'}
+                    onChange={(e) => setactType(e.target.value)}
+                    style={{ width: '24px', height: '24px' }}
+                  />
+                  <div className="pink-shadow4"> Individual</div>
+                </label>
+              </>
+            )}
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <input
@@ -1398,7 +1634,7 @@ console.log(selectedKidsInterests);
                 name="rdoactTyper"
                 value="MEMBERSHIP"
                 checked={selectedType === 'MEMBERSHIP'}
-                onChange={(e) => setactType(e.target.value)}
+                onChange={() => setactType('MEMBERSHIP')}
                 style={{ width: '24px', height: '24px' }}
               />
               <div className="pink-shadow4"> Membership</div>
@@ -1538,6 +1774,302 @@ console.log(selectedKidsInterests);
             required
           />
           <ErrorText msg={errors.txtactDesc} />
+        </div>
+      </div>
+
+
+      <div className="txtsubtitle">
+        Activity Images <span style={{ color: 'red' }}>*</span>
+      </div>
+      <div className="divbox">
+        <div
+          style={{
+            border: '1px solid #cf2037',
+            borderRadius: 10,
+            padding: '10px 12px',
+            background: 'rgba(207, 32, 55, 0.06)',
+            color: '#cf2037',
+            fontWeight: 700,
+            marginTop: 10,
+            marginBottom: 10,
+          }}
+        >
+          Upload image (JPG / JPEG / PNG)
+        </div>
+
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px', marginBottom: '20px' }}>
+          <div className="form-group" style={{ flex: '1' }}>
+            <label>Activity Image 1</label>
+            <input
+              name="txtactImageName1"
+              className="admin-txt-box"
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={handleActivityImageUpload(1, setactImageName1)}
+              style={{
+                height: 50,
+                width: '100%',
+                border: imgInvalid1 ? '2px solid #cf2037' : undefined,
+              }}
+            />
+            <FilePreview file={txtactImageName1} />
+            <ErrorText msg={imgErr1} />
+          </div>
+
+          <div className="form-group" style={{ flex: '1' }}>
+            <label>Activity Image 2</label>
+            <input
+              name="txtactImageName2"
+              className="admin-txt-box"
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={handleActivityImageUpload(2, setactImageName2)}
+              style={{
+                height: 50,
+                width: '100%',
+                border: imgInvalid2 ? '2px solid #cf2037' : undefined,
+              }}
+            />
+            <FilePreview file={txtactImageName2} />
+            <ErrorText msg={imgErr2} />
+          </div>
+
+          <div className="form-group" style={{ flex: '1' }}>
+            <label>Activity Image 3</label>
+            <input
+              name="txtactImageName3"
+              className="admin-txt-box"
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              onChange={handleActivityImageUpload(3, setactImageName3)}
+              style={{
+                height: 50,
+                width: '100%',
+                border: imgInvalid3 ? '2px solid #cf2037' : undefined,
+              }}
+            />
+            <FilePreview file={txtactImageName3} />
+            <ErrorText msg={imgErr3} />
+          </div>
+        </div>
+        <ErrorText msg={errors.images} />
+      </div>
+
+      <div className="txtsubtitle">Activity Youtube Videos</div>
+      <div className="divbox">
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px', marginBottom: '20px' }}>
+          <div className="form-group" style={{ flex: '1' }}>
+            <label>Youtube Video Link 1</label>
+            <input
+              name="txtactYouTubeID1"
+              className="vendor-input"
+              value={txtactYouTubeID1}
+              onChange={(e) => setYouTube1(e.target.value)}
+            />
+            {renderYouTubePreview(txtactYouTubeID1, 'Youtube Video Link 1')}
+          </div>
+
+          <div className="form-group" style={{ flex: '1' }}>
+            <label>Youtube Video Link 2</label>
+            <input
+              name="txtactYouTubeID2"
+              className="vendor-input"
+              value={txtactYouTubeID2}
+              onChange={(e) => setYouTube2(e.target.value)}
+            />
+            {renderYouTubePreview(txtactYouTubeID2, 'Youtube Video Link 2')}
+          </div>
+
+          <div className="form-group" style={{ flex: '1' }}>
+            <label>Youtube Video Link 3</label>
+            <input
+              name="txtactYouTubeID3"
+              className="vendor-input"
+              value={txtactYouTubeID3}
+              onChange={(e) => setYouTube3(e.target.value)}
+            />
+            {renderYouTubePreview(txtactYouTubeID3, 'Youtube Video Link 3')}
+          </div>
+        </div>
+      </div>
+
+      <div className="txtsubtitle">
+        Activity Location <span style={{ color: 'red' }}>*</span>
+      </div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="vendor-row">
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Google Map Location <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactGoogleMap"
+                className="vendor-input"
+                value={txtactGoogleMap}
+                onChange={(e) => setactGoogleMap(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactGoogleMap} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Google Latitude <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactGlat"
+                className="vendor-input"
+                value={txtactGlat}
+                onChange={(e) => setGlat(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactGlat} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Google Longitude <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactGlan"
+                className="vendor-input"
+                value={txtactGlan}
+                onChange={(e) => setGlan(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactGlan} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="vendor-row">
+            <div className="vendor-column">
+              <label className="vendor-label">
+                Country <span style={{ color: 'red' }}>*</span>
+              </label>
+              <select
+                name="txtactCountryID"
+                value={ddactCountryID}
+                onChange={(e) => setCountryID(e.target.value)}
+                className="admin-txt-box"
+                required
+              >
+                <option value="">Select a country</option>
+                {countries.map((country) => (
+                  <option key={country.CountryID} value={country.CountryID}>
+                    {country.EnCountryName}
+                  </option>
+                ))}
+              </select>
+              <ErrorText msg={errors.ddactCountryID} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">
+                City <span style={{ color: 'red' }}>*</span>
+              </label>
+              <select
+                name="txtactCityID"
+                value={ddactCityID}
+                className="admin-txt-box"
+                onChange={(e) => setSelectedCityID(e.target.value)}
+                required
+              >
+                <option value="">Select City</option>
+                {cityList.map((city) => (
+                  <option key={city.CityID} value={city.CityID}>
+                    {city.EnCityName}
+                  </option>
+                ))}
+              </select>
+              <ErrorText msg={errors.ddactCityID} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">Location</label>
+              <input
+                name="txtactAddress1"
+                className="vendor-input"
+                value={txtactAddress1}
+                onChange={(e) => setAddress1(e.target.value)}
+                required
+              />
+              <ErrorText msg={errors.txtactAddress1} />
+            </div>
+
+            <div className="vendor-column">
+              <label className="vendor-label">Address2</label>
+              <input
+                name="txtactAddress2"
+                className="vendor-input"
+                value={txtactAddress2}
+                onChange={(e) => setAddress2(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="txtsubtitle">Age Range</div>
+      <div className="divbox">
+        <div className="vendor-container">
+          <div className="vendor-row" style={{ display: 'flex', gap: '20px' }}>
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">
+                Minimum Age <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactMinAge"
+                className="vendor-input"
+                type="number"
+                min="0"
+                value={txtactMinAge}
+                onChange={(e) => setMinAge(e.target.value)}
+              />
+              <ErrorText msg={errors.txtactMinAge} />
+            </div>
+
+            <div className="vendor-column" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="vendor-label">
+                Maximum Age <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                name="txtactMaxAge"
+                className="vendor-input"
+                type="number"
+                min="0"
+                value={txtactMaxAge}
+                onChange={(e) => setMaxAge(e.target.value)}
+              />
+              <ErrorText msg={errors.txtactMaxAge} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+            <label className="vendor-label">
+              Gender <span style={{ color: 'red' }}>*</span>
+            </label>
+
+            {['BOYS', 'GIRLS', 'BOTH'].map((gender) => (
+              <label key={gender} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <input
+                  type="radio"
+                  name="rdoactGender"
+                  checked={rdoactGender === gender}
+                  value={gender}
+                  onChange={(e) => setGenderService(e.target.value)}
+                  style={{ width: '24px', height: '24px' }}
+                />
+                <div className="pink-shadow4">{gender}</div>
+              </label>
+            ))}
+
+            <ErrorText msg={errors.rdoactGender} />
+          </div>
         </div>
       </div>
 
@@ -1763,3 +2295,4 @@ console.log(selectedKidsInterests);
 }
 
 export default Vendor
+

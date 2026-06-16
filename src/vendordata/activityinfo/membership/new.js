@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+  import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL } from '../../../config'
@@ -23,6 +23,7 @@ const Vendor = () => {
   const HIDE_PRICE_RANGE_UI = true
   const HIDE_ACTIVITY_RATING_UI = false // actRating field visible
   const HIDE_FOOD_IMAGE = true // 👈 hide Extra Image everywhere
+  const HIDE_ACTIVITY_CATEGORIES_UI = true // ✅ hide Activity Categories UI on membership creation page
 
   // ✅ NEW: page-level switches (do not remove code, only hide UI)
   const HIDE_EXTRA_INFORMATION_UI = true
@@ -196,19 +197,40 @@ const Vendor = () => {
     return hour * 60 + minute
   }
 
+  // ✅ NEW: Overnight-aware range helper.
+  // If End Time < Start Time, the slot is treated as continuing past midnight into
+  // the next calendar day (e.g. 21:00 -> 01:00 = 4 hours) instead of being rejected.
+  // The row still belongs to the original day (DayName is untouched) — this only
+  // affects how the duration/overlap math interprets the clock time.
+  const getOvernightAwareMinutes = (startStr, endStr) => {
+    const sMin = timeStringToMinutes(startStr)
+    const eMin = timeStringToMinutes(endStr)
+    if (sMin == null || eMin == null) {
+      return { startMin: null, endMin: null, isOvernight: false }
+    }
+
+    let isOvernight = false
+    let endMin = eMin
+    if (eMin < sMin) {
+      // Crosses midnight — roll the end time into the next day.
+      endMin = eMin + 24 * 60
+      isOvernight = true
+    }
+
+    return { startMin: sMin, endMin, isOvernight }
+  }
+
   const hasOverlap = (daysObj) => {
     for (const [dayName, dayData] of Object.entries(daysObj)) {
       if (dayData.closed) continue
       const times = dayData.times.filter((t) => t.start && t.end)
       for (let i = 0; i < times.length; i++) {
-        const startA = timeStringToMinutes(times[i].start)
-        const endA = timeStringToMinutes(times[i].end)
-        if (startA === null || endA === null) continue
+        const a = getOvernightAwareMinutes(times[i].start, times[i].end)
+        if (a.startMin === null || a.endMin === null) continue
         for (let j = i + 1; j < times.length; j++) {
-          const startB = timeStringToMinutes(times[j].start)
-          const endB = timeStringToMinutes(times[j].end)
-          if (startB === null || endB === null) continue
-          if (startA < endB && endA > startB) {
+          const b = getOvernightAwareMinutes(times[j].start, times[j].end)
+          if (b.startMin === null || b.endMin === null) continue
+          if (a.startMin < b.endMin && a.endMin > b.startMin) {
             return { day: dayName, range1: times[i], range2: times[j] }
           }
         }
@@ -252,16 +274,20 @@ const Vendor = () => {
       const s = String(next.start || '').trim()
       const e = String(next.end || '').trim()
       if (s && e) {
-        const sMin = timeStringToMinutes(s)
-        const eMin = timeStringToMinutes(e)
-        if (sMin !== null && eMin !== null && eMin > sMin) {
-          const hrs = (eMin - sMin) / 60
+        // ✅ Overnight-aware duration: End Time < Start Time means the slot
+        // continues past midnight (e.g. 21:00 -> 01:00 = 4 hours), not invalid.
+        const { startMin, endMin, isOvernight } = getOvernightAwareMinutes(s, e)
+        if (startMin !== null && endMin !== null && endMin > startMin) {
+          const hrs = (endMin - startMin) / 60
           next.total = hrs.toFixed(2)
+          next.isOvernight = isOvernight
         } else {
           next.total = ''
+          next.isOvernight = false
         }
       } else {
         next.total = ''
+        next.isOvernight = false
       }
 
       updatedTimes[index] = next
@@ -549,7 +575,7 @@ const Vendor = () => {
     const validation = validateActivityForm({
       txtactName,
       selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP' (but UI shows MEMBERSHIP only)
-      selectedCategories,
+      selectedCategories: HIDE_ACTIVITY_CATEGORIES_UI ? ['__HIDDEN_ACTIVITY_CATEGORY__'] : selectedCategories,
       txtactDesc,
       txtactImageName1,
       txtactImageName2,
@@ -832,31 +858,33 @@ const Vendor = () => {
           </div>
         )}
 
-        <div className="act-categoriesWrap">
-          <label className="act-categoriesLabel">
-            {tr('labelCategories', 'Activity Categories')} <span className="act-required">*</span>
-          </label>
+        {!HIDE_ACTIVITY_CATEGORIES_UI && (
+          <div className="act-categoriesWrap">
+            <label className="act-categoriesLabel">
+              {tr('labelCategories', 'Activity Categories')} <span className="act-required">*</span>
+            </label>
 
-          <div className="act-categoriesGrid">
-            {fetchcategories.map((item) => (
-              <label key={item.CategoryID} className="act-categoryItem">
-                <div className="act-categoryCheckWrap">
-                  <input
-                    type="checkbox"
-                    name="selectedCategories"
-                    value={item.CategoryID}
-                    checked={selectedCategories.includes(item.CategoryID)}
-                    onChange={() => handleCheckboxChange(item.CategoryID)}
-                    className="act-categoryCheckbox"
-                  />
-                </div>
-                <div className="pink-shadow4">{lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}</div>
-              </label>
-            ))}
+            <div className="act-categoriesGrid">
+              {fetchcategories.map((item) => (
+                <label key={item.CategoryID} className="act-categoryItem">
+                  <div className="act-categoryCheckWrap">
+                    <input
+                      type="checkbox"
+                      name="selectedCategories"
+                      value={item.CategoryID}
+                      checked={selectedCategories.includes(item.CategoryID)}
+                      onChange={() => handleCheckboxChange(item.CategoryID)}
+                      className="act-categoryCheckbox"
+                    />
+                  </div>
+                  <div className="pink-shadow4">{lang === 'ar' ? item.ArCategoryName : item.EnCategoryName}</div>
+                </label>
+              ))}
+            </div>
+
+            <ErrorText msg={errors.selectedCategories} />
           </div>
-
-          <ErrorText msg={errors.selectedCategories} />
-        </div>
+        )}
 
         {/* ✅ NEW: Kids Interest section below categories */}
         <div className="act-categoriesWrap">
@@ -1318,6 +1346,24 @@ const Vendor = () => {
                             onChange={(e) => handleTimeChange(day, index, 'end', e.target.value)}
                           />
                         </label>
+
+                        {/* ✅ NEW: overnight indicator — purely informational, does not block saving */}
+                        {range.isOvernight && (
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#6b3fa0',
+                              backgroundColor: '#f1e9fb',
+                              border: '1px solid #6b3fa0',
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {tr('labelOvernightNextDay', 'Ends next day')}
+                          </span>
+                        )}
 
                         <label className="act-timeLabel">
                           {tr('labelNotes', 'Notes')}:{' '}
