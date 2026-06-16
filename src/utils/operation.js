@@ -354,5 +354,5 @@ export function IsAdminLoginIsValid() {
 }
 
 export function GenerateUniqueNumber() {
-  return crypto.randomBytes(16).toString('hex');
+  return crypto.randomUUID().replace(/-/g, '');
 }
