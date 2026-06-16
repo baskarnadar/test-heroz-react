@@ -3,6 +3,7 @@ import '../scss/toast.css'
 import ReactPlayer from 'react-player'
  import { BaseURL } from '../config'
  import { format, parseISO } from 'date-fns';
+ import crypto from 'crypto';
 export function convertToAMPM(timeRange) {
   try {
     // Split the time range into start and end times
@@ -350,4 +351,8 @@ export function IsAdminLoginIsValid() {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };
+}
+
+export function GenerateUniqueNumber() {
+  return crypto.randomBytes(16).toString('hex');
 }

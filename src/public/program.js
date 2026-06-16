@@ -23,7 +23,7 @@ import PrgSchHeader from "/src/public/prgschheader";
 import TripCostZero from "./tripcostzero";
 
 import "../scss/payment.css";
-import { getCurrentLoggedUserID, generatePayRefNo } from "../utils/operation";
+import { getCurrentLoggedUserID, generatePayRefNo ,GenerateUniqueNumber} from "../utils/operation";
 
 // i18n packs
 import enPack from "../i18n/enlangpack.json";
@@ -596,7 +596,7 @@ const ProposalPage = () => {
 
   const buildSelectionSummaryAndPayload = () => {
     const RequestID = TripData?.RequestID;
-    const ParentsID = getCurrentLoggedUserID();
+    const ParentsID = GenerateUniqueNumber();
 
     const includedId = (ActivityData?.foodList ?? [])
       .filter((f) => f.Include === true)
