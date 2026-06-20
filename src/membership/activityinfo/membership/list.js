@@ -147,7 +147,7 @@ const ActivityList = () => {
     console.log(getCurrentLoggedUserID())
     try {
       const response = await fetch(
-        `${API_BASE_URL}/vendordata/activityinfo/membership/deleteActivity`,
+        `${API_BASE_URL}/vendordata/activityinfo/activity/deleteActivity`,
         {
           method: 'POST',
           headers: getAuthHeaders(),
