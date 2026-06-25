@@ -69,7 +69,7 @@ const Vendor = () => {
   // form fields
   const [txtactName, setactName] = useState('')
 
-  // ✅ UPDATED: Activity Type now supports SCHOOL + MEMBERSHIP
+  // ✅ Activity Type is fixed to SCHOOL for create school activity page
   const [selectedType, setactType] = useState('SCHOOL')
 
   // default rating kept, now visible
@@ -602,7 +602,7 @@ const Vendor = () => {
 
       const validation = validateActivityForm({
         txtactName,
-        selectedType, // ✅ now can be 'SCHOOL' or 'MEMBERSHIP'
+        selectedType, // ✅ SCHOOL only on create school activity page
         selectedCategories,
         txtactDesc,
         txtactImageName1,
@@ -715,7 +715,7 @@ const Vendor = () => {
       const payload = {
         VendorID: getCurrentLoggedUserID(),
         actName: txtactName || '',
-        actTypeID: selectedType, // ✅ 'SCHOOL' or 'MEMBERSHIP'
+        actTypeID: selectedType, // ✅ SCHOOL only on create school activity page
         actCategoryID: selectedCategories,
         actDesc: txtactDesc || '',
 
@@ -852,7 +852,7 @@ const Vendor = () => {
           <ErrorText msg={errors.txtactName} />
         </div>
 
-        {/* ✅ UPDATED: Activity Type (SCHOOL / MEMBERSHIP) */}
+        {/* ✅ Activity Type (SCHOOL only; Membership option hidden) */}
         <div className="form-group">
           <label className="act-fieldLabelSpacing">
             {tr('labelActivityType', 'Activity Type')} <span className="act-required">*</span>
@@ -871,14 +871,24 @@ const Vendor = () => {
               <div className="pink-shadow4 act-typePill">{tr('typeSchool', 'School')}</div>
             </label>
 
-            <label className="act-genderOption" style={{ cursor: 'pointer' }}>
+            {/* Keep Membership option in code but hide + disable it for create school activity page */}
+            <label
+              className="act-genderOption"
+              style={{
+                display: 'none',
+                cursor: 'pointer',
+                pointerEvents: 'none',
+                opacity: 0.4,
+              }}
+            >
               <input
                 type="radio"
                 name="selectedType"
                 value="MEMBERSHIP"
                 checked={selectedType === 'MEMBERSHIP'}
-                onChange={(e) => setactType(e.target.value)}
+                onChange={() => setactType('SCHOOL')}
                 className="act-genderRadio"
+                disabled
               />
               <div className="pink-shadow4 act-typePill">{tr('typeMembership', 'Membership')}</div>
             </label>
@@ -953,7 +963,7 @@ const Vendor = () => {
 
       <div className="txtsubtitle">
         {tr('sectionActivityImages', 'Activity Images')} <span className="act-required">*</span>
-        <span className="act-uploadNote">upload 3 images with (500px and png or jpg)</span>
+        <span className="act-uploadNote">at least 3 images are required. upload min image with (500px and png or jpg)</span>
       </div>
 
       <div className="divbox">

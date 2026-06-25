@@ -16,7 +16,9 @@ import {
 
 // Local regex (for live checks before submit)
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const MOBILE_05_RE = /^05\d{8}$/
+const MOBILE_5_RE = /^5\d{8}$/
+
+const normalizeMobile5Only = (value) => String(value || '').replace(/\D/g, '').slice(0, 9)
 
 // ===== Debug helpers =====
 const pretty = (v) => {
@@ -154,8 +156,8 @@ const Vendor = () => {
   const runUniquenessCheck = async (mobileVal, emailVal) => {
     // Require valid patterns before checking server
     const emailOK = EMAIL_RE.test(String(emailVal || '').trim())
-    const normalizedMobile = normalizeMobile05(String(mobileVal || ''))
-    const mobileOK = MOBILE_05_RE.test(normalizedMobile)
+    const normalizedMobile = normalizeMobile5Only(String(mobileVal || ''))
+    const mobileOK = MOBILE_5_RE.test(normalizedMobile)
 
     if (!emailOK || !mobileOK) {
       setUniqueOk(false)
@@ -229,8 +231,15 @@ const Vendor = () => {
       return
     }
 
-    // 2) Normalize and FINAL uniqueness check before submit
-    const mobileForSubmit = normalizeMobile05(txtschMobileNo1)
+    // 2) Validate and FINAL uniqueness check before submit
+    const mobileForSubmit = normalizeMobile5Only(txtschMobileNo1)
+    if (!MOBILE_5_RE.test(mobileForSubmit)) {
+      setErrors((p) => ({ ...p, txtschMobileNo1: 'Mobile Number 1 must be 5XXXXXXXX.' }))
+      setToastMessage('Mobile Number 1 must be 5XXXXXXXX.')
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
     if (mobileForSubmit !== txtschMobileNo1) {
       setSchMobileNo1(mobileForSubmit)
     }
@@ -497,8 +506,8 @@ const Vendor = () => {
   // ----------------------------
   // Derived: validity for Save button
   // ----------------------------
-  const normalizedMobileLive = normalizeMobile05(txtschMobileNo1)
-  const mobileValidLive = MOBILE_05_RE.test(normalizedMobileLive)
+  const normalizedMobileLive = normalizeMobile5Only(txtschMobileNo1)
+  const mobileValidLive = MOBILE_5_RE.test(normalizedMobileLive)
   const emailValidLive = EMAIL_RE.test(String(txtschEmailAddress || '').trim())
   const bothFieldsValid = mobileValidLive && emailValidLive
 
@@ -595,22 +604,22 @@ const Vendor = () => {
               className="admin-txt-box"
               type="text"
               required
-              placeholder="Enter mobile number1"
+              placeholder="5XXXXXXXX"
               value={txtschMobileNo1}
               onChange={(e) => {
-                setSchMobileNo1(e.target.value)
+                setSchMobileNo1(normalizeMobile5Only(e.target.value))
                 setErrors((p) => ({ ...p, txtschMobileNo1: '' }))
                 setUserExists('') // clear uniqueness message while editing
               }}
               onBlur={() => {
-                const n = normalizeMobile05(txtschMobileNo1)
-                if (n && n !== txtschMobileNo1) setSchMobileNo1(n)
+                const n = normalizeMobile5Only(txtschMobileNo1)
+                if (n !== txtschMobileNo1) setSchMobileNo1(n)
                 handleMobileBlur()
               }}
               inputMode="numeric"
-              maxLength={10}
-              pattern="^05\\d{8}$"
-              title="Must be 10 digits and start with 05"
+              maxLength={9}
+              pattern="^5\\d{8}$"
+              title="Must be 9 digits and start with 5, example 5XXXXXXXX"
             />
           </div>
 

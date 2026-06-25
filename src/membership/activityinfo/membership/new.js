@@ -919,7 +919,7 @@ const Vendor = () => {
 
       <div className="txtsubtitle">
         {tr('sectionActivityImages', 'Activity Images')} <span className="act-required">*</span>
-        <span className="act-uploadNote">upload min image with (500px and png or jpg )</span>
+        <span className="act-uploadNote">at least 3 images are required. upload min image with (500px and png or jpg )</span>
       </div>
 
       <div className="divbox">

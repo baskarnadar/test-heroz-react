@@ -15,7 +15,6 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
-import { Link } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config'
 import logo from '../../../assets/logo/default.png'
 
@@ -229,7 +228,13 @@ const Login = () => {
                       </CCol>
 
                       <CCol xs={6} className="text-right">
-                        <CButton color="link" className="px-0">
+                        <CButton
+                          color="link"
+                          className="px-0"
+                          type="button"
+                          onClick={() => navigate('/resetpwd')}
+                          style={{ cursor: 'pointer', position: 'relative', zIndex: 10 }}
+                        >
                           {tr('forgotPassword', 'Forgot password?')}
                         </CButton>
                       </CCol>

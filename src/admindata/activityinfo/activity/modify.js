@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react'
+  import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { API_BASE_URL, HerozStarValue } from '../../../config'
@@ -1604,7 +1604,7 @@ const Vendor = () => {
               <div className="pink-shadow4"> School</div>
             </label>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <label style={{ display: 'none', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
                 name="rdoactTyper"
@@ -1615,7 +1615,7 @@ const Vendor = () => {
               />
               <div className="pink-shadow4"> Individual</div>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <label style={{ display: 'none', alignItems: 'center', gap: '5px' }}>
               <input
                 type="radio"
                 name="rdoactTyper"

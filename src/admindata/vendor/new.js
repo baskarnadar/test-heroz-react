@@ -94,8 +94,8 @@ const Vendor = () => {
   });
 
   // ===== Helpers =====
-  const sanitizeMobile = (v) => v.replace(/\D+/g, '').slice(0, 10);
-  const isValidMobile = (m) => /^05\d{8}$/.test(m || '');
+  const sanitizeMobile = (v) => v.replace(/\D+/g, '').slice(0, 9);
+  const isValidMobile = (m) => /^5\d{8}$/.test(m || '');
 
   const focusFirstError = (errs) => {
     const order = [
@@ -242,7 +242,7 @@ const Vendor = () => {
     if (!txtvdrMobileNo1.trim()) {
       newErrs.txtvdrMobileNo1 = 'Mobile Number 1 (username) is required.';
     } else if (!isValidMobile(txtvdrMobileNo1)) {
-      newErrs.txtvdrMobileNo1 = 'Must start with 05 and be exactly 10 digits.';
+      newErrs.txtvdrMobileNo1 = 'Must start with 5 and be exactly 9 digits.';
     }
 
     if (!selectedCategories?.length) newErrs.categories = 'Select at least one Category.';
@@ -482,7 +482,7 @@ const Vendor = () => {
           break;
         case 'txtvdrMobileNo1':
           if (!value.trim()) next.txtvdrMobileNo1 = 'Mobile Number 1 (username) is required.';
-          else next.txtvdrMobileNo1 = isValidMobile(value) ? '' : 'Must start with 05 and be exactly 10 digits.';
+          else next.txtvdrMobileNo1 = isValidMobile(value) ? '' : 'Must start with 5 and be exactly 9 digits.';
           break;
         case 'txtvdrAddress1':
           next.txtvdrAddress1 = value.trim() ? '' : 'Address1 is required.';
@@ -603,9 +603,9 @@ const Vendor = () => {
               className="admin-txt-box"
               type="text"
               inputMode="numeric"
-              maxLength={10}
-              pattern="05[0-9]{8}"
-              placeholder="05XXXXXXXX"
+              maxLength={9}
+              pattern="5[0-9]{8}"
+              placeholder="5XXXXXXXX"
               value={txtvdrMobileNo1}
               onChange={(e) => {
                 const v = sanitizeMobile(e.target.value);
