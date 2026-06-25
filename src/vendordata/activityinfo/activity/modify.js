@@ -122,6 +122,11 @@ const Vendor = () => {
   const [imgInvalid2, setImgInvalid2] = useState(false)
   const [imgInvalid3, setImgInvalid3] = useState(false)
 
+  // ✅ Image input reset keys for delete option
+  const [imgInputKey1, setImgInputKey1] = useState(0)
+  const [imgInputKey2, setImgInputKey2] = useState(0)
+  const [imgInputKey3, setImgInputKey3] = useState(0)
+
   const navigate = useNavigate()
   const [fetchedCategories, setFetchedCategories] = useState([])
 
@@ -462,12 +467,15 @@ const Vendor = () => {
       if (imgIndex === 1) {
         setImgErr1('')
         setImgInvalid1(false)
+        setErrors((prev) => ({ ...prev, txtactImageName1: '', images: '' }))
       } else if (imgIndex === 2) {
         setImgErr2('')
         setImgInvalid2(false)
+        setErrors((prev) => ({ ...prev, txtactImageName2: '', images: '' }))
       } else if (imgIndex === 3) {
         setImgErr3('')
         setImgInvalid3(false)
+        setErrors((prev) => ({ ...prev, txtactImageName3: '', images: '' }))
       }
       return
     }
@@ -505,15 +513,57 @@ const Vendor = () => {
     if (imgIndex === 1) {
       setImgErr1('')
       setImgInvalid1(false)
+      setErrors((prev) => ({ ...prev, txtactImageName1: '', images: '' }))
     } else if (imgIndex === 2) {
       setImgErr2('')
       setImgInvalid2(false)
+      setErrors((prev) => ({ ...prev, txtactImageName2: '', images: '' }))
     } else if (imgIndex === 3) {
       setImgErr3('')
       setImgInvalid3(false)
+      setErrors((prev) => ({ ...prev, txtactImageName3: '', images: '' }))
     }
 
     setter(file)
+  }
+
+  // ✅ Delete existing/new activity image from edit page preview.
+  // User must upload replacement image before saving because all 3 images are required.
+  const handleDeleteActivityImage = (imgIndex) => {
+    if (imgIndex === 1) {
+      setactImageName1(null)
+      setOrgsetactImageName1('')
+      setImgErr1(tr('errUploadImage1', 'Please upload Image 1.'))
+      setImgInvalid1(false)
+      setImgInputKey1((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName1: tr('errUploadImage1', 'Please upload Image 1.'),
+        images: '',
+      }))
+    } else if (imgIndex === 2) {
+      setactImageName2(null)
+      setOrgsetactImageName2('')
+      setImgErr2(tr('errUploadImage2', 'Please upload Image 2.'))
+      setImgInvalid2(false)
+      setImgInputKey2((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName2: tr('errUploadImage2', 'Please upload Image 2.'),
+        images: '',
+      }))
+    } else if (imgIndex === 3) {
+      setactImageName3(null)
+      setOrgsetactImageName3('')
+      setImgErr3(tr('errUploadImage3', 'Please upload Image 3.'))
+      setImgInvalid3(false)
+      setImgInputKey3((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName3: tr('errUploadImage3', 'Please upload Image 3.'),
+        images: '',
+      }))
+    }
   }
 
   const handleFileUpload = (setter) => async (e) => {
@@ -616,6 +666,30 @@ const Vendor = () => {
       return
     }
 
+    if (!txtactImageName1 && !OrgtxtactImageName1) {
+      setErrors((prev) => ({ ...prev, txtactImageName1: tr('errUploadImage1', 'Please upload Image 1.') }))
+      setToastMessage(tr('errUploadImage1', 'Please upload Image 1.'))
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!txtactImageName2 && !OrgtxtactImageName2) {
+      setErrors((prev) => ({ ...prev, txtactImageName2: tr('errUploadImage2', 'Please upload Image 2.') }))
+      setToastMessage(tr('errUploadImage2', 'Please upload Image 2.'))
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!txtactImageName3 && !OrgtxtactImageName3) {
+      setErrors((prev) => ({ ...prev, txtactImageName3: tr('errUploadImage3', 'Please upload Image 3.') }))
+      setToastMessage(tr('errUploadImage3', 'Please upload Image 3.'))
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
     // Image 1
     let txtactImageName1Val = OrgtxtactImageName1
     let uploadedImageKey1 = ''
@@ -636,8 +710,11 @@ const Vendor = () => {
       }
     } catch (error) {
       console.error('🐞 Image 1 upload error:', error)
+      setErrors((prev) => ({ ...prev, txtactImageName1: tr('toastImg1Failed', 'Failed to upload image 1.') }))
       setToastMessage(tr('toastImg1Failed', 'Failed to upload image 1.'))
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
     // Image 2
@@ -660,8 +737,11 @@ const Vendor = () => {
       }
     } catch (error) {
       console.error('🐞 Image 2 upload error:', error)
+      setErrors((prev) => ({ ...prev, txtactImageName2: tr('toastImg2Failed', 'Failed to upload image 2.') }))
       setToastMessage(tr('toastImg2Failed', 'Failed to upload image 2.'))
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
     // Image 3
@@ -685,8 +765,11 @@ const Vendor = () => {
       }
     } catch (error) {
       console.error('🐞 Image 3 upload error:', error)
+      setErrors((prev) => ({ ...prev, txtactImageName3: tr('toastImg3Failed', 'Failed to upload image 3.') }))
       setToastMessage(tr('toastImg3Failed', 'Failed to upload image 3.'))
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
     const actfoodDataVal = await getFoodData()
@@ -1556,7 +1639,7 @@ const Vendor = () => {
             marginBottom: 10,
           }}
         >
-          {tr('uploadImage', 'Upload image')} (JPG / JPEG / PNG)
+          {tr('uploadImage', 'Upload all 3 images')} (JPG / JPEG / PNG)
         </div>
 
         <div
@@ -1572,6 +1655,7 @@ const Vendor = () => {
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelImage1', 'Activity Image 1')}</label>
             <input
+              key={imgInputKey1}
               name="txtactImageName1"
               className="admin-txt-box"
               placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
@@ -1584,14 +1668,35 @@ const Vendor = () => {
                 border: imgInvalid1 ? '2px solid #cf2037' : undefined,
               }}
             />
+            {txtactImageName1 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(1)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {tr('btnDeleteImage1', 'Delete Image 1')}
+              </button>
+            )}
             <FilePreview file={txtactImageName1} />
-            <ErrorText msg={imgErr1} />
+            <ErrorText msg={imgErr1 || errors.txtactImageName1} />
           </div>
 
           {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelImage2', 'Activity Image 2')}</label>
             <input
+              key={imgInputKey2}
               name="txtactImageName2"
               className="admin-txt-box"
               placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
@@ -1604,14 +1709,35 @@ const Vendor = () => {
                 border: imgInvalid2 ? '2px solid #cf2037' : undefined,
               }}
             />
+            {txtactImageName2 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(2)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {tr('btnDeleteImage2', 'Delete Image 2')}
+              </button>
+            )}
             <FilePreview file={txtactImageName2} />
-            <ErrorText msg={imgErr2} />
+            <ErrorText msg={imgErr2 || errors.txtactImageName2} />
           </div>
 
           {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>{tr('labelImage3', 'Activity Image 3')}</label>
             <input
+              key={imgInputKey3}
               name="txtactImageName3"
               className="admin-txt-box"
               placeholder={tr('phUploadVendorImage', 'Upload Vendor Image')}
@@ -1624,8 +1750,28 @@ const Vendor = () => {
                 border: imgInvalid3 ? '2px solid #cf2037' : undefined,
               }}
             />
+            {txtactImageName3 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(3)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {tr('btnDeleteImage3', 'Delete Image 3')}
+              </button>
+            )}
             <FilePreview file={txtactImageName3} />
-            <ErrorText msg={imgErr3} />
+            <ErrorText msg={imgErr3 || errors.txtactImageName3} />
           </div>
         </div>
         <ErrorText msg={errors.images} />

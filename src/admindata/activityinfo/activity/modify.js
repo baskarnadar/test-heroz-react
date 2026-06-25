@@ -82,6 +82,11 @@ const Vendor = () => {
   const [txtactImageName2, setactImageName2] = useState(null)
   const [txtactImageName3, setactImageName3] = useState(null)
 
+  // ✅ Image input reset keys for delete option
+  const [imgInputKey1, setImgInputKey1] = useState(0)
+  const [imgInputKey2, setImgInputKey2] = useState(0)
+  const [imgInputKey3, setImgInputKey3] = useState(0)
+
   const navigate = useNavigate()
   const [fetchedCategories, setFetchedCategories] = useState([])
 
@@ -384,9 +389,50 @@ const Vendor = () => {
     }
   }
 
-  const handleFileUpload = (setter) => async (e) => {
-    const file = e.target.files[0]
-    if (file) setter(file)
+  const handleFileUpload = (fieldName, setter) => async (e) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
+
+    setErrors((prev) => ({ ...prev, [fieldName]: '', images: '' }))
+
+    if (!file) {
+      setter(null)
+      return
+    }
+
+    setter(file)
+  }
+
+  // ✅ Delete existing/new activity image from edit page preview.
+  // User must upload replacement image before saving because all 3 images are required.
+  const handleDeleteActivityImage = (imgIndex) => {
+    if (imgIndex === 1) {
+      setactImageName1(null)
+      setOrgsetactImageName1('')
+      setImgInputKey1((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName1: 'Please upload Image 1.',
+        images: '',
+      }))
+    } else if (imgIndex === 2) {
+      setactImageName2(null)
+      setOrgsetactImageName2('')
+      setImgInputKey2((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName2: 'Please upload Image 2.',
+        images: '',
+      }))
+    } else if (imgIndex === 3) {
+      setactImageName3(null)
+      setOrgsetactImageName3('')
+      setImgInputKey3((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName3: 'Please upload Image 3.',
+        images: '',
+      }))
+    }
   }
 
   const handleSubmit = async (actStatusVal, e) => {
@@ -446,6 +492,31 @@ const Vendor = () => {
       return
     }
 
+    // ✅ All 3 images are required after delete / before save
+    if (!txtactImageName1 && !OrgtxtactImageName1) {
+      setErrors((prev) => ({ ...prev, txtactImageName1: 'Please upload Image 1.' }))
+      setToastMessage('Please upload Image 1.')
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!txtactImageName2 && !OrgtxtactImageName2) {
+      setErrors((prev) => ({ ...prev, txtactImageName2: 'Please upload Image 2.' }))
+      setToastMessage('Please upload Image 2.')
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!txtactImageName3 && !OrgtxtactImageName3) {
+      setErrors((prev) => ({ ...prev, txtactImageName3: 'Please upload Image 3.' }))
+      setToastMessage('Please upload Image 3.')
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
     // ✅ 3) Uploads + submit (unchanged)
     // Image 1
     let txtactImageName1Val = OrgtxtactImageName1
@@ -467,8 +538,11 @@ const Vendor = () => {
       }
     } catch (error) {
       console.error('Error uploading activity image 1:', error)
+      setErrors((prev) => ({ ...prev, txtactImageName1: 'Failed to upload Activity Image 1.' }))
       setToastMessage('Failed to upload Activity Image 1.')
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
     // Image 2
@@ -491,8 +565,11 @@ const Vendor = () => {
       }
     } catch (error) {
       console.error('Error uploading activity image 2:', error)
+      setErrors((prev) => ({ ...prev, txtactImageName2: 'Failed to upload Activity Image 2.' }))
       setToastMessage('Failed to upload Activity Image 2.')
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
     // Image 3
@@ -515,8 +592,11 @@ const Vendor = () => {
       }
     } catch (error) {
       console.error('Error uploading activity image 3:', error)
+      setErrors((prev) => ({ ...prev, txtactImageName3: 'Failed to upload Activity Image 3.' }))
       setToastMessage('Failed to upload Activity Image 3.')
       setToastType('fail')
+      setLoading(false)
+      return
     }
 
     const actfoodDataVal = await getFoodData()
@@ -1659,46 +1739,108 @@ const Vendor = () => {
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 1</label>
             <input
+              key={imgInputKey1}
               name="txtactImageName1"
               className="admin-txt-box"
               placeholder="Upload Vendor Image"
               type="file"
-              onChange={handleFileUpload(setactImageName1)}
+              onChange={handleFileUpload('txtactImageName1', setactImageName1)}
               style={{ height: 50, width: '100%' }}
             />
+            {txtactImageName1 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(1)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                Delete Image 1
+              </button>
+            )}
             <FilePreview file={txtactImageName1} />
-            {/* Show overall images error here too */}
-            <ErrorText msg={errors.txtactImageName1 || errors.images} />
+            <ErrorText msg={errors.txtactImageName1} />
           </div>
 
           {/* Image 2 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 2</label>
             <input
+              key={imgInputKey2}
               name="txtactImageName2"
               className="admin-txt-box"
               placeholder="Upload Vendor Image"
               type="file"
-              onChange={handleFileUpload(setactImageName2)}
+              onChange={handleFileUpload('txtactImageName2', setactImageName2)}
               style={{ height: 50, width: '100%' }}
             />
+            {txtactImageName2 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(2)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                Delete Image 2
+              </button>
+            )}
             <FilePreview file={txtactImageName2} />
-            <ErrorText msg={errors.txtactImageName2 || errors.images} />
+            <ErrorText msg={errors.txtactImageName2} />
           </div>
 
           {/* Image 3 */}
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 3</label>
             <input
+              key={imgInputKey3}
               name="txtactImageName3"
               className="admin-txt-box"
               placeholder="Upload Vendor Image"
               type="file"
-              onChange={handleFileUpload(setactImageName3)}
+              onChange={handleFileUpload('txtactImageName3', setactImageName3)}
               style={{ height: 50, width: '100%' }}
             />
+            {txtactImageName3 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(3)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                Delete Image 3
+              </button>
+            )}
             <FilePreview file={txtactImageName3} />
-            <ErrorText msg={errors.txtactImageName3 || errors.images} />
+            <ErrorText msg={errors.txtactImageName3} />
           </div>
         </div>
         {/* Keep section-level too (works with current validator) */}

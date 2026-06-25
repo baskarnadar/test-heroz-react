@@ -349,6 +349,7 @@ const Vendor = () => {
 
     // clear old error first
     setImageTypeErrors((prev) => ({ ...prev, [fieldName]: '' }))
+    setErrors((prev) => ({ ...prev, [fieldName]: '', images: '' }))
 
     if (!file) {
       setter(null)
@@ -666,7 +667,24 @@ const Vendor = () => {
         img3 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
       }
     } catch {
-      // ignore upload error here; validator ensures at least one if required
+      const uploadMsg = tr('errActivityImageUploadFailed', 'Activity image upload failed. Please upload Image 1, Image 2 and Image 3 again.')
+      setErrors((prev) => ({ ...prev, images: uploadMsg }))
+      setToastMessage(uploadMsg)
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!img1 || !img2 || !img3) {
+      const imageErrors = {}
+      if (!img1) imageErrors.txtactImageName1 = tr('errUploadImage1', 'Please upload Image 1.')
+      if (!img2) imageErrors.txtactImageName2 = tr('errUploadImage2', 'Please upload Image 2.')
+      if (!img3) imageErrors.txtactImageName3 = tr('errUploadImage3', 'Please upload Image 3.')
+      setErrors((prev) => ({ ...prev, ...imageErrors }))
+      setToastMessage(tr('errUploadAll3Images', 'Please upload Image 1, Image 2 and Image 3.'))
+      setToastType('fail')
+      setLoading(false)
+      return
     }
 
     const actfoodDataVal = await getFoodData()
@@ -959,10 +977,11 @@ const Vendor = () => {
               name="txtactImageName1"
               className="admin-txt-box"
               type="file"
+              required
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleFileUpload('txtactImageName1', setactImageName1)}
             />
-            <ErrorText msg={imageTypeErrors.txtactImageName1} />
+            <ErrorText msg={imageTypeErrors.txtactImageName1 || errors.txtactImageName1} />
             <FilePreview file={txtactImageName1} />
           </div>
 
@@ -972,10 +991,11 @@ const Vendor = () => {
               name="txtactImageName2"
               className="admin-txt-box"
               type="file"
+              required
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleFileUpload('txtactImageName2', setactImageName2)}
             />
-            <ErrorText msg={imageTypeErrors.txtactImageName2} />
+            <ErrorText msg={imageTypeErrors.txtactImageName2 || errors.txtactImageName2} />
             <FilePreview file={txtactImageName2} />
           </div>
 
@@ -985,10 +1005,11 @@ const Vendor = () => {
               name="txtactImageName3"
               className="admin-txt-box"
               type="file"
+              required
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleFileUpload('txtactImageName3', setactImageName3)}
             />
-            <ErrorText msg={imageTypeErrors.txtactImageName3} />
+            <ErrorText msg={imageTypeErrors.txtactImageName3 || errors.txtactImageName3} />
             <FilePreview file={txtactImageName3} />
           </div>
         </div>

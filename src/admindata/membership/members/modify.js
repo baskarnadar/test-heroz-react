@@ -46,6 +46,11 @@ const Vendor = () => {
   const [imgInvalid2, setImgInvalid2] = useState(false)
   const [imgInvalid3, setImgInvalid3] = useState(false)
 
+  // ✅ Image input reset keys for delete option
+  const [imgInputKey1, setImgInputKey1] = useState(0)
+  const [imgInputKey2, setImgInputKey2] = useState(0)
+  const [imgInputKey3, setImgInputKey3] = useState(0)
+
   const navigate = useNavigate()
   const [fetchedCategories, setFetchedCategories] = useState([])
 
@@ -604,6 +609,45 @@ const Vendor = () => {
     }
   }
 
+  // ✅ Delete existing/new activity image from edit page preview.
+  // User must upload replacement image before saving because all 3 images are required.
+  const handleDeleteActivityImage = (imgIndex) => {
+    if (imgIndex === 1) {
+      setactImageName1(null)
+      setOrgsetactImageName1('')
+      setImgErr1('Please upload Image 1.')
+      setImgInvalid1(false)
+      setImgInputKey1((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName1: 'Please upload Image 1.',
+        images: '',
+      }))
+    } else if (imgIndex === 2) {
+      setactImageName2(null)
+      setOrgsetactImageName2('')
+      setImgErr2('Please upload Image 2.')
+      setImgInvalid2(false)
+      setImgInputKey2((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName2: 'Please upload Image 2.',
+        images: '',
+      }))
+    } else if (imgIndex === 3) {
+      setactImageName3(null)
+      setOrgsetactImageName3('')
+      setImgErr3('Please upload Image 3.')
+      setImgInvalid3(false)
+      setImgInputKey3((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName3: 'Please upload Image 3.',
+        images: '',
+      }))
+    }
+  }
+
   const handleFileUpload = (setter) => async (e) => {
     const file = e.target.files[0]
     if (file) setter(file)
@@ -666,6 +710,30 @@ const Vendor = () => {
       setToastMessage(
         `Time range overlap on ${overlap.day}: ${overlap.range1.start} - ${overlap.range1.end} overlaps with ${overlap.range2.start} - ${overlap.range2.end}`,
       )
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!txtactImageName1 && !OrgtxtactImageName1) {
+      setErrors((prev) => ({ ...prev, txtactImageName1: 'Please upload Image 1.' }))
+      setToastMessage('Please upload Image 1.')
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!txtactImageName2 && !OrgtxtactImageName2) {
+      setErrors((prev) => ({ ...prev, txtactImageName2: 'Please upload Image 2.' }))
+      setToastMessage('Please upload Image 2.')
+      setToastType('fail')
+      setLoading(false)
+      return
+    }
+
+    if (!txtactImageName3 && !OrgtxtactImageName3) {
+      setErrors((prev) => ({ ...prev, txtactImageName3: 'Please upload Image 3.' }))
+      setToastMessage('Please upload Image 3.')
       setToastType('fail')
       setLoading(false)
       return
@@ -1801,6 +1869,7 @@ const Vendor = () => {
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 1</label>
             <input
+              key={imgInputKey1}
               name="txtactImageName1"
               className="admin-txt-box"
               type="file"
@@ -1812,13 +1881,34 @@ const Vendor = () => {
                 border: imgInvalid1 ? '2px solid #cf2037' : undefined,
               }}
             />
+            {txtactImageName1 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(1)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {'Delete Image 1'}
+              </button>
+            )}
             <FilePreview file={txtactImageName1} />
-            <ErrorText msg={imgErr1} />
+            <ErrorText msg={imgErr1 || errors.txtactImageName1} />
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 2</label>
             <input
+              key={imgInputKey2}
               name="txtactImageName2"
               className="admin-txt-box"
               type="file"
@@ -1830,13 +1920,34 @@ const Vendor = () => {
                 border: imgInvalid2 ? '2px solid #cf2037' : undefined,
               }}
             />
+            {txtactImageName2 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(2)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {'Delete Image 2'}
+              </button>
+            )}
             <FilePreview file={txtactImageName2} />
-            <ErrorText msg={imgErr2} />
+            <ErrorText msg={imgErr2 || errors.txtactImageName2} />
           </div>
 
           <div className="form-group" style={{ flex: '1' }}>
             <label>Activity Image 3</label>
             <input
+              key={imgInputKey3}
               name="txtactImageName3"
               className="admin-txt-box"
               type="file"
@@ -1848,8 +1959,28 @@ const Vendor = () => {
                 border: imgInvalid3 ? '2px solid #cf2037' : undefined,
               }}
             />
+            {txtactImageName3 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(3)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {'Delete Image 3'}
+              </button>
+            )}
             <FilePreview file={txtactImageName3} />
-            <ErrorText msg={imgErr3} />
+            <ErrorText msg={imgErr3 || errors.txtactImageName3} />
           </div>
         </div>
         <ErrorText msg={errors.images} />

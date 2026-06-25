@@ -65,7 +65,7 @@ export function validateActivityForm(payload) {
   const hasImg2 = !!payload.txtactImageName2;
   const hasImg3 = !!payload.txtactImageName3;
   if (!hasImg1 && !hasImg2 && !hasImg3) {
-    errors.images = 'Upload at least one Activity Image.';
+    errors.images = 'Minimum 3 Activity Images are required. Please upload all 3.';
   }
 
   // 6) Location

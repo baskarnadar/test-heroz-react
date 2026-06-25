@@ -47,6 +47,11 @@ const Vendor = () => {
   const [txtactImageName2, setactImageName2] = useState(null)
   const [txtactImageName3, setactImageName3] = useState(null)
 
+  // ✅ Image input reset keys for delete option
+  const [imgInputKey1, setImgInputKey1] = useState(0)
+  const [imgInputKey2, setImgInputKey2] = useState(0)
+  const [imgInputKey3, setImgInputKey3] = useState(0)
+
   // ✅ NEW: per-image file type errors
   const [imageTypeErrors, setImageTypeErrors] = useState({
     txtactImageName1: '',
@@ -356,6 +361,7 @@ const Vendor = () => {
 
     // clear old error first
     setImageTypeErrors((prev) => ({ ...prev, [fieldName]: '' }))
+    setErrors((prev) => ({ ...prev, [fieldName]: '', images: '' }))
 
     if (!file) {
       setter(null)
@@ -378,6 +384,36 @@ const Vendor = () => {
     }
 
     setter(file)
+  }
+
+  // ✅ Delete selected activity image from create page preview.
+  // User must upload replacement image before saving because all 3 images are required.
+  const handleDeleteActivityImage = (imgIndex) => {
+    if (imgIndex === 1) {
+      setactImageName1(null)
+      setImgInputKey1((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName1: tr('errUploadImage1', 'Please upload Image 1.'),
+        images: '',
+      }))
+    } else if (imgIndex === 2) {
+      setactImageName2(null)
+      setImgInputKey2((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName2: tr('errUploadImage2', 'Please upload Image 2.'),
+        images: '',
+      }))
+    } else if (imgIndex === 3) {
+      setactImageName3(null)
+      setImgInputKey3((prev) => prev + 1)
+      setErrors((prev) => ({
+        ...prev,
+        txtactImageName3: tr('errUploadImage3', 'Please upload Image 3.'),
+        images: '',
+      }))
+    }
   }
 
   const handleCheckboxChange = (CategoryID) => {
@@ -652,7 +688,22 @@ const Vendor = () => {
           img3 = getFileNameFromUrl(j?.data?.key || j?.data?.Key)
         }
       } catch {
-        // ignore upload error here; validator ensures at least one if required
+        const uploadMsg = tr('errActivityImageUploadFailed', 'Activity image upload failed. Please upload Image 1, Image 2 and Image 3 again.')
+        setErrors((prev) => ({ ...prev, images: uploadMsg }))
+        setToastMessage(uploadMsg)
+        setToastType('fail')
+        return
+      }
+
+      if (!img1 || !img2 || !img3) {
+        const imageErrors = {}
+        if (!img1) imageErrors.txtactImageName1 = tr('errUploadImage1', 'Please upload Image 1.')
+        if (!img2) imageErrors.txtactImageName2 = tr('errUploadImage2', 'Please upload Image 2.')
+        if (!img3) imageErrors.txtactImageName3 = tr('errUploadImage3', 'Please upload Image 3.')
+        setErrors((prev) => ({ ...prev, ...imageErrors }))
+        setToastMessage(tr('errUploadAll3Images', 'Please upload Image 1, Image 2 and Image 3.'))
+        setToastType('fail')
+        return
       }
 
       const actfoodDataVal = await getFoodData()
@@ -902,7 +953,7 @@ const Vendor = () => {
 
       <div className="txtsubtitle">
         {tr('sectionActivityImages', 'Activity Images')} <span className="act-required">*</span>
-        <span className="act-uploadNote">upload min image with (500px and png or jpg )</span>
+        <span className="act-uploadNote">upload 3 images with (500px and png or jpg)</span>
       </div>
 
       <div className="divbox">
@@ -910,39 +961,102 @@ const Vendor = () => {
           <div className="form-group act-imageCol">
             <label>{tr('labelImage1', 'Activity Image 1')}</label>
             <input
+              key={imgInputKey1}
               name="txtactImageName1"
               className="admin-txt-box"
               type="file"
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleFileUpload('txtactImageName1', setactImageName1)}
             />
-            <ErrorText msg={imageTypeErrors.txtactImageName1} />
+            <ErrorText msg={imageTypeErrors.txtactImageName1 || errors.txtactImageName1} />
+            {txtactImageName1 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(1)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {tr('btnDeleteImage1', 'Delete Image 1')}
+              </button>
+            )}
             <FilePreview file={txtactImageName1} />
           </div>
 
           <div className="form-group act-imageCol">
             <label>{tr('labelImage2', 'Activity Image 2')}</label>
             <input
+              key={imgInputKey2}
               name="txtactImageName2"
               className="admin-txt-box"
               type="file"
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleFileUpload('txtactImageName2', setactImageName2)}
             />
-            <ErrorText msg={imageTypeErrors.txtactImageName2} />
+            <ErrorText msg={imageTypeErrors.txtactImageName2 || errors.txtactImageName2} />
+            {txtactImageName2 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(2)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {tr('btnDeleteImage2', 'Delete Image 2')}
+              </button>
+            )}
             <FilePreview file={txtactImageName2} />
           </div>
 
           <div className="form-group act-imageCol">
             <label>{tr('labelImage3', 'Activity Image 3')}</label>
             <input
+              key={imgInputKey3}
               name="txtactImageName3"
               className="admin-txt-box"
               type="file"
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleFileUpload('txtactImageName3', setactImageName3)}
             />
-            <ErrorText msg={imageTypeErrors.txtactImageName3} />
+            <ErrorText msg={imageTypeErrors.txtactImageName3 || errors.txtactImageName3} />
+            {txtactImageName3 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteActivityImage(3)}
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '6px 12px',
+                  border: '1px solid #cf2037',
+                  borderRadius: 6,
+                  background: '#cf2037',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-block',
+                }}
+              >
+                {tr('btnDeleteImage3', 'Delete Image 3')}
+              </button>
+            )}
             <FilePreview file={txtactImageName3} />
           </div>
         </div>

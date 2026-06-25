@@ -60,13 +60,21 @@ export function validateActivityForm(payload) {
     errors.txtactDesc = 'Activity Description is required.';
   }
 
-  // 5) At least one image
+  // 5) Activity Images - all 3 images are required
   const hasImg1 = !!payload.txtactImageName1;
   const hasImg2 = !!payload.txtactImageName2;
   const hasImg3 = !!payload.txtactImageName3;
-  if (!hasImg1 && !hasImg2 && !hasImg3) {
-    errors.images = 'Upload at least one Activity Image.';
+
+  if (!hasImg1) {
+    errors.txtactImageName1 = 'Please upload Image 1.';
   }
+  if (!hasImg2) {
+    errors.txtactImageName2 = 'Please upload Image 2.';
+  }
+  if (!hasImg3) {
+    errors.txtactImageName3 = 'Please upload Image 3.';
+  }
+
 
   // 6) Location
   if (!String(payload.txtactGoogleMap || '').trim()) {
