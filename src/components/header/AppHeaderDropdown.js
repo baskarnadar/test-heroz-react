@@ -58,7 +58,7 @@ const AppHeaderDropdown = () => {
           Settings
         </CDropdownHeader>
 
-        {noteLink && (
+        {/* {noteLink && (
           <CDropdownItem>
             <Link to={noteLink} className="nav-link position-relative">
               <CIcon icon={cilBell} className="me-2" />
@@ -66,7 +66,7 @@ const AppHeaderDropdown = () => {
               <CBadge color="success" className="ms-2"></CBadge>
             </Link>
           </CDropdownItem>
-        )}
+        )} */}
 
         {infolink && (
           <CDropdownItem>

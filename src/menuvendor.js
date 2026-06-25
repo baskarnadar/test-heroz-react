@@ -322,13 +322,7 @@ const vendormenu = [
     icon: menuIcon(cilSettings),
     style: modernItemStyle,
   },
-  {
-    component: CNavItem,
-    name: 'Notification',
-    to: '/vendordata/note/list',
-    icon: menuIcon(cilBell),
-    style: modernItemStyle,
-  },
+ 
 ]
 
 export default vendormenu
