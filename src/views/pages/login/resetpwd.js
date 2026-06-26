@@ -68,9 +68,14 @@ const ResetPwd = () => {
   }, [])
 
   const handleMobileChange = (value) => {
-    const onlyDigits = value.replace(/\D/g, '')
+    let onlyDigits = value.replace(/\D/g, '')
 
-    // ✅ Saudi mobile should be 5XXXXXXXX only. Do not accept 05XXXXXXXX.
+    // ✅ Same login textbox rule: mobile number must be 5XXXXXXXX.
+    // ✅ Do not allow 05XXXXXXXX while typing.
+    if (onlyDigits.startsWith('0')) {
+      onlyDigits = onlyDigits.replace(/^0+/, '')
+    }
+
     if (onlyDigits.length > 0 && !onlyDigits.startsWith('5')) {
       return
     }
@@ -237,7 +242,7 @@ const ResetPwd = () => {
                         <CIcon icon={cilPhone} />
                       </CInputGroupText>
                       <CFormInput
-                        placeholder={tr('saudiMobilePlaceholder', '5XXXXXXXX')}
+                        placeholder="5XXXXXXXX"
                         autoComplete="tel"
                         inputMode="numeric"
                         maxLength={9}

@@ -210,7 +210,7 @@ const Vendor = () => {
   const [vdrCRFileName, setvdrCRFileName] = useState(null);
 
   const [txtvdrEmailAddress, setVdrEmailAddress] = useState('');
-  const [txtvdrMobileNo1, setVdrMobileNo1] = useState(''); // username (read-only shown at top)
+  const [txtvdrMobileNo1, setVdrMobileNo1] = useState(''); // username (editable)
   const [txtvdrMobileNo2, setVdrMobileNo2] = useState('');
   const [txtvdrDesc, setVdrDesc] = useState('');
 
@@ -251,11 +251,19 @@ const Vendor = () => {
 
   // ===== Helpers (same as create) =====
   const sanitizeMobile = (v) => v.replace(/\D+/g, '').slice(0, 10);
+  const sanitizeMobileUsername = (v) => {
+    const digits = String(v || '').replace(/\D+/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('05')) return digits.slice(1, 10);
+    if (digits.startsWith('0')) return digits.slice(1, 10);
+    return digits.slice(0, 9);
+  };
+  const isValidMobileUsername = (m) => /^5\d{8}$/.test(m || '');
   const isValidMobile = (m) => /^05\d{8}$/.test(m || '');
 
   const focusFirstError = (errs) => {
     const order = [
-      'txtvdrName','txtvdrClubName','vdrImageName','txtvdrEmailAddress',
+      'txtvdrName','txtvdrClubName','vdrImageName','txtvdrEmailAddress','txtvdrMobileNo1',
       'categories','txtvdrAddress1','txtvdrGoogleMap','txtvdrGlan','txtvdrGlat',
       'availability','openingHours','openingOverlap','txtvdrAdminNotes'
     ];
@@ -266,6 +274,7 @@ const Vendor = () => {
       txtvdrClubName: 'input[name="txtvdrClubName"]',
       vdrImageName: 'input[name="txtvdrImageName"]',
       txtvdrEmailAddress: 'input[name="txtvdrEmailAddress"]',
+      txtvdrMobileNo1: 'input[name="txtvdrMobileNo1"]',
       categories: 'input[name="txtvdrCategoryID"]',
       txtvdrAddress1: 'input[name="txtvdrAddress1"]',
       txtvdrGoogleMap: 'input[name="txtvdrGoogleMap"]',
@@ -412,6 +421,15 @@ const Vendor = () => {
           break;
         case 'txtvdrEmailAddress':
           next.txtvdrEmailAddress = value.trim() ? '' : 'Email Address is required.';
+          break;
+        case 'txtvdrMobileNo1':
+          if (!value.trim()) {
+            next.txtvdrMobileNo1 = 'Mobile Number 1 username is required.';
+          } else if (!isValidMobileUsername(value)) {
+            next.txtvdrMobileNo1 = 'Mobile Number 1 must be 5XXXXXXXX and cannot start with 05.';
+          } else {
+            next.txtvdrMobileNo1 = '';
+          }
           break;
         case 'txtvdrAddress1':
           next.txtvdrAddress1 = value.trim() ? '' : 'Address1 is required.';
@@ -623,9 +641,13 @@ const Vendor = () => {
     if (!txtvdrName.trim()) newErrs.txtvdrName = 'Vendor Name is required.';
     if (!txtvdrClubName.trim()) newErrs.txtvdrClubName = 'Club Name is required.';
     if (!(vdrImageName instanceof File) && !OrgtxtvdrImageName1Val) newErrs.vdrImageName = 'Vendor Image is required.';
-    if (!txtvdrEmailAddress.trim()) newErrs.txtvdrEmailAddress = 'Email Address is required.'; // still required, read-only
+    if (!txtvdrEmailAddress.trim()) newErrs.txtvdrEmailAddress = 'Email Address is required.';
 
-    // NOTE: Mobile Number 1 is read-only now → no editable validation needed
+    if (!txtvdrMobileNo1.trim()) {
+      newErrs.txtvdrMobileNo1 = 'Mobile Number 1 username is required.';
+    } else if (!isValidMobileUsername(txtvdrMobileNo1)) {
+      newErrs.txtvdrMobileNo1 = 'Mobile Number 1 must be 5XXXXXXXX and cannot start with 05.';
+    }
 
     if (!selectedCategories?.length) newErrs.categories = 'Select at least one Category.';
     if (!txtvdrAddress1.trim()) newErrs.txtvdrAddress1 = 'Address1 is required.';
@@ -848,7 +870,7 @@ const Vendor = () => {
         </div>
       </div>
 
-      {/* READ-ONLY username + email block */}
+      {/* Editable username + email block */}
       <div className="form-group">
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           <div>
@@ -857,19 +879,24 @@ const Vendor = () => {
                 username
               </span>
             </label>
-            <div
-              className="mobile-input-group"
-              style={{
-                border: '1px solid #ccc',
-                borderRadius: '20px',
-                padding: '10px 14px',
-                fontSize: '18px',
-                fontWeight: 600,
-                minWidth: 220,
-              }}
-            >
-              {txtvdrMobileNo1 || '-'}
+            <div className="mobile-input-group">
+              <input
+                name="txtvdrMobileNo1"
+                className="admin-txt-box"
+                type="text"
+                inputMode="numeric"
+                maxLength={9}
+                value={txtvdrMobileNo1}
+                placeholder="5XXXXXXXX"
+                onChange={(e) => {
+                  const value = sanitizeMobileUsername(e.target.value);
+                  setVdrMobileNo1(value);
+                  revalidateField('txtvdrMobileNo1', value);
+                }}
+                aria-invalid={!!errors.txtvdrMobileNo1}
+              />
             </div>
+            {errors.txtvdrMobileNo1 && <div className="ErrorMsg" style={{ marginTop: 8 }}>{errors.txtvdrMobileNo1}</div>}
           </div>
 
           <div>
@@ -896,7 +923,7 @@ const Vendor = () => {
           </div>
         </div>
 
-        {/* Inline errors (read-only area) */}
+        {/* Inline errors */}
         {existErr && <div className="ErrorMsg" style={{ marginTop: 8 }}>{existErr}</div>}
         {submitted && !txtvdrEmailAddress?.trim() && (
           <div className="ErrorMsg" style={{ marginTop: 8 }}>Email Address is required.</div>
@@ -958,7 +985,7 @@ const Vendor = () => {
           {errors.vdrImageName && <div className="ErrorMsg">{errors.vdrImageName}</div>}
         </div>
 
-        {/* Email stays read-only above; editable Mobile 1 removed */}
+        {/* Mobile Number 1 username is editable above */}
 
         <div className="form-group">
           <label>Mobile Number 2</label>

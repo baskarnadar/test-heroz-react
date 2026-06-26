@@ -62,6 +62,15 @@ const Login = () => {
     console.log(password)
     console.log(`${API_BASE_URL}/subadmin/signin`)
 
+    const usernameVal = String(username || '').trim()
+
+    const isNumberUsername = /^\d+$/.test(usernameVal)
+
+    if (isNumberUsername && !/^5\d{8}$/.test(usernameVal)) {
+      setError(tr('invalidMobileNumber', 'Mobile Number 1 must be in 5XXXXXXXX format'))
+      return
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/subadmin/signin`, {
         method: 'POST',
@@ -69,7 +78,7 @@ const Login = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username,
+          username: usernameVal,
           password,
         }),
       })
@@ -200,10 +209,26 @@ const Login = () => {
                         <CIcon icon={cilUser} />
                       </CInputGroupText>
                       <CFormInput
-                        placeholder={tr('usernamePlaceholder', 'Username')}
+                        placeholder="5XXXXXXXX"
                         autoComplete="username"
+                        inputMode="text"
+                        maxLength={50}
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        onChange={(e) => {
+                          let value = e.target.value
+
+                          // Mobile username: block 05 while typing, allow only 5XXXXXXXX
+                          // Admin username: allow text username login
+                          if (/^0/.test(value)) {
+                            value = value.replace(/^0+/, '')
+                          }
+
+                          if (/^\d+$/.test(value)) {
+                            value = value.slice(0, 9)
+                          }
+
+                          setUsername(value)
+                        }}
                       />
                     </CInputGroup>
 

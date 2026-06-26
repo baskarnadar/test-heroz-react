@@ -4,7 +4,6 @@ import React from 'react'
 // Vendor dashboard & activity pages
 const VendorDashboard = React.lazy(() => import('./vendordata/dashboard/Dashboard'))
 const MembershipDashboard = React.lazy(() => import('./vendordata/dashboard/MemberShipdashboard'))
-const ResetPwd = React.lazy(() => import('./views/pages/login/resetpwd'))
 
 
 const ActivityList = React.lazy(() => import('./vendordata/activityinfo/activity/list'))
@@ -31,7 +30,6 @@ const TripCompleted = React.lazy(() => import('./vendordata/trip/completed.js'))
 
 const routes = [
   { path: '/', name: 'Home' },
-  { path: '/resetpwd', name: 'Reset Password', element: ResetPwd },
   { path: '/vendor/dashboard', name: 'Dashboard', element: VendorDashboard },
 
   // ✅ Membership tab route inside same vendor authenticated route file
