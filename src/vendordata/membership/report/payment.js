@@ -20,15 +20,12 @@ import {
   cilPeople,
   cilCalendar,
   cilClock,
-  cilPhone,
   cilChild,
   cilInstitution,
   cilMoney,
   cilX,
-  cilReload,
   cilCheckCircle,
   cilSearch,
-  cilList,
 } from "@coreui/icons";
 import { API_BASE_URL } from "../../../config";
 import {
@@ -146,7 +143,6 @@ function mapBookingRow(m) {
     vendorPrice,
     parentName: toStr(m["RegUserFullName"]),
     parentEmail: toStr(m["RegUserEmailAddress"]),
-    parentMobile: toStr(m["RegUserMobileNo"]),
     kidsName: toStr(m["KidsName"]),
     actName: toStr(m["actName"]),
     vdrName: toStr(m["vdrName"]),
@@ -307,11 +303,6 @@ function BookingDetailModal({ row, isRTL, onClose }) {
               value={valOrDash(row.parentName)}
             />
             <DetailTile
-              icon={cilPhone}
-              label={isRTL ? "جوال ولي الأمر" : "Parents Mobile NO"}
-              value={valOrDash(row.parentMobile)}
-            />
-            <DetailTile
               icon={cilInstitution}
               label={isRTL ? "اسم المزود" : "Vendor Name"}
               value={valOrDash(row.vdrName)}
@@ -444,7 +435,6 @@ const MspBookedList = () => {
         r.kidsName,
         r.actName,
         r.parentName,
-        r.parentMobile,
         r.vdrName,
         r.bookingStatus,
         r.activityDate,
@@ -486,7 +476,6 @@ const MspBookedList = () => {
               <td>${escapeHtml(r.bookingStatus || status)}</td>
               <td>${escapeHtml(r.kidsName)}</td>
               <td>${escapeHtml(r.parentName)}</td>
-              <td>${escapeHtml(r.parentMobile)}</td>
               <td>${escapeHtml(formatMoney(r.activityPrice))}</td>
             </tr>
           `
@@ -601,7 +590,6 @@ const MspBookedList = () => {
                   <th>Status</th>
                   <th>Kid</th>
                   <th>Parent</th>
-                  <th>Mobile</th>
                   <th>Amount</th>
                 </tr>
               </thead>
@@ -650,77 +638,126 @@ const MspBookedList = () => {
   }, [filteredRows, status, isRTL, exportPdfFallbackPrint]);
 
   const pageStyle = `
-    /* ✅ TABLE GRID LAYOUT LIKE TRIP-BOOKED SCREEN */
     .msp-grid-page {
-      padding: 0;
+      padding: 16px !important;
+      min-height: 100vh !important;
+      background:
+        radial-gradient(circle at top left, rgba(214, 51, 132, 0.14), transparent 34%),
+        radial-gradient(circle at top right, rgba(87, 4, 87, 0.12), transparent 30%),
+        linear-gradient(180deg, #fff7fc 0%, #f8fafc 46%, #ffffff 100%) !important;
     }
 
     .msp-grid-shell {
-      width: 100%;
+      width: 100% !important;
     }
 
     .msp-grid-card {
-      border: 1px solid rgba(214, 51, 132, 0.26) !important;
-      border-radius: 16px !important;
-      box-shadow: 0 10px 26px rgba(87, 4, 87, 0.08) !important;
+      border: 1px solid rgba(214, 51, 132, 0.16) !important;
+      border-radius: 26px !important;
+      box-shadow: 0 24px 70px rgba(87, 4, 87, 0.13) !important;
       overflow: hidden !important;
-      background: #ffffff !important;
+      background: rgba(255, 255, 255, 0.94) !important;
+      backdrop-filter: blur(14px) !important;
     }
 
     .msp-grid-card-header {
-      background: #ffffff !important;
-      border-bottom: 1px solid rgba(214, 51, 132, 0.14) !important;
-      padding: 18px !important;
+      position: relative !important;
+      background:
+        linear-gradient(135deg, rgba(87, 4, 87, 0.98), rgba(162, 13, 134, 0.92)),
+        #570457 !important;
+      border-bottom: 0 !important;
+      padding: 22px !important;
+      color: #ffffff !important;
+    }
+
+    .msp-grid-card-header::after {
+      content: "" !important;
+      position: absolute !important;
+      inset: auto -80px -140px auto !important;
+      width: 280px !important;
+      height: 280px !important;
+      border-radius: 999px !important;
+      background: rgba(255, 255, 255, 0.11) !important;
+      pointer-events: none !important;
     }
 
     .msp-grid-title {
-      font-size: 22px !important;
-      font-weight: 900 !important;
-      color: #111827 !important;
-      margin: 0 0 4px 0 !important;
-      letter-spacing: -0.03em !important;
+      position: relative !important;
+      z-index: 1 !important;
+      font-size: 26px !important;
+      font-weight: 950 !important;
+      color: #ffffff !important;
+      margin: 0 !important;
+      letter-spacing: -0.04em !important;
+      line-height: 1.15 !important;
+    }
+
+    .msp-grid-title::after {
+      content: "" !important;
+      display: block !important;
+      width: 58px !important;
+      height: 4px !important;
+      border-radius: 999px !important;
+      margin-top: 10px !important;
+      background: linear-gradient(90deg, #ffffff, rgba(255, 255, 255, 0.18)) !important;
+    }
+
+    .vdr-rtl .msp-grid-title::after {
+      margin-right: 0 !important;
+      margin-left: auto !important;
+      background: linear-gradient(270deg, #ffffff, rgba(255, 255, 255, 0.18)) !important;
     }
 
     .msp-total-amount-row {
+      position: relative !important;
+      z-index: 1 !important;
       display: flex !important;
       justify-content: flex-end !important;
       align-items: center !important;
       gap: 12px !important;
-      margin: 12px 0 12px 0 !important;
+      margin: -50px 0 16px 0 !important;
+    }
+
+    .vdr-rtl .msp-total-amount-row {
+      justify-content: flex-start !important;
     }
 
     .msp-total-amount-card {
-      min-width: 240px !important;
-      border-radius: 16px !important;
-      padding: 12px 16px !important;
-      background: linear-gradient(135deg, rgba(87, 4, 87, 0.95), rgba(162, 13, 134, 0.92)) !important;
+      min-width: 260px !important;
+      border-radius: 22px !important;
+      padding: 16px 18px !important;
+      background: rgba(255, 255, 255, 0.16) !important;
       color: #ffffff !important;
-      box-shadow: 0 10px 24px rgba(162, 13, 134, 0.22) !important;
+      border: 1px solid rgba(255, 255, 255, 0.22) !important;
+      box-shadow: 0 20px 40px rgba(17, 24, 39, 0.16) !important;
       display: flex !important;
       align-items: center !important;
       justify-content: space-between !important;
-      gap: 12px !important;
+      gap: 14px !important;
+      backdrop-filter: blur(12px) !important;
     }
 
     .msp-total-amount-label {
       font-size: 12px !important;
-      font-weight: 800 !important;
-      opacity: 0.88 !important;
-      margin-bottom: 2px !important;
+      font-weight: 900 !important;
+      opacity: 0.82 !important;
+      margin-bottom: 4px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.04em !important;
     }
 
     .msp-total-amount-value {
-      font-size: 22px !important;
+      font-size: 28px !important;
       font-weight: 950 !important;
-      line-height: 1.1 !important;
-      letter-spacing: -0.02em !important;
+      line-height: 1.05 !important;
+      letter-spacing: -0.04em !important;
     }
 
     .msp-total-amount-icon {
-      width: 42px !important;
-      height: 42px !important;
-      border-radius: 14px !important;
-      background: rgba(255, 255, 255, 0.16) !important;
+      width: 50px !important;
+      height: 50px !important;
+      border-radius: 18px !important;
+      background: rgba(255, 255, 255, 0.18) !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -728,59 +765,78 @@ const MspBookedList = () => {
     }
 
     .msp-total-amount-icon svg {
-      width: 20px !important;
-      height: 20px !important;
+      width: 23px !important;
+      height: 23px !important;
       color: #ffffff !important;
     }
 
     .msp-filter-box {
-      border: 1px solid #e5e7eb !important;
-      border-radius: 12px !important;
-      padding: 14px !important;
-      background: #f9fafb !important;
+      position: relative !important;
+      z-index: 1 !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      border-radius: 22px !important;
+      padding: 16px !important;
+      background: rgba(255, 255, 255, 0.94) !important;
       display: grid !important;
-      grid-template-columns: minmax(260px, 1fr) 300px 220px 150px !important;
-      gap: 12px !important;
+      grid-template-columns: minmax(260px, 1fr) 240px 180px 150px !important;
+      gap: 14px !important;
       align-items: end !important;
-      margin-top: 4px !important;
+      margin-top: 8px !important;
+      box-shadow: 0 16px 38px rgba(17, 24, 39, 0.10) !important;
     }
 
     .msp-filter-field label {
       display: block !important;
       font-size: 12px !important;
-      font-weight: 900 !important;
-      color: #111827 !important;
-      margin-bottom: 6px !important;
+      font-weight: 950 !important;
+      color: #570457 !important;
+      margin-bottom: 7px !important;
+      letter-spacing: -0.01em !important;
     }
 
     .msp-search-group .input-group-text,
     .msp-search-group input,
     .msp-filter-select {
-      border-radius: 14px !important;
-      border-color: #d9dde5 !important;
-      min-height: 40px !important;
+      border-radius: 16px !important;
+      border-color: #ead8e7 !important;
+      min-height: 44px !important;
       background: #ffffff !important;
       font-size: 13px !important;
+      color: #111827 !important;
+      box-shadow: 0 8px 20px rgba(87, 4, 87, 0.04) !important;
     }
 
     .msp-search-group .input-group-text {
       border-inline-end: 0 !important;
-      color: #d63384 !important;
+      color: #a20d86 !important;
+      background: #fff7fc !important;
     }
 
     .msp-search-group input {
       border-inline-start: 0 !important;
     }
 
+    .msp-search-group input:focus,
+    .msp-filter-select:focus {
+      border-color: #d63384 !important;
+      box-shadow: 0 0 0 4px rgba(214, 51, 132, 0.14) !important;
+    }
+
     .msp-export-pdf-btn {
       width: 100% !important;
-      min-height: 40px !important;
+      min-height: 44px !important;
       border-radius: 999px !important;
       border: 0 !important;
-      background: linear-gradient(135deg, #570457, #a20d86) !important;
+      background: linear-gradient(135deg, #570457, #d63384) !important;
       color: #ffffff !important;
-      font-weight: 900 !important;
-      box-shadow: 0 8px 18px rgba(162, 13, 134, 0.22) !important;
+      font-weight: 950 !important;
+      box-shadow: 0 12px 24px rgba(162, 13, 134, 0.24) !important;
+      transition: transform 160ms ease, box-shadow 160ms ease !important;
+    }
+
+    .msp-export-pdf-btn:hover:not(:disabled) {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 16px 30px rgba(162, 13, 134, 0.30) !important;
     }
 
     .msp-export-pdf-btn:disabled {
@@ -789,28 +845,44 @@ const MspBookedList = () => {
       box-shadow: none !important;
     }
 
+    .msp-grid-card .card-body {
+      padding: 20px !important;
+      background: #ffffff !important;
+    }
+
     .msp-table-wrap {
       width: 100% !important;
       overflow-x: auto !important;
       background: #ffffff !important;
+      border: 1px solid #eef0f4 !important;
+      border-radius: 22px !important;
+      box-shadow: 0 18px 42px rgba(17, 24, 39, 0.06) !important;
     }
 
     .msp-data-table {
       width: 100% !important;
-      border-collapse: collapse !important;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
       min-width: 980px !important;
       table-layout: auto !important;
       font-size: 13px !important;
+      overflow: hidden !important;
     }
 
     .msp-data-table thead th {
-      background: #ffffff !important;
-      color: #111827 !important;
-      font-weight: 900 !important;
-      padding: 12px 8px !important;
-      border-bottom: 1px solid #e5e7eb !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 1 !important;
+      background: linear-gradient(180deg, #fffafd, #ffffff) !important;
+      color: #570457 !important;
+      font-weight: 950 !important;
+      padding: 15px 12px !important;
+      border-bottom: 1px solid #efe3ec !important;
       white-space: nowrap !important;
       text-align: left !important;
+      font-size: 12px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.02em !important;
     }
 
     .vdr-rtl .msp-data-table thead th {
@@ -818,58 +890,73 @@ const MspBookedList = () => {
     }
 
     .msp-data-table tbody td {
-      padding: 9px 8px !important;
-      border-bottom: 1px solid #e5e7eb !important;
+      padding: 14px 12px !important;
+      border-bottom: 1px solid #f1f3f6 !important;
       color: #111827 !important;
       vertical-align: middle !important;
       white-space: nowrap !important;
+      font-weight: 700 !important;
+    }
+
+    .msp-data-table tbody tr {
+      transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease !important;
     }
 
     .msp-data-table tbody tr:nth-child(even) {
-      background: #fafafa !important;
+      background: #fffafd !important;
     }
 
     .msp-data-table tbody tr:hover {
-      background: #f1f5f9 !important;
+      background: #fff0f8 !important;
+      box-shadow: inset 4px 0 0 #d63384 !important;
+    }
+
+    .vdr-rtl .msp-data-table tbody tr:hover {
+      box-shadow: inset -4px 0 0 #d63384 !important;
     }
 
     .msp-grid-status-pill {
-      background: #dff8ee !important;
-      color: #009b72 !important;
-      border: 1px solid #9ee7cf !important;
+      background: linear-gradient(135deg, #dbfff0, #eefcf6) !important;
+      color: #008a63 !important;
+      border: 1px solid #a8edd4 !important;
       border-radius: 999px !important;
-      padding: 5px 10px !important;
+      padding: 7px 12px !important;
       font-size: 11px !important;
-      font-weight: 900 !important;
+      font-weight: 950 !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 5px !important;
-      min-width: 94px !important;
+      gap: 6px !important;
+      min-width: 98px !important;
       justify-content: center !important;
+      box-shadow: 0 8px 18px rgba(0, 155, 114, 0.10) !important;
     }
 
     .msp-grid-status-pill .modern-status-icon {
-      width: 12px !important;
-      height: 12px !important;
+      width: 13px !important;
+      height: 13px !important;
       color: #009b72 !important;
     }
 
     .msp-grid-view-btn {
-      min-width: 108px !important;
-      height: 28px !important;
+      min-width: 112px !important;
+      height: 34px !important;
       border-radius: 999px !important;
       border: 0 !important;
-      padding: 4px 18px !important;
-      background: #a20d86 !important;
+      padding: 6px 18px !important;
+      background: linear-gradient(135deg, #570457, #a20d86) !important;
       color: #ffffff !important;
-      font-weight: 900 !important;
+      font-weight: 950 !important;
       font-size: 12px !important;
       line-height: 1 !important;
+      box-shadow: 0 9px 18px rgba(162, 13, 134, 0.22) !important;
+      transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease !important;
     }
 
     .msp-grid-view-btn:hover {
-      background: #870971 !important;
+      transform: translateY(-1px) !important;
+      background: linear-gradient(135deg, #71086c, #d63384) !important;
       color: #ffffff !important;
+      box-shadow: 0 14px 24px rgba(162, 13, 134, 0.30) !important;
     }
 
     .msp-table-footer {
@@ -877,317 +964,365 @@ const MspBookedList = () => {
       justify-content: space-between !important;
       align-items: center !important;
       gap: 12px !important;
-      padding: 14px 0 0 !important;
-      color: #111827 !important;
+      padding: 16px 4px 0 !important;
+      color: #475569 !important;
       font-size: 13px !important;
+      font-weight: 800 !important;
     }
 
     .msp-pagination {
       display: inline-flex !important;
       gap: 8px !important;
       align-items: center !important;
+      background: #f8fafc !important;
+      border: 1px solid #edf0f5 !important;
+      border-radius: 999px !important;
+      padding: 6px !important;
     }
 
     .msp-page-btn {
-      width: 32px !important;
-      height: 32px !important;
+      width: 34px !important;
+      height: 34px !important;
       border-radius: 50% !important;
-      border: 1px solid #d9dde5 !important;
-      background: #ffffff !important;
-      color: #111827 !important;
-      font-weight: 800 !important;
+      border: 0 !important;
+      background: transparent !important;
+      color: #570457 !important;
+      font-weight: 950 !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
       cursor: pointer !important;
+      transition: background 150ms ease, transform 150ms ease !important;
+    }
+
+    .msp-page-btn:hover:not(:disabled) {
+      background: #fff0f8 !important;
+      transform: translateY(-1px) !important;
     }
 
     .msp-page-btn.active {
-      background: #475569 !important;
+      background: linear-gradient(135deg, #570457, #a20d86) !important;
       color: #ffffff !important;
-      border-color: #475569 !important;
+      box-shadow: 0 8px 18px rgba(162, 13, 134, 0.22) !important;
     }
 
     .msp-page-btn:disabled {
-      opacity: 0.5 !important;
+      opacity: 0.42 !important;
       cursor: not-allowed !important;
     }
 
     .msp-sort-mark {
-      color: #aab0bb !important;
-      font-size: 14px !important;
-      margin-inline-start: 3px !important;
+      color: #d63384 !important;
+      font-size: 10px !important;
+      margin-inline-start: 5px !important;
+      opacity: 0.6 !important;
     }
 
     .msp-loading-box,
     .msp-empty-box {
-      min-height: 180px !important;
+      min-height: 230px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       flex-direction: column !important;
-      gap: 12px !important;
+      gap: 14px !important;
+      color: #570457 !important;
+      font-weight: 900 !important;
     }
 
     .msp-side-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(17, 24, 39, 0.48);
-      backdrop-filter: blur(4px);
-      z-index: 1050;
-      display: flex;
-      justify-content: flex-end;
-      align-items: stretch;
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(15, 23, 42, 0.62) !important;
+      backdrop-filter: blur(8px) !important;
+      z-index: 1050 !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: stretch !important;
+      padding: 16px !important;
     }
 
     .msp-side-backdrop.vdr-rtl {
-      justify-content: flex-start;
+      justify-content: flex-start !important;
     }
 
     .msp-side-panel {
-      width: min(430px, 100vw);
-      height: 100vh;
-      background: #ffffff;
-      box-shadow: -18px 0 48px rgba(17, 24, 39, 0.22);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      animation: mspSlideFromRight 220ms ease both;
+      width: min(500px, calc(100vw - 32px)) !important;
+      height: calc(100vh - 32px) !important;
+      background: #ffffff !important;
+      border-radius: 28px !important;
+      box-shadow: -28px 0 80px rgba(15, 23, 42, 0.30) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      animation: mspSlideFromRight 240ms ease both !important;
+      border: 1px solid rgba(255, 255, 255, 0.34) !important;
     }
 
     .msp-side-panel-rtl {
-      animation-name: mspSlideFromLeft;
-      box-shadow: 18px 0 48px rgba(17, 24, 39, 0.22);
+      animation-name: mspSlideFromLeft !important;
+      box-shadow: 28px 0 80px rgba(15, 23, 42, 0.30) !important;
     }
 
     @keyframes mspSlideFromRight {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
+      from { transform: translateX(32px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
 
     @keyframes mspSlideFromLeft {
-      from { transform: translateX(-100%); }
-      to { transform: translateX(0); }
+      from { transform: translateX(-32px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
 
     .msp-side-header {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 20px 18px;
-      background: linear-gradient(135deg, #d63384, #570457);
-      color: #ffffff;
+      flex: 0 0 auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 14px !important;
+      padding: 24px 22px !important;
+      background:
+        radial-gradient(circle at 82% 10%, rgba(255, 255, 255, 0.18), transparent 28%),
+        linear-gradient(135deg, #570457 0%, #a20d86 55%, #d63384 100%) !important;
+      color: #ffffff !important;
     }
 
     .msp-side-header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
+      display: flex !important;
+      align-items: center !important;
+      gap: 14px !important;
+      min-width: 0 !important;
     }
 
     .msp-side-header-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.16);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex: 0 0 auto;
+      width: 52px !important;
+      height: 52px !important;
+      border-radius: 20px !important;
+      background: rgba(255, 255, 255, 0.17) !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 0 0 auto !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
     }
 
     .msp-side-header-icon-svg {
-      width: 22px;
-      height: 22px;
-      color: #ffffff;
+      width: 25px !important;
+      height: 25px !important;
+      color: #ffffff !important;
     }
 
     .msp-side-kicker {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      color: rgba(255, 255, 255, 0.78);
+      font-size: 11px !important;
+      font-weight: 950 !important;
+      letter-spacing: 0.10em !important;
+      color: rgba(255, 255, 255, 0.76) !important;
     }
 
     .msp-side-title {
-      font-size: 19px;
-      font-weight: 900;
-      line-height: 1.2;
-      color: #ffffff;
+      font-size: 22px !important;
+      font-weight: 950 !important;
+      line-height: 1.15 !important;
+      color: #ffffff !important;
+      letter-spacing: -0.03em !important;
     }
 
     .msp-side-close-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: 0;
-      background: rgba(255, 255, 255, 0.16);
-      color: #ffffff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex: 0 0 auto;
+      width: 42px !important;
+      height: 42px !important;
+      border-radius: 50% !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      background: rgba(255, 255, 255, 0.15) !important;
+      color: #ffffff !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      flex: 0 0 auto !important;
+      transition: background 150ms ease, transform 150ms ease !important;
     }
 
     .msp-side-close-btn:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.26) !important;
+      transform: rotate(90deg) !important;
     }
 
     .msp-side-body {
-      flex: 1 1 auto;
-      overflow-y: auto;
-      padding: 18px;
-      background: #fffafd;
+      flex: 1 1 auto !important;
+      overflow-y: auto !important;
+      padding: 20px !important;
+      background:
+        linear-gradient(180deg, #fff7fc 0%, #ffffff 46%, #f8fafc 100%) !important;
     }
 
     .msp-side-footer {
-      flex: 0 0 auto;
-      padding: 14px 18px 18px;
-      background: #ffffff;
-      border-top: 1px solid rgba(214, 51, 132, 0.12);
+      flex: 0 0 auto !important;
+      padding: 16px 20px 20px !important;
+      background: #ffffff !important;
+      border-top: 1px solid rgba(214, 51, 132, 0.12) !important;
+    }
+
+    .msp-modal-close-full-btn {
+      width: 100% !important;
+      min-height: 46px !important;
+      border-radius: 999px !important;
+      border: 0 !important;
+      background: linear-gradient(135deg, #570457, #d63384) !important;
+      color: #ffffff !important;
+      font-weight: 950 !important;
+      box-shadow: 0 14px 28px rgba(162, 13, 134, 0.22) !important;
     }
 
     .msp-side-activity-card {
-      background: #ffffff;
-      border: 1px solid rgba(214, 51, 132, 0.14);
-      border-radius: 18px;
-      padding: 14px;
-      box-shadow: 0 12px 28px rgba(114, 28, 80, 0.06);
-      margin-bottom: 16px;
+      background: #ffffff !important;
+      border: 1px solid rgba(214, 51, 132, 0.14) !important;
+      border-radius: 24px !important;
+      padding: 18px !important;
+      box-shadow: 0 18px 42px rgba(114, 28, 80, 0.09) !important;
+      margin-bottom: 18px !important;
     }
 
     .msp-side-activity-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 12px;
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: space-between !important;
+      gap: 12px !important;
+      margin-bottom: 14px !important;
     }
 
     .msp-side-activity-label,
     .msp-side-section-title {
-      color: #9d2161;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
+      color: #a20d86 !important;
+      font-size: 12px !important;
+      font-weight: 950 !important;
+      letter-spacing: 0.05em !important;
+      text-transform: uppercase !important;
+      margin: 18px 0 10px !important;
+    }
+
+    .msp-side-activity-label {
+      margin: 0 0 6px !important;
     }
 
     .msp-side-activity-name {
-      color: #111827;
-      font-size: 18px;
-      font-weight: 900;
-      line-height: 1.25;
-      overflow-wrap: anywhere;
+      color: #111827 !important;
+      font-size: 22px !important;
+      font-weight: 950 !important;
+      line-height: 1.18 !important;
+      overflow-wrap: anywhere !important;
+      letter-spacing: -0.04em !important;
     }
 
     .msp-side-booking-id-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(214, 51, 132, 0.10), rgba(255, 105, 180, 0.06));
-      border: 1px solid rgba(214, 51, 132, 0.18);
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 10px !important;
+      padding: 13px 14px !important;
+      border-radius: 18px !important;
+      background: linear-gradient(135deg, #fff0f8, #ffffff) !important;
+      border: 1px solid rgba(214, 51, 132, 0.18) !important;
     }
 
     .msp-side-booking-id-row span {
-      color: #7a5470;
-      font-size: 12px;
-      font-weight: 700;
+      color: #7a5470 !important;
+      font-size: 12px !important;
+      font-weight: 900 !important;
     }
 
     .msp-side-booking-id-row strong {
-      color: #d63384;
-      font-size: 15px;
-      font-weight: 900;
+      color: #d63384 !important;
+      font-size: 16px !important;
+      font-weight: 950 !important;
+      letter-spacing: 0.02em !important;
     }
 
     .msp-side-datetime-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 12px !important;
+      margin-bottom: 18px !important;
     }
 
     .msp-side-datetime-full {
-      grid-column: 1 / -1;
+      grid-column: 1 / -1 !important;
     }
 
     .msp-side-datetime-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 76px;
-      background: #ffffff;
-      border: 1px solid rgba(214, 51, 132, 0.14);
-      border-radius: 16px;
-      padding: 12px;
-      box-shadow: 0 8px 20px rgba(114, 28, 80, 0.05);
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      min-height: 86px !important;
+      background: #ffffff !important;
+      border: 1px solid rgba(214, 51, 132, 0.14) !important;
+      border-radius: 20px !important;
+      padding: 14px !important;
+      box-shadow: 0 12px 26px rgba(114, 28, 80, 0.06) !important;
     }
 
     .msp-side-datetime-date {
-      background: linear-gradient(135deg, rgba(214, 51, 132, 0.13), #ffffff);
+      background: linear-gradient(135deg, rgba(214, 51, 132, 0.12), #ffffff) !important;
     }
 
     .msp-side-datetime-time {
-      background: linear-gradient(135deg, rgba(87, 4, 87, 0.10), #ffffff);
+      background: linear-gradient(135deg, rgba(87, 4, 87, 0.10), #ffffff) !important;
     }
 
     .msp-side-datetime-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 14px;
-      background: rgba(214, 51, 132, 0.12);
-      color: #d63384;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex: 0 0 auto;
+      width: 44px !important;
+      height: 44px !important;
+      border-radius: 16px !important;
+      background: linear-gradient(135deg, rgba(214, 51, 132, 0.14), rgba(87, 4, 87, 0.10)) !important;
+      color: #d63384 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 0 0 auto !important;
     }
 
     .msp-side-datetime-label {
-      color: #7a5470;
-      font-size: 11px;
-      font-weight: 800;
-      margin-bottom: 4px;
+      color: #7a5470 !important;
+      font-size: 11px !important;
+      font-weight: 950 !important;
+      margin-bottom: 5px !important;
     }
 
     .msp-side-datetime-value {
-      color: #111827;
-      font-size: 15px;
-      font-weight: 900;
-      line-height: 1.25;
-      overflow-wrap: anywhere;
+      color: #111827 !important;
+      font-size: 16px !important;
+      font-weight: 950 !important;
+      line-height: 1.25 !important;
+      overflow-wrap: anywhere !important;
     }
 
     .msp-detail-grid-2 {
       display: grid !important;
       grid-template-columns: 1fr 1fr !important;
-      gap: 10px !important;
+      gap: 12px !important;
     }
 
     .msp-detail-tile {
       background: #ffffff !important;
       border: 1px solid rgba(214, 51, 132, 0.14) !important;
-      border-radius: 14px !important;
-      padding: 12px !important;
+      border-radius: 20px !important;
+      padding: 15px !important;
       display: flex !important;
       align-items: center !important;
-      gap: 10px !important;
+      gap: 12px !important;
+      box-shadow: 0 12px 26px rgba(114, 28, 80, 0.05) !important;
+    }
+
+    .msp-detail-tile:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 16px 30px rgba(114, 28, 80, 0.08) !important;
     }
 
     .msp-detail-tile-icon-wrap {
-      width: 34px !important;
-      height: 34px !important;
-      border-radius: 12px !important;
-      background: rgba(214, 51, 132, 0.10) !important;
+      width: 42px !important;
+      height: 42px !important;
+      border-radius: 16px !important;
+      background: linear-gradient(135deg, rgba(214, 51, 132, 0.13), rgba(87, 4, 87, 0.09)) !important;
       color: #d63384 !important;
       display: inline-flex !important;
       align-items: center !important;
@@ -1196,30 +1331,31 @@ const MspBookedList = () => {
     }
 
     .msp-detail-tile-icon {
-      width: 17px !important;
-      height: 17px !important;
+      width: 19px !important;
+      height: 19px !important;
     }
 
     .msp-detail-tile-label {
       color: #7a5470 !important;
       font-size: 11px !important;
-      font-weight: 800 !important;
-      margin-bottom: 2px !important;
+      font-weight: 950 !important;
+      margin-bottom: 4px !important;
     }
 
     .msp-detail-tile-value {
       color: #111827 !important;
-      font-size: 13px !important;
-      font-weight: 900 !important;
+      font-size: 14px !important;
+      font-weight: 950 !important;
       overflow-wrap: anywhere !important;
     }
 
     .msp-detail-amount-section {
-      background: #ffffff !important;
-      border: 1px solid rgba(214, 51, 132, 0.14) !important;
-      border-radius: 16px !important;
-      padding: 12px !important;
+      background: linear-gradient(135deg, #570457, #a20d86) !important;
+      border: 0 !important;
+      border-radius: 24px !important;
+      padding: 18px !important;
       margin-bottom: 0 !important;
+      box-shadow: 0 18px 36px rgba(162, 13, 134, 0.22) !important;
     }
 
     .msp-detail-amount-row {
@@ -1232,25 +1368,39 @@ const MspBookedList = () => {
     .msp-detail-amount-label {
       display: inline-flex !important;
       align-items: center !important;
-      gap: 8px !important;
-      color: #7a5470 !important;
-      font-size: 12px !important;
-      font-weight: 900 !important;
+      gap: 10px !important;
+      color: rgba(255, 255, 255, 0.88) !important;
+      font-size: 13px !important;
+      font-weight: 950 !important;
     }
 
     .msp-detail-amount-icon {
-      color: #d63384 !important;
+      color: #ffffff !important;
     }
 
     .msp-detail-amount-value {
-      color: #111827 !important;
-      font-weight: 900 !important;
-      font-size: 16px !important;
+      color: #ffffff !important;
+      font-weight: 950 !important;
+      font-size: 24px !important;
+      letter-spacing: -0.04em !important;
     }
 
     @media (max-width: 991px) {
+      .msp-grid-page {
+        padding: 10px !important;
+      }
+
       .msp-filter-box {
         grid-template-columns: 1fr !important;
+      }
+
+      .msp-total-amount-row {
+        margin: 16px 0 !important;
+        justify-content: flex-start !important;
+      }
+
+      .msp-total-amount-card {
+        width: 100% !important;
       }
 
       .msp-table-footer {
@@ -1260,12 +1410,18 @@ const MspBookedList = () => {
     }
 
     @media (max-width: 575px) {
+      .msp-side-backdrop {
+        padding: 0 !important;
+      }
+
       .msp-side-panel {
-        width: 100vw;
+        width: 100vw !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
       }
 
       .msp-side-body {
-        padding: 14px;
+        padding: 14px !important;
       }
 
       .msp-side-datetime-grid,
@@ -1413,7 +1569,6 @@ const MspBookedList = () => {
                         </th>
                         <th>{isRTL ? "اسم الطفل" : "Kid Name"}</th>
                         <th>{isRTL ? "ولي الأمر" : "Parent Name"}</th>
-                        <th>{isRTL ? "الجوال" : "Parent Mobile"}</th>
                         <th>{isRTL ? "المبلغ" : "Amount"}</th>
                         <th>{isRTL ? "عرض" : "View"}</th>
                       </tr>
@@ -1432,7 +1587,6 @@ const MspBookedList = () => {
                           </td>
                           <td>{valOrDash(r.kidsName)}</td>
                           <td>{valOrDash(r.parentName)}</td>
-                          <td>{valOrDash(r.parentMobile)}</td>
                           <td>{formatMoney(r.activityPrice)}</td>
                           <td>
                             <CButton className="msp-grid-view-btn" type="button" onClick={() => setSelected(r)}>

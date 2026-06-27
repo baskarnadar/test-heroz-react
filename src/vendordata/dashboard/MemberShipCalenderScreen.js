@@ -459,7 +459,7 @@ export default function MemberShipCalenderScreen() {
                 textAlign: "center",
                 padding: "6px 0",
                 fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 400,
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
                 color: T.textMid,
@@ -595,7 +595,7 @@ export default function MemberShipCalenderScreen() {
                             background: "rgba(255,255,255,0.24)",
                             color: st.text,
                             border: "1px solid rgba(255,255,255,0.45)",
-                            fontWeight: 800,
+                            fontWeight: 400,
                             fontSize: 10,
                             lineHeight: 1,
                             display: "inline-flex",
@@ -668,7 +668,7 @@ export default function MemberShipCalenderScreen() {
           <div
             style={{
               color: T.white,
-              fontWeight: 700,
+              fontWeight: 400,
               fontSize: 15,
               fontFamily: "'Outfit', sans-serif",
             }}
@@ -706,7 +706,7 @@ export default function MemberShipCalenderScreen() {
                     background: st.bg,
                     color: st.text,
                     fontSize: 11,
-                    fontWeight: 700,
+                    fontWeight: 400,
                     padding: "3px 10px",
                     borderRadius: 20,
                     marginBottom: 8,
@@ -721,7 +721,7 @@ export default function MemberShipCalenderScreen() {
                 <div
                   style={{
                     fontSize: 15,
-                    fontWeight: 700,
+                    fontWeight: 400,
                     color: T.textDark,
                     fontFamily: "'Outfit',sans-serif",
                     marginBottom: 4,

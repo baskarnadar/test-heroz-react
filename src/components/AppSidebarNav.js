@@ -1,4 +1,4 @@
- import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 
@@ -38,17 +38,21 @@ export const AppSidebarNav = ({ items }) => {
     return parentKey ? `${parentKey}-${key}-${index}` : `${key}-${index}`
   }
 
+  // Accordion-safe initial state: at each level only the FIRST group that
+  // matches (autoOpen or has active child) is opened. All others stay closed.
   const buildInitialOpenGroups = useMemo(() => {
     const openState = {}
 
     const scan = (navItems, parentKey = '') => {
+      let levelOpened = false
+
       navItems.forEach((item, index) => {
         if (item?.items) {
           const key = getGroupKey(item, index, parentKey)
+          const shouldOpen = !levelOpened && (item?.autoOpen === true || hasActiveChild(item))
 
-          // ✅ Open state now driven purely by each item's own `autoOpen` flag
-          // (or if one of its children is the active route).
-          openState[key] = item?.autoOpen === true || hasActiveChild(item)
+          openState[key] = shouldOpen
+          if (shouldOpen) levelOpened = true
 
           scan(item.items, key)
         }
@@ -65,11 +69,34 @@ export const AppSidebarNav = ({ items }) => {
     setOpenGroups(buildInitialOpenGroups)
   }, [buildInitialOpenGroups])
 
-  const toggleGroup = (key) => {
-    setOpenGroups((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }))
+  // Map of parentKey -> sibling group keys at that level (for accordion close)
+  const siblingMap = useMemo(() => {
+    const map = {}
+    const scan = (navItems, parentKey = '') => {
+      const siblingKeys = []
+      navItems.forEach((item, index) => {
+        if (item?.items) {
+          const key = getGroupKey(item, index, parentKey)
+          siblingKeys.push(key)
+          scan(item.items, key)
+        }
+      })
+      if (siblingKeys.length) map[parentKey] = siblingKeys
+    }
+    scan(items || [])
+    return map
+  }, [items])
+
+  // When a group is clicked: close all siblings at the same level, then toggle
+  const toggleGroup = (key, parentKey = '') => {
+    setOpenGroups((prev) => {
+      const isCurrentlyOpen = prev[key]
+      const siblings = siblingMap[parentKey] || []
+      const next = { ...prev }
+      siblings.forEach((sibKey) => { next[sibKey] = false })
+      next[key] = !isCurrentlyOpen
+      return next
+    })
   }
 
   const navLinkContent = (name, icon, badge, indent = false) => {
@@ -97,7 +124,6 @@ export const AppSidebarNav = ({ items }) => {
   const navItem = (item, index, indent = false) => {
     const { component, name, badge, icon, style, className, ...rest } = item
 
-    // ✅ CNavTitle equivalent without depending on CoreUI component state
     if (!rest.to && !rest.href && !item.items) {
       return (
         <li key={index} className={className || 'nav-title'} style={style || undefined}>
@@ -137,7 +163,7 @@ export const AppSidebarNav = ({ items }) => {
           className="nav-link nav-group-toggle"
           onClick={(e) => {
             e.preventDefault()
-            toggleGroup(key)
+            toggleGroup(key, parentKey)
           }}
         >
           {toggler || navLinkContent(name, icon, badge)}

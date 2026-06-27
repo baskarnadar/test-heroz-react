@@ -93,7 +93,7 @@ export default function Calendar({ initialYear, initialMonth, events }) {
             <div
               key={day}
               style={{
-                fontWeight: 'bold',
+                fontWeight: 400,
                 color: isWeekendHeader ? COLOR_WEEKEND_BG : 'inherit',
               }}
             >

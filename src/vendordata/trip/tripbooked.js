@@ -1,4 +1,4 @@
-// src/vendordata/activityinfo/activity/ViewActivityScreen.js
+ // src/vendordata/activityinfo/activity/ViewActivityScreen.js
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -35,6 +35,24 @@ const ts = (fontSize, extra = {}) => ({ fontSize, ...extra }); // kept
 const toStr = (v) => (v ?? "").toString();
 const fmtNum = (v) =>
   Number.isFinite(Number(v)) ? Number(v).toString() : toStr(v);
+
+const escapeHtml = (v) =>
+  toStr(v)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+const fmtMoney = (v) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "0.00";
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 
 const useDocDir = () => {
   const [dir, setDir] = React.useState(
@@ -611,8 +629,211 @@ const ViewActivityScreen = () => {
     XLSX.writeFile(wb, fileName);
   };
 
+  const openPrintWindow = (title, bodyHtml, summaryHtml = "") => {
+    const win = window.open("", "_blank", "width=1200,height=850");
+    if (!win) {
+      alert("Please allow popups to export PDF");
+      return;
+    }
+
+    win.document.open();
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${escapeHtml(title)}</title>
+          <style>
+            @page { size: A4 landscape; margin: 12mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: Arial, sans-serif; color: #111827; background: #ffffff; }
+            .pdf-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 3px solid #a20d86; }
+            h1 { margin: 0 0 6px; color: #570457; font-size: 22px; font-weight: 900; }
+            .pdf-meta { color: #6b7280; font-size: 12px; line-height: 1.5; }
+            .pdf-summary { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+            .pdf-chip { border: 1px solid #f5b6d5; background: #fff0f7; color: #a20d86; border-radius: 12px; padding: 9px 12px; font-size: 12px; font-weight: 800; min-width: 115px; text-align: center; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
+            th { background: #570457; color: #ffffff; padding: 8px 6px; border: 1px solid #570457; text-align: left; font-weight: 800; }
+            td { padding: 7px 6px; border: 1px solid #e5e7eb; vertical-align: top; word-break: break-word; }
+            tr:nth-child(even) td { background: #fff7fb; }
+            .status { display: inline-block; border-radius: 999px; padding: 3px 8px; background: #ecfdf5; color: #047857; font-weight: 800; font-size: 9px; }
+            .print-note { margin-top: 10px; color: #6b7280; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-header">
+            <div>
+              <h1>${escapeHtml(title)}</h1>
+              <div class="pdf-meta">Export Date: ${escapeHtml(new Date().toLocaleString())}</div>
+            </div>
+            <div class="pdf-summary">${summaryHtml}</div>
+          </div>
+          ${bodyHtml}
+          <div class="print-note">Choose Save as PDF from the print dialog.</div>
+          <script>
+            window.onload = function () {
+              window.focus();
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  const handleExportPdf = () => {
+    const exportRows = sortedItems || [];
+    if (!exportRows.length) {
+      alert("No data to export");
+      return;
+    }
+
+    const totalVendorCost = exportRows.reduce((sum, row) => sum + Number(row?.tripPayment?.totalTripVendorCost || 0), 0);
+    const totalPresent = exportRows.reduce((sum, row) => sum + Number(row?.studentSummary?.totalStudentApproved || 0), 0);
+    const totalAbsent = exportRows.reduce((sum, row) => sum + Number(row?.studentSummary?.totalStudentAbsent || 0), 0);
+
+    const rowsHtml = exportRows.map((row, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(row.actRequestRefNo || "-")}</td>
+        <td>${escapeHtml(row.actName || "-")}</td>
+        <td>${escapeHtml(row.actRequestDate || "-")}</td>
+        <td>${escapeHtml(row.actRequestTime || "-")}</td>
+        <td><span class="status">${escapeHtml(row.actRequestStatus || "-")}</span></td>
+        <td>${escapeHtml(fmtNum(row.studentSummary?.totalStudentApproved || 0))}</td>
+        <td>${escapeHtml(fmtNum(row.studentSummary?.totalStudentAbsent || 0))}</td>
+        <td>${escapeHtml(fmtMoney(row.tripPayment?.totalTripVendorCost || 0))}</td>
+      </tr>
+    `).join("");
+
+    const bodyHtml = `
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th>Ref No.</th>
+            <th>Act Name</th>
+            <th>Trip Date</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Total Present</th>
+            <th>Total Absense</th>
+            <th>Vendor Cost</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    `;
+
+    const summaryHtml = `
+      <div class="pdf-chip">Records<br/>${exportRows.length}</div>
+      <div class="pdf-chip">Present<br/>${escapeHtml(fmtNum(totalPresent))}</div>
+      <div class="pdf-chip">Absent<br/>${escapeHtml(fmtNum(totalAbsent))}</div>
+      <div class="pdf-chip">Vendor Cost<br/>${escapeHtml(fmtMoney(totalVendorCost))}</div>
+    `;
+
+    openPrintWindow("Trip-Booked Information", bodyHtml, summaryHtml);
+  };
+
+  const handleExportKidsPdf = () => {
+    if (!sortedKids || !sortedKids.length) {
+      alert("No kids information to export");
+      return;
+    }
+
+    const { totalKids, presentCount, absentCount } = computeKidsPresence(kids);
+    const totalCost = sortedKids.reduce((sum, kid) => sum + Number(kid.TripVendorCost || 0), 0);
+
+    const rowsHtml = sortedKids.map((kid, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(kid.TripKidsSchoolNo || "")}</td>
+        <td>${escapeHtml(kid.TripKidsName || "-")}</td>
+        <td>${escapeHtml(kid.tripKidsClassName || "-")}</td>
+        <td><span class="status">${escapeHtml(kid.tripKidsStatus || "-")}</span></td>
+        <td>${escapeHtml(kid.tripPaymentTypeID || "-")}</td>
+        <td>${escapeHtml(fmtMoney(kid.TripVendorCost || 0))}</td>
+      </tr>
+    `).join("");
+
+    const bodyHtml = `
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th>School No</th>
+            <th>Kid Name</th>
+            <th>Class Name</th>
+            <th>Status</th>
+            <th>Payment Type</th>
+            <th>Trip Vendor Cost</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    `;
+
+    const ref = selected?.actRequestRefNo || "Trip";
+    const summaryHtml = `
+      <div class="pdf-chip">Total Kids<br/>${escapeHtml(fmtNum(totalKids))}</div>
+      <div class="pdf-chip">Present<br/>${escapeHtml(fmtNum(presentCount))}</div>
+      <div class="pdf-chip">Absent<br/>${escapeHtml(fmtNum(absentCount))}</div>
+      <div class="pdf-chip">Cost<br/>${escapeHtml(fmtMoney(totalCost))}</div>
+    `;
+
+    openPrintWindow(`Kids Information - ${ref}`, bodyHtml, summaryHtml);
+  };
+
+  const modernTripStyle = `
+    .vas-container { padding: 4px; background: linear-gradient(180deg, #fff7fb 0%, #ffffff 45%); }
+    .vas-card { border: 1px solid rgba(162, 13, 134, 0.18) !important; border-radius: 22px !important; box-shadow: 0 18px 45px rgba(87, 4, 87, 0.10) !important; overflow: hidden !important; background: rgba(255, 255, 255, 0.96) !important; }
+    .vas-card-body { padding: 20px !important; }
+    .vas-header { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 12px !important; margin-bottom: 14px !important; padding: 16px 18px !important; border-radius: 18px !important; background: linear-gradient(135deg, #570457, #a20d86) !important; color: #ffffff !important; box-shadow: 0 14px 30px rgba(162, 13, 134, 0.20) !important; }
+    .vas-header .title-main { color: #ffffff !important; font-size: 22px !important; font-weight: 950 !important; letter-spacing: -0.03em !important; }
+    .vas-filters { background: #ffffff !important; border: 1px solid rgba(162, 13, 134, 0.14) !important; border-radius: 18px !important; padding: 14px !important; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06) !important; }
+    .vas-filters label { font-size: 12px !important; font-weight: 900 !important; color: #111827 !important; }
+    .admin-txt-box { min-height: 42px !important; border-radius: 14px !important; border: 1px solid #d9dde5 !important; background: #ffffff !important; outline: none !important; transition: all 160ms ease !important; }
+    .admin-txt-box:focus { border-color: #a20d86 !important; box-shadow: 0 0 0 4px rgba(162, 13, 134, 0.10) !important; }
+    .trip-pdf-btn, .trip-view-btn, .trip-close-btn { border: 0 !important; border-radius: 999px !important; font-weight: 900 !important; box-shadow: 0 9px 20px rgba(162, 13, 134, 0.18) !important; }
+    .trip-pdf-btn { min-height: 42px !important; padding: 8px 18px !important; background: linear-gradient(135deg, #570457, #a20d86) !important; color: #ffffff !important; }
+    .trip-view-btn { min-width: 88px !important; background: #a20d86 !important; color: #ffffff !important; }
+    .trip-close-btn { background: #f3f4f6 !important; color: #111827 !important; box-shadow: none !important; }
+    .trip-view-btn:hover, .trip-pdf-btn:hover { filter: brightness(0.96); color: #ffffff !important; }
+    .table-responsive, .vas-card table { border-radius: 16px !important; overflow: hidden !important; }
+    .vas-card table { border: 1px solid #edf0f5 !important; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05) !important; }
+    .vas-card thead th { background: #fff7fb !important; color: #111827 !important; font-size: 12px !important; font-weight: 950 !important; padding: 12px 10px !important; border-bottom: 1px solid rgba(162, 13, 134, 0.12) !important; white-space: nowrap !important; }
+    .vas-card tbody td { padding: 11px 10px !important; vertical-align: middle !important; border-bottom: 1px solid #eef1f5 !important; color: #111827 !important; }
+    .row-clickable { transition: all 160ms ease !important; }
+    .row-clickable:hover { background: #fff7fb !important; transform: translateY(-1px); box-shadow: inset 4px 0 0 #a20d86 !important; }
+    .status-badge { border-radius: 999px !important; padding: 6px 10px !important; font-size: 11px !important; font-weight: 950 !important; letter-spacing: 0.02em !important; }
+    .modern-modal .modal-content { border: 0 !important; border-radius: 24px !important; overflow: hidden !important; box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28) !important; background: #fffafd !important; }
+    .modern-modal-header { background: linear-gradient(135deg, #570457, #a20d86) !important; color: #ffffff !important; border: 0 !important; padding: 20px 22px !important; }
+    .modern-modal-title { color: #ffffff !important; font-size: 21px !important; font-weight: 950 !important; letter-spacing: -0.02em !important; }
+    .modern-modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%) !important; opacity: 0.9 !important; }
+    .modern-modal-body { padding: 18px !important; background: linear-gradient(180deg, #fff7fb 0%, #ffffff 65%) !important; max-height: calc(100vh - 210px) !important; overflow-y: auto !important; }
+    .modern-modal-footer { border-top: 1px solid rgba(162, 13, 134, 0.12) !important; background: #ffffff !important; padding: 14px 18px !important; }
+    .vas-section-block { background: #ffffff !important; border: 1px solid rgba(162, 13, 134, 0.13) !important; border-radius: 20px !important; padding: 14px !important; margin-bottom: 14px !important; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055) !important; }
+    .section-title { color: #a20d86 !important; font-size: 13px !important; font-weight: 950 !important; letter-spacing: 0.03em !important; text-transform: uppercase !important; margin-bottom: 10px !important; }
+    .tile { border: 1px solid rgba(162, 13, 134, 0.12) !important; border-radius: 16px !important; padding: 12px !important; background: linear-gradient(135deg, #ffffff, #fff9fd) !important; min-height: 76px !important; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04) !important; }
+    .tile__label { color: #7a5470 !important; font-size: 11px !important; font-weight: 850 !important; margin-bottom: 5px !important; }
+    .tile__value { color: #111827 !important; font-size: 14px !important; font-weight: 950 !important; overflow-wrap: anywhere !important; }
+    .kids-toolbar { background: #fff7fb !important; border: 1px solid rgba(162, 13, 134, 0.12) !important; border-radius: 16px !important; padding: 10px !important; }
+    .kids-toolbar button { font-weight: 850 !important; transition: all 160ms ease !important; }
+    .vas-kids-table { border-radius: 16px !important; overflow: hidden !important; border: 1px solid #edf0f5 !important; }
+    .kid-status-circle { border-radius: 999px !important; padding: 5px 10px !important; font-weight: 900 !important; background: #f3f4f6 !important; color: #374151 !important; }
+    .kid-status-circle--present { background: #dcfce7 !important; color: #15803d !important; }
+    .kid-status-circle--absent { background: #fee2e2 !important; color: #b91c1c !important; }
+    .kids-total-row td { background: #fff0f7 !important; color: #570457 !important; font-weight: 950 !important; }
+    .vas-pagination { background: #ffffff !important; border: 1px solid rgba(162, 13, 134, 0.10) !important; border-radius: 16px !important; padding: 10px 12px !important; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04) !important; }
+    .page-btn.active { background: linear-gradient(135deg, #570457, #a20d86) !important; border-color: #a20d86 !important; }
+    @media (max-width: 991px) { .grid-row { grid-template-columns: 1fr 1fr !important; } }
+    @media (max-width: 575px) { .vas-card-body { padding: 12px !important; } .grid-row { grid-template-columns: 1fr !important; } .modern-modal-body { max-height: calc(100vh - 170px) !important; } }
+  `;
+
+
   return (
     <div dir={dir} className="vas-container">
+      <style>{modernTripStyle}</style>
       <CCard
         className="vas-card"
         style={{
@@ -763,6 +984,28 @@ const ViewActivityScreen = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* PDF Export */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flex: "0 0 160px",
+                minWidth: 150,
+              }}
+            >
+              <label style={ts(13, { marginBottom: 4, color: "#000000" })}>
+                Export
+              </label>
+              <CButton
+                type="button"
+                className="trip-pdf-btn"
+                disabled={loading || !sortedItems.length}
+                onClick={handleExportPdf}
+              >
+                Export PDF
+              </CButton>
             </div>
           </div>
 
@@ -958,9 +1201,7 @@ const ViewActivityScreen = () => {
                         <CTableDataCell>
                           <CButton
                             size="sm"
-                            className="add-product-button"
-                            color="secondary"
-                            variant="outline"
+                            className="trip-view-btn"
                             onClick={(e) => {
                               e.stopPropagation();
                               openModalFor(row);
@@ -1335,9 +1576,23 @@ const ViewActivityScreen = () => {
                         borderRadius: 999,
                         fontSize: 12,
                         padding: "4px 12px",
+                        marginInlineEnd: 8,
                       }}
                     >
                       Export Excel
+                    </CButton>
+                    <CButton
+                      size="sm"
+                      className="trip-pdf-btn"
+                      disabled={!sortedKids.length}
+                      onClick={handleExportKidsPdf}
+                      style={{
+                        minHeight: 30,
+                        fontSize: 12,
+                        padding: "4px 12px",
+                      }}
+                    >
+                      Export PDF
                     </CButton>
                   </div>
                 </div>
@@ -1493,7 +1748,7 @@ const ViewActivityScreen = () => {
         <CModalFooter className="modern-modal-footer">
           <CButton
             color="secondary"
-            className="add-product-button"
+            className="trip-close-btn"
             variant="outline"
             onClick={() => setShowModal(false)}
             style={{

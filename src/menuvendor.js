@@ -1,4 +1,4 @@
- // src/menuvendor.js
+// src/menuvendor.js
 import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -6,7 +6,6 @@ import {
   cilCheckCircle,
   cilClock,
   cilXCircle,
-  cilBell,
   cilSettings,
   cilMoney,
   cilLibrary,
@@ -180,7 +179,6 @@ function StatusCounter({ fallback, color, field }) {
 
 // ================= VENDOR MENU =================
 const vendormenu = [
-  // ================= DASHBOARD =================
   {
     component: CNavTitle,
     name: 'DASHBOARD',
@@ -193,15 +191,12 @@ const vendormenu = [
     style: modernItemStyle,
   },
 
-  // ================= MEMBERSHIP =================
-  // ✅ MOVED: now directly below Dashboard
   {
     component: CNavGroup,
     name: 'Membership',
     menuKey: 'membership',
-    autoOpen: true,
+    autoOpen: false,
     toggler: sectionToggler('Membership'),
-    visible: true,
     className: 'nav-section-group',
     items: [
       {
@@ -227,7 +222,7 @@ const vendormenu = [
       },
       {
         component: CNavItem,
-        name: 'Payment',
+        name: 'Report',
         to: '/vendordata/membership/report/payment',
         icon: menuIcon(cilMoney),
         style: subItemStyle,
@@ -242,14 +237,12 @@ const vendormenu = [
     ],
   },
 
-  // ================= SCHOOL MANAGEMENT =================
   {
     component: CNavGroup,
     name: 'School Management',
     menuKey: 'school-management',
     autoOpen: false,
     toggler: sectionToggler('School Management'),
-    visible: false,
     className: 'nav-section-group',
     items: [
       {
@@ -280,15 +273,12 @@ const vendormenu = [
         icon: menuIcon(cilXCircle),
         style: subItemStyle,
       },
-
-      // ================= REPORT =================
       {
         component: CNavGroup,
         name: 'Report',
         menuKey: 'school-report',
         autoOpen: false,
         toggler: reportToggler,
-        visible: false,
         style: subItemStyle,
         items: [
           {
@@ -310,7 +300,6 @@ const vendormenu = [
     ],
   },
 
-  // ================= SETTINGS =================
   {
     component: CNavTitle,
     name: 'SETTINGS',
@@ -322,7 +311,6 @@ const vendormenu = [
     icon: menuIcon(cilSettings),
     style: modernItemStyle,
   },
- 
 ]
 
 export default vendormenu

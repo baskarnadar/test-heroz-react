@@ -5,6 +5,7 @@ import { IsUserAccessPage } from '../../utils/auth'
 import { API_BASE_URL } from '../../config'
 import { getAuthHeaders, getCurrentLoggedUserID, IsVendorLoginIsValid } from '../../utils/operation'
 import VdrCalenderScreen from '../calender/VdrCalenderScreen'
+import MembershipVisualGraph from './MembershipVisualGraph'
 import {
   CCard,
   CCardBody,
@@ -237,7 +238,7 @@ function WalletCard({ label, amount, type = 'received' }) {
 const Dashboard = () => {
   const navigate = useNavigate()
 
-  const [activeDashboardTab, setActiveDashboardTab] = useState('school')
+  const [activeDashboardTab, setActiveDashboardTab] = useState('membership')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -501,7 +502,7 @@ const Dashboard = () => {
             min-width: 150px;
             padding: 12px 18px;
             border-radius: 15px;
-            font-weight: 900;
+            font-weight: 400;
             color: #4b5563;
             background: transparent;
             transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
@@ -581,7 +582,7 @@ const Dashboard = () => {
           .vendor-calendar-modern-wrap .calendar-title,
           .vendor-calendar-modern-wrap [class*="title"] {
             color: #111827 !important;
-            font-weight: 900 !important;
+            font-weight: 400 !important;
             letter-spacing: -0.04em !important;
             text-shadow: 0 1px 0 rgba(255,255,255,0.65);
           }
@@ -602,7 +603,7 @@ const Dashboard = () => {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            font-weight: 900 !important;
+            font-weight: 400 !important;
             text-decoration: none !important;
             transition: transform 160ms ease, box-shadow 160ms ease;
           }
@@ -645,7 +646,7 @@ const Dashboard = () => {
           .vendor-calendar-modern-wrap th {
             color: #047857 !important;
             font-size: 18px !important;
-            font-weight: 900 !important;
+            font-weight: 400 !important;
             padding: 8px 4px !important;
             text-align: center !important;
           }
@@ -742,7 +743,7 @@ const Dashboard = () => {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            font-weight: 900 !important;
+            font-weight: 400 !important;
             background: rgba(255,255,255,0.22) !important;
             color: inherit !important;
             backdrop-filter: blur(8px);
@@ -818,7 +819,7 @@ const Dashboard = () => {
 
           .vendor-dashboard-modern .modal-title,
           .vendor-dashboard-modern [class*="modal-title"] {
-            font-weight: 900 !important;
+            font-weight: 400 !important;
             letter-spacing: -0.03em !important;
             color: #fff !important;
           }
@@ -859,7 +860,7 @@ const Dashboard = () => {
           .vendor-dashboard-modern [class*="modal"] button {
             border-radius: 14px !important;
             border: 0 !important;
-            font-weight: 800 !important;
+            font-weight: 400 !important;
             padding: 10px 18px !important;
           }
 
@@ -948,17 +949,17 @@ const Dashboard = () => {
       <div className="dashboard-tabs-wrap">
         <button
           type="button"
+          className={`dashboard-tab-btn ${activeDashboardTab === 'membership' ? 'active' : ''}`}
+          onClick={() => setActiveDashboardTab('membership')}
+        >
+          {tr('dashMemberShipTab', 'MemberShip')}
+        </button>
+        <button
+          type="button"
           className={`dashboard-tab-btn ${activeDashboardTab === 'school' ? 'active' : ''}`}
           onClick={() => setActiveDashboardTab('school')}
         >
           {tr('dashSchoolTab', 'School')}
-        </button>
-        <button
-          type="button"
-          className={`dashboard-tab-btn ${activeDashboardTab === 'membership' ? 'active' : ''}`}
-          onClick={() => navigate('/dashboard/membership')}
-        >
-          {tr('dashMemberShipTab', 'MemberShip')}
         </button>
       </div>
 
@@ -1033,6 +1034,20 @@ const Dashboard = () => {
           </CCard>
         </CCol>
       </CRow>
+
+
+      {/* Membership visual graph */}
+      {!isSchoolTab && (
+        <MembershipVisualGraph
+          isRTL={lang === 'ar'}
+          tr={tr}
+          bookedActivities={totalMembershipBookedActivities}
+          completedActivities={totalMembershipCompletedActivities}
+          todayActivities={totalMembershipTodayActivities}
+          amountReceived={totalMembershipAmountReceived}
+          balance={totalMembershipBalance}
+        />
+      )}
 
       {/* Calendar */}
       <div className="vendor-calendar-modern-wrap">
