@@ -123,19 +123,19 @@ const AgreementForm = () => {
   return (
     <form onSubmit={handleUpdate} className="form-container">
       <div className="page-title">
-        <h3>Heroz Agreement</h3>
+        <h3>Heroz Refund Policy</h3>
       </div>
 
       <div className="form-group">
-        <label>Agreement Text</label>
+        <label>Refund Policy Text</label>
         <textarea
           className="admin-txt-box"
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
           placeholder={
             prefillLoading
-              ? 'Loading current agreement…'
-              : 'Type the agreement text here…'
+              ? 'Loading current Refund Policy'
+              : 'Type the Refund Policy text here…'
           }
           rows={14}
           style={{ width: '100%', minHeight: 300, resize: 'vertical' }}
