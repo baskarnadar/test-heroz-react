@@ -135,6 +135,7 @@ const OutcomeModify = React.lazy(() => import('./admindata/lookupdata/outcome/mo
 // =======================
 const PaymentList = React.lazy(() => import('./admindata/payment/list'))
 const AgreementList = React.lazy(() => import('./admindata/agree/modify'))
+const RefundpolicyList = React.lazy(() => import('./admindata/refundpolicy/modify'))
 const activityoversightList = React.lazy(() => import('./admindata/activityoversight/list'))
 
 const reportsandanalysisList = React.lazy(() => import('./admindata/reportsandanalysis/providerlist'))
@@ -262,6 +263,8 @@ const routes = [
   { path: '/admindata/reportsandanalysis/schoollist', element: reportsandanalysisNew },
   { path: '/admindata/payment/list', element: PaymentList },
   { path: '/admindata/agree/modify', element: AgreementList },
+{ path: '/admindata/refundpolicy/modify', element: RefundpolicyList },
+  
 
   // Purchase Management
   { path: '/admindata/membership/purchase/list', element: PurchaseList },

@@ -140,6 +140,13 @@ const adminmenu = [
         to: '/admindata/agree/modify',
         icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
       },
+      ,
+      {
+        component: CNavItem,
+        name: 'Refund Policy',
+        to: '/admindata/refundpolicy/modify',
+        icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
+      },
     ],
   },
   {
