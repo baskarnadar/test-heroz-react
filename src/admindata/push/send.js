@@ -27,7 +27,7 @@ const SchoolList = () => {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedTID, setSelectedTID] = useState(null)
-  const [selectedOwnerName, setSelectedOwnerName] = useState('')
+  const [selectedUserFullName, setSelectedUserFullName] = useState('')
 
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('info')
@@ -42,7 +42,7 @@ const SchoolList = () => {
 
   // 🔽 sort config
   const [sortConfig, setSortConfig] = useState({
-    key: 'OwnerName', // default sort by school name
+    key: 'UserFullName', // default sort by user full name
     direction: 'asc',
   })
 
@@ -78,9 +78,13 @@ const SchoolList = () => {
           aVal = a._rowIndex ?? 0
           bVal = b._rowIndex ?? 0
           break
-        case 'OwnerName':
-          aVal = (a.OwnerName || a.OwnerType || '').toString().toLowerCase()
-          bVal = (b.OwnerName || b.OwnerType || '').toString().toLowerCase()
+        case 'UserFullName':
+          aVal = (a.UserFullName || '').toString().toLowerCase()
+          bVal = (b.UserFullName || '').toString().toLowerCase()
+          break
+        case 'UserType':
+          aVal = (a.UserType || '').toString().toLowerCase()
+          bVal = (b.UserType || '').toString().toLowerCase()
           break
         case 'TokenID':
           aVal = (a.TokenID || '').toString().toLowerCase()
@@ -173,7 +177,7 @@ const SchoolList = () => {
   // 🔴 open delete modal with info
   const handleDeleteClick = (row) => {
     setSelectedTID(row.TID)
-    setSelectedOwnerName(row.OwnerName || row.OwnerType || '-')
+    setSelectedUserFullName(row.UserFullName || '-')
     setShowDeleteModal(true)
   }
 
@@ -229,7 +233,7 @@ const SchoolList = () => {
   // 🔔 open send push modal
   const handleOpenSendModal = () => {
     if (selectedIds.length === 0) {
-      setToastMessage('Please select at least one school.')
+      setToastMessage('Please select at least one user.')
       setToastType('fail')
       return
     }
@@ -253,7 +257,7 @@ const SchoolList = () => {
     const selectedRows = tokenRows.filter((row) => selectedIds.includes(row.TID))
 
     if (selectedRows.length === 0) {
-      setToastMessage('No selected schools found on this page.')
+      setToastMessage('No selected users found on this page.')
       setToastType('fail')
       return
     }
@@ -264,7 +268,7 @@ const SchoolList = () => {
       .filter((t) => !!t)
 
     if (tokens.length === 0) {
-      setToastMessage('No valid tokens found for selected schools.')
+      setToastMessage('No valid tokens found for selected users.')
       setToastType('fail')
       return
     }
@@ -359,7 +363,7 @@ const SchoolList = () => {
     } finally {
       setShowDeleteModal(false)
       setSelectedTID(null)
-      setSelectedOwnerName('')
+      setSelectedUserFullName('')
     }
   }
 
@@ -376,7 +380,7 @@ const SchoolList = () => {
         <div className="ptl-header-left">
           <h3 className="ptl-header-title">Push Notification Tokens</h3>
           <div className="ptl-header-subtitle">
-            Manage and review FCM tokens for schools and parents.
+            Manage and review FCM tokens for vendors and parents.
           </div>
         </div>
 
@@ -384,7 +388,7 @@ const SchoolList = () => {
           <input
             type="text"
             className="form-control"
-            placeholder="Search by school name, owner, token..."
+            placeholder="Search by user full name, user type, token..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -426,10 +430,17 @@ const SchoolList = () => {
                   </th>
                   <th
                     className="ptl-th-clickable"
-                    onClick={() => handleSort('OwnerName')}
+                    onClick={() => handleSort('UserFullName')}
                   >
-                    School Name
-                    {renderSortIcon('OwnerName')}
+                    User Full Name
+                    {renderSortIcon('UserFullName')}
+                  </th>
+                  <th
+                    className="ptl-th-clickable"
+                    onClick={() => handleSort('UserType')}
+                  >
+                    User Type
+                    {renderSortIcon('UserType')}
                   </th>
                   <th
                     className="ptl-th-clickable ptl-col-token"
@@ -451,7 +462,7 @@ const SchoolList = () => {
               <tbody>
                 {tokenRows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="ptl-empty-row">
+                    <td colSpan={7} className="ptl-empty-row">
                       No records found.
                     </td>
                   </tr>
@@ -473,12 +484,17 @@ const SchoolList = () => {
 
                       <td>
                         <span className="ptl-owner-name">
-                          {row.OwnerName || '-'}
+                          {row.UserFullName || '-'}
                         </span>
-                        {row.OwnerType && (
+                      </td>
+
+                      <td>
+                        {row.UserType ? (
                           <span className="ptl-owner-type-chip">
-                            {row.OwnerType}
+                            {row.UserType}
                           </span>
+                        ) : (
+                          '-'
                         )}
                       </td>
 
@@ -550,7 +566,7 @@ const SchoolList = () => {
         </button>
         <span className="ptl-selected-info">
           {selectedIds.length === 0
-            ? 'Select at least one school to send notification.'
+            ? 'Select at least one user to send notification.'
             : `${selectedIds.length} selected`}
         </span>
       </div>
@@ -572,7 +588,7 @@ const SchoolList = () => {
               <>
                 <p>Are you sure you want to remove this token?</p>
                 <p>
-                  <strong>Owner Name:</strong> {selectedOwnerName || '-'}
+                  <strong>User Full Name:</strong> {selectedUserFullName || '-'}
                 </p>
               </>
             )}
@@ -586,7 +602,7 @@ const SchoolList = () => {
                 onClick={() => {
                   setShowDeleteModal(false)
                   setSelectedTID(null)
-                  setSelectedOwnerName('')
+                  setSelectedUserFullName('')
                 }}
               >
                 Cancel
@@ -614,18 +630,18 @@ const SchoolList = () => {
 
             <div className="ptl-send-modal-body">
               <div className="ptl-selected-list">
-                <h5>Selected Schools ({selectedRowsForModal.length})</h5>
+                <h5>Selected Users ({selectedRowsForModal.length})</h5>
                 {selectedRowsForModal.length === 0 ? (
                   <div className="ptl-selected-empty">
-                    No selected schools found on this page.
+                    No selected users found on this page.
                   </div>
                 ) : (
                   <ul>
                     {selectedRowsForModal.map((row) => (
                       <li key={row.TID}>
-                        <span className="ptl-owner-name">{row.OwnerName || '-'}</span>
-                        {row.OwnerType && (
-                          <span className="ptl-owner-type-chip">{row.OwnerType}</span>
+                        <span className="ptl-owner-name">{row.UserFullName || '-'}</span>
+                        {row.UserType && (
+                          <span className="ptl-owner-type-chip">{row.UserType}</span>
                         )}
                       </li>
                     ))}
